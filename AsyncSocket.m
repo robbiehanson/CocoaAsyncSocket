@@ -98,10 +98,6 @@ enum AsyncSocketFlags
 - (void) doCFReadStreamCallback:(CFStreamEventType)type forStream:(CFReadStreamRef)stream;
 - (void) doCFWriteStreamCallback:(CFStreamEventType)type forStream:(CFWriteStreamRef)stream;
 
-// Utilities
-- (NSData *) sockaddrFromString:(NSString *)addrStr port:(UInt16)port error:(NSError **)errPtr;
-
-
 @end
 
 static void MyCFSocketCallback (CFSocketRef, CFSocketCallBackType, CFDataRef, const void *, void *);
@@ -367,8 +363,47 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 	NSData *address = nil, *address6 = nil;
 	if(hostaddr && ([hostaddr length] != 0))
 	{
-		address = [self sockaddrFromString:hostaddr port:port error:errPtr];
-		if (!address) return NO;
+		NSString *portStr = [NSString stringWithFormat:@"%hu", port];
+		
+		@synchronized (getaddrinfoLock)
+		{
+			struct addrinfo hints, *res, *res0;
+			
+			memset(&hints, 0, sizeof(hints));
+			hints.ai_family   = PF_UNSPEC;
+			hints.ai_socktype = SOCK_STREAM;
+			hints.ai_protocol = IPPROTO_TCP;
+			hints.ai_flags    = AI_PASSIVE;
+			
+			int error = getaddrinfo([hostaddr UTF8String], [portStr UTF8String], &hints, &res0);
+			
+			if(error)
+			{
+				NSString *errMsg = [NSString stringWithCString:gai_strerror(error) encoding:NSASCIIStringEncoding];
+				NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+				
+				*errPtr = [NSError errorWithDomain:@"kCFStreamErrorDomainNetDB" code:error userInfo:info];
+			}
+			
+			for(res = res0; res; res = res->ai_next)
+			{
+				if(!address && (res->ai_family == AF_INET))
+				{
+					// Found IPv4 address
+					// Wrap the native address structures for CFSocketSetAddress.
+					address = [NSData dataWithBytes:res->ai_addr length:res->ai_addrlen];
+				}
+				else if(!address6 && (res->ai_family == AF_INET6))
+				{
+					// Found IPv6 address
+					// Wrap the native address structures for CFSocketSetAddress.
+					address6 = [NSData dataWithBytes:res->ai_addr length:res->ai_addrlen];
+				}
+			}
+			freeaddrinfo(res0);
+		}
+		
+		if(!address && !address6) return NO;
 	}
 	else
 	{
@@ -389,8 +424,8 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 		nativeAddr6.sin6_scope_id  = 0;
 
 		// Wrap the native address structures for CFSocketSetAddress.
-		address = [NSData dataWithBytesNoCopy:&nativeAddr length:sizeof(nativeAddr) freeWhenDone:NO];
-		address6 = [NSData dataWithBytesNoCopy:&nativeAddr6 length:sizeof(nativeAddr6) freeWhenDone:NO];
+		address = [NSData dataWithBytes:&nativeAddr length:sizeof(nativeAddr)];
+		address6 = [NSData dataWithBytes:&nativeAddr6 length:sizeof(nativeAddr6)];
 	}
 
 	// Create the sockets.
@@ -561,9 +596,9 @@ Failed:;
 		BOOL pass = YES;
 		
 		if(pass && ![newSocket createStreamsFromNative:newNative error:nil]) pass = NO;
-		if(pass && ![newSocket attachStreamsToRunLoop:runLoop error:nil]) pass = NO;
-		if(pass && ![newSocket configureStreamsAndReturnError:nil]) pass = NO;
-		if(pass && ![newSocket openStreamsAndReturnError:nil]) pass = NO;
+		if(pass && ![newSocket attachStreamsToRunLoop:runLoop error:nil])    pass = NO;
+		if(pass && ![newSocket configureStreamsAndReturnError:nil])          pass = NO;
+		if(pass && ![newSocket openStreamsAndReturnError:nil])               pass = NO;
 		
 		if(pass)
 			newSocket->theFlags |= kDidPassConnectMethod;
@@ -720,6 +755,7 @@ Failed:;
 		{
 			NSLog (@"AsyncSocket %p couldn't get socket from streams, %@. Disconnecting.", self, err);
 			[self closeWithError:err];
+			return;
 		}
 		
 		// Call the delegate.
@@ -802,11 +838,12 @@ Failed:;
 	[self emptyQueues];
 	[partialReadBuffer release];
 	partialReadBuffer = nil;
-	[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(disconnect) object:nil];	
-
+	[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(disconnect) object:nil];
+	
 	// Close streams.
 	if (theReadStream != NULL)
 	{
+		CFReadStreamSetClient(theReadStream, kCFStreamEventNone, NULL, NULL);
 		CFReadStreamUnscheduleFromRunLoop (theReadStream, theRunLoop, kCFRunLoopDefaultMode);
 		CFReadStreamClose (theReadStream);
 		CFRelease (theReadStream);
@@ -814,6 +851,7 @@ Failed:;
 	}
 	if (theWriteStream != NULL)
 	{
+		CFWriteStreamSetClient(theWriteStream, kCFStreamEventNone, NULL, NULL);
 		CFWriteStreamUnscheduleFromRunLoop (theWriteStream, theRunLoop, kCFRunLoopDefaultMode);
 		CFWriteStreamClose (theWriteStream);
 		CFRelease (theWriteStream);
@@ -1688,54 +1726,6 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 {
 	AsyncSocket *socket = (AsyncSocket *)pInfo;
 	[socket doCFWriteStreamCallback:type forStream:stream];
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#pragma mark Utilities
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-- (NSData *) sockaddrFromString:(NSString *)addrStr port:(UInt16)port error:(NSError **)errPtr
-{
-	NSData *resultData = nil;
-	
-	struct addrinfo hints = {0}, *result;
-	hints.ai_family	 = PF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_protocol = IPPROTO_TCP;
-	hints.ai_flags	 = AI_NUMERICHOST | AI_PASSIVE;
-	
-	@synchronized (getaddrinfoLock)
-	{
-		NSData *addrStrData = [addrStr dataUsingEncoding:NSASCIIStringEncoding
-									allowLossyConversion:YES];
-
-		char portStr[] = "65535"; // Reserve space for max port number.
-		snprintf(portStr, sizeof(portStr), "%u", port);
-
-		int err = getaddrinfo ([addrStrData bytes], portStr,
-							   (const struct addrinfo *)&hints,
-							   (struct addrinfo **)&result);
-		if (!err)
-		{
-			resultData = [NSData dataWithBytes:result->ai_addr
-										length:result->ai_addrlen];
-			freeaddrinfo (result);
-		}
-		else if (errPtr)
-		{
-			NSString *errMsg = [NSString stringWithCString: gai_strerror(err)
-												  encoding: NSASCIIStringEncoding];
-
-			NSDictionary *info = [NSDictionary dictionaryWithObjectsAndKeys:
-				errMsg, NSLocalizedDescriptionKey, nil];
-
-			*errPtr = [NSError errorWithDomain:@"kCFStreamErrorDomainNetDB"
-									   code:err
-								   userInfo:info];
-		}
-	}
-	
-	return resultData;
 }
 
 @end

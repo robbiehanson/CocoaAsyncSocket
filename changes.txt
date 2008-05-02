@@ -61,4 +61,30 @@ Bugfix:
   In doWriteTimeout: the code was calling completeCurrentWrite and then closes with an error.
   This resulted in the delegate being told that his write completed (when it didn't)
   immediately prior to disconnecting with an error.
+
   
+  
+  
+CHANGES IN VERSION 4.3.5
+
+Added support for accepting on IPv6 address.
+
+Bugfix:
+  In acceptOnAddress, changed dataWithBytesNoCopy to dataWithBytes.
+  This was needed because the bytes were about to go out of scope.
+  
+Bugfix:
+  Added return statement to doStreamOpen after closewithError call.
+  This was needed or else the didConnect delegate could potentially get called
+  immediately after willCloseWithError and didClose.
+
+Bugfix:
+  We were receiving several reports of crashes in AsyncSocket.
+  The problem seemed to be that, in specific circumstances,
+  the readStream callback and/or writeStream callback would be invoked AFTER
+  the readStream and writeStream were closed.
+  This isn't supposed to happen, however we did find evidence that it was an issue several years ago.
+  It was assumed that the problem has since been fixed.
+  Perhaps the problem still exists, but only in very rare cases which we just happened to be encountering.
+  In any case, we used the same precautions that were used previously.
+  In the close methods, we specifically unregister for callbacks now.
