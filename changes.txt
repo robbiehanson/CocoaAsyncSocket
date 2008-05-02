@@ -23,3 +23,30 @@ Often, when using the AsyncSocket class, it was important to display a progress 
 This was possible using Timers, and calling progressOfRead, but it wasn't the easiest solution.
 This delegate method will allow for automatic notification when using readToLength: or readToData:
 
+
+
+
+CHANGES IN VERSION 4.3.3
+
+Bugfix: 
+  The methods connectedHost, connectedPort, localHost, and localPort all assumed IPv4 connection.
+  In other words they all assumed theSocket was valid, causing a crash when the OS connected via IPv6.
+  Updated all methods to properly check either theSocket or theSocket6.
+
+Bugfix: 
+  In the doStreamOpen method, there was an assumption that IPv4 was used and thus a valid theSocket variable.
+  This was not always the case, causing this to fail:
+  CFSocketCopyPeerAddress(theSocket)
+  Fixed the problem by simply using the connectedHost and connectedPort methods.
+
+Tweak: 
+  Added safety check in addressPort: method:
+  if (cfaddr == NULL) return 0;
+
+Tweak: 
+  The kCFStreamPropertyShouldCloseNativeSocket was previously getting set in the configureStreamsAndReturnError: method.
+  This may have been OK, but it would have caused a problem if the following sequence occurred:
+  A socket was accepted and doAcceptWithSocket: method was called, 
+  This method then encoutered an error while attaching the streams to the run loop.
+  If this sequence happened, the BSD socket would not have been closed.
+  So I moved this into the createStreams... methods.

@@ -597,6 +597,10 @@ Failed:;
 		return NO;
 	}
 	
+	// Ensure the CF & BSD socket is closed when the streams are closed.
+	CFReadStreamSetProperty(theReadStream, kCFStreamPropertyShouldCloseNativeSocket, kCFBooleanTrue);
+	CFWriteStreamSetProperty(theWriteStream, kCFStreamPropertyShouldCloseNativeSocket, kCFBooleanTrue);
+	
 	return YES;
 }
 
@@ -613,6 +617,10 @@ Failed:;
 		if (errPtr) *errPtr = [self getStreamError];
 		return NO;
 	}
+	
+	// Ensure the CF & BSD socket is closed when the streams are closed.
+	CFReadStreamSetProperty(theReadStream, kCFStreamPropertyShouldCloseNativeSocket, kCFBooleanTrue);
+	CFWriteStreamSetProperty(theWriteStream, kCFStreamPropertyShouldCloseNativeSocket, kCFBooleanTrue);
 	
 	return YES;
 }
@@ -659,10 +667,6 @@ Failed:;
 **/
 - (BOOL)configureStreamsAndReturnError:(NSError **)errPtr
 {
-	// Ensure the CF & BSD socket is closed when the streams are closed.
-	CFReadStreamSetProperty(theReadStream, kCFStreamPropertyShouldCloseNativeSocket, kCFBooleanTrue);
-	CFWriteStreamSetProperty(theWriteStream, kCFStreamPropertyShouldCloseNativeSocket, kCFBooleanTrue);
-	
 	// Call the delegate method for further configuration.
 	if([theDelegate respondsToSelector:@selector(onSocketWillConnect:)])
 	{
@@ -719,13 +723,11 @@ Failed:;
 		}
 		
 		// Call the delegate.
-		CFDataRef peer = CFSocketCopyPeerAddress (theSocket);
 		theFlags |= kDidCallConnectDeleg;
 		if ([theDelegate respondsToSelector:@selector(onSocket:didConnectToHost:port:)])
-			[theDelegate onSocket:self
-				 didConnectToHost:[self addressHost:peer]
-							 port:[self addressPort:peer]];
-		CFRelease (peer);
+		{
+			[theDelegate onSocket:self didConnectToHost:[self connectedHost] port:[self connectedPort]];
+		}
 		
 		// Immediately deal with any already-queued requests.
 		[self maybeDequeueRead];
@@ -1011,22 +1013,34 @@ Failed:;
 
 - (NSString *) connectedHost
 {
-	return [self connectedHost:theSocket];
+	if(theSocket)
+		return [self connectedHost:theSocket];
+	else
+		return [self connectedHost:theSocket6];
 }
 
 - (UInt16) connectedPort
 {
-	return [self connectedPort:theSocket];
+	if(theSocket)
+		return [self connectedPort:theSocket];
+	else
+		return [self connectedPort:theSocket6];
 }
 
 - (NSString *)localHost
 {
-	return [self localHost:theSocket];
+	if(theSocket)
+		return [self localHost:theSocket];
+	else
+		return [self localHost:theSocket6];
 }
 
 - (UInt16)localPort
 {
-	return [self localPort:theSocket];
+	if(theSocket)
+		return [self localPort:theSocket];
+	else
+		return [self localPort:theSocket6];
 }
 
 - (NSString *)connectedHost:(CFSocketRef)socket
@@ -1139,6 +1153,7 @@ Failed:;
 
 - (UInt16)addressPort:(CFDataRef)cfaddr
 {
+	if (cfaddr == NULL) return 0;
 	struct sockaddr_in *pAddr = (struct sockaddr_in *) CFDataGetBytePtr (cfaddr);
 	return ntohs (pAddr->sin_port);
 }
