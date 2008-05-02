@@ -1,0 +1,425 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 42;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		08FB77A2FE84155DC02AAC07 /* EchoMain.m in Sources */ = {isa = PBXBuildFile; fileRef = 08FB7796FE84155DC02AAC07 /* EchoMain.m */; settings = {ATTRIBUTES = (); }; };
+		08FB77A4FE84155DC02AAC07 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 08FB779EFE84155DC02AAC07 /* Foundation.framework */; };
+		B1182B1C0451F3E600A87BA4 /* EchoServerMain.m in Sources */ = {isa = PBXBuildFile; fileRef = B1182B1B0451F3E600A87BA4 /* EchoServerMain.m */; };
+		B1182B200451F4F900A87BA4 /* AsyncSocket.h in Headers */ = {isa = PBXBuildFile; fileRef = B1182B1E0451F4F900A87BA4 /* AsyncSocket.h */; };
+		B1182B210451F4F900A87BA4 /* AsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = B1182B1F0451F4F900A87BA4 /* AsyncSocket.m */; };
+		B1182B220451F4F900A87BA4 /* AsyncSocket.h in Headers */ = {isa = PBXBuildFile; fileRef = B1182B1E0451F4F900A87BA4 /* AsyncSocket.h */; };
+		B1182B230451F4F900A87BA4 /* AsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = B1182B1F0451F4F900A87BA4 /* AsyncSocket.m */; };
+		B1182B2C045220FE00A87BA4 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 08FB779EFE84155DC02AAC07 /* Foundation.framework */; };
+		B1D647B008E5F5A300CE4127 /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B1D647A108E5F5A300CE4127 /* CoreServices.framework */; };
+		B1D647B108E5F5A300CE4127 /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B1D647A108E5F5A300CE4127 /* CoreServices.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		034768E6FF38A76511DB9C8B /* Echo */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = Echo; sourceTree = BUILT_PRODUCTS_DIR; };
+		08FB7796FE84155DC02AAC07 /* EchoMain.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = EchoMain.m; sourceTree = "<group>"; };
+		08FB779EFE84155DC02AAC07 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
+		B109F4A508163F93000A6E39 /* AsyncSocket Documentation.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; name = "AsyncSocket Documentation.html"; path = "../AsyncSocket Documentation.html"; sourceTree = SOURCE_ROOT; };
+		B1182B180451F2C000A87BA4 /* EchoServer */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; path = EchoServer; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1182B1B0451F3E600A87BA4 /* EchoServerMain.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = EchoServerMain.m; sourceTree = "<group>"; };
+		B1182B1E0451F4F900A87BA4 /* AsyncSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AsyncSocket.h; path = ../AsyncSocket.h; sourceTree = SOURCE_ROOT; };
+		B1182B1F0451F4F900A87BA4 /* AsyncSocket.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; name = AsyncSocket.m; path = ../AsyncSocket.m; sourceTree = SOURCE_ROOT; };
+		B1D647A108E5F5A300CE4127 /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = /System/Library/Frameworks/CoreServices.framework; sourceTree = "<absolute>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		08FB77A3FE84155DC02AAC07 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				08FB77A4FE84155DC02AAC07 /* Foundation.framework in Frameworks */,
+				B1D647B108E5F5A300CE4127 /* CoreServices.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B1182B150451F2C000A87BA4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B1182B2C045220FE00A87BA4 /* Foundation.framework in Frameworks */,
+				B1D647B008E5F5A300CE4127 /* CoreServices.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		08FB7794FE84155DC02AAC07 /* AsyncSocketSample */ = {
+			isa = PBXGroup;
+			children = (
+				B1DDB1D40476CB9500A87BA4 /* AsyncSocket */,
+				08FB7795FE84155DC02AAC07 /* Source */,
+				08FB779DFE84155DC02AAC07 /* External Frameworks and Libraries */,
+				1AB674ADFE9D54B511CA2CBB /* Products */,
+			);
+			name = AsyncSocketSample;
+			sourceTree = "<group>";
+		};
+		08FB7795FE84155DC02AAC07 /* Source */ = {
+			isa = PBXGroup;
+			children = (
+				08FB7796FE84155DC02AAC07 /* EchoMain.m */,
+				B1182B1B0451F3E600A87BA4 /* EchoServerMain.m */,
+			);
+			name = Source;
+			sourceTree = "<group>";
+		};
+		08FB779DFE84155DC02AAC07 /* External Frameworks and Libraries */ = {
+			isa = PBXGroup;
+			children = (
+				B1D647A108E5F5A300CE4127 /* CoreServices.framework */,
+				08FB779EFE84155DC02AAC07 /* Foundation.framework */,
+			);
+			name = "External Frameworks and Libraries";
+			sourceTree = "<group>";
+		};
+		1AB674ADFE9D54B511CA2CBB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				034768E6FF38A76511DB9C8B /* Echo */,
+				B1182B180451F2C000A87BA4 /* EchoServer */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B1DDB1D40476CB9500A87BA4 /* AsyncSocket */ = {
+			isa = PBXGroup;
+			children = (
+				B109F4A508163F93000A6E39 /* AsyncSocket Documentation.html */,
+				B1182B1E0451F4F900A87BA4 /* AsyncSocket.h */,
+				B1182B1F0451F4F900A87BA4 /* AsyncSocket.m */,
+			);
+			name = AsyncSocket;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		08FB77A0FE84155DC02AAC07 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B1182B220451F4F900A87BA4 /* AsyncSocket.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B1182B130451F2C000A87BA4 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B1182B200451F4F900A87BA4 /* AsyncSocket.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXProject section */
+		08FB7793FE84155DC02AAC07 /* Project object */ = {
+			isa = PBXProject;
+			buildConfigurationList = B14C468B0859613500F68F74 /* Build configuration list for PBXProject "AsyncSocketSample" */;
+			hasScannedForEncodings = 1;
+			mainGroup = 08FB7794FE84155DC02AAC07 /* AsyncSocketSample */;
+			projectDirPath = "";
+			targets = (
+				08FB779FFE84155DC02AAC07 /* Echo */,
+				B1182B170451F2C000A87BA4 /* EchoServer */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXRezBuildPhase section */
+		08FB77A5FE84155DC02AAC07 /* Rez */ = {
+			isa = PBXRezBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B1182B160451F2C000A87BA4 /* Rez */ = {
+			isa = PBXRezBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXRezBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		08FB77A1FE84155DC02AAC07 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				08FB77A2FE84155DC02AAC07 /* EchoMain.m in Sources */,
+				B1182B230451F4F900A87BA4 /* AsyncSocket.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B1182B140451F2C000A87BA4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B1182B1C0451F3E600A87BA4 /* EchoServerMain.m in Sources */,
+				B1182B210451F4F900A87BA4 /* AsyncSocket.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXToolTarget section */
+		08FB779FFE84155DC02AAC07 /* Echo */ = {
+			isa = PBXToolTarget;
+			buildConfigurationList = B14C46830859613500F68F74 /* Build configuration list for PBXToolTarget "Echo" */;
+			buildPhases = (
+				08FB77A0FE84155DC02AAC07 /* Headers */,
+				08FB77A1FE84155DC02AAC07 /* Sources */,
+				08FB77A3FE84155DC02AAC07 /* Frameworks */,
+				08FB77A5FE84155DC02AAC07 /* Rez */,
+			);
+			dependencies = (
+			);
+			name = Echo;
+			productInstallPath = "$(HOME)/bin";
+			productName = AsyncSocketSample;
+			productReference = 034768E6FF38A76511DB9C8B /* Echo */;
+		};
+		B1182B170451F2C000A87BA4 /* EchoServer */ = {
+			isa = PBXToolTarget;
+			buildConfigurationList = B14C46870859613500F68F74 /* Build configuration list for PBXToolTarget "EchoServer" */;
+			buildPhases = (
+				B1182B130451F2C000A87BA4 /* Headers */,
+				B1182B140451F2C000A87BA4 /* Sources */,
+				B1182B150451F2C000A87BA4 /* Frameworks */,
+				B1182B160451F2C000A87BA4 /* Rez */,
+			);
+			dependencies = (
+			);
+			name = EchoServer;
+			productInstallPath = "$(HOME)/bin";
+			productName = EchoServer;
+			productReference = B1182B180451F2C000A87BA4 /* EchoServer */;
+		};
+/* End PBXToolTarget section */
+
+/* Begin XCBuildConfiguration section */
+		B14C46840859613500F68F74 /* Development */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CC = "/usr/bin/gcc-3.3";
+				COPY_PHASE_STRIP = NO;
+				CPLUSPLUS = "/usr/bin/g++-3.3";
+				FRAMEWORK_SEARCH_PATHS = "\"$(SYSTEM_LIBRARY_DIR)/Frameworks/CoreServices.framework/Versions/A/Frameworks\"";
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_VERSION = 3.x;
+				HEADER_SEARCH_PATHS = "";
+				INSTALL_PATH = "$(HOME)/bin";
+				LIBRARY_SEARCH_PATHS = "";
+				OPTIMIZATION_CFLAGS = "-O0";
+				OTHER_LDFLAGS = "";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = Echo;
+				REZ_EXECUTABLE = YES;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = (
+					"-Wmost",
+					"-Wno-four-char-constants",
+					"-Wno-unknown-pragmas",
+				);
+				ZERO_LINK = YES;
+			};
+			name = Development;
+		};
+		B14C46850859613500F68F74 /* Deployment */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CC = "/usr/bin/gcc-3.3";
+				COPY_PHASE_STRIP = YES;
+				CPLUSPLUS = "/usr/bin/g++-3.3";
+				FRAMEWORK_SEARCH_PATHS = "\"$(SYSTEM_LIBRARY_DIR)/Frameworks/CoreServices.framework/Versions/A/Frameworks\"";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_VERSION = 3.x;
+				HEADER_SEARCH_PATHS = "";
+				INSTALL_PATH = "$(HOME)/bin";
+				LIBRARY_SEARCH_PATHS = "";
+				OTHER_LDFLAGS = "";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = Echo;
+				REZ_EXECUTABLE = YES;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = (
+					"-Wmost",
+					"-Wno-four-char-constants",
+					"-Wno-unknown-pragmas",
+				);
+				ZERO_LINK = NO;
+			};
+			name = Deployment;
+		};
+		B14C46860859613500F68F74 /* Default */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CC = "/usr/bin/gcc-3.3";
+				CPLUSPLUS = "/usr/bin/g++-3.3";
+				FRAMEWORK_SEARCH_PATHS = "\"$(SYSTEM_LIBRARY_DIR)/Frameworks/CoreServices.framework/Versions/A/Frameworks\"";
+				GCC_VERSION = 3.x;
+				HEADER_SEARCH_PATHS = "";
+				INSTALL_PATH = "$(HOME)/bin";
+				LIBRARY_SEARCH_PATHS = "";
+				OTHER_LDFLAGS = "";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = Echo;
+				REZ_EXECUTABLE = YES;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = (
+					"-Wmost",
+					"-Wno-four-char-constants",
+					"-Wno-unknown-pragmas",
+				);
+			};
+			name = Default;
+		};
+		B14C46880859613500F68F74 /* Development */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CC = "/usr/bin/gcc-3.3";
+				COPY_PHASE_STRIP = NO;
+				CPLUSPLUS = "/usr/bin/g++-3.3";
+				FRAMEWORK_SEARCH_PATHS = "\"$(SYSTEM_LIBRARY_DIR)/Frameworks/CoreServices.framework/Versions/A/Frameworks\"";
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_VERSION = 3.x;
+				INSTALL_PATH = "$(HOME)/bin";
+				OPTIMIZATION_CFLAGS = "-O0";
+				OTHER_LDFLAGS = "";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = EchoServer;
+				REZ_EXECUTABLE = YES;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = (
+					"-Wmost",
+					"-Wno-four-char-constants",
+					"-Wno-unknown-pragmas",
+				);
+				ZERO_LINK = YES;
+			};
+			name = Development;
+		};
+		B14C46890859613500F68F74 /* Deployment */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CC = "/usr/bin/gcc-3.3";
+				COPY_PHASE_STRIP = YES;
+				CPLUSPLUS = "/usr/bin/g++-3.3";
+				FRAMEWORK_SEARCH_PATHS = "\"$(SYSTEM_LIBRARY_DIR)/Frameworks/CoreServices.framework/Versions/A/Frameworks\"";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_VERSION = 3.x;
+				INSTALL_PATH = "$(HOME)/bin";
+				OTHER_LDFLAGS = "";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = EchoServer;
+				REZ_EXECUTABLE = YES;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = (
+					"-Wmost",
+					"-Wno-four-char-constants",
+					"-Wno-unknown-pragmas",
+				);
+				ZERO_LINK = NO;
+			};
+			name = Deployment;
+		};
+		B14C468A0859613500F68F74 /* Default */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CC = "/usr/bin/gcc-3.3";
+				CPLUSPLUS = "/usr/bin/g++-3.3";
+				FRAMEWORK_SEARCH_PATHS = "\"$(SYSTEM_LIBRARY_DIR)/Frameworks/CoreServices.framework/Versions/A/Frameworks\"";
+				GCC_VERSION = 3.x;
+				INSTALL_PATH = "$(HOME)/bin";
+				OTHER_LDFLAGS = "";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = EchoServer;
+				REZ_EXECUTABLE = YES;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = (
+					"-Wmost",
+					"-Wno-four-char-constants",
+					"-Wno-unknown-pragmas",
+				);
+			};
+			name = Default;
+		};
+		B14C468C0859613500F68F74 /* Development */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				OTHER_CFLAGS = "-fobjc-exceptions";
+			};
+			name = Development;
+		};
+		B14C468D0859613500F68F74 /* Deployment */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				OTHER_CFLAGS = "-fobjc-exceptions";
+			};
+			name = Deployment;
+		};
+		B14C468E0859613500F68F74 /* Default */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				OTHER_CFLAGS = "-fobjc-exceptions";
+			};
+			name = Default;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		B14C46830859613500F68F74 /* Build configuration list for PBXToolTarget "Echo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B14C46840859613500F68F74 /* Development */,
+				B14C46850859613500F68F74 /* Deployment */,
+				B14C46860859613500F68F74 /* Default */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Default;
+		};
+		B14C46870859613500F68F74 /* Build configuration list for PBXToolTarget "EchoServer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B14C46880859613500F68F74 /* Development */,
+				B14C46890859613500F68F74 /* Deployment */,
+				B14C468A0859613500F68F74 /* Default */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Default;
+		};
+		B14C468B0859613500F68F74 /* Build configuration list for PBXProject "AsyncSocketSample" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B14C468C0859613500F68F74 /* Development */,
+				B14C468D0859613500F68F74 /* Deployment */,
+				B14C468E0859613500F68F74 /* Default */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Default;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 08FB7793FE84155DC02AAC07 /* Project object */;
+}
