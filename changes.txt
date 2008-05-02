@@ -1,0 +1,12 @@
+Changes in version 4.3.1:
+
+Bugfix:
+  If user called acceptOnPort:0, then the OS would automatically pick a port for you.
+  This is what is supposed to happen, except that it would pick a different port for IPv4 and IPv6
+  Added code to make sure both protocols are listening on the same port
+
+Added comments in many places
+
+Altered bits of code to match Apple's coding style guidelines
+
+Renamed method "attachAcceptSockets" to "attachSocketsToRunLoop:error:"
