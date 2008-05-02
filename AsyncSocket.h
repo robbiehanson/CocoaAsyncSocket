@@ -33,29 +33,55 @@ typedef enum AsyncSocketError AsyncSocketError;
 
 @interface NSObject ( AsyncSocketDelegate )
 
-/* In the event of an error, the socket is closed. You may call "readDataWithTimeout:tag:" during this call-back to get the last bit of data off the socket. When connecting, this delegate method may be called before "onSocket:didAcceptNewSocket:" or "onSocket:didConnectToHost:". */
--(void) onSocket:(AsyncSocket *)sock willDisconnectWithError:(NSError *)err;
+/**
+ * In the event of an error, the socket is closed.  You may call "readDataWithTimeout:tag:" during this call-back to
+ * get the last bit of data off the socket.  When connecting, this delegate method may be called
+ * before"onSocket:didAcceptNewSocket:" or "onSocket:didConnectToHost:".
+**/
+- (void)onSocket:(AsyncSocket *)sock willDisconnectWithError:(NSError *)err;
 
-/* Called when a socket disconnects with or without error. If you want to release a socket after it disconnects, do so here. It is not safe to do that during "onSocket:willDisconnectWithError:". */
--(void) onSocketDidDisconnect:(AsyncSocket *)sock;
+/**
+ * Called when a socket disconnects with or without error.  If you want to release a socket after it disconnects,
+ * do so here. It is not safe to do that during "onSocket:willDisconnectWithError:".
+**/
+- (void)onSocketDidDisconnect:(AsyncSocket *)sock;
 
-/* Called when a socket accepts a connection. Another socket is spawned to handle it. The new socket will have the same delegate and will call "onSocket:didConnectToHost:port:". */
--(void) onSocket:(AsyncSocket *)sock didAcceptNewSocket:(AsyncSocket *)newSocket;
+/**
+ * Called when a socket accepts a connection.  Another socket is spawned to handle it. The new socket will have
+ * the same delegate and will call "onSocket:didConnectToHost:port:".
+**/
+- (void)onSocket:(AsyncSocket *)sock didAcceptNewSocket:(AsyncSocket *)newSocket;
 
-/* Called when a new socket is spawned to handle a connection. This method should return the run-loop of the thread on which the new socket and its delegate should operate. If omitted, [NSRunLoop currentRunLoop] is used. */
--(NSRunLoop *) onSocket:(AsyncSocket *)sock wantsRunLoopForNewSocket:(AsyncSocket *)newSocket;
+/**
+ * Called when a new socket is spawned to handle a connection.  This method should return the run-loop of the
+ * thread on which the new socket and its delegate should operate. If omitted, [NSRunLoop currentRunLoop] is used.
+**/
+- (NSRunLoop *)onSocket:(AsyncSocket *)sock wantsRunLoopForNewSocket:(AsyncSocket *)newSocket;
 
-/* Called when a socket is about to connect. This method should return YES to continue, or NO to abort. If aborted, will result in AsyncSocketCanceledError. */
--(BOOL) onSocketWillConnect:(AsyncSocket *)sock;
+/**
+ * Called when a socket is about to connect. This method should return YES to continue, or NO to abort.
+ * If aborted, will result in AsyncSocketCanceledError.
+ * 
+ * If the connectToHost:onPort:error: method was called, the delegate will be able to access and configure the
+ * CFReadStream and CFWriteStream as desired prior to connection.
+**/
+- (BOOL)onSocketWillConnect:(AsyncSocket *)sock;
 
-/* Called when a socket connects and is ready for reading and writing. "host" will be an IP address, not a DNS name. */
--(void) onSocket:(AsyncSocket *)sock didConnectToHost:(NSString *)host port:(UInt16)port;
+/**
+ * Called when a socket connects and is ready for reading and writing.
+ * The host parameter will be an IP address, not a DNS name.
+**/
+- (void)onSocket:(AsyncSocket *)sock didConnectToHost:(NSString *)host port:(UInt16)port;
 
-/* Called when a socket has completed reading the requested data. Not called if there is an error. */
--(void) onSocket:(AsyncSocket *)sock didReadData:(NSData*)data withTag:(long)tag;
+/**
+ * Called when a socket has completed reading the requested data. Not called if there is an error.
+**/
+- (void)onSocket:(AsyncSocket *)sock didReadData:(NSData*)data withTag:(long)tag;
 
-/* Called when a socket has completed writing the requested data. Not called if there is an error. */
--(void) onSocket:(AsyncSocket *)sock didWriteDataWithTag:(long)tag;
+/**
+ * Called when a socket has completed writing the requested data. Not called if there is an error.
+**/
+- (void)onSocket:(AsyncSocket *)sock didWriteDataWithTag:(long)tag;
 
 @end
 
@@ -95,7 +121,10 @@ typedef enum AsyncSocketError AsyncSocketError;
 /* String representation is long but has no "\n". */
 - (NSString *) description;
 
-/* Use "canSafelySetDelegate" to see if there is any pending business (reads and writes) with the current delegate before changing it. It is, of course, safe to change the delegate before connecting or accepting connections. */
+/**
+ * Use "canSafelySetDelegate" to see if there is any pending business (reads and writes) with the current delegate
+ * before changing it.  It is, of course, safe to change the delegate before connecting or accepting connections.
+**/
 - (id) delegate;
 - (BOOL) canSafelySetDelegate;
 - (void) setDelegate:(id)delegate;
@@ -109,42 +138,73 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (CFReadStreamRef) getCFReadStream;
 - (CFWriteStreamRef) getCFWriteStream;
 
-/* Once one of these methods is called, the AsyncSocket instance is locked in, and the rest can't be called without disconnecting the socket first. If the attempt times out or fails, these methods either return NO or call "onSocket:willDisconnectWithError:" and "onSockedDidDisconnect:". */
-- (BOOL) acceptOnPort:(UInt16)port error:(NSError **)errPtr;
-- (BOOL) acceptOnAddress:(NSString *)hostaddr port:(UInt16)port error:(NSError **)errPtr;
-- (BOOL) connectToHost:(NSString*)hostname onPort:(UInt16)port error:(NSError **)errPtr;
+/**
+ * Once one of these methods is called, the AsyncSocket instance is locked in, and the rest can't be called without
+ * disconnecting the socket first.  If the attempt times out or fails, these methods either return NO or
+ * call "onSocket:willDisconnectWithError:" and "onSockedDidDisconnect:".
+**/
+- (BOOL)acceptOnPort:(UInt16)port error:(NSError **)errPtr;
+- (BOOL)acceptOnAddress:(NSString *)hostaddr port:(UInt16)port error:(NSError **)errPtr;
+- (BOOL)connectToHost:(NSString*)hostname onPort:(UInt16)port error:(NSError **)errPtr;
 
-/* Disconnects immediately. Any pending reads or writes are dropped. */
-- (void) disconnect;
+/**
+ * Disconnects immediately. Any pending reads or writes are dropped.
+**/
+- (void)disconnect;
 
-/* Disconnects after all pending writes have completed. After calling this, the read and write methods (including "readDataWithTimeout:tag:") will do nothing. The socket will disconnect even if there are still pending reads. */
-- (void) disconnectAfterWriting;
+/**
+ * Disconnects after all pending writes have completed.
+ * After calling this, the read and write methods (including "readDataWithTimeout:tag:") will do nothing.
+ * The socket will disconnect even if there are still pending reads.
+**/
+- (void)disconnectAfterWriting;
 
 /* Returns YES if the socket and streams are open, connected, and ready for reading and writing. */
 - (BOOL) isConnected;
 
-/* Returns the local or remote host and port to which this socket is connected, or nil and 0 if not connected. The host will be an IP address. */
+/**
+ * Returns the local or remote host and port to which this socket is connected, or nil and 0 if not connected.
+ * The host will be an IP address.
+**/
 - (NSString *) connectedHost;
 - (UInt16) connectedPort;
 
 - (NSString *) localHost;
 - (UInt16) localPort;
 
-/* The following methods won't block. To not time out, use a negative time interval. If they time out, "onSocket:disconnectWithError:" is called. The tag is for your convenience. You can use it as an array index, step number, state id, pointer, etc., just like the socket's user data. */
+/**
+ * The following methods won't block. To not time out, use a negative time interval.
+ * If they time out, "onSocket:disconnectWithError:" is called. The tag is for your convenience.
+ * You can use it as an array index, step number, state id, pointer, etc., just like the socket's user data.
+**/
 
-/* This will read a certain number of bytes, and call the delegate method when those bytes have been read. If there is an error, partially read data is lost. If the length is 0, this method does nothing and the delegate is not called. */
+/**
+ * This will read a certain number of bytes, and call the delegate method when those bytes have been read.
+ * If there is an error, partially read data is lost. If the length is 0, this method does nothing and the delegate is not called.
+**/
 - (void) readDataToLength:(CFIndex)length withTimeout:(NSTimeInterval)timeout tag:(long)tag;
 
-/* This reads bytes until (and including) the passed "data" parameter, which acts as a separator. The bytes and the separator are returned by the delegate method. If you pass nil or 0-length data as the "data" parameter, the method will do nothing, and the delegate will not be called. To read a line from the socket, use the line separator (e.g. CRLF for HTTP, see below) as the "data" parameter. Note that this method is not character-set aware, so if a separator can occur naturally as part of the encoding for a character, the read will prematurely end. */
-- (void) readDataToData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag;
+/**
+ * This reads bytes until (and including) the passed "data" parameter, which acts as a separator.
+ * The bytes and the separator are returned by the delegate method.
+ * 
+ * If you pass nil or 0-length data as the "data" parameter, the method will do nothing, and the delegate will not be called.
+ * To read a line from the socket, use the line separator (e.g. CRLF for HTTP, see below) as the "data" parameter.
+ * Note that this method is not character-set aware, so if a separator can occur naturally as part of the encoding for
+ * a character, the read will prematurely end.
+**/
+- (void)readDataToData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag;
 
 /* This reads the first available bytes. */
-- (void) readDataWithTimeout:(NSTimeInterval)timeout tag:(long)tag;
+- (void)readDataWithTimeout:(NSTimeInterval)timeout tag:(long)tag;
 
 /* Writes data. If you pass in nil or 0-length data, this method does nothing and the delegate will not be called. */
 - (void) writeData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag;
 
-/* Returns progress of current read or write, from 0.0 to 1.0, or NaN if no read/write (use isnan() to check). "tag", "done" and "total" will be filled in if they aren't NULL. */
+/**
+ * Returns progress of current read or write, from 0.0 to 1.0, or NaN if no read/write (use isnan() to check).
+ * "tag", "done" and "total" will be filled in if they aren't NULL.
+**/
 - (float) progressOfReadReturningTag:(long *)tag bytesDone:(CFIndex *)done total:(CFIndex *)total;
 - (float) progressOfWriteReturningTag:(long *)tag bytesDone:(CFIndex *)done total:(CFIndex *)total;
 
