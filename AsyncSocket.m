@@ -21,8 +21,6 @@
 #define READALL_CHUNKSIZE	256			/* Incremental increase in buffer size. */ 
 #define WRITE_CHUNKSIZE		(4*1024)	/* Limit on size of each write pass. */
 
-#define POLL_INTERVAL		1.0			/* Timer to check for overlooked activity. */
-
 NSString *const AsyncSocketException = @"AsyncSocketException";
 NSString *const AsyncSocketErrorDomain = @"AsyncSocketErrorDomain";
 
@@ -77,9 +75,6 @@ enum AsyncSocketFlags
 - (UInt16) localPort: (CFSocketRef)socket;
 - (NSString *) addressHost: (CFDataRef)cfaddr;
 - (UInt16) addressPort: (CFDataRef)cfaddr;
-
-// Polling
-- (void) doPoll:(NSTimer *)timer;
 
 // Reading
 - (void) doBytesAvailable;
@@ -217,7 +212,6 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 	theFlags = 0x00;
 	theDelegate = delegate;
 	theUserData = userData;
-	thePollTimer = nil;
 
 	theSocket = NULL;
 	theSource = NULL;
@@ -724,9 +718,6 @@ Failed:;
 			[self closeWithError:err];
 		}
 		
-		// Schedule a poll timer to make up for lost ready-to-read/write notifications. This doesn't have to have a tight poll interval, since it is a backup system.
-		thePollTimer = [NSTimer scheduledTimerWithTimeInterval:POLL_INTERVAL target:self selector:@selector(doPoll:) userInfo:nil repeats:YES];
-
 		// Call the delegate.
 		CFDataRef peer = CFSocketCopyPeerAddress (theSocket);
 		theFlags |= kDidCallConnectDeleg;
@@ -805,10 +796,6 @@ Failed:;
 // Disconnects. This is called for both error and clean disconnections.
 - (void) close
 {
-	// Stop polling.
-	[thePollTimer invalidate];
-	thePollTimer = nil;
-	
 	// Empty queues.
 	[self emptyQueues];
 	[partialReadBuffer release];
@@ -1239,16 +1226,6 @@ Failed:;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#pragma mark Polling
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-- (void) doPoll:(NSTimer *)timer
-{
-	[self doBytesAvailable];
-	[self doSendBytes];
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Reading
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1368,6 +1345,7 @@ Failed:;
 	// Also, if there is a read request, but no read stream setup yet, we can't process any data yet.
 	if(theCurrentRead != nil && theReadStream != NULL)
 	{
+		CFIndex totalBytesRead = 0;
 		BOOL error = NO, done = NO;
 		while(!done && !error && CFReadStreamHasBytesAvailable(theReadStream))
 		{
@@ -1385,6 +1363,7 @@ Failed:;
 			// Read stuff into start of unfilled packet buffer space.
 			UInt8 *packetbuf = (UInt8 *)( [theCurrentRead->buffer mutableBytes] + theCurrentRead->bytesDone );
 			CFIndex bytesRead = CFReadStreamRead (theReadStream, packetbuf, bytesToRead);
+			totalBytesRead += bytesRead;
 
 			// Check results.
 			if(bytesRead < 0)
@@ -1424,6 +1403,14 @@ Failed:;
 		{
 			[self completeCurrentRead];
 			if (!error) [self scheduleDequeueRead];
+		}
+		else if(theCurrentRead->readAllAvailableData == NO)
+		{
+			// We're not done with the readToLength or readToData yet, but we have read in some bytes
+			if ([theDelegate respondsToSelector:@selector(onSocket:didReadPartialDataOfLength:tag:)])
+			{
+				[theDelegate onSocket:self didReadPartialDataOfLength:totalBytesRead tag:theCurrentRead->tag];
+			}
 		}
 
 		if(error)

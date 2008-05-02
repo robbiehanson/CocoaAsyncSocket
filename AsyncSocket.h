@@ -79,6 +79,13 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (void)onSocket:(AsyncSocket *)sock didReadData:(NSData*)data withTag:(long)tag;
 
 /**
+ * Called when a socket has read in data, but has not yet completed the read.
+ * This would occur if using readToData: or readToLength: methods.
+ * It may be used to for things such as updating progress bars.
+**/
+- (void)onSocket:(AsyncSocket *)sock didReadPartialDataOfLength:(CFIndex)partialLength tag:(long)tag;
+
+/**
  * Called when a socket has completed writing the requested data. Not called if there is an error.
 **/
 - (void)onSocket:(AsyncSocket *)sock didWriteDataWithTag:(long)tag;
@@ -106,7 +113,6 @@ typedef enum AsyncSocketError AsyncSocketError;
 	AsyncWritePacket *theCurrentWrite;
 	NSTimer *theWriteTimer;
 
-	NSTimer *thePollTimer;
 	id theDelegate;
 	Byte theFlags;
 	

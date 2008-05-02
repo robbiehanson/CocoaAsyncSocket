@@ -1,4 +1,4 @@
-Changes in version 4.3.1:
+CHANGES IN VERSION 4.3.1:
 
 Bugfix:
   If user called acceptOnPort:0, then the OS would automatically pick a port for you.
@@ -10,3 +10,16 @@ Added comments in many places
 Altered bits of code to match Apple's coding style guidelines
 
 Renamed method "attachAcceptSockets" to "attachSocketsToRunLoop:error:"
+
+
+
+
+CHANGES IN VERSION 4.3.2
+
+Removed polling - it's not needed
+
+Added another delegate method: onSocket:didReadPartialDataOfLength:tag:
+Often, when using the AsyncSocket class, it was important to display a progress bar to the user.
+This was possible using Timers, and calling progressOfRead, but it wasn't the easiest solution.
+This delegate method will allow for automatic notification when using readToLength: or readToData:
+
