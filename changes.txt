@@ -50,3 +50,15 @@ Tweak:
   This method then encoutered an error while attaching the streams to the run loop.
   If this sequence happened, the BSD socket would not have been closed.
   So I moved this into the createStreams... methods.
+
+
+
+
+CHANGES IN VERSION 4.3.4
+
+Bugfix:
+  In doReadTimeout: the code properly calls endCurrentWrite and then closes with an error.
+  In doWriteTimeout: the code was calling completeCurrentWrite and then closes with an error.
+  This resulted in the delegate being told that his write completed (when it didn't)
+  immediately prior to disconnecting with an error.
+  

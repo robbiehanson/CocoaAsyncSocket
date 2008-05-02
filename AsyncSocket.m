@@ -1595,7 +1595,7 @@ Failed:;
 	if (theCurrentWrite != nil)
 	{
 		// Send what we got.
-		[self completeCurrentWrite];
+		[self endCurrentWrite];
 	}
 	[self closeWithError: [self getWriteTimeoutError]];
 }
