@@ -31,7 +31,7 @@ enum AsyncSocketError
 };
 typedef enum AsyncSocketError AsyncSocketError;
 
-@interface NSObject ( AsyncSocketDelegate )
+@interface NSObject (AsyncSocketDelegate)
 
 /**
  * In the event of an error, the socket is closed.  You may call "readDataWithTimeout:tag:" during this call-back to
@@ -131,13 +131,13 @@ typedef enum AsyncSocketError AsyncSocketError;
  * Use "canSafelySetDelegate" to see if there is any pending business (reads and writes) with the current delegate
  * before changing it.  It is, of course, safe to change the delegate before connecting or accepting connections.
 **/
-- (id) delegate;
-- (BOOL) canSafelySetDelegate;
-- (void) setDelegate:(id)delegate;
+- (id)delegate;
+- (BOOL)canSafelySetDelegate;
+- (void)setDelegate:(id)delegate;
 
 /* User data can be a long, or an id or void * cast to a long. */
-- (long) userData;
-- (void) setUserData:(long)userData;
+- (long)userData;
+- (void)setUserData:(long)userData;
 
 /* Don't use these to read or write. And don't close them, either! */
 - (CFSocketRef) getCFSocket;
@@ -166,17 +166,17 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (void)disconnectAfterWriting;
 
 /* Returns YES if the socket and streams are open, connected, and ready for reading and writing. */
-- (BOOL) isConnected;
+- (BOOL)isConnected;
 
 /**
  * Returns the local or remote host and port to which this socket is connected, or nil and 0 if not connected.
  * The host will be an IP address.
 **/
-- (NSString *) connectedHost;
-- (UInt16) connectedPort;
+- (NSString *)connectedHost;
+- (UInt16)connectedPort;
 
-- (NSString *) localHost;
-- (UInt16) localPort;
+- (NSString *)localHost;
+- (UInt16)localPort;
 
 /**
  * The following methods won't block. To not time out, use a negative time interval.
@@ -188,7 +188,7 @@ typedef enum AsyncSocketError AsyncSocketError;
  * This will read a certain number of bytes, and call the delegate method when those bytes have been read.
  * If there is an error, partially read data is lost. If the length is 0, this method does nothing and the delegate is not called.
 **/
-- (void) readDataToLength:(CFIndex)length withTimeout:(NSTimeInterval)timeout tag:(long)tag;
+- (void)readDataToLength:(CFIndex)length withTimeout:(NSTimeInterval)timeout tag:(long)tag;
 
 /**
  * This reads bytes until (and including) the passed "data" parameter, which acts as a separator.
@@ -205,7 +205,7 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (void)readDataWithTimeout:(NSTimeInterval)timeout tag:(long)tag;
 
 /* Writes data. If you pass in nil or 0-length data, this method does nothing and the delegate will not be called. */
-- (void) writeData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag;
+- (void)writeData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag;
 
 /**
  * Returns progress of current read or write, from 0.0 to 1.0, or NaN if no read/write (use isnan() to check).

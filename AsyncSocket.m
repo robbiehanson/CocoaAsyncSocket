@@ -359,7 +359,7 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 		[NSException raise:AsyncSocketException format:@"Attempting to accept while connected or accepting connections. Disconnect first."];
 
 	// Set up the listen sockaddr structs if needed.
-
+	
 	NSData *address = nil, *address6 = nil;
 	if(hostaddr && ([hostaddr length] != 0))
 	{
@@ -548,8 +548,10 @@ Failed:;
 										(CFSocketCallBack)&MyCFSocketCallback,  // Callback method
 										&theContext);
 
-	if (socket == NULL && errPtr)
-		*errPtr = [self getSocketError];
+	if(socket == NULL)
+	{
+		if(errPtr) *errPtr = [self getSocketError];
+	}
 	
 	return socket;
 }
@@ -627,7 +629,7 @@ Failed:;
 	if (theReadStream == NULL || theWriteStream == NULL)
 	{
 		NSError *err = [self getStreamError];
-		NSLog (@"AsyncSocket %p couldn't create streams from accepted socket, %@", self, err);
+		NSLog (@"AsyncSocket %p couldn't create streams from accepted socket: %@", self, err);
 		if (errPtr) *errPtr = err;
 		return NO;
 	}
@@ -671,8 +673,13 @@ Failed:;
 		(CFReadStreamClientCallBack)&MyCFReadStreamCallback,
 		(CFStreamClientContext *)(&theContext) ))
 	{
+		NSError *err = [self getStreamError];
+		
 		NSLog (@"AsyncSocket %p couldn't attach read stream to run-loop,", self);
-		goto Failed;
+		NSLog (@"Error: %@", err);
+		
+		if (errPtr) *errPtr = err;
+		return NO;
 	}
 	CFReadStreamScheduleWithRunLoop (theReadStream, theRunLoop, kCFRunLoopDefaultMode);
 
@@ -682,18 +689,18 @@ Failed:;
 		(CFWriteStreamClientCallBack)&MyCFWriteStreamCallback,
 		(CFStreamClientContext *)(&theContext) ))
 	{
+		NSError *err = [self getStreamError];
+		
 		NSLog (@"AsyncSocket %p couldn't attach write stream to run-loop,", self);
-		goto Failed;
+		NSLog (@"Error: %@", err);
+		
+		if (errPtr) *errPtr = err;
+		return NO;
+		
 	}
 	CFWriteStreamScheduleWithRunLoop (theWriteStream, theRunLoop, kCFRunLoopDefaultMode);
 	
 	return YES;
-
-Failed:;
-	NSError *err = [self getStreamError];
-	NSLog (@"%@", err);
-	if (errPtr) *errPtr = err;
-	return NO;
 }
 
 /**
