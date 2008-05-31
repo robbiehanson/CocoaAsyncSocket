@@ -40,12 +40,8 @@ enum AsyncSocketFlags
 
 // Socket Implementation
 - (CFSocketRef) createAcceptSocketForAddress:(NSData *)addr error:(NSError **)errPtr;
-- (BOOL) createSocketFromNative:(CFSocketNativeHandle)nativeSocket error:(NSError **)errPtr;
 - (BOOL) attachSocketsToRunLoop:(NSRunLoop *)runLoop error:(NSError **)errPtr;
-- (BOOL) configureSocketAndReturnError:(NSError **)errPtr;
-- (BOOL) connectSocketToAddress:(struct sockaddr_in *)remoteAddr error:(NSError **)errPtr;
 - (void) doAcceptWithSocket:(CFSocketNativeHandle)newSocket;
-- (void) doSocketOpenWithCFSocketError:(CFSocketError)err;
 
 // Stream Implementation
 - (BOOL) createStreamsFromNative:(CFSocketNativeHandle)native error:(NSError **)errPtr;
@@ -63,7 +59,6 @@ enum AsyncSocketFlags
 - (void) close;
 
 // Errors
-- (NSError *) getErrnoError;
 - (NSError *) getAbortError;
 - (NSError *) getStreamError;
 - (NSError *) getSocketError;
@@ -364,9 +359,53 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 		[NSException raise:AsyncSocketException format:@"Attempting to accept while connected or accepting connections. Disconnect first."];
 
 	// Set up the listen sockaddr structs if needed.
-
+	
 	NSData *address = nil, *address6 = nil;
-	if(hostaddr && ([hostaddr length] != 0))
+	if(hostaddr == nil || ([hostaddr length] == 0))
+	{
+		// Accept on ANY address
+		struct sockaddr_in nativeAddr;
+		nativeAddr.sin_len         = sizeof(struct sockaddr_in);
+		nativeAddr.sin_family      = AF_INET;
+		nativeAddr.sin_port        = htons(port);
+		nativeAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+		memset(&(nativeAddr.sin_zero), 0, sizeof(nativeAddr.sin_zero));
+		
+		struct sockaddr_in6 nativeAddr6;
+		nativeAddr6.sin6_len       = sizeof(struct sockaddr_in6);
+		nativeAddr6.sin6_family    = AF_INET6;
+		nativeAddr6.sin6_port      = htons(port);
+		nativeAddr6.sin6_flowinfo  = 0;
+		nativeAddr6.sin6_addr      = in6addr_any;
+		nativeAddr6.sin6_scope_id  = 0;
+		
+		// Wrap the native address structures for CFSocketSetAddress.
+		address = [NSData dataWithBytes:&nativeAddr length:sizeof(nativeAddr)];
+		address6 = [NSData dataWithBytes:&nativeAddr6 length:sizeof(nativeAddr6)];
+	}
+	else if([hostaddr isEqualToString:@"localhost"] || [hostaddr isEqualToString:@"loopback"])
+	{
+		// Accept only on LOOPBACK address
+		struct sockaddr_in nativeAddr;
+		nativeAddr.sin_len         = sizeof(struct sockaddr_in);
+		nativeAddr.sin_family      = AF_INET;
+		nativeAddr.sin_port        = htons(port);
+		nativeAddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+		memset(&(nativeAddr.sin_zero), 0, sizeof(nativeAddr.sin_zero));
+	
+		struct sockaddr_in6 nativeAddr6;
+		nativeAddr6.sin6_len       = sizeof(struct sockaddr_in6);
+		nativeAddr6.sin6_family    = AF_INET6;
+		nativeAddr6.sin6_port      = htons(port);
+		nativeAddr6.sin6_flowinfo  = 0;
+		nativeAddr6.sin6_addr      = in6addr_loopback;
+		nativeAddr6.sin6_scope_id  = 0;
+		
+		// Wrap the native address structures for CFSocketSetAddress.
+		address = [NSData dataWithBytes:&nativeAddr length:sizeof(nativeAddr)];
+		address6 = [NSData dataWithBytes:&nativeAddr6 length:sizeof(nativeAddr6)];
+	}
+	else
 	{
 		NSString *portStr = [NSString stringWithFormat:@"%hu", port];
 		
@@ -387,7 +426,7 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 				NSString *errMsg = [NSString stringWithCString:gai_strerror(error) encoding:NSASCIIStringEncoding];
 				NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
 				
-				*errPtr = [NSError errorWithDomain:@"kCFStreamErrorDomainNetDB" code:error userInfo:info];
+				if(errPtr) *errPtr = [NSError errorWithDomain:@"kCFStreamErrorDomainNetDB" code:error userInfo:info];
 			}
 			
 			for(res = res0; res; res = res->ai_next)
@@ -409,28 +448,6 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 		}
 		
 		if(!address && !address6) return NO;
-	}
-	else
-	{
-		// Set up the addresses.
-		struct sockaddr_in nativeAddr;
-		nativeAddr.sin_len         = sizeof(struct sockaddr_in);
-		nativeAddr.sin_family      = AF_INET;
-		nativeAddr.sin_port        = htons(port);
-		nativeAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-		memset(&(nativeAddr.sin_zero), 0, sizeof(nativeAddr.sin_zero));
-		
-		struct sockaddr_in6 nativeAddr6;
-		nativeAddr6.sin6_len       = sizeof(struct sockaddr_in6);
-		nativeAddr6.sin6_family    = AF_INET6;
-		nativeAddr6.sin6_port      = htons(port);
-		nativeAddr6.sin6_flowinfo  = 0;
-		nativeAddr6.sin6_addr      = in6addr_any;
-		nativeAddr6.sin6_scope_id  = 0;
-
-		// Wrap the native address structures for CFSocketSetAddress.
-		address = [NSData dataWithBytes:&nativeAddr length:sizeof(nativeAddr)];
-		address6 = [NSData dataWithBytes:&nativeAddr6 length:sizeof(nativeAddr6)];
 	}
 
 	// Create the sockets.
@@ -476,7 +493,7 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 		UInt16 chosenPort = [self localPort:theSocket];
 		
 		struct sockaddr_in6 *pSockAddr6 = (struct sockaddr_in6 *)[address6 bytes];
-		pSockAddr6->sin6_port = chosenPort;
+		pSockAddr6->sin6_port = htons(chosenPort);
     }
 	
 	if (theSocket6)
@@ -531,57 +548,6 @@ Failed:;
 	return pass;
 }
 
-/**
- * This method creates an initial CFSocket from a BSD socket to the given address.
- * The connection is then opened, and the corresponding CFReadStream and CFWriteStream will be
- * created from the low-level sockets after the connection succeeds.
- *
- * Thus the delegate will only have access to the CFSocket and CFSocketNativeHandle (BSD socket) prior to connection,
- * specifically in the onSocketWillConnect: method.
-**/
-- (BOOL)connectToAddress:(struct sockaddr_in *)remoteAddr error:(NSError **)errPtr
-{
-	if (theDelegate == NULL)
-	{
-		NSString *message = @"Attempting to connect without a delegate. Set a delegate first.";
-		[NSException raise:AsyncSocketException format:message];
-	}
-	
-	if (theSocket != NULL || theSocket6 != NULL)
-	{
-		NSString *message = @"Attempting to connect while connected or accepting connections. Disconnect first.";
-		[NSException raise:AsyncSocketException format:message];
-	}
-	
-	int nativeSocket = socket(remoteAddr->sin_family, SOCK_STREAM, 0);
-	if(nativeSocket == -1)
-	{
-		if (errPtr) *errPtr = [self getErrnoError];
-		return NO;
-	}
-	
-	BOOL pass = YES;
-	
-	if(pass && ![self createSocketFromNative:nativeSocket error:errPtr]) pass = NO;
-	if(pass && ![self attachSocketsToRunLoop:nil error:errPtr])          pass = NO;
-	if(pass && ![self configureSocketAndReturnError:errPtr])             pass = NO;
-	if(pass && ![self connectSocketToAddress:remoteAddr error:errPtr])   pass = NO;
-	
-	if(!pass)
-	{
-		// Something went wrong somewhere, and we need to cleanup.
-		// If we at least created theSocket, then the close method can do everything for us.
-		// Otherwise, we'll need to close our native socket.
-		
-		if(theSocket)
-			[self close];
-		else
-			close(nativeSocket);
-	}
-	
-	return pass;
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Socket Implementation:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -604,29 +570,12 @@ Failed:;
 										(CFSocketCallBack)&MyCFSocketCallback,  // Callback method
 										&theContext);
 
-	if (socket == NULL && errPtr)
-		*errPtr = [self getSocketError];
-	
-	return socket;
-}
-
-- (BOOL)createSocketFromNative:(CFSocketNativeHandle)nativeSocket error:(NSError **)errPtr
-{
-	theSocket = CFSocketCreateWithNative(NULL,                                   // Default allocator
-										 nativeSocket,                           // CFSocketNativeHandle
-										 kCFSocketConnectCallBack,               // Callback flags
-										 (CFSocketCallBack)&MyCFSocketCallback,  // Callback method
-										 &theContext);                           // Socket Context
-	if(theSocket == NULL)
+	if(socket == NULL)
 	{
-		NSError *err1 = [self getSocketError];
-		if (errPtr) *errPtr = err1;
-		return NO;
+		if(errPtr) *errPtr = [self getSocketError];
 	}
 	
-	// By default the underlying native socket will be closed when the CFSocket is invalidated
-	
-	return YES;
+	return socket;
 }
 
 /**
@@ -653,55 +602,11 @@ Failed:;
 }
 
 /**
- * Allows the delegate method to configure the CFSocket or CFNativeSocket as desired before we connect.
- * Note that the CFReadStream and CFWriteStream will not be available until after the connection is opened.
-**/
-- (BOOL)configureSocketAndReturnError:(NSError **)errPtr
-{
-	// Call the delegate method for further configuration.
-	if([theDelegate respondsToSelector:@selector(onSocketWillConnect:)])
-	{
-		if([theDelegate onSocketWillConnect:self] == NO)
-		{
-			if (errPtr) *errPtr = [self getAbortError];
-			return NO;
-		}
-	}
-	return YES;
-}
-
-- (BOOL)connectSocketToAddress:(struct sockaddr_in *)remoteAddr error:(NSError **)errPtr
-{
-	// In order to call the CFSocketConnectToAddress method we have to wrap our struct sockaddr_in into a CFDataRef
-	
-	CFDataRef remoteAddrData;
-	remoteAddrData = CFDataCreate(NULL, (UInt8 *)remoteAddr, sizeof(struct sockaddr_in));
-	if(remoteAddrData == NULL)
-	{
-		if (errPtr) *errPtr = [self getSocketError];
-		return NO;
-	}
-	
-	// Start connecting to the given address in the background
-	// The MyCFSocketCallback method will be called when the connection succeeds or fails.
-	CFSocketError err = CFSocketConnectToAddress(theSocket, remoteAddrData, -1);
-	if(err != kCFSocketSuccess)
-	{
-		if (errPtr) *errPtr = [self getSocketError];
-		return NO;
-	}
-	
-	return YES;
-}
-
-/**
  * Attempt to make the new socket.
  * If an error occurs, ignore this event.
 **/
 - (void)doAcceptWithSocket:(CFSocketNativeHandle)newNative
 {
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-	
 	AsyncSocket *newSocket = [[[AsyncSocket alloc] initWithDelegate:theDelegate] autorelease];
 	if(newSocket)
 	{
@@ -715,9 +620,9 @@ Failed:;
 		BOOL pass = YES;
 		
 		if(pass && ![newSocket createStreamsFromNative:newNative error:nil]) pass = NO;
-		if(pass && ![newSocket attachStreamsToRunLoop:runLoop error:nil]) pass = NO;
-		if(pass && ![newSocket configureStreamsAndReturnError:nil]) pass = NO;
-		if(pass && ![newSocket openStreamsAndReturnError:nil]) pass = NO;
+		if(pass && ![newSocket attachStreamsToRunLoop:runLoop error:nil])    pass = NO;
+		if(pass && ![newSocket configureStreamsAndReturnError:nil])          pass = NO;
+		if(pass && ![newSocket openStreamsAndReturnError:nil])               pass = NO;
 		
 		if(pass)
 			newSocket->theFlags |= kDidPassConnectMethod;
@@ -726,53 +631,6 @@ Failed:;
 			[newSocket close];
 		}
 		
-	}
-	[pool release];
-}
-
-/**
- * Description forthcoming...
-**/
-- (void)doSocketOpenWithCFSocketError:(CFSocketError)socketError
-{
-	// Update the flags to indicate we've made a connection
-	// We do this even if we never actually made a successful connection.
-	// This way the delegate properly receives a onSocket:didDisconnectWithError: message.
-	theFlags |= kDidPassConnectMethod;
-	
-	if(socketError == kCFSocketTimeout || socketError == kCFSocketError)
-	{
-		[self closeWithError:[self getSocketError]];
-		return;
-	}
-	
-	// Get the underlying native (BSD) socket
-	CFSocketNativeHandle nativeSocket = CFSocketGetNative(theSocket);
-	
-	// Setup the socket so that invalidating the socket will not close the native socket
-	CFSocketSetSocketFlags(theSocket, 0);
-	
-	// Invalidate and release the CFSocket - All we need from here on out is the nativeSocket
-	// Note: If we don't invalidate the socket (leaving the native socket open)
-	// then theReadStream and theWriteStream won't function properly.
-	// Specifically, their callbacks won't work, with the expection of kCFStreamEventOpenCompleted.
-	// I'm not entirely sure why this is, but I'm guessing that events on the socket fire to the CFSocket we created,
-	// as opposed to the CFReadStream/CFWriteStream.
-	
-	CFSocketInvalidate(theSocket);
-	CFRelease(theSocket);
-	theSocket = NULL;
-	
-	NSError *err;
-	BOOL pass = YES;
-	
-	if(pass && ![self createStreamsFromNative:nativeSocket error:&err]) pass = NO;
-	if(pass && ![self attachStreamsToRunLoop:nil error:&err])           pass = NO;
-	if(pass && ![self openStreamsAndReturnError:&err])                  pass = NO;
-	
-	if(!pass)
-	{
-		[self closeWithError:err];
 	}
 }
 
@@ -793,7 +651,7 @@ Failed:;
 	if (theReadStream == NULL || theWriteStream == NULL)
 	{
 		NSError *err = [self getStreamError];
-		NSLog (@"AsyncSocket %p couldn't create streams from accepted socket, %@", self, err);
+		NSLog (@"AsyncSocket %p couldn't create streams from accepted socket: %@", self, err);
 		if (errPtr) *errPtr = err;
 		return NO;
 	}
@@ -837,8 +695,13 @@ Failed:;
 		(CFReadStreamClientCallBack)&MyCFReadStreamCallback,
 		(CFStreamClientContext *)(&theContext) ))
 	{
+		NSError *err = [self getStreamError];
+		
 		NSLog (@"AsyncSocket %p couldn't attach read stream to run-loop,", self);
-		goto Failed;
+		NSLog (@"Error: %@", err);
+		
+		if (errPtr) *errPtr = err;
+		return NO;
 	}
 	CFReadStreamScheduleWithRunLoop (theReadStream, theRunLoop, kCFRunLoopDefaultMode);
 
@@ -848,18 +711,18 @@ Failed:;
 		(CFWriteStreamClientCallBack)&MyCFWriteStreamCallback,
 		(CFStreamClientContext *)(&theContext) ))
 	{
+		NSError *err = [self getStreamError];
+		
 		NSLog (@"AsyncSocket %p couldn't attach write stream to run-loop,", self);
-		goto Failed;
+		NSLog (@"Error: %@", err);
+		
+		if (errPtr) *errPtr = err;
+		return NO;
+		
 	}
 	CFWriteStreamScheduleWithRunLoop (theWriteStream, theRunLoop, kCFRunLoopDefaultMode);
 	
 	return YES;
-
-Failed:;
-	NSError *err = [self getStreamError];
-	NSLog (@"%@", err);
-	if (errPtr) *errPtr = err;
-	return NO;
 }
 
 /**
@@ -921,6 +784,7 @@ Failed:;
 		{
 			NSLog (@"AsyncSocket %p couldn't get socket from streams, %@. Disconnecting.", self, err);
 			[self closeWithError:err];
+			return;
 		}
 		
 		// Call the delegate.
@@ -1003,11 +867,12 @@ Failed:;
 	[self emptyQueues];
 	[partialReadBuffer release];
 	partialReadBuffer = nil;
-	[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(disconnect) object:nil];	
-
+	[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(disconnect) object:nil];
+	
 	// Close streams.
 	if (theReadStream != NULL)
 	{
+		CFReadStreamSetClient(theReadStream, kCFStreamEventNone, NULL, NULL);
 		CFReadStreamUnscheduleFromRunLoop (theReadStream, theRunLoop, kCFRunLoopDefaultMode);
 		CFReadStreamClose (theReadStream);
 		CFRelease (theReadStream);
@@ -1015,6 +880,7 @@ Failed:;
 	}
 	if (theWriteStream != NULL)
 	{
+		CFWriteStreamSetClient(theWriteStream, kCFStreamEventNone, NULL, NULL);
 		CFWriteStreamUnscheduleFromRunLoop (theWriteStream, theRunLoop, kCFRunLoopDefaultMode);
 		CFWriteStreamClose (theWriteStream);
 		CFRelease (theWriteStream);
@@ -1084,18 +950,6 @@ Failed:;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Errors
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * Returns a standard error object for the current errno value.
- * Errno is used for low-level BSD socket errors.
-**/
-- (NSError *)getErrnoError
-{
-	NSString *errorMsg = [NSString stringWithUTF8String:strerror(errno)];
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errorMsg forKey:NSLocalizedDescriptionKey];
-	
-	return [NSError errorWithDomain:NSPOSIXErrorDomain code:errno userInfo:userInfo];
-}
 
 /**
  * Returns a standard error message for a CFSocket error.
@@ -1822,13 +1676,6 @@ Failed:;
 	NSParameterAssert ((sock == theSocket) || (sock == theSocket6));
 	switch (type)
 	{
-		case kCFSocketConnectCallBack:
-			// The data argument is either NULL or a pointer to an SInt32 error code, if the connect failed.
-			if(pData)
-				[self doSocketOpenWithCFSocketError:kCFSocketError];
-			else
-				[self doSocketOpenWithCFSocketError:kCFSocketSuccess];
-			break;
 		case kCFSocketAcceptCallBack:
 			[self doAcceptWithSocket: *((CFSocketNativeHandle *)pData)];
 			break;
