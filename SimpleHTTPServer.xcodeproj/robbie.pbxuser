@@ -144,7 +144,7 @@
 	};
 	DC41D6D70C178D5700F8D00D /* AppDelegate.m */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {805, 854}}";
+			sepNavIntBoundsRect = "{{0, 0}, {805, 877}}";
 			sepNavSelRange = "{48, 0}";
 			sepNavVisRange = "{0, 469}";
 			sepNavVisRect = "{{0, 0}, {761, 551}}";
@@ -156,6 +156,20 @@
 			sepNavSelRange = "{0, 0}";
 			sepNavVisRange = "{0, 114}";
 			sepNavVisRect = "{{0, 0}, {761, 551}}";
+		};
+	};
+	DC41D6DE0C178DE500F8D00D /* HTTPAuthenticationRequest.h */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {805, 877}}";
+			sepNavSelRange = "{221, 0}";
+			sepNavVisRange = "{0, 446}";
+		};
+	};
+	DC41D6DF0C178DE500F8D00D /* HTTPAuthenticationRequest.m */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {805, 2436}}";
+			sepNavSelRange = "{417, 0}";
+			sepNavVisRange = "{0, 2271}";
 		};
 	};
 	DC41D6E00C178DE500F8D00D /* HTTPServer.h */ = {

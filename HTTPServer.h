@@ -82,4 +82,13 @@
 
 - (NSData *)dataForURI:(NSString *)path;
 
+- (void)handleInvalidRequest:(NSData *)data;
+
+- (void)handleUnknownMethod:(NSString *)method;
+
+- (NSData *)preprocessResponse:(CFHTTPMessageRef)response;
+- (NSData *)preprocessErrorResponse:(CFHTTPMessageRef)response;
+
+- (void)die;
+
 @end

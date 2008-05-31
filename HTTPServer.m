@@ -15,6 +15,7 @@
 #define HTTP_REQUEST           15
 #define HTTP_PARTIAL_RESPONSE  29
 #define HTTP_RESPONSE          30
+#define HTTP_FINAL_RESPONSE    45
 
 #define HTTPConnectionDidDieNotification  @"HTTPConnectionDidDie"
 
@@ -45,7 +46,7 @@
 		port = 0;
 		
 		// Use the local domain by default
-		domain = @"";
+		domain = @"local.";
 		
 		// If using an empty string ("") for the service name when registering,
 		// the system will automatically use the "Computer Name".
@@ -256,6 +257,10 @@
 				[netService setTXTRecordData:[NSNetService dataFromTXTRecordDictionary:txtRecordDictionary]];
 			}
 		}
+	}
+	else
+	{
+		NSLog(@"Failed to start HTTP Server: %@", error);
 	}
 	
 	return success;
@@ -637,25 +642,17 @@ static NSMutableArray *recentNonces;
 		// Status Code 505 - Version Not Supported
         CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 505, NULL, (CFStringRef)version);
 		CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), CFSTR("0"));
-        NSData *responseData = [(NSData *)CFHTTPMessageCopySerializedMessage(response) autorelease];
+        NSData *responseData = [self preprocessErrorResponse:response];
 		[asyncSocket writeData:responseData withTimeout:WRITE_ERROR_TIMEOUT tag:HTTP_RESPONSE];
 		CFRelease(response);
         return;
     }
 	
 	// Check HTTP method
-	// If no method was passed, issue a Bad Request response
-    NSString *method = [(NSString *)CFHTTPMessageCopyRequestMethod(request) autorelease];
-    if(!method)
+	NSString *method = [(NSString *)CFHTTPMessageCopyRequestMethod(request) autorelease];
+    if(![method isEqualToString:@"GET"] && ![method isEqualToString:@"HEAD"])
 	{
-		NSLog(@"HTTP Server: Error 400 - Bad Request");
-		
-		// Status Code 400 - Bad Request
-        CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 400, NULL, kCFHTTPVersion1_1);
-		CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), CFSTR("0"));
-        NSData *responseData = [(NSData *)CFHTTPMessageCopySerializedMessage(response) autorelease];
-		[asyncSocket writeData:responseData withTimeout:WRITE_ERROR_TIMEOUT tag:HTTP_RESPONSE];
-        CFRelease(response);
+		[self handleUnknownMethod:method];
         return;
     }
 	
@@ -677,65 +674,53 @@ static NSMutableArray *recentNonces;
 		
 		CFHTTPMessageSetHeaderFieldValue(response, CFSTR("WWW-Authenticate"), (CFStringRef)authInfo);
 		
-		NSData *responseData = [(NSData *)CFHTTPMessageCopySerializedMessage(response) autorelease];
+		NSData *responseData = [self preprocessErrorResponse:response];
 		[asyncSocket writeData:responseData withTimeout:WRITE_ERROR_TIMEOUT tag:HTTP_RESPONSE];
 		CFRelease(response);
 		return;
 	}
 	
 	// Respond properly to HTTP 'GET' and 'HEAD' commands
-    if([method isEqualToString:@"GET"] || [method isEqualToString:@"HEAD"])
+   	NSData *data = [self dataForURI:[uri relativeString]];
+	
+	if(!data)
 	{
-		NSData *data = [self dataForURI:[uri relativeString]];
+		NSLog(@"HTTP Server: Error 404 - Not Found");
 		
-        if(!data)
-		{
-			NSLog(@"HTTP Server: Error 404 - Not Found");
-			
-			// Status Code 404 - Not Found
-            CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 404, NULL, kCFHTTPVersion1_1);
-			CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), CFSTR("0"));
-            NSData *responseData = [(NSData *)CFHTTPMessageCopySerializedMessage(response) autorelease];
-			[asyncSocket writeData:responseData withTimeout:WRITE_ERROR_TIMEOUT tag:HTTP_RESPONSE];
-            CFRelease(response);
-			return;
-        }
-		
-		// Status Code 200 - OK
-        CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 200, NULL, kCFHTTPVersion1_1);
-		
-		NSString *contentLength = [NSString stringWithFormat:@"%i", [data length]];
-        CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), (CFStringRef)contentLength);
-        
-		// If they issue a 'HEAD' command, we don't have to include the file
-		// If they issue a 'GET' command, we need to include the file
-		if([method isEqual:@"HEAD"])
-		{
-			NSData *responseData = [(NSData *)CFHTTPMessageCopySerializedMessage(response) autorelease];
-			[asyncSocket writeData:responseData withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_RESPONSE];
-        }
-		else
-		{
-			// Previously, we would use the CFHTTPMessageSetBody method here.
-			// This caused problems, however, if the data was large.
-			// For example, if the data represented a 500 MB movie on the disk, this method would thrash the OS!
-			
-			NSData *responseData = [(NSData *)CFHTTPMessageCopySerializedMessage(response) autorelease];
-			[asyncSocket writeData:responseData withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE];
-			[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_RESPONSE];
-		}
-		
+		// Status Code 404 - Not Found
+		CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 404, NULL, kCFHTTPVersion1_1);
+		CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), CFSTR("0"));
+		NSData *responseData = [self preprocessErrorResponse:response];
+		[asyncSocket writeData:responseData withTimeout:WRITE_ERROR_TIMEOUT tag:HTTP_RESPONSE];
 		CFRelease(response);
 		return;
     }
 	
-	NSLog(@"HTTP Server: Error 405 - Method Not Allowed: %@", method);
+	// Status Code 200 - OK
+	CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 200, NULL, kCFHTTPVersion1_1);
 	
-	// Status code 405 - Method Not Allowed
-    CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 405, NULL, kCFHTTPVersion1_1);
-    NSData *responseData = [(NSData *)CFHTTPMessageCopySerializedMessage(response) autorelease];
-	[asyncSocket writeData:responseData withTimeout:WRITE_ERROR_TIMEOUT tag:HTTP_RESPONSE];
-    CFRelease(response);
+	NSString *contentLength = [NSString stringWithFormat:@"%i", [data length]];
+	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), (CFStringRef)contentLength);
+    
+	// If they issue a 'HEAD' command, we don't have to include the file
+	// If they issue a 'GET' command, we need to include the file
+	if([method isEqual:@"HEAD"])
+	{
+		NSData *responseData = [self preprocessResponse:response];
+		[asyncSocket writeData:responseData withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_RESPONSE];
+	}
+	else
+	{
+		// Previously, we would use the CFHTTPMessageSetBody method here.
+		// This caused problems, however, if the data was large.
+		// For example, if the data represented a 500 MB movie on the disk, this method would thrash the OS!
+		
+		NSData *responseData = [self preprocessResponse:response];
+		[asyncSocket writeData:responseData withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE];
+		[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_RESPONSE];
+	}
+	
+	CFRelease(response);
 }
 
 /**
@@ -766,8 +751,69 @@ static NSMutableArray *recentNonces;
 	
 	// We don't want to map the file data into ram
 	// We just want to map it from the disk, and we also don't need to bother caching it
-	int options = NSMappedRead | NSUncachedRead;
-	return [NSData dataWithContentsOfURL:url options:options error:nil];
+	return [NSData dataWithContentsOfURL:url options:(NSMappedRead | NSUncachedRead) error:nil];
+}
+
+/**
+ * Called if we receive some sort of malformed HTTP request.
+ * The data parameter is the invalid HTTP header line, including CRLF, as read from AsyncSocket.
+**/
+- (void)handleInvalidRequest:(NSData *)data
+{
+	// Override me for custom error handling of invalid HTTP requests
+	
+	NSLog(@"HTTP Server: Error 400 - Bad Request");
+	
+	// Status Code 400 - Bad Request
+	CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 400, NULL, kCFHTTPVersion1_1);
+	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), CFSTR("0"));
+	NSData *responseData = [self preprocessErrorResponse:response];
+	[asyncSocket writeData:responseData withTimeout:WRITE_ERROR_TIMEOUT tag:HTTP_FINAL_RESPONSE];
+	CFRelease(response);
+	
+	// Close connection as soon as the error message is sent
+	[asyncSocket disconnectAfterWriting];
+}
+
+/**
+ * Called if we receive a HTTP request with a method other than GET or HEAD.
+**/
+- (void)handleUnknownMethod:(NSString *)method
+{
+	// Override me to add support for methods other than GET and HEAD
+	
+	NSLog(@"HTTP Server: Error 405 - Method Not Allowed: %@", method);
+	
+	// Status code 405 - Method Not Allowed
+    CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 405, NULL, kCFHTTPVersion1_1);
+	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), CFSTR("0"));
+	NSData *responseData = [self preprocessErrorResponse:response];
+	[asyncSocket writeData:responseData withTimeout:WRITE_ERROR_TIMEOUT tag:HTTP_RESPONSE];
+    CFRelease(response);
+}
+
+- (NSData *)preprocessResponse:(CFHTTPMessageRef)response
+{
+	// Override me to customize the response
+	// You may want to add mime types, etc
+	
+	NSData *result = (NSData *)CFHTTPMessageCopySerializedMessage(response);
+	return [result autorelease];
+}
+
+- (NSData *)preprocessErrorResponse:(CFHTTPMessageRef)response;
+{
+	// Override me to customize the error response
+	
+	NSData *result = (NSData *)CFHTTPMessageCopySerializedMessage(response);
+	return [result autorelease];
+}
+
+- (void)die
+{
+	// Post notification of dead connection
+	// This will allow our server to release us from its array of connections
+	[[NSNotificationCenter defaultCenter] postNotificationName:HTTPConnectionDidDieNotification object:self];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -818,8 +864,13 @@ static NSMutableArray *recentNonces;
 - (void)onSocket:(AsyncSocket *)sock didReadData:(NSData*)data withTag:(long)tag
 {
 	// Append the header line to the http message
-	CFHTTPMessageAppendBytes(request, [data bytes], [data length]);
-	if(!CFHTTPMessageIsHeaderComplete(request))
+	BOOL result = CFHTTPMessageAppendBytes(request, [data bytes], [data length]);
+	if(!result)
+	{
+		// We have a received a malformed request
+		[self handleInvalidRequest:data];
+	}
+	else if(!CFHTTPMessageIsHeaderComplete(request))
 	{
 		// We don't have a complete header yet
 		// That is, we haven't yet received a CRLF on a line by itself, indicating the end of the header
@@ -873,9 +924,7 @@ static NSMutableArray *recentNonces;
 **/
 - (void)onSocketDidDisconnect:(AsyncSocket *)sock
 {
-	// Post notification of dead connection
-	// This will allow our server to release it from it's array of connections
-	[[NSNotificationCenter defaultCenter] postNotificationName:HTTPConnectionDidDieNotification object:self];
+	[self die];
 }
 
 @end
