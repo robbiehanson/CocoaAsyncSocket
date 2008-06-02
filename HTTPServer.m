@@ -443,6 +443,9 @@ static NSMutableArray *recentNonces;
 	
 	[nonce release];
 	
+	[fileResponse closeFile];
+	[fileResponse release];
+	
 	[super dealloc];
 }
 
