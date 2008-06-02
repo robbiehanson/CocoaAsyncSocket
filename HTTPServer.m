@@ -965,6 +965,10 @@ static NSMutableArray *recentNonces;
 		}
 		else
 		{
+			[fileResponse closeFile];
+			[fileResponse release];
+			fileResponse = nil;
+			
 			doneSendingResponse = YES;
 		}
 	}
