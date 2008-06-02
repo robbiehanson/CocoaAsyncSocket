@@ -1733,8 +1733,12 @@ Failed:;
 **/
 static void MyCFSocketCallback (CFSocketRef sref, CFSocketCallBackType type, CFDataRef address, const void *pData, void *pInfo)
 {
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	
 	AsyncSocket *socket = (AsyncSocket *)pInfo;
 	[socket doCFSocketCallback:type forSocket:sref withAddress:(NSData *)address withData:pData];
+	
+	[pool release];
 }
 
 /**
@@ -1743,8 +1747,12 @@ static void MyCFSocketCallback (CFSocketRef sref, CFSocketCallBackType type, CFD
 **/
 static void MyCFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType type, void *pInfo)
 {
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	
 	AsyncSocket *socket = (AsyncSocket *)pInfo;
 	[socket doCFReadStreamCallback:type forStream:stream];
+	
+	[pool release];
 }
 
 /**
@@ -1753,8 +1761,12 @@ static void MyCFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType ty
 **/
 static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType type, void *pInfo)
 {
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	
 	AsyncSocket *socket = (AsyncSocket *)pInfo;
 	[socket doCFWriteStreamCallback:type forStream:stream];
+	
+	[pool release];
 }
 
 @end
