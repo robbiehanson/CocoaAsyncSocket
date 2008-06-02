@@ -5,6 +5,9 @@
 #import <stdlib.h>
 #import <SSCrypto/SSCrypto.h>
 
+// Define chunk size used to read files from disk
+#define READ_CHUNKSIZE     (1024 * 512)
+
 // Define the various timeouts (in seconds) for various parts of the HTTP process
 #define READ_TIMEOUT        -1
 #define WRITE_HEAD_TIMEOUT  30
@@ -12,10 +15,11 @@
 #define WRITE_ERROR_TIMEOUT 30
 
 // Define the various tags we'll use to differentiate what it is we're currently doing
-#define HTTP_REQUEST           15
-#define HTTP_PARTIAL_RESPONSE  29
-#define HTTP_RESPONSE          30
-#define HTTP_FINAL_RESPONSE    45
+#define HTTP_REQUEST                  15
+#define HTTP_PARTIAL_RESPONSE_HEADER  28
+#define HTTP_PARTIAL_RESPONSE_BODY    29
+#define HTTP_RESPONSE                 30
+#define HTTP_FINAL_RESPONSE           45
 
 #define HTTPConnectionDidDieNotification  @"HTTPConnectionDidDie"
 
@@ -411,6 +415,12 @@ static NSMutableArray *recentNonces;
 		// Note the second parameter is YES, because it will be used for HTTP requests from the client
 		request = CFHTTPMessageCreateEmpty(kCFAllocatorDefault, YES);
 		
+		// Register for NSFileNotifications
+		[[NSNotificationCenter defaultCenter] addObserver:self
+												 selector:@selector(responseDataReady:)
+													 name:NSFileHandleReadCompletionNotification
+												   object:nil];
+		
 		// And now that we own the socket, and we have our CFHTTPMessage object (for requests) ready,
 		// we can start reading the HTTP requests...
 		[asyncSocket readDataToData:[AsyncSocket CRLFData] withTimeout:READ_TIMEOUT tag:HTTP_REQUEST];
@@ -423,6 +433,8 @@ static NSMutableArray *recentNonces;
 **/
 - (void)dealloc
 {
+	[[NSNotificationCenter defaultCenter] removeObserver:self];
+	
 	[asyncSocket setDelegate:nil];
 	[asyncSocket disconnect];
 	[asyncSocket release];
@@ -681,9 +693,9 @@ static NSMutableArray *recentNonces;
 	}
 	
 	// Respond properly to HTTP 'GET' and 'HEAD' commands
-   	NSData *data = [self dataForURI:[uri relativeString]];
+	UInt64 fileSize = [self contentLengthForURI:[uri relativeString]];
 	
-	if(!data)
+	if(fileSize == 0)
 	{
 		NSLog(@"HTTP Server: Error 404 - Not Found");
 		
@@ -699,7 +711,7 @@ static NSMutableArray *recentNonces;
 	// Status Code 200 - OK
 	CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 200, NULL, kCFHTTPVersion1_1);
 	
-	NSString *contentLength = [NSString stringWithFormat:@"%i", [data length]];
+	NSString *contentLength = [NSString stringWithFormat:@"%qu", fileSize];
 	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), (CFStringRef)contentLength);
     
 	// If they issue a 'HEAD' command, we don't have to include the file
@@ -711,25 +723,39 @@ static NSMutableArray *recentNonces;
 	}
 	else
 	{
-		// Previously, we would use the CFHTTPMessageSetBody method here.
-		// This caused problems, however, if the data was large.
-		// For example, if the data represented a 500 MB movie on the disk, this method would thrash the OS!
+		// Write the header response
 		
 		NSData *responseData = [self preprocessResponse:response];
-		[asyncSocket writeData:responseData withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE];
-		[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_RESPONSE];
+		[asyncSocket writeData:responseData withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_HEADER];
+		
+		// Now we need to send the file
+		fileResponse = [[self fileForURI:[uri relativeString]] retain];
+		
+		if(fileResponse)
+		{
+			NSData *data = [fileResponse readDataOfLength:READ_CHUNKSIZE];
+			
+			[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_BODY];
+		}
+		else
+		{
+			NSData *data = [self dataForURI:[uri relativeString]];
+			
+			[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_RESPONSE];
+		}
 	}
 	
 	CFRelease(response);
 }
 
 /**
- * This method transforms the relative URL to the full URL.
- * It takes care of requests such as "/", transforming them to "/index.html".
- * This method can easily be overriden to perform more advanced lookups.
+ * Converts relative URI path into full file-system path.
 **/
-- (NSData *)dataForURI:(NSString *)path
+- (NSString *)filePathForURI:(NSString *)path
 {
+	// Override me to perform custom path mapping.
+	// For example you may want to use a default file other than index.html, or perhaps support multiple types.
+	
 	// If there is no configured documentRoot, then it makes no sense to try to return anything
 	if(![server documentRoot]) return nil;
 	
@@ -749,11 +775,45 @@ static NSMutableArray *recentNonces;
 	// For example, the following request: "../Documents/TopSecret.doc"
 	if(![[url path] hasPrefix:[[server documentRoot] path]]) return nil;
 	
-	// We don't need to bother caching the file - we're only going to read it sequentially once
-	return [NSData dataWithContentsOfURL:url options:NSUncachedRead error:nil];
+	return [[url path] stringByStandardizingPath];
+}
+
+/**
+ * This method is called for both GET and HEAD requests.
+ * If this method returns 0, then a 404 error is returned.
+**/
+- (UInt64)contentLengthForURI:(NSString *)path
+{
+	NSString *filePath = [self filePathForURI:path];
 	
-	// Note: We do not want to use NSMappedRead
-	// http://developer.apple.com/documentation/Performance/Conceptual/FileSystem/Articles/MappingFiles.html
+	NSDictionary *attributes = [[NSFileManager defaultManager] fileAttributesAtPath:filePath traverseLink:NO];
+	
+	NSNumber *fileSize = [attributes objectForKey:NSFileSize];
+	
+	return (UInt64)[fileSize unsignedLongLongValue];
+}
+
+/**
+ * This method is called first to get a file handle for a request.
+ * If this method returns nil, then get dataForURI will be invoked to get custom non-file data.
+**/
+- (NSFileHandle *)fileForURI:(NSString *)path
+{
+	NSString *filePath = [self filePathForURI:path];
+	
+	return [NSFileHandle fileHandleForReadingAtPath:filePath];
+}
+
+/**
+ * This method is only called if fileForURI returns nil.
+ * This method allows you to return custom non-file data.
+**/
+- (NSData *)dataForURI:(NSString *)path
+{
+	// Override me to provide custom non-file data.
+	// You may also need to override fileForURI.
+	
+	return nil;
 }
 
 /**
@@ -892,11 +952,28 @@ static NSMutableArray *recentNonces;
 **/
 - (void)onSocket:(AsyncSocket *)sock didWriteDataWithTag:(long)tag
 {
-	// There are two possible tags: HTTP_RESPONSE and HTTP_PARTIAL_RESPONSE
-	// A partial response represents a header response with a body following it,
-	// so we still need to wait til the body is sent too.
+	BOOL doneSendingResponse = NO;
 	
-	if(tag == HTTP_RESPONSE)
+	if(tag == HTTP_PARTIAL_RESPONSE_BODY)
+	{
+		// We only wrote a part of the file - there may be more.
+		NSData *data = [fileResponse readDataOfLength:READ_CHUNKSIZE];
+		
+		if([data length] > 0)
+		{
+			[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_BODY];
+		}
+		else
+		{
+			doneSendingResponse = YES;
+		}
+	}
+	else if(tag == HTTP_RESPONSE)
+	{
+		doneSendingResponse = YES;
+	}
+	
+	if(doneSendingResponse)
 	{
 		// Release the old request, and create a new one
 		if(request) CFRelease(request);

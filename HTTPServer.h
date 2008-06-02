@@ -67,6 +67,8 @@
 	
 	NSString *nonce;
 	int lastNC;
+	
+	NSFileHandle *fileResponse;
 }
 
 - (id)initWithAsyncSocket:(AsyncSocket *)newSocket forServer:(HTTPServer *)myServer;
@@ -80,6 +82,10 @@
 - (NSString *)realm;
 - (NSString *)passwordForUser:(NSString *)username;
 
+- (NSString *)filePathForURI:(NSString *)path;
+
+- (UInt64)contentLengthForURI:(NSString *)path;
+- (NSFileHandle *)fileForURI:(NSString *)path;
 - (NSData *)dataForURI:(NSString *)path;
 
 - (void)handleInvalidRequest:(NSData *)data;
