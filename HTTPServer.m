@@ -749,9 +749,11 @@ static NSMutableArray *recentNonces;
 	// For example, the following request: "../Documents/TopSecret.doc"
 	if(![[url path] hasPrefix:[[server documentRoot] path]]) return nil;
 	
-	// We don't want to map the file data into ram
-	// We just want to map it from the disk, and we also don't need to bother caching it
-	return [NSData dataWithContentsOfURL:url options:(NSMappedRead | NSUncachedRead) error:nil];
+	// We don't need to bother caching the file - we're only going to read it sequentially once
+	return [NSData dataWithContentsOfURL:url options:NSUncachedRead error:nil];
+	
+	// Note: We do not want to use NSMappedRead
+	// http://developer.apple.com/documentation/Performance/Conceptual/FileSystem/Articles/MappingFiles.html
 }
 
 /**
