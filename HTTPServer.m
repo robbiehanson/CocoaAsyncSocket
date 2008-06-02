@@ -693,9 +693,14 @@ static NSMutableArray *recentNonces;
 	}
 	
 	// Respond properly to HTTP 'GET' and 'HEAD' commands
-	UInt64 fileSize = [self contentLengthForURI:[uri relativeString]];
+	NSData *customData = [self dataForURI:[uri relativeString]];
+	UInt64 contentLength = (UInt64)[customData length];
+	if(contentLength == 0)
+	{
+		contentLength = [self contentLengthForURI:[uri relativeString]];
+	}
 	
-	if(fileSize == 0)
+	if(contentLength == 0)
 	{
 		NSLog(@"HTTP Server: Error 404 - Not Found");
 		
@@ -711,8 +716,8 @@ static NSMutableArray *recentNonces;
 	// Status Code 200 - OK
 	CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 200, NULL, kCFHTTPVersion1_1);
 	
-	NSString *contentLength = [NSString stringWithFormat:@"%qu", fileSize];
-	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), (CFStringRef)contentLength);
+	NSString *contentLengthStr = [NSString stringWithFormat:@"%qu", contentLength];
+	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), (CFStringRef)contentLengthStr);
     
 	// If they issue a 'HEAD' command, we don't have to include the file
 	// If they issue a 'GET' command, we need to include the file
@@ -729,19 +734,17 @@ static NSMutableArray *recentNonces;
 		[asyncSocket writeData:responseData withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_HEADER];
 		
 		// Now we need to send the file
-		fileResponse = [[self fileForURI:[uri relativeString]] retain];
-		
-		if(fileResponse)
+		if(customData)
 		{
-			NSData *data = [fileResponse readDataOfLength:READ_CHUNKSIZE];
-			
-			[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_BODY];
+			[asyncSocket writeData:customData withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_RESPONSE];
 		}
 		else
 		{
-			NSData *data = [self dataForURI:[uri relativeString]];
+			fileResponse = [[self fileForURI:[uri relativeString]] retain];
 			
-			[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_RESPONSE];
+			NSData *fileData = [fileResponse readDataOfLength:READ_CHUNKSIZE];
+			
+			[asyncSocket writeData:fileData withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_BODY];
 		}
 	}
 	
@@ -779,7 +782,7 @@ static NSMutableArray *recentNonces;
 }
 
 /**
- * This method is called for both GET and HEAD requests.
+ * If the dataForURI method returns nil, then this method is consulted to obtain a file size.
  * If this method returns 0, then a 404 error is returned.
 **/
 - (UInt64)contentLengthForURI:(NSString *)path
@@ -794,8 +797,8 @@ static NSMutableArray *recentNonces;
 }
 
 /**
- * This method is called first to get a file handle for a request.
- * If this method returns nil, then get dataForURI will be invoked to get custom non-file data.
+ * This method is called to get a file handle for a request.
+ * This is the preferred way to serve files straight from disk, especially large files.
 **/
 - (NSFileHandle *)fileForURI:(NSString *)path
 {
@@ -805,13 +808,13 @@ static NSMutableArray *recentNonces;
 }
 
 /**
- * This method is only called if fileForURI returns nil.
- * This method allows you to return custom non-file data.
+ * This method is called first during requests.
+ * Use this method to return custom non-file data.
+ * The fileForURI method is better equipped to serve files straight from disk.
 **/
 - (NSData *)dataForURI:(NSString *)path
 {
 	// Override me to provide custom non-file data.
-	// You may also need to override fileForURI.
 	
 	return nil;
 }
