@@ -1509,7 +1509,7 @@ Failed:;
 			[self completeCurrentRead];
 			if (!error) [self scheduleDequeueRead];
 		}
-		else if(theCurrentRead->readAllAvailableData == NO)
+		else if(theCurrentRead->bytesDone > 0)
 		{
 			// We're not done with the readToLength or readToData yet, but we have read in some bytes
 			if ([theDelegate respondsToSelector:@selector(onSocket:didReadPartialDataOfLength:tag:)])
