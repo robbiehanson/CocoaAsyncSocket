@@ -1771,7 +1771,7 @@ static void MyCFSocketCallback (CFSocketRef sref, CFSocketCallBackType type, CFD
 {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	
-	AsyncSocket *socket = (AsyncSocket *)pInfo;
+	AsyncSocket *socket = [[(AsyncSocket *)pInfo retain] autorelease];
 	[socket doCFSocketCallback:type forSocket:sref withAddress:(NSData *)address withData:pData];
 	
 	[pool release];
@@ -1785,7 +1785,7 @@ static void MyCFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType ty
 {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	
-	AsyncSocket *socket = (AsyncSocket *)pInfo;
+	AsyncSocket *socket = [[(AsyncSocket *)pInfo retain] autorelease];
 	[socket doCFReadStreamCallback:type forStream:stream];
 	
 	[pool release];
@@ -1799,7 +1799,7 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	
-	AsyncSocket *socket = (AsyncSocket *)pInfo;
+	AsyncSocket *socket = [[(AsyncSocket *)pInfo retain] autorelease];
 	[socket doCFWriteStreamCallback:type forStream:stream];
 	
 	[pool release];
