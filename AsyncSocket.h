@@ -148,7 +148,7 @@ typedef enum AsyncSocketError AsyncSocketError;
 **/
 - (BOOL)acceptOnPort:(UInt16)port error:(NSError **)errPtr;
 - (BOOL)acceptOnAddress:(NSString *)hostaddr port:(UInt16)port error:(NSError **)errPtr;
-- (BOOL)connectToHost:(NSString*)hostname onPort:(UInt16)port error:(NSError **)errPtr;
+- (BOOL)connectToHost:(NSString *)hostname onPort:(UInt16)port error:(NSError **)errPtr;
 
 /**
  * Disconnects immediately. Any pending reads or writes are dropped.

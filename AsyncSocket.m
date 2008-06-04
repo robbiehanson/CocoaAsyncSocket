@@ -297,7 +297,10 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 
 - (CFSocketRef) getCFSocket
 {
-	return theSocket;
+	if(theSocket)
+		return theSocket;
+	else
+		return theSocket6;
 }
 
 - (CFReadStreamRef) getCFReadStream
@@ -1500,9 +1503,9 @@ Failed:;
 			}
 			// else readAllAvailable doesn't end until all readable is read.
 		}
-
-		if (theCurrentRead->readAllAvailableData && theCurrentRead->bytesDone > 0)
-			done = YES;	// Ran out of bytes, so the "read-all-data" type packet is done.
+		
+		if(theCurrentRead->readAllAvailableData && theCurrentRead->bytesDone > 0)
+			done = YES;	// Ran out of bytes, so the "read-all-data" type packet is done
 
 		if(done)
 		{
@@ -1545,8 +1548,10 @@ Failed:;
 - (void)endCurrentRead
 {
 	NSAssert (theCurrentRead, @"Trying to end current read when there is no current read.");
+	
 	[theReadTimer invalidate];
 	theReadTimer = nil;
+	
 	[theCurrentRead release];
 	theCurrentRead = nil;
 }
@@ -1556,10 +1561,9 @@ Failed:;
 	if (timer != theReadTimer) return; // Old timer. Ignore it.
 	if (theCurrentRead != nil)
 	{
-		// Send what we got.
 		[self endCurrentRead];
 	}
-	[self closeWithError: [self getReadTimeoutError]];
+	[self closeWithError:[self getReadTimeoutError]];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
