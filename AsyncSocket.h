@@ -30,8 +30,9 @@ typedef enum AsyncSocketError AsyncSocketError;
 @interface NSObject (AsyncSocketDelegate)
 
 /**
- * In the event of an error, the socket is closed.  You may call "readDataWithTimeout:tag:" during this call-back to
- * get the last bit of data off the socket.  When connecting, this delegate method may be called
+ * In the event of an error, the socket is closed.
+ * You may call "unreadData" during this call-back to get the last bit of data off the socket.
+ * When connecting, this delegate method may be called
  * before"onSocket:didAcceptNewSocket:" or "onSocket:didConnectToHost:".
 **/
 - (void)onSocket:(AsyncSocket *)sock willDisconnectWithError:(NSError *)err;
@@ -91,20 +92,20 @@ typedef enum AsyncSocketError AsyncSocketError;
 
 @interface AsyncSocket : NSObject
 {
-	CFSocketRef theSocket;			// IPv4/IPv6 accept or connect socket.
-	CFSocketRef theSocket6;			// IPv6 accept socket.
+	CFSocketRef theSocket;             // IPv4 accept or connect socket
+	CFSocketRef theSocket6;            // IPv6 accept or connect socket
 	CFReadStreamRef theReadStream;
 	CFWriteStreamRef theWriteStream;
 
-	CFRunLoopSourceRef theSource;	// For theSocket.
-	CFRunLoopSourceRef theSource6;	// For theSocket6.
+	CFRunLoopSourceRef theSource;      // For theSocket
+	CFRunLoopSourceRef theSource6;     // For theSocket6
 	CFRunLoopRef theRunLoop;
 	CFSocketContext theContext;
 
 	NSMutableArray *theReadQueue;
 	AsyncReadPacket *theCurrentRead;
 	NSTimer *theReadTimer;
-	NSData *partialReadBuffer;
+	NSMutableData *partialReadBuffer;
 	
 	NSMutableArray *theWriteQueue;
 	AsyncWritePacket *theCurrentWrite;
@@ -116,13 +117,12 @@ typedef enum AsyncSocketError AsyncSocketError;
 	long theUserData;
 }
 
-- (id) init;
-- (id) initWithDelegate:(id)delegate;
-- (id) initWithDelegate:(id)delegate userData:(long)userData;
-- (void) dealloc;
+- (id)init;
+- (id)initWithDelegate:(id)delegate;
+- (id)initWithDelegate:(id)delegate userData:(long)userData;
 
 /* String representation is long but has no "\n". */
-- (NSString *) description;
+- (NSString *)description;
 
 /**
  * Use "canSafelySetDelegate" to see if there is any pending business (reads and writes) with the current delegate
@@ -137,9 +137,9 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (void)setUserData:(long)userData;
 
 /* Don't use these to read or write. And don't close them, either! */
-- (CFSocketRef) getCFSocket;
-- (CFReadStreamRef) getCFReadStream;
-- (CFWriteStreamRef) getCFWriteStream;
+- (CFSocketRef)getCFSocket;
+- (CFReadStreamRef)getCFReadStream;
+- (CFWriteStreamRef)getCFWriteStream;
 
 /**
  * Once one of these methods is called, the AsyncSocket instance is locked in, and the rest can't be called without
@@ -219,10 +219,16 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (float)progressOfReadReturningTag:(long *)tag bytesDone:(CFIndex *)done total:(CFIndex *)total;
 - (float)progressOfWriteReturningTag:(long *)tag bytesDone:(CFIndex *)done total:(CFIndex *)total;
 
+/**
+ * In the event of an error, this method may be called during onSocket:willDisconnectWithError: to read
+ * any data that's left on the socket.
+**/
+- (NSData *)unreadData;
+
 /* A few common line separators, for use with "readDataToData:withTimeout:tag:". */
-+ (NSData *)CRLFData; // 0x0D0A
-+ (NSData *)CRData;   // 0x0D
-+ (NSData *)LFData;   // 0x0A
-+ (NSData *)ZeroData; // 0x00
++ (NSData *)CRLFData;   // 0x0D0A
++ (NSData *)CRData;     // 0x0D
++ (NSData *)LFData;     // 0x0A
++ (NSData *)ZeroData;   // 0x00
 
 @end

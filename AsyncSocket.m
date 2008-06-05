@@ -30,10 +30,10 @@ NSString *getaddrinfoLock = @"lock";
 
 enum AsyncSocketFlags
 {
-	kDidCallConnectDeleg = 0x01,	// If set, connect delegate has been called.
-	kDidPassConnectMethod = 0x02,	// If set, disconnection results in delegate call.
-	kForbidReadsWrites = 0x04,		// If set, no new reads or writes are allowed.
-	kDisconnectSoon = 0x08			// If set, disconnect as soon as nothing is queued.
+	kDidCallConnectDeleg  = 0x01,   // If set, connect delegate has been called.
+	kDidPassConnectMethod = 0x02,   // If set, disconnection results in delegate call.
+	kForbidReadsWrites    = 0x04,   // If set, no new reads or writes are allowed.
+	kDisconnectSoon       = 0x08    // If set, disconnect as soon as nothing is queued.
 };
 
 @interface AsyncSocket (Private)
@@ -847,8 +847,8 @@ Failed:;
 #pragma mark Disconnect Implementation:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Sends error message and disconnects.
-- (void) closeWithError:(NSError *)err
+// Sends error message and disconnects
+- (void)closeWithError:(NSError *)err
 {
 	if (theFlags & kDidPassConnectMethod)
 	{
@@ -857,20 +857,30 @@ Failed:;
 		
 		// Let the delegate know, so it can try to recover if it likes.
 		if ([theDelegate respondsToSelector:@selector(onSocket:willDisconnectWithError:)])
+		{
 			[theDelegate onSocket:self willDisconnectWithError:err];
+		}
 	}
 	[self close];
 }
 
 // Prepare partially read data for recovery.
-- (void) recoverUnreadData
+- (void)recoverUnreadData
 {
-	if (theCurrentRead) [theCurrentRead->buffer setLength: theCurrentRead->bytesDone];
-	partialReadBuffer = (theCurrentRead ? [theCurrentRead->buffer copy] : nil);
+	if (theCurrentRead)
+	{
+		[theCurrentRead->buffer setLength: theCurrentRead->bytesDone];
+		partialReadBuffer = [theCurrentRead->buffer mutableCopy];
+	}
+	else
+	{
+		partialReadBuffer = [[NSMutableData alloc] initWithLength:0];
+	}
+	
 	[self emptyQueues];
 }
 
-- (void) emptyQueues
+- (void)emptyQueues
 {
 	if (theCurrentRead != nil)	[self endCurrentRead];
 	if (theCurrentWrite != nil)	[self endCurrentWrite];
@@ -881,7 +891,7 @@ Failed:;
 }
 
 // Disconnects. This is called for both error and clean disconnections.
-- (void) close
+- (void)close
 {
 	// Empty queues.
 	[self emptyQueues];
@@ -940,7 +950,9 @@ Failed:;
 	{
 		// Delay notification to give him freedom to release without returning here and core-dumping.
 		if ([theDelegate respondsToSelector: @selector(onSocketDidDisconnect:)])
+		{
 			[theDelegate performSelector:@selector(onSocketDidDisconnect:) withObject:self afterDelay:0];
+		}
 	}
 	
 	// Clear flags.
@@ -950,7 +962,7 @@ Failed:;
 /**
  * Disconnects immediately. Any pending reads or writes are dropped.
 **/
-- (void) disconnect
+- (void)disconnect
 {
 	[self close];
 }
@@ -960,11 +972,54 @@ Failed:;
  * After calling this, the read and write methods (including "readDataWithTimeout:tag:") will do nothing.
  * The socket will disconnect even if there are still pending reads.
 **/
-- (void) disconnectAfterWriting
+- (void)disconnectAfterWriting
 {
 	theFlags |= kForbidReadsWrites;
 	theFlags |= kDisconnectSoon;
 	[self maybeScheduleDisconnect];
+}
+
+/**
+ * In the event of an error, this method may be called during onSocket:willDisconnectWithError: to read
+ * any data that's left on the socket.
+**/
+- (NSData *)unreadData
+{
+	// If the onSocket:willDisconnectWithError: method has been called, the partialReadBuffer will be initialized.
+	// Otherwise it remains nil.
+	// Thus checking this variable ensures this method will only return data in the event of an error.
+	if(partialReadBuffer == nil) return nil;
+	
+	if(theReadStream == NULL) return nil;
+	
+	CFIndex totalBytesRead = [partialReadBuffer length];
+	BOOL error = NO;
+	while(!error && CFReadStreamHasBytesAvailable(theReadStream))
+	{
+		[partialReadBuffer increaseLengthBy:READALL_CHUNKSIZE];
+		
+		// Number of bytes to read is space left in packet buffer.
+		CFIndex bytesToRead = [partialReadBuffer length] - totalBytesRead;
+		
+		// Read data into packet buffer
+		UInt8 *packetbuf = (UInt8 *)( [partialReadBuffer mutableBytes] + totalBytesRead );
+		CFIndex bytesRead = CFReadStreamRead(theReadStream, packetbuf, bytesToRead);
+		
+		// Check results
+		if(bytesRead < 0)
+		{
+			bytesRead = 0;
+			error = YES;
+		}
+		else
+		{
+			totalBytesRead += bytesRead;
+		}
+	}
+	
+	[partialReadBuffer setLength:totalBytesRead];
+	
+	return partialReadBuffer;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1245,7 +1300,7 @@ Failed:;
 	return ntohs (pAddr->sin_port);
 }
 
-- (NSString *) description
+- (NSString *)description
 {
 	static const char *statstr[] = { "not open", "opening", "open", "reading", "writing", "at end", "closed", "has error" };
 	CFStreamStatus rs = (theReadStream != NULL) ? CFReadStreamGetStatus (theReadStream) : 0;
@@ -1322,7 +1377,7 @@ Failed:;
 	if (theFlags & kDisconnectSoon) [ms appendString: @", will disconnect soon"];
 	if (![self isConnected]) [ms appendString: @", not connected"];
 
-	 [ms appendString: @">"];
+	[ms appendString: @">"];
 
 	return [ms autorelease];
 }
@@ -1345,7 +1400,7 @@ Failed:;
 													   bufferOffset:0];
 
 	[theReadQueue addObject:packet];
-	[self maybeDequeueRead];
+	[self scheduleDequeueRead];
 
 	[packet release];
 	[buffer release];
@@ -1365,7 +1420,7 @@ Failed:;
 													   bufferOffset:0];
 
 	[theReadQueue addObject:packet];
-	[self maybeDequeueRead];
+	[self scheduleDequeueRead];
 
 	[packet release];
 	[buffer release];
@@ -1375,24 +1430,16 @@ Failed:;
 {
 	if (theFlags & kForbidReadsWrites) return;
 	
-	// The partialReadBuffer is used when recovering data from a broken connection.
-	NSMutableData *buffer;
-	if(partialReadBuffer) {
-		buffer = [partialReadBuffer mutableCopy];
-	}
-	else {
-		buffer = [[NSMutableData alloc] initWithLength:0];
-	}
-
+	NSMutableData *buffer = [[NSMutableData alloc] initWithLength:0];
 	AsyncReadPacket *packet = [[AsyncReadPacket alloc] initWithData:buffer
 															timeout:timeout
 																tag:tag
 												   readAllAvailable:YES
 														 terminator:nil
-													   bufferOffset:[buffer length]];
+													   bufferOffset:0];
 	
 	[theReadQueue addObject:packet];
-	[self maybeDequeueRead];
+	[self scheduleDequeueRead];
 	
 	[packet release];
 	[buffer release];
@@ -1578,12 +1625,12 @@ Failed:;
 	AsyncWritePacket *packet = [[AsyncWritePacket alloc] initWithData:data timeout:timeout tag:tag];
 	
 	[theWriteQueue addObject:packet];
-	[self maybeDequeueWrite];
+	[self scheduleDequeueWrite];
 	
 	[packet release];
 }
 
-- (void) scheduleDequeueWrite
+- (void)scheduleDequeueWrite
 {
 	[self performSelector:@selector(maybeDequeueWrite) withObject:nil afterDelay:0];
 }
@@ -1659,10 +1706,12 @@ Failed:;
 - (void)completeCurrentWrite
 {
 	NSAssert (theCurrentWrite, @"Trying to complete current write when there is no current write.");
+	
 	if ([theDelegate respondsToSelector:@selector(onSocket:didWriteDataWithTag:)])
 	{
 		[theDelegate onSocket:self didWriteDataWithTag:theCurrentWrite->tag];
 	}
+	
 	if (theCurrentWrite != nil) [self endCurrentWrite]; // Caller may have disconnected.
 }
 
@@ -1697,10 +1746,9 @@ Failed:;
 	if (timer != theWriteTimer) return; // Old timer. Ignore it.
 	if (theCurrentWrite != nil)
 	{
-		// Send what we got
 		[self endCurrentWrite];
 	}
-	[self closeWithError: [self getWriteTimeoutError]];
+	[self closeWithError:[self getWriteTimeoutError]];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
