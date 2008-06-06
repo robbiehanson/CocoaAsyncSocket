@@ -175,6 +175,9 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (NSString *)localHost;
 - (UInt16)localPort;
 
+- (BOOL)isIPv4;
+- (BOOL)isIPv6;
+
 /**
  * The following methods won't block. To not time out, use a negative time interval.
  * If they time out, "onSocket:disconnectWithError:" is called. The tag is for your convenience.

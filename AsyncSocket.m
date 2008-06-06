@@ -369,7 +369,11 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 	return [self acceptOnAddress:nil port:port error:errPtr];
 }
 	
-// Setting up IPv4 and IPv6 accepting sockets.
+/**
+ * To accept on a certain address, pass the address to accept on.
+ * To accept on any address, pass nil or an empty string.
+ * To accept only connections from localhost pass "localhost" or "loopback".
+**/
 - (BOOL)acceptOnAddress:(NSString *)hostaddr port:(UInt16)port error:(NSError **)errPtr
 {
 	if (theDelegate == NULL)
@@ -822,6 +826,7 @@ Failed:;
 
 - (BOOL)setSocketFromStreamsAndReturnError:(NSError **)errPtr
 {
+	// Get the CFSocketNativeHandle from theReadStream
 	CFSocketNativeHandle native;
 	CFDataRef nativeProp = CFReadStreamCopyProperty(theReadStream, kCFStreamPropertySocketNativeHandle);
 	if(nativeProp == NULL)
@@ -833,11 +838,24 @@ Failed:;
 	CFDataGetBytes(nativeProp, CFRangeMake(0, CFDataGetLength(nativeProp)), (UInt8 *)&native);
 	CFRelease(nativeProp);
 	
-	theSocket = CFSocketCreateWithNative(kCFAllocatorDefault, native, 0, NULL, NULL);
-	if(theSocket == NULL)
+	CFSocketRef socket = CFSocketCreateWithNative(kCFAllocatorDefault, native, 0, NULL, NULL);
+	if(socket == NULL)
 	{
 		if (errPtr) *errPtr = [self getSocketError];
 		return NO;
+	}
+	
+	// Determine whether the connection was IPv4 or IPv6
+	CFDataRef peeraddr = CFSocketCopyPeerAddress(socket);
+	struct sockaddr *sa = (struct sockaddr *)peeraddr;
+	
+	if(sa->sa_family == AF_INET)
+	{
+		theSocket = socket;
+	}
+	else
+	{
+		theSocket6 = socket;
 	}
 
 	return YES;
@@ -1148,12 +1166,12 @@ Failed:;
 #pragma mark Diagnostics
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-- (BOOL) isConnected
+- (BOOL)isConnected
 {
 	return [self isSocketConnected] && [self areStreamsConnected];
 }
 
-- (NSString *) connectedHost
+- (NSString *)connectedHost
 {
 	if(theSocket)
 		return [self connectedHost:theSocket];
@@ -1161,7 +1179,7 @@ Failed:;
 		return [self connectedHost:theSocket6];
 }
 
-- (UInt16) connectedPort
+- (UInt16)connectedPort
 {
 	if(theSocket)
 		return [self connectedPort:theSocket];
@@ -1247,11 +1265,15 @@ Failed:;
 
 - (BOOL)isSocketConnected
 {
-	if (theSocket == NULL && theSocket6 == NULL) return NO;
-	return CFSocketIsValid(theSocket) || CFSocketIsValid(theSocket6);
+	if(theSocket != NULL)
+		return CFSocketIsValid(theSocket);
+	else if(theSocket6 != NULL)
+		return CFSocketIsValid(theSocket6);
+	else
+		return NO;
 }
 
-- (BOOL) areStreamsConnected
+- (BOOL)areStreamsConnected
 {
 	CFStreamStatus s;
 
@@ -1274,9 +1296,10 @@ Failed:;
 	return YES;
 }
 
-- (NSString *) addressHost: (CFDataRef)cfaddr
+- (NSString *)addressHost:(CFDataRef)cfaddr
 {
 	if (cfaddr == NULL) return nil;
+	
 	char addrBuf[ MAX(INET_ADDRSTRLEN, INET6_ADDRSTRLEN) ];
 	struct sockaddr *pSockAddr = (struct sockaddr *) CFDataGetBytePtr (cfaddr);
 	struct sockaddr_in  *pSockAddrV4 = (struct sockaddr_in *) pSockAddr;
@@ -1300,19 +1323,45 @@ Failed:;
 	return ntohs (pAddr->sin_port);
 }
 
+- (BOOL)isIPv4
+{
+	return (theSocket != NULL);
+}
+
+- (BOOL)isIPv6
+{
+	return (theSocket6 != NULL);
+}
+
 - (NSString *)description
 {
 	static const char *statstr[] = { "not open", "opening", "open", "reading", "writing", "at end", "closed", "has error" };
 	CFStreamStatus rs = (theReadStream != NULL) ? CFReadStreamGetStatus (theReadStream) : 0;
 	CFStreamStatus ws = (theWriteStream != NULL) ? CFWriteStreamGetStatus (theWriteStream) : 0;
 	NSString *peerstr, *selfstr;
-	CFDataRef peeraddr, selfaddr = NULL, selfaddr6 = NULL;
+	CFDataRef peeraddr = NULL, peeraddr6 = NULL, selfaddr = NULL, selfaddr6 = NULL;
 
-	if (theSocket && (peeraddr = CFSocketCopyPeerAddress (theSocket)))
+	if (theSocket)  peeraddr  = CFSocketCopyPeerAddress(theSocket);
+	if (theSocket6) peeraddr6 = CFSocketCopyPeerAddress(theSocket6);
+	if (theSocket || theSocket6)
 	{
-		peerstr = [NSString stringWithFormat: @"%@ %u", [self addressHost:peeraddr], [self addressPort:peeraddr]];
-		CFRelease (peeraddr);
+		if(theSocket6 && theSocket)
+		{
+			peerstr = [NSString stringWithFormat: @"%@/%@ %u", [self addressHost:peeraddr], [self addressHost:peeraddr6], [self addressPort:peeraddr]];
+		}
+		else if(theSocket6)
+		{
+			peerstr = [NSString stringWithFormat: @"%@ %u", [self addressHost:peeraddr6], [self addressPort:peeraddr6]];
+		}
+		else
+		{
+			peerstr = [NSString stringWithFormat: @"%@ %u", [self addressHost:peeraddr], [self addressPort:peeraddr]];
+		}
+		
+		if(peeraddr)  CFRelease(peeraddr);
+		if(peeraddr6) CFRelease(peeraddr6);
 		peeraddr = NULL;
+		peeraddr6 = NULL;
 	}
 	else peerstr = @"nowhere";
 
@@ -1320,25 +1369,29 @@ Failed:;
 	if (theSocket6) selfaddr6 = CFSocketCopyAddress (theSocket6);
 	if (theSocket || theSocket6)
 	{
-		if (theSocket6)
+		if (theSocket6 && theSocket)
 		{
 			selfstr = [NSString stringWithFormat: @"%@/%@ %u", [self addressHost:selfaddr], [self addressHost:selfaddr6], [self addressPort:selfaddr]];
+		}
+		else if (theSocket6)
+		{
+			selfstr = [NSString stringWithFormat: @"%@ %u", [self addressHost:selfaddr6], [self addressPort:selfaddr6]];
 		}
 		else
 		{
 			selfstr = [NSString stringWithFormat: @"%@ %u", [self addressHost:selfaddr], [self addressPort:selfaddr]];
 		}
 
-		if (selfaddr)  CFRelease (selfaddr);
-		if (selfaddr6) CFRelease (selfaddr6);
+		if(selfaddr)  CFRelease(selfaddr);
+		if(selfaddr6) CFRelease(selfaddr6);
 		selfaddr = NULL;
 		selfaddr6 = NULL;
 	}
 	else selfstr = @"nowhere";
 	
 	NSMutableString *ms = [[NSMutableString alloc] init];
-	[ms appendString: [NSString stringWithFormat:@"<AsyncSocket %p #%u: Socket %p", self, [self hash], theSocket]];
-	[ms appendString: [NSString stringWithFormat:@" local %@ remote %@ ", selfstr, peerstr ]];
+	[ms appendString: [NSString stringWithFormat:@"<AsyncSocket %p", self]];
+	[ms appendString: [NSString stringWithFormat:@" local %@ remote %@ ", selfstr, peerstr]];
 	[ms appendString: [NSString stringWithFormat:@"has queued %d reads %d writes, ", [theReadQueue count], [theWriteQueue count] ]];
 
 	if (theCurrentRead == nil)
