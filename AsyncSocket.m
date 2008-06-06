@@ -847,7 +847,7 @@ Failed:;
 	
 	// Determine whether the connection was IPv4 or IPv6
 	CFDataRef peeraddr = CFSocketCopyPeerAddress(socket);
-	struct sockaddr *sa = (struct sockaddr *)peeraddr;
+	struct sockaddr *sa = (struct sockaddr *)CFDataGetBytePtr(peeraddr);
 	
 	if(sa->sa_family == AF_INET)
 	{
