@@ -61,6 +61,10 @@ typedef enum AsyncSocketError AsyncSocketError;
  * 
  * If the connectToHost:onPort:error: method was called, the delegate will be able to access and configure the
  * CFReadStream and CFWriteStream as desired prior to connection.
+ *
+ * If the connectToAddress:error: method was called, the delegate will be able to access and configure the
+ * CFSocket and CFSocketNativeHandle (BSD socket) as desired prior to connection. You will be able to access and
+ * configure the CFReadStream and CFWriteStream in the onSocket:didConnectToHost:port: method.
 **/
 - (BOOL)onSocketWillConnect:(AsyncSocket *)sock;
 
@@ -149,6 +153,7 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (BOOL)acceptOnPort:(UInt16)port error:(NSError **)errPtr;
 - (BOOL)acceptOnAddress:(NSString *)hostaddr port:(UInt16)port error:(NSError **)errPtr;
 - (BOOL)connectToHost:(NSString *)hostname onPort:(UInt16)port error:(NSError **)errPtr;
+- (BOOL)connectToAddress:(NSData *)remoteAddr error:(NSError **)errPtr;
 
 /**
  * Disconnects immediately. Any pending reads or writes are dropped.
