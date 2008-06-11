@@ -88,3 +88,9 @@ Bugfix:
   Perhaps the problem still exists, but only in very rare cases which we just happened to be encountering.
   In any case, we used the same precautions that were used previously.
   In the close methods, we specifically unregister for callbacks now.
+
+
+
+
+There have been several more bug fixes and changes. Please consult the google code changes list:
+http://code.google.com/p/cocoaasyncsocket/source/list
