@@ -1038,6 +1038,8 @@ Failed:;
 	{
 		theSocket6 = socket;
 	}
+	
+	CFRelease(peeraddr);
 
 	return YES;
 }
@@ -1207,7 +1209,6 @@ Failed:;
 		// Check results
 		if(bytesRead < 0)
 		{
-			bytesRead = 0;
 			error = YES;
 		}
 		else
@@ -1762,7 +1763,6 @@ Failed:;
 			// Check results
 			if(bytesRead < 0)
 			{
-				bytesRead = 0;
 				error = YES;
 			}
 			else
