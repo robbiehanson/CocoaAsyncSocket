@@ -1535,10 +1535,11 @@ Failed:;
 	NSString *peerstr, *selfstr;
 	CFDataRef peeraddr = NULL, peeraddr6 = NULL, selfaddr = NULL, selfaddr6 = NULL;
 
-	if (theSocket)  peeraddr  = CFSocketCopyPeerAddress(theSocket);
-	if (theSocket6) peeraddr6 = CFSocketCopyPeerAddress(theSocket6);
 	if (theSocket || theSocket6)
 	{
+		if (theSocket)  peeraddr  = CFSocketCopyPeerAddress(theSocket);
+		if (theSocket6) peeraddr6 = CFSocketCopyPeerAddress(theSocket6);
+	
 		if(theSocket6 && theSocket)
 		{
 			peerstr = [NSString stringWithFormat: @"%@/%@ %u", [self addressHost:peeraddr], [self addressHost:peeraddr6], [self addressPort:peeraddr]];
@@ -1559,10 +1560,11 @@ Failed:;
 	}
 	else peerstr = @"nowhere";
 
-	if (theSocket)  selfaddr  = CFSocketCopyAddress (theSocket);
-	if (theSocket6) selfaddr6 = CFSocketCopyAddress (theSocket6);
 	if (theSocket || theSocket6)
 	{
+		if (theSocket)  selfaddr  = CFSocketCopyAddress (theSocket);
+		if (theSocket6) selfaddr6 = CFSocketCopyAddress (theSocket6);
+	
 		if (theSocket6 && theSocket)
 		{
 			selfstr = [NSString stringWithFormat: @"%@/%@ %u", [self addressHost:selfaddr], [self addressHost:selfaddr6], [self addressPort:selfaddr]];
