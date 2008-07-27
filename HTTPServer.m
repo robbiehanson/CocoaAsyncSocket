@@ -576,8 +576,10 @@ static NSMutableArray *recentNonces;
 		return YES;
 	}
 	
-	NSString *method = (NSString *)CFHTTPMessageCopyRequestMethod(request);
-	NSString *url = [(NSURL *)CFHTTPMessageCopyRequestURL(request) relativeString];
+	NSString *method = [(NSString *)CFHTTPMessageCopyRequestMethod(request) autorelease];
+	
+	NSURL *absoluteUrl = [(NSURL *)CFHTTPMessageCopyRequestURL(request) autorelease];
+	NSString *url = [(NSURL *)absoluteUrl relativeString];
 	
 	if(![url isEqualToString:[auth uri]])
 	{
