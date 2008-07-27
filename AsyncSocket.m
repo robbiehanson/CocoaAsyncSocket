@@ -537,7 +537,19 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 	return YES;
 	
 Failed:;
-	if (errPtr) *errPtr = [self getSocketError];
+	if(errPtr) *errPtr = [self getSocketError];
+	if(theSocket != NULL)
+	{
+		CFSocketInvalidate(theSocket);
+		CFRelease(theSocket);
+		theSocket = NULL;
+	}
+	if(theSocket6 != NULL)
+	{
+		CFSocketInvalidate(theSocket6);
+		CFRelease(theSocket6);
+		theSocket6 = NULL;
+	}
 	return NO;
 }
 
