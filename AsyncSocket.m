@@ -14,6 +14,10 @@
 #import <arpa/inet.h>
 #import <netdb.h>
 
+#if TARGET_OS_IPHONE
+#import <CFNetwork/CFNetwork.h>
+#endif
+
 #pragma mark Declarations
 
 #define READQUEUE_CAPACITY	5           // Initial capacity
@@ -490,7 +494,12 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 	if (address6)
 	{
 		theSocket6 = [self createAcceptSocketForAddress:address6 error:errPtr];
+		
+		// Note: The iPhone doesn't currently support IPv6
+		
+#if !TARGET_OS_IPHONE
 		if (theSocket6 == NULL) goto Failed;
+#endif
 	}
 	
 	// Attach the sockets to the run loop so that callback methods work
@@ -537,7 +546,19 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 	return YES;
 	
 Failed:;
-	if (errPtr) *errPtr = [self getSocketError];
+	if(errPtr) *errPtr = [self getSocketError];
+	if(theSocket != NULL)
+	{
+		CFSocketInvalidate(theSocket);
+		CFRelease(theSocket);
+		theSocket = NULL;
+	}
+	if(theSocket6 != NULL)
+	{
+		CFSocketInvalidate(theSocket6);
+		CFRelease(theSocket6);
+		theSocket6 = NULL;
+	}
 	return NO;
 }
 
