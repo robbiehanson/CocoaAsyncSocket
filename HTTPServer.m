@@ -3,7 +3,13 @@
 #import "HTTPAuthenticationRequest.h"
 
 #import <stdlib.h>
+
+#if TARGET_OS_IPHONE
+#import <CommonCrypto/CommonDigest.h>
+#else
 #import <SSCrypto/SSCrypto.h>
+#endif
+
 
 // Define chunk size used to read files from disk
 #define READ_CHUNKSIZE     (1024 * 512)
@@ -386,6 +392,26 @@ static NSMutableArray *recentNonces;
 	[recentNonces removeObject:[aTimer userInfo]];
 }
 
++ (NSString *)md5Hash:(NSString *)clearText
+{
+#if TARGET_OS_IPHONE
+	
+	const char *cStr = [clearText UTF8String];
+	unsigned char result[CC_MD5_DIGEST_LENGTH];
+	CC_MD5( cStr, strlen(cStr), result );
+	return [NSString stringWithFormat:@"%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+			result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7],
+			result[8], result[9], result[10], result[11], result[12], result[13], result[14], result[15]
+	];
+	
+#else
+	
+	NSData *clearData = [clearText dataUsingEncoding:NSUTF8StringEncoding];
+	return [[SSCrypto getMD5ForData:clearData] hexval];
+	
+#endif
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Init, Dealloc:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -623,22 +649,17 @@ static NSMutableArray *recentNonces;
 	}
 	lastNC = [[auth nc] intValue];
 	
-	SSCrypto *crypto = [[[SSCrypto alloc] init] autorelease];
-	
 	NSString *HA1str = [NSString stringWithFormat:@"%@:%@:%@", [auth username], [auth realm], password];
 	NSString *HA2str = [NSString stringWithFormat:@"%@:%@", method, [auth uri]];
 	
-	[crypto setClearTextWithString:HA1str];
-	NSString *HA1 = [[crypto digest:@"MD5"] hexval];
+	NSString *HA1 = [[self class] md5Hash:HA1str];
 	
-	[crypto setClearTextWithString:HA2str];
-	NSString *HA2 = [[crypto digest:@"MD5"] hexval];
+	NSString *HA2 = [[self class] md5Hash:HA2str];
 	
 	NSString *responseStr = [NSString stringWithFormat:@"%@:%@:%@:%@:%@:%@",
 		HA1, [auth nonce], [auth nc], [auth cnonce], [auth qop], HA2];
 	
-	[crypto setClearTextWithString:responseStr];
-	NSString *response = [[crypto digest:@"MD5"] hexval];
+	NSString *response = [[self class] md5Hash:responseStr];
 	
 	return [response isEqualToString:[auth response]];
 }
