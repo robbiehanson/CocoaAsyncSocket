@@ -1,0 +1,156 @@
+// !$*UTF8*$!
+{
+	29B97313FDCFA39411CA2CEA /* Project object */ = {
+		activeBuildConfigurationName = Debug;
+		activeExecutable = DC7618DA0E26F49700A77CA5 /* EchoServer */;
+		activeTarget = 8D1107260486CEB800E47090 /* EchoServer */;
+		addToTargets = (
+			8D1107260486CEB800E47090 /* EchoServer */,
+		);
+		codeSenseManager = DC7618EA0E26F49700A77CA5 /* Code sense */;
+		executables = (
+			DC7618DA0E26F49700A77CA5 /* EchoServer */,
+		);
+		perUserDictionary = {
+			PBXConfiguration.PBXFileTableDataSource3.PBXFileTableDataSource = {
+				PBXFileTableDataSourceColumnSortingDirectionKey = "-1";
+				PBXFileTableDataSourceColumnSortingKey = PBXFileDataSource_Filename_ColumnID;
+				PBXFileTableDataSourceColumnWidthsKey = (
+					20,
+					572,
+					20,
+					48,
+					43,
+					43,
+					20,
+				);
+				PBXFileTableDataSourceColumnsKey = (
+					PBXFileDataSource_FiletypeID,
+					PBXFileDataSource_Filename_ColumnID,
+					PBXFileDataSource_Built_ColumnID,
+					PBXFileDataSource_ObjectSize_ColumnID,
+					PBXFileDataSource_Errors_ColumnID,
+					PBXFileDataSource_Warnings_ColumnID,
+					PBXFileDataSource_Target_ColumnID,
+				);
+			};
+			PBXPerProjectTemplateStateSaveDate = 239498101;
+			PBXWorkspaceStateSaveDate = 239498101;
+		};
+		perUserProjectItems = {
+			DC50DAC10E4673E70071BAD9 /* PBXTextBookmark */ = DC50DAC10E4673E70071BAD9 /* PBXTextBookmark */;
+			DC50DAC20E4673E70071BAD9 /* PBXTextBookmark */ = DC50DAC20E4673E70071BAD9 /* PBXTextBookmark */;
+			DC50DAC30E4673E70071BAD9 /* PBXTextBookmark */ = DC50DAC30E4673E70071BAD9 /* PBXTextBookmark */;
+			DCDF86020E3D1183006EAF15 /* PBXTextBookmark */ = DCDF86020E3D1183006EAF15 /* PBXTextBookmark */;
+			DCDF86050E3D1183006EAF15 /* PBXTextBookmark */ = DCDF86050E3D1183006EAF15 /* PBXTextBookmark */;
+		};
+		sourceControlManager = DC7618E90E26F49700A77CA5 /* Source Control */;
+		userBuildSettings = {
+		};
+	};
+	8D1107260486CEB800E47090 /* EchoServer */ = {
+		activeExec = 0;
+		executables = (
+			DC7618DA0E26F49700A77CA5 /* EchoServer */,
+		);
+	};
+	DC50DAC10E4673E70071BAD9 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = DC7619030E26F49700A77CA5 /* AppController.h */;
+		name = "AppController.h: 16";
+		rLen = 0;
+		rLoc = 255;
+		rType = 0;
+		vrLen = 294;
+		vrLoc = 0;
+	};
+	DC50DAC20E4673E70071BAD9 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = DC7619030E26F49700A77CA5 /* AppController.h */;
+		name = "AppController.h: 16";
+		rLen = 0;
+		rLoc = 255;
+		rType = 0;
+		vrLen = 294;
+		vrLoc = 0;
+	};
+	DC50DAC30E4673E70071BAD9 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = DC7619040E26F49700A77CA5 /* AppController.m */;
+		name = "AppController.m: 19";
+		rLen = 0;
+		rLoc = 402;
+		rType = 0;
+		vrLen = 1308;
+		vrLoc = 0;
+	};
+	DC7618DA0E26F49700A77CA5 /* EchoServer */ = {
+		isa = PBXExecutable;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		breakpointsEnabled = 0;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		dylibVariantSuffix = "";
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = EchoServer;
+		sourceDirectories = (
+		);
+	};
+	DC7618E90E26F49700A77CA5 /* Source Control */ = {
+		isa = PBXSourceControlManager;
+		fallbackIsa = XCSourceControlManager;
+		isSCMEnabled = 0;
+		scmConfiguration = {
+		};
+	};
+	DC7618EA0E26F49700A77CA5 /* Code sense */ = {
+		isa = PBXCodeSenseManager;
+		indexTemplatePath = "";
+	};
+	DC7619030E26F49700A77CA5 /* AppController.h */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {750, 745}}";
+			sepNavSelRange = "{255, 0}";
+			sepNavVisRange = "{0, 294}";
+		};
+	};
+	DC7619040E26F49700A77CA5 /* AppController.m */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {750, 2562}}";
+			sepNavSelRange = "{402, 0}";
+			sepNavVisRange = "{0, 1308}";
+		};
+	};
+	DCDF86020E3D1183006EAF15 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = DC7619040E26F49700A77CA5 /* AppController.m */;
+		name = "AppController.m: 174";
+		rLen = 0;
+		rLoc = 4699;
+		rType = 0;
+		vrLen = 1384;
+		vrLoc = 0;
+	};
+	DCDF86050E3D1183006EAF15 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = DC7619040E26F49700A77CA5 /* AppController.m */;
+		name = "AppController.m: 174";
+		rLen = 0;
+		rLoc = 4699;
+		rType = 0;
+		vrLen = 1384;
+		vrLoc = 0;
+	};
+}
