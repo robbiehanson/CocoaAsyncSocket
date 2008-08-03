@@ -87,10 +87,11 @@
    </style>
 </head>
 <body style="margin: 1em 1em 1em 1em;">
-	<h1 style="text-align: center;">AsyncSocket 4.3</h1>
+	<h1 style="text-align: center;">AsyncSocket Documentation</h1>
    <a name="intro"></a>
 	<p>AsyncSocket is a TCP/IP socket networking library, designed to efficiently handle packet data. The library is in two files and one public Cocoa class.</p>
-	<p>The library is public domain, written and maintained by Dustin Voss. For support, e-mail <a href="mailto:d.j.v.@mac.com">d.j.v.@mac.com</a>.</p>
+	<p>The library is public domain, originally written by Dustin Voss, and now maintained by Deusty and the Cocoa community.</p>
+	<p>For support, visit the CocoaAsyncSocket Google code page at <a href="http://code.google.com/p/cocoaasyncsocket/">http://code.google.com/p/cocoaasyncsocket/</a></p>
     <a name="cont"></a>
     <h3>Contents</h3>
     <ol>
@@ -138,36 +139,47 @@
 
    <a name="about"></a>
 	<h3>About AsyncSocket</h3>
-	<p>The Cocoa API provides a handful of networking classes, suitable for downloading and uploading images and files. These classes support HTML, FTP, and other protocols, but cannot be used with application-specific protocols. Without low-level socket classes supporting application-specific protocols, developers must custom-code networking solutions using BSD or Carbon functions in conjunction with
+	<p>
+		The Cocoa API provides a handful of networking classes, suitable for downloading and uploading images and files.
+		These classes support HTML, FTP, and other protocols, but cannot be used with application-specific protocols.
+		Without low-level socket classes supporting application-specific protocols,
+		developers must custom-code networking solutions using BSD or Carbon functions in conjunction with
 		<span class="Class">NSFileHandle</span>, 
 		<span class="Class">NSInputStream</span>, and 
-		<span class="Class">NSOutputStream</span>. These functions and classes are not optimized for TCP/IP networking in a real Cocoa application, and can be difficult to integrate.
+		<span class="Class">NSOutputStream</span>.
+		These functions and classes are not optimized for TCP/IP networking in a real Cocoa application, and can be difficult to integrate.
 	</p>
-	<p>AsyncSocket provides easy-to-integrate &#x201C;fire and forget&#x201D; networking that makes it easy for your application to support networking. Features include:</p>
-	<ul>
-		<li>
-		<p>Queued non-blocking reads and writes, with timeouts. You tell AsyncSocket what to read or write and get out of the way. It will call you when it is done.</p>
-		</li>
-		<li>
-		<p>Automatic socket acceptance. If you tell AsyncSocket to accept connections, it will call you with new instances of itself for each connection. You can, of course, disconnect them immediately.</p>
-		</li>
-		<li>
-		<p>Delegate support. Errors, connections, accepts, read completions, write completions, and disconnections all result in a message to your delegate.</p>
-		</li>
-		<li>
-		<p>Run-loop based, not thread based. Although you can use AsyncSocket on main or worker threads, you are not forced to do so. <span class="Class">AsyncSocket</span> will sent messages to the delegate asynchronously via the run-loop. The messages include a <span class="Argument">socket</span> argument, allowing you to distinguish between many instances of <span class="Class">AsyncSocket</span>.</p>
-		</li>
-		<li>
-		<p>Self-contained in one class. You do not need to muck around with a collection of stream or socket instances. The class handles all of that.</p>
-		</li>
-		<li>
-		<p>Support for TCP streams. <span class="Class">AsyncSocket</span> does not support UDP or multicast sockets.</p>
-		</li>
-		<li>
-		<p>Based on Apple&#x2019;s own <span class="Class">CFSocket</span> and <span class="Class">CFStream</span> Carbon APIs.
-		</p>
-		</li>
-	</ul>
+	<p>
+		AsyncSocket provides easy-to-integrate &#x201C;fire and forget&#x201D; networking that makes it easy for your application to support networking.
+		Features include:</p>
+		<ul>
+			<li>
+				Queued non-blocking reads and writes, with optional timeouts.
+				You tell AsyncSocket what to read or write and get out of the way.
+				It will call you when it's done.
+			</li>
+			<li>
+				Automatic socket acceptance. If you tell AsyncSocket to accept connections, it will call you with new instances of itself for each connection.
+				You can, of course, disconnect them immediately.
+			</li>
+			<li>
+				Delegate support. Errors, connections, accepts, read completions, write completions, and disconnections all result in a message to your delegate.
+			</li>
+			<li>
+				Run-loop based, not thread based. Although you can use AsyncSocket on main or worker threads, you are not forced to do so.
+				<span class="Class">AsyncSocket</span> will sent messages to the delegate asynchronously via the run-loop.
+				The messages include a <span class="Argument">socket</span> argument, allowing you to distinguish between many instances of <span class="Class">AsyncSocket</span>.
+			</li>
+			<li>
+				Self-contained in one class. You do not need to muck around with a collection of stream or socket instances. The class handles all of that.
+			</li>
+			<li>
+				Support for TCP streams. <span class="Class">AsyncSocket</span> does not support UDP or multicast sockets.
+			</li>
+			<li>
+				Based on Apple&#x2019;s own <span class="Class">CFSocket</span> and <span class="Class">CFStream</span> Carbon APIs.
+			</li>
+		</ul>
 
    <a name="doc"></a>
 	<h3>About This Document</h3>
@@ -342,10 +354,29 @@ field2 = fieldSeries-&gt;field2;</div>
 
    <a name="err"></a>
 	<h3>Error Handling</h3>
-	<p>If a socket encounters an input/output error, or if a read or write operation times out, AsyncSocket assumes the connection has been broken and must be re-established. The socket will proceed to disconnect itself. The remote socket will typically be disconnected by its own client application.</p>
-	<p>Before disconnecting the local socket, an <span class="Class">AsyncSocket</span> instance will send <a class="Function" href="#api_sockwilldisconnecterror">-onSocket:willDisconnectWithError:</a> to its delegate object. The second argument of this message is an <span class="Class">NSError</span> object. This object may contain a POSIX, Mac OS, or <span class="Class">CFStream</span> error code, as indicated by the object&#x2019;s <span class="Function ">-domain</span> method. It may also contain an <span class="Class">AsyncSocket</span>-specific error code. See &#x201C;<a href="#api_sockdomain">Errors</a>&#x201D; below for details.</p>
-	<p>During the execution of its <a class="Function" href="#api_sockwilldisconnecterror">-onSocket:willDisconnectWithError:</a> method, the delegate object may retrieve all unreceived data (including data from any partially-completed read operations) by sending <a class="Function" href="#api_readdatatimeouttag">-readDataWithTimeout:tag:</a> to the socket. The socket will invoke the delegate object&#x2019;s <a class="Function" href="#api_sockdidreaddatatag">-onSocket:didReadData:withTag:</a> method before returning from <a class="Function" href="#api_readdatatimeouttag">-readDataWithTimeout:tag:</a>.</p>
-	<p>After the delegate object&#x2019;s <a class="Function" href="#api_sockwilldisconnecterror">-onSocket:willDisconnectWithError:</a> method returns, the socket will be disconnected. It will then send <a class="Function" href="#api_sockdiddisconnect">-onSocketDidDisconnect:</a> to the delegate.</p>
+	<p>
+		If a socket encounters an input/output error, or if a read or write operation times out, AsyncSocket assumes the connection has been broken and must be re-established.
+		The socket will proceed to disconnect itself. The remote socket will typically be disconnected by its own client application.
+	</p>
+	<p>
+		Before disconnecting the local socket, an <span class="Class">AsyncSocket</span> instance will
+		send <a class="Function" href="#api_sockwilldisconnecterror">-onSocket:willDisconnectWithError:</a> to its delegate object.
+		The second argument of this message is an <span class="Class">NSError</span> object.
+		This object may contain a POSIX, Mac OS, or <span class="Class">CFStream</span> error code,
+		as indicated by the object&#x2019;s <span class="Function ">-domain</span> method.
+		It may also contain an <span class="Class">AsyncSocket</span>-specific error code.
+		See &#x201C;<a href="#api_sockdomain">Errors</a>&#x201D; below for details.
+	</p>
+	<p>
+		During the execution of its <a class="Function" href="#api_sockwilldisconnecterror">-onSocket:willDisconnectWithError:</a> method,
+		the delegate object may retrieve all unreceived data (including data from any partially-completed read operations) by
+		sending <a class="Function" href="#api_unreaddatatag">-unreadData</a> to the socket.
+	</p>
+	<p>
+		After the delegate object&#x2019;s <a class="Function" href="#api_sockwilldisconnecterror">-onSocket:willDisconnectWithError:</a> method returns,
+		the socket will be disconnected.
+		It will then send <a class="Function" href="#api_sockdiddisconnect">-onSocketDidDisconnect:</a> to the delegate.
+	</p>
 
    <a name="thread"></a>
 	<h3>Threading and Run-Loops</h3>
@@ -1041,9 +1072,11 @@ field2 = fieldSeries-&gt;field2;</div>
 		<th rowspan="2"><p>Arguments</p></th>
 		<td class="Argument"><p>timeout</p></td>
 		<td>
-			 <p>The number of seconds from the start of the read operation in which the operation must complete. If the operation takes longer than this interval, the operation times out.</p>
+			 <p>
+			 	The number of seconds from the start of the read operation in which the operation must complete.
+			 	If the operation takes longer than this interval, the operation times out.
+			 </p>
 			 <p>If negative, the read operation will not time out.</p>
-			 <p>If this message is being sent from within the delegate&#x2019;s <a class="Function" href="#api_sockwilldisconnecterror">-onSocket:willDisconnectWithError:</a> method to recover unread data, this argument is irrelevant.</p>
 		</td>
 		</tr>
 		</tr>
@@ -1056,7 +1089,10 @@ field2 = fieldSeries-&gt;field2;</div>
 		<tr>
 		<th><p>Return Value</p></th>
 		<td colspan="2">
-			 <p>The receiver will send <a class="Function" href="#api_sockdidreaddatatag">-onSocket:didReadData:withTag:</a> to its delegate object when the read operation has completed. The received data, if any, will be passed as an argument.</p>
+			 <p>
+			 	The receiver will send <a class="Function" href="#api_sockdidreaddatatag">-onSocket:didReadData:withTag:</a> to its delegate object
+			 	when the read operation has completed.  The received data, if any, will be passed as an argument.
+			 </p>
 		</td>
 		</tr>
 		<tr>
@@ -1071,9 +1107,10 @@ field2 = fieldSeries-&gt;field2;</div>
 		</td>
 		</tr>
 	</table>
-	<p>When the bytes have been successfully retrieved, the receiver will then send <a class="Function" href="#api_sockdidreaddatatag">-onSocket:didReadData:withTag:</a> to its delegate object, passing all the received bytes as an argument.</p>
-	<p>The read operation will be performed immediately if possible. If so, the receiver will send the message before returning from this method.</p>
-	<p>The delegate object may send this message while responding to a <a class="Function" href="#api_sockwilldisconnecterror">-onSocket:willDisconnectWithError:</a> message. This allows the delegate to retrieve partially-received and unreceived bytes.</p>
+	<p>
+		When the bytes have been successfully retrieved, the receiver will then send <a class="Function" href="#api_sockdidreaddatatag">-onSocket:didReadData:withTag:</a>
+		to its delegate object, passing all the received bytes as an argument.
+	</p>
 	
 	<a name="api_writedatatimeouttag"></a>
 	<p class="Method_Heading">-writeData:withTimeout:tag:</p>
