@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2003-2005, Septicus Software All rights reserved.
+ Copyright (c) 2003-2006, Septicus Software All rights reserved.
  
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are
@@ -30,7 +30,7 @@
 //  SSCrypto.h
 //
 //  Created by Ed Silva on Sat May 31 2003.
-//  Copyright (c) 2003-2005 Septicus Software. All rights reserved.
+//  Copyright (c) 2003-2006 Septicus Software. All rights reserved.
 //
 
 
@@ -104,7 +104,10 @@
 
 - (NSData *)digest:(NSString *)digestName;
 
++ (NSData *)generateRSAPrivateKeyWithLength:(int)length;
++ (NSData *)generateRSAPublicKeyFromPrivateKey:(NSData *)privateKey;
 + (NSData *)getKeyDataWithLength:(int)length;
 + (NSData *)getSHA1ForData:(NSData *)d;
++ (NSData *)getMD5ForData:(NSData *)d;
 
 @end
