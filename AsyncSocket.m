@@ -790,7 +790,10 @@ Failed:;
 **/
 - (void)doAcceptWithSocket:(CFSocketNativeHandle)newNative
 {
-	AsyncSocket *newSocket = [[[AsyncSocket alloc] initWithDelegate:theDelegate] autorelease];
+	AsyncSocket *newSocket = [[[[self class] alloc] initWithDelegate:theDelegate] autorelease];
+	
+	// Note: We use [self class] to support subclassing AsyncSocket.
+	
 	if(newSocket)
 	{
 		NSRunLoop *runLoop = nil;
