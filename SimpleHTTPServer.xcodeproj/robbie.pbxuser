@@ -1,6 +1,7 @@
 // !$*UTF8*$!
 {
 	29B97313FDCFA39411CA2CEA /* Project object */ = {
+		activeArchitecture = i386;
 		activeBuildConfigurationName = Release;
 		activeExecutable = DC41D6C10C178CDF00F8D00D /* SimpleHTTPServer */;
 		activeTarget = 8D1107260486CEB800E47090 /* SimpleHTTPServer */;
@@ -56,22 +57,22 @@
 					PBXFileDataSource_Warnings_ColumnID,
 				);
 			};
-			PBXPerProjectTemplateStateSaveDate = 239487785;
-			PBXWorkspaceStateSaveDate = 239487785;
+			PBXPerProjectTemplateStateSaveDate = 240509273;
+			PBXWorkspaceStateSaveDate = 240509273;
 		};
 		perUserProjectItems = {
-			DC6C32660E464BA1000B1A74 /* PBXTextBookmark */ = DC6C32660E464BA1000B1A74 /* PBXTextBookmark */;
-			DC6C32750E464BBC000B1A74 /* PBXTextBookmark */ = DC6C32750E464BBC000B1A74 /* PBXTextBookmark */;
-			DC6C32770E464BBC000B1A74 /* PBXTextBookmark */ = DC6C32770E464BBC000B1A74 /* PBXTextBookmark */;
-			DC6C32780E464BBC000B1A74 /* PBXTextBookmark */ = DC6C32780E464BBC000B1A74 /* PBXTextBookmark */;
-			DC6C327C0E464BE5000B1A74 /* PBXTextBookmark */ = DC6C327C0E464BE5000B1A74 /* PBXTextBookmark */;
-			DCB1A7090DF471C000EFCE73 /* PBXTextBookmark */ = DCB1A7090DF471C000EFCE73 /* PBXTextBookmark */;
-			DCB1A70C0DF471C000EFCE73 /* PBXTextBookmark */ = DCB1A70C0DF471C000EFCE73 /* PBXTextBookmark */;
-			DCB1A70D0DF471C000EFCE73 /* PBXTextBookmark */ = DCB1A70D0DF471C000EFCE73 /* PBXTextBookmark */;
-			DCB1A71B0DF471C000EFCE73 /* PBXTextBookmark */ = DCB1A71B0DF471C000EFCE73 /* PBXTextBookmark */;
-			DCB1A71C0DF471C000EFCE73 /* PBXTextBookmark */ = DCB1A71C0DF471C000EFCE73 /* PBXTextBookmark */;
-			DCDF85CB0E3D05B6006EAF15 /* PBXTextBookmark */ = DCDF85CB0E3D05B6006EAF15 /* PBXTextBookmark */;
-			DCDF85CC0E3D05B6006EAF15 /* PBXTextBookmark */ = DCDF85CC0E3D05B6006EAF15 /* PBXTextBookmark */;
+			DC6C32660E464BA1000B1A74 = DC6C32660E464BA1000B1A74 /* PBXTextBookmark */;
+			DC6C32750E464BBC000B1A74 = DC6C32750E464BBC000B1A74 /* PBXTextBookmark */;
+			DC6C32770E464BBC000B1A74 = DC6C32770E464BBC000B1A74 /* PBXTextBookmark */;
+			DC6C32780E464BBC000B1A74 = DC6C32780E464BBC000B1A74 /* PBXTextBookmark */;
+			DC6C327C0E464BE5000B1A74 = DC6C327C0E464BE5000B1A74 /* PBXTextBookmark */;
+			DCB1A7090DF471C000EFCE73 = DCB1A7090DF471C000EFCE73 /* PBXTextBookmark */;
+			DCB1A70C0DF471C000EFCE73 = DCB1A70C0DF471C000EFCE73 /* PBXTextBookmark */;
+			DCB1A70D0DF471C000EFCE73 = DCB1A70D0DF471C000EFCE73 /* PBXTextBookmark */;
+			DCB1A71B0DF471C000EFCE73 = DCB1A71B0DF471C000EFCE73 /* PBXTextBookmark */;
+			DCB1A71C0DF471C000EFCE73 = DCB1A71C0DF471C000EFCE73 /* PBXTextBookmark */;
+			DCDF85CB0E3D05B6006EAF15 = DCDF85CB0E3D05B6006EAF15 /* PBXTextBookmark */;
+			DCDF85CC0E3D05B6006EAF15 = DCDF85CC0E3D05B6006EAF15 /* PBXTextBookmark */;
 		};
 		sourceControlManager = DC41D6CE0C178CEA00F8D00D /* Source Control */;
 		userBuildSettings = {
@@ -214,6 +215,7 @@
 	};
 	DC6C32760E464BBC000B1A74 /* SSCrypto.h */ = {
 		isa = PBXFileReference;
+		lastKnownFileType = file;
 		name = SSCrypto.h;
 		path = /Users/robbie/Programs/CocoaHTTPServer/SSCrypto.framework/Headers/SSCrypto.h;
 		sourceTree = "<absolute>";
@@ -238,6 +240,7 @@
 	};
 	DC6C32790E464BBC000B1A74 /* SSCrypto.h */ = {
 		isa = PBXFileReference;
+		lastKnownFileType = file;
 		name = SSCrypto.h;
 		path = /Users/robbie/Programs/CocoaHTTPServer/SSCrypto.framework/Headers/SSCrypto.h;
 		sourceTree = "<absolute>";

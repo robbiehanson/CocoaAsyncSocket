@@ -788,16 +788,31 @@ static NSMutableArray *recentNonces;
 	// If there is no configured documentRoot, then it makes no sense to try to return anything
 	if(![server documentRoot]) return nil;
 	
+	// Convert path to a relative path.
+	// This essentially means trimming beginning '/' characters.
+	// Beware of a bug in the Cocoa framework:
+	// 
+	// [NSURL URLWithString:@"/foo" relativeToURL:baseURL]       == @"/baseURL/foo"
+	// [NSURL URLWithString:@"/foo%20bar" relativeToURL:baseURL] == @"/foo bar"
+	// [NSURL URLWithString:@"/foo" relativeToURL:baseURL]       == @"/foo"
+	
+	NSString *relativePath = path;
+	
+	while([relativePath hasPrefix:@"/"] && [relativePath length] > 1)
+	{
+		relativePath = [relativePath substringFromIndex:1];
+	}
+	
 	NSURL *url;
 	
-	if([path hasSuffix:@"/"])
+	if([relativePath hasSuffix:@"/"])
 	{
-		NSString *newPath = [path stringByAppendingString:@"index.html"];
-		url = [NSURL URLWithString:newPath relativeToURL:[server documentRoot]];
+		NSString *completedRelativePath = [relativePath stringByAppendingString:@"index.html"];
+		url = [NSURL URLWithString:completedRelativePath relativeToURL:[server documentRoot]];
 	}
 	else
 	{
-		url = [NSURL URLWithString:path relativeToURL:[server documentRoot]];
+		url = [NSURL URLWithString:relativePath relativeToURL:[server documentRoot]];
 	}
 	
 	// Watch out for sneaky requests with ".." in the path
