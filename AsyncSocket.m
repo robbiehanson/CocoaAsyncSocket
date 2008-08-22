@@ -72,6 +72,7 @@ enum AsyncSocketFlags
 - (NSError *) getAbortError;
 - (NSError *) getStreamError;
 - (NSError *) getSocketError;
+- (NSError *) getReadMaxedOutError;
 - (NSError *) getReadTimeoutError;
 - (NSError *) getWriteTimeoutError;
 - (NSError *) errorFromCFStreamError:(CFStreamError)err;
@@ -129,6 +130,7 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 	NSMutableData *buffer;
 	CFIndex bytesDone;
 	NSTimeInterval timeout;
+	CFIndex maxLength;
 	long tag;
 	NSData *term;
 	BOOL readAllAvailableData;
@@ -138,7 +140,7 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 			   tag:(long)i
   readAllAvailable:(BOOL)a
 		terminator:(NSData *)e
-	  bufferOffset:(CFIndex)b;
+	  	 maxLength:(CFIndex)m;
 
 - (void)dealloc;
 @end
@@ -150,7 +152,7 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 			   tag:(long)i
   readAllAvailable:(BOOL)a
 		terminator:(NSData *)e
-	  bufferOffset:(CFIndex)b
+         maxLength:(CFIndex)m
 {
 	if(self = [super init])
 	{
@@ -159,7 +161,8 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 		tag = i;
 		readAllAvailableData = a;
 		term = [e copy];
-		bytesDone = b;
+		bytesDone = 0;
+		maxLength = m;
 	}
 	return self;
 }
@@ -1310,6 +1313,17 @@ Failed:;
 	return [NSError errorWithDomain:AsyncSocketErrorDomain code:AsyncSocketCanceledError userInfo:info];
 }
 
+- (NSError *)getReadMaxedOutError
+{
+	NSString *errMsg = NSLocalizedStringWithDefaultValue(@"AsyncSocketReadMaxedOutError",
+														 @"AsyncSocket", [NSBundle mainBundle],
+														 @"Read operation reached set maximum length", nil);
+	
+	NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+	
+	return [NSError errorWithDomain:AsyncSocketErrorDomain code:AsyncSocketReadMaxedOutError userInfo:info];
+}
+
 /**
  * Returns a standard AsyncSocket read timeout error.
 **/
@@ -1671,7 +1685,7 @@ Failed:;
 																tag:tag
 												   readAllAvailable:NO
 														 terminator:nil
-													   bufferOffset:0];
+														  maxLength:length];
 
 	[theReadQueue addObject:packet];
 	[self scheduleDequeueRead];
@@ -1682,7 +1696,13 @@ Failed:;
 
 - (void)readDataToData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag
 {
+	[self readDataToData:data withTimeout:timeout maxLength:-1 tag:tag];
+}
+
+- (void)readDataToData:(NSData *)data withTimeout:(NSTimeInterval)timeout maxLength:(CFIndex)length tag:(long)tag
+{
 	if(data == nil || [data length] == 0) return;
+	if(length >= 0 && length < [data length]) return;
 	if(theFlags & kForbidReadsWrites) return;
 	
 	NSMutableData *buffer = [[NSMutableData alloc] initWithLength:0];
@@ -1691,11 +1711,11 @@ Failed:;
 																tag:tag 
 												   readAllAvailable:NO 
 														 terminator:data
-													   bufferOffset:0];
-
+														  maxLength:length];
+	
 	[theReadQueue addObject:packet];
 	[self scheduleDequeueRead];
-
+	
 	[packet release];
 	[buffer release];
 }
@@ -1710,7 +1730,7 @@ Failed:;
 																tag:tag
 												   readAllAvailable:YES
 														 terminator:nil
-													   bufferOffset:0];
+														  maxLength:-1];
 	
 	[theReadQueue addObject:packet];
 	[self scheduleDequeueRead];
@@ -1769,8 +1789,12 @@ Failed:;
 	if(theCurrentRead != nil && theReadStream != NULL)
 	{
 		CFIndex totalBytesRead = 0;
-		BOOL error = NO, done = NO;
-		while(!done && !error && CFReadStreamHasBytesAvailable(theReadStream))
+		
+		BOOL done = NO;
+		BOOL socketError = NO;
+		BOOL maxoutError = NO;
+		
+		while(!done && !socketError && !maxoutError && CFReadStreamHasBytesAvailable(theReadStream))
 		{
 			// If reading all available data, make sure there's room in the packet buffer.
 			if(theCurrentRead->readAllAvailableData == YES)
@@ -1790,7 +1814,7 @@ Failed:;
 			// Check results
 			if(bytesRead < 0)
 			{
-				error = YES;
+				socketError = YES;
 			}
 			else
 			{
@@ -1814,6 +1838,12 @@ Failed:;
 						const void *seq = [theCurrentRead->term bytes];
 						done = (memcmp (buf, seq, termlen) == 0);
 					}
+					
+					if(!done && theCurrentRead->maxLength >= 0 && theCurrentRead->bytesDone >= theCurrentRead->maxLength)
+					{
+						// There's a set maxLength, and we've reached that maxLength without completing the read
+						maxoutError = YES;
+					}
 				}
 				else
 				{
@@ -1830,7 +1860,7 @@ Failed:;
 		if(done)
 		{
 			[self completeCurrentRead];
-			if (!error) [self scheduleDequeueRead];
+			if (!socketError) [self scheduleDequeueRead];
 		}
 		else if(theCurrentRead->bytesDone > 0)
 		{
@@ -1841,10 +1871,15 @@ Failed:;
 			}
 		}
 
-		if(error)
+		if(socketError)
 		{
-			CFStreamError err = CFReadStreamGetError (theReadStream);
-			[self closeWithError: [self errorFromCFStreamError:err]];
+			CFStreamError err = CFReadStreamGetError(theReadStream);
+			[self closeWithError:[self errorFromCFStreamError:err]];
+			return;
+		}
+		if(maxoutError)
+		{
+			[self closeWithError:[self getReadMaxedOutError]];
 			return;
 		}
 	}
