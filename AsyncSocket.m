@@ -15,7 +15,7 @@
 #import <netdb.h>
 
 #if TARGET_OS_IPHONE
-// Note: You may need to add the CoreServices Framework to your project
+// Note: You may need to add the CFNetwork Framework to your project
 #import <CFNetwork/CFNetwork.h>
 #endif
 
@@ -790,7 +790,10 @@ Failed:;
 **/
 - (void)doAcceptWithSocket:(CFSocketNativeHandle)newNative
 {
-	AsyncSocket *newSocket = [[[AsyncSocket alloc] initWithDelegate:theDelegate] autorelease];
+	AsyncSocket *newSocket = [[[[self class] alloc] initWithDelegate:theDelegate] autorelease];
+	
+	// Note: We use [self class] to support subclassing AsyncSocket.
+	
 	if(newSocket)
 	{
 		NSRunLoop *runLoop = nil;
