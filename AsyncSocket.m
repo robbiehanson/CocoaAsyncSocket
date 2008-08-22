@@ -15,7 +15,7 @@
 #import <netdb.h>
 
 #if TARGET_OS_IPHONE
-// Note: You may need to add the CoreServices Framework to your project
+// Note: You may need to add the CFNetwork Framework to your project
 #import <CFNetwork/CFNetwork.h>
 #endif
 
