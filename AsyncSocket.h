@@ -22,6 +22,7 @@ enum AsyncSocketError
 	AsyncSocketCFSocketError = kCFSocketError,	// From CFSocketError enum.
 	AsyncSocketNoError = 0,						// Never used.
 	AsyncSocketCanceledError,					// onSocketWillConnect: returned NO.
+	AsyncSocketReadMaxedOutError,               // Reached set maxLength without completing
 	AsyncSocketReadTimeoutError,
 	AsyncSocketWriteTimeoutError
 };
@@ -208,6 +209,19 @@ typedef enum AsyncSocketError AsyncSocketError;
  * a character, the read will prematurely end.
 **/
 - (void)readDataToData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag;
+
+/**
+ * Same as readDataToData:withTimeout:tag, with the additional restriction that the amount of data read
+ * may not surpass the given maxLength (specified in bytes).
+ * 
+ * If you pass a maxLength parameter that is less than the length of the data parameter,
+ * the method will do nothing, and the delegate will not be called.
+ * 
+ * If the max length is surpassed, it is treated the same as a timeout - the socket is closed.
+ * 
+ * Pass -1 as maxLength if no length restriction is desired, or simply use the readDataToData:withTimeout:tag method.
+**/
+- (void)readDataToData:(NSData *)data withTimeout:(NSTimeInterval)timeout maxLength:(CFIndex)length tag:(long)tag;
 
 /**
  * Reads the first available bytes that become available on the socket.
