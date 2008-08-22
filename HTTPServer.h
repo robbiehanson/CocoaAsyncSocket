@@ -64,6 +64,7 @@
 	HTTPServer *server;
 	
 	CFHTTPMessageRef request;
+	int numHeaderLines;
 	
 	NSString *nonce;
 	int lastNC;

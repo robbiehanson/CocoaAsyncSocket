@@ -20,6 +20,12 @@
 #define WRITE_BODY_TIMEOUT  -1
 #define WRITE_ERROR_TIMEOUT 30
 
+// Define the various limits
+// LIMIT_MAX_HEADER_LINE_LENGTH: Max length (in bytes) of any single line in a header (including \r\n)
+// LIMIT_MAX_HEADER_LINES      : Max number of lines in a single header (including first GET line)
+#define LIMIT_MAX_HEADER_LINE_LENGTH  8190
+#define LIMIT_MAX_HEADER_LINES         100
+
 // Define the various tags we'll use to differentiate what it is we're currently doing
 #define HTTP_REQUEST                  15
 #define HTTP_PARTIAL_RESPONSE_HEADER  28
@@ -441,6 +447,8 @@ static NSMutableArray *recentNonces;
 		// Note the second parameter is YES, because it will be used for HTTP requests from the client
 		request = CFHTTPMessageCreateEmpty(kCFAllocatorDefault, YES);
 		
+		numHeaderLines = 0;
+		
 		// Register for NSFileNotifications
 		[[NSNotificationCenter defaultCenter] addObserver:self
 												 selector:@selector(responseDataReady:)
@@ -449,7 +457,10 @@ static NSMutableArray *recentNonces;
 		
 		// And now that we own the socket, and we have our CFHTTPMessage object (for requests) ready,
 		// we can start reading the HTTP requests...
-		[asyncSocket readDataToData:[AsyncSocket CRLFData] withTimeout:READ_TIMEOUT tag:HTTP_REQUEST];
+		[asyncSocket readDataToData:[AsyncSocket CRLFData]
+						withTimeout:READ_TIMEOUT
+						  maxLength:LIMIT_MAX_HEADER_LINE_LENGTH
+								tag:HTTP_REQUEST];
 	}
 	return self;
 }
@@ -980,7 +991,19 @@ static NSMutableArray *recentNonces;
 	{
 		// We don't have a complete header yet
 		// That is, we haven't yet received a CRLF on a line by itself, indicating the end of the header
-		[asyncSocket readDataToData:[AsyncSocket CRLFData] withTimeout:READ_TIMEOUT tag:HTTP_REQUEST];
+		if(++numHeaderLines > LIMIT_MAX_HEADER_LINES)
+		{
+			// Reached the maximum amount of header lines in a single HTTP request
+			// This could be an attempted DOS attack
+			[asyncSocket disconnect];
+		}
+		else
+		{
+			[asyncSocket readDataToData:[AsyncSocket CRLFData]
+							withTimeout:READ_TIMEOUT
+							  maxLength:LIMIT_MAX_HEADER_LINE_LENGTH
+									tag:HTTP_REQUEST];
+		}
 	}
 	else
 	{
@@ -1027,8 +1050,13 @@ static NSMutableArray *recentNonces;
 		if(request) CFRelease(request);
 		request = CFHTTPMessageCreateEmpty(kCFAllocatorDefault, YES);
 		
+		numHeaderLines = 0;
+		
 		// And start listening for more requests
-		[asyncSocket readDataToData:[AsyncSocket CRLFData] withTimeout:READ_TIMEOUT tag:HTTP_REQUEST];
+		[asyncSocket readDataToData:[AsyncSocket CRLFData]
+						withTimeout:READ_TIMEOUT
+						  maxLength:LIMIT_MAX_HEADER_LINE_LENGTH
+								tag:HTTP_REQUEST];
 	}
 }
 

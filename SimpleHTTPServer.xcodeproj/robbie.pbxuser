@@ -1,8 +1,7 @@
 // !$*UTF8*$!
 {
 	29B97313FDCFA39411CA2CEA /* Project object */ = {
-		activeArchitecture = i386;
-		activeBuildConfigurationName = Release;
+		activeBuildConfigurationName = Debug;
 		activeExecutable = DC41D6C10C178CDF00F8D00D /* SimpleHTTPServer */;
 		activeTarget = 8D1107260486CEB800E47090 /* SimpleHTTPServer */;
 		addToTargets = (
@@ -18,7 +17,7 @@
 				PBXFileTableDataSourceColumnSortingKey = PBXFileDataSource_Filename_ColumnID;
 				PBXFileTableDataSourceColumnWidthsKey = (
 					20,
-					627,
+					709,
 					20,
 					48,
 					43,
@@ -57,25 +56,35 @@
 					PBXFileDataSource_Warnings_ColumnID,
 				);
 			};
-			PBXPerProjectTemplateStateSaveDate = 240509273;
-			PBXWorkspaceStateSaveDate = 240509273;
+			PBXPerProjectTemplateStateSaveDate = 241121120;
+			PBXWorkspaceStateSaveDate = 241121120;
 		};
 		perUserProjectItems = {
-			DC6C32660E464BA1000B1A74 = DC6C32660E464BA1000B1A74 /* PBXTextBookmark */;
-			DC6C32750E464BBC000B1A74 = DC6C32750E464BBC000B1A74 /* PBXTextBookmark */;
-			DC6C32770E464BBC000B1A74 = DC6C32770E464BBC000B1A74 /* PBXTextBookmark */;
-			DC6C32780E464BBC000B1A74 = DC6C32780E464BBC000B1A74 /* PBXTextBookmark */;
-			DC6C327C0E464BE5000B1A74 = DC6C327C0E464BE5000B1A74 /* PBXTextBookmark */;
-			DCB1A7090DF471C000EFCE73 = DCB1A7090DF471C000EFCE73 /* PBXTextBookmark */;
+			DC79FE850E5F34E000F2C5AB = DC79FE850E5F34E000F2C5AB /* PBXTextBookmark */;
+			DCAF3D660E5621CD00FAFF89 = DCAF3D660E5621CD00FAFF89 /* PBXTextBookmark */;
+			DCAF3D670E5621CD00FAFF89 = DCAF3D670E5621CD00FAFF89 /* PBXTextBookmark */;
+			DCAF3D680E5621CD00FAFF89 = DCAF3D680E5621CD00FAFF89 /* PBXTextBookmark */;
+			DCAF3D6A0E5621CD00FAFF89 = DCAF3D6A0E5621CD00FAFF89 /* PBXTextBookmark */;
+			DCAF3D6D0E5621CD00FAFF89 = DCAF3D6D0E5621CD00FAFF89 /* PBXTextBookmark */;
+			DCAF3D6F0E5621CD00FAFF89 = DCAF3D6F0E5621CD00FAFF89 /* PBXTextBookmark */;
+			DCAF3D720E5621CD00FAFF89 = DCAF3D720E5621CD00FAFF89 /* PBXTextBookmark */;
 			DCB1A70C0DF471C000EFCE73 = DCB1A70C0DF471C000EFCE73 /* PBXTextBookmark */;
 			DCB1A70D0DF471C000EFCE73 = DCB1A70D0DF471C000EFCE73 /* PBXTextBookmark */;
 			DCB1A71B0DF471C000EFCE73 = DCB1A71B0DF471C000EFCE73 /* PBXTextBookmark */;
 			DCB1A71C0DF471C000EFCE73 = DCB1A71C0DF471C000EFCE73 /* PBXTextBookmark */;
-			DCDF85CB0E3D05B6006EAF15 = DCDF85CB0E3D05B6006EAF15 /* PBXTextBookmark */;
+			DCB73CED0E58F16F0086B3DC = DCB73CED0E58F16F0086B3DC /* PBXTextBookmark */;
+			DCB73CF00E58F16F0086B3DC = DCB73CF00E58F16F0086B3DC /* PBXTextBookmark */;
 			DCDF85CC0E3D05B6006EAF15 = DCDF85CC0E3D05B6006EAF15 /* PBXTextBookmark */;
 		};
 		sourceControlManager = DC41D6CE0C178CEA00F8D00D /* Source Control */;
 		userBuildSettings = {
+		};
+	};
+	29B97316FDCFA39411CA2CEA /* main.m */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {887, 812}}";
+			sepNavSelRange = "{0, 0}";
+			sepNavVisRange = "{0, 264}";
 		};
 	};
 	8D1107260486CEB800E47090 /* SimpleHTTPServer */ = {
@@ -133,32 +142,32 @@
 	};
 	DC41D6D20C178D1000F8D00D /* AsyncSocket.h */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {747, 3318}}";
+			sepNavIntBoundsRect = "{{0, 0}, {805, 3486}}";
 			sepNavSelRange = "{0, 0}";
-			sepNavVisRange = "{0, 1156}";
+			sepNavVisRange = "{0, 1941}";
 			sepNavVisRect = "{{0, 2510}, {761, 551}}";
 		};
 	};
 	DC41D6D30C178D1000F8D00D /* AsyncSocket.m */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {805, 29008}}";
-			sepNavSelRange = "{55159, 0}";
-			sepNavVisRange = "{53250, 2160}";
+			sepNavIntBoundsRect = "{{0, 0}, {887, 29386}}";
+			sepNavSelRange = "{24990, 0}";
+			sepNavVisRange = "{26863, 2315}";
 			sepNavVisRect = "{{0, 1370}, {761, 551}}";
 		};
 	};
 	DC41D6D70C178D5700F8D00D /* AppDelegate.m */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {805, 877}}";
-			sepNavSelRange = "{48, 0}";
+			sepNavIntBoundsRect = "{{0, 0}, {887, 812}}";
+			sepNavSelRange = "{78, 384}";
 			sepNavVisRange = "{0, 469}";
 			sepNavVisRect = "{{0, 0}, {761, 551}}";
 		};
 	};
 	DC41D6D80C178D5700F8D00D /* AppDelegate.h */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {747, 551}}";
-			sepNavSelRange = "{0, 0}";
+			sepNavIntBoundsRect = "{{0, 0}, {887, 812}}";
+			sepNavSelRange = "{83, 23}";
 			sepNavVisRange = "{0, 114}";
 			sepNavVisRect = "{{0, 0}, {761, 551}}";
 		};
@@ -187,82 +196,90 @@
 	};
 	DC41D6E10C178DE500F8D00D /* HTTPServer.m */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {805, 14630}}";
-			sepNavSelRange = "{11621, 0}";
-			sepNavVisRange = "{10727, 1899}";
+			sepNavIntBoundsRect = "{{0, 0}, {887, 15666}}";
+			sepNavSelRange = "{6384, 0}";
+			sepNavVisRange = "{5735, 1616}";
 			sepNavVisRect = "{{0, 10206}, {761, 551}}";
 		};
 	};
-	DC6C32660E464BA1000B1A74 /* PBXTextBookmark */ = {
+	DC79FE850E5F34E000F2C5AB /* PBXTextBookmark */ = {
 		isa = PBXTextBookmark;
 		fRef = DC41D6E10C178DE500F8D00D /* HTTPServer.m */;
-		name = "HTTPServer.m: 444";
+		name = "HTTPServer.m: 242";
 		rLen = 0;
-		rLoc = 12869;
+		rLoc = 6384;
 		rType = 0;
-		vrLen = 1478;
-		vrLoc = 31485;
+		vrLen = 1616;
+		vrLoc = 5735;
 	};
-	DC6C32750E464BBC000B1A74 /* PBXTextBookmark */ = {
+	DCAF3D660E5621CD00FAFF89 /* PBXTextBookmark */ = {
 		isa = PBXTextBookmark;
-		fRef = DC6C32760E464BBC000B1A74 /* SSCrypto.h */;
-		name = "SSCrypto.h: 111";
-		rLen = 13;
-		rLoc = 3471;
-		rType = 0;
-		vrLen = 1249;
-		vrLoc = 2255;
-	};
-	DC6C32760E464BBC000B1A74 /* SSCrypto.h */ = {
-		isa = PBXFileReference;
-		lastKnownFileType = file;
-		name = SSCrypto.h;
-		path = /Users/robbie/Programs/CocoaHTTPServer/SSCrypto.framework/Headers/SSCrypto.h;
-		sourceTree = "<absolute>";
-	};
-	DC6C32770E464BBC000B1A74 /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		comments = "warning: 'SSCrypto' may not respond to '+getMD5HashForData:'";
-		fRef = DC41D6E10C178DE500F8D00D /* HTTPServer.m */;
-		rLen = 1;
-		rLoc = 409;
-		rType = 1;
-	};
-	DC6C32780E464BBC000B1A74 /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = DC6C32790E464BBC000B1A74 /* SSCrypto.h */;
-		name = "SSCrypto.h: 111";
-		rLen = 13;
-		rLoc = 3471;
-		rType = 0;
-		vrLen = 1249;
-		vrLoc = 2255;
-	};
-	DC6C32790E464BBC000B1A74 /* SSCrypto.h */ = {
-		isa = PBXFileReference;
-		lastKnownFileType = file;
-		name = SSCrypto.h;
-		path = /Users/robbie/Programs/CocoaHTTPServer/SSCrypto.framework/Headers/SSCrypto.h;
-		sourceTree = "<absolute>";
-	};
-	DC6C327C0E464BE5000B1A74 /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = DC41D6E10C178DE500F8D00D /* HTTPServer.m */;
-		name = "HTTPServer.m: 410";
+		fRef = DC41D6D20C178D1000F8D00D /* AsyncSocket.h */;
+		name = "AsyncSocket.h: 1";
 		rLen = 0;
-		rLoc = 11621;
+		rLoc = 0;
 		rType = 0;
-		vrLen = 1899;
-		vrLoc = 10727;
+		vrLen = 1941;
+		vrLoc = 0;
 	};
-	DCB1A7090DF471C000EFCE73 /* PBXTextBookmark */ = {
+	DCAF3D670E5621CD00FAFF89 /* PBXTextBookmark */ = {
 		isa = PBXTextBookmark;
-		fRef = DC41D6D70C178D5700F8D00D /* AppDelegate.m */;
-		name = "AppDelegate.m: 4";
+		fRef = 29B97316FDCFA39411CA2CEA /* main.m */;
+		name = "main.m: 1";
 		rLen = 0;
-		rLoc = 48;
+		rLoc = 0;
 		rType = 0;
-		vrLen = 469;
+		vrLen = 264;
+		vrLoc = 0;
+	};
+	DCAF3D680E5621CD00FAFF89 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = DC41D6D30C178D1000F8D00D /* AsyncSocket.m */;
+		name = "AsyncSocket.m: 791";
+		rLen = 0;
+		rLoc = 24990;
+		rType = 0;
+		vrLen = 2315;
+		vrLoc = 26863;
+	};
+	DCAF3D6A0E5621CD00FAFF89 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = DC41D6D80C178D5700F8D00D /* AppDelegate.h */;
+		name = "AppDelegate.h: 6";
+		rLen = 23;
+		rLoc = 83;
+		rType = 0;
+		vrLen = 114;
+		vrLoc = 0;
+	};
+	DCAF3D6D0E5621CD00FAFF89 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = DC41D6D20C178D1000F8D00D /* AsyncSocket.h */;
+		name = "AsyncSocket.h: 1";
+		rLen = 0;
+		rLoc = 0;
+		rType = 0;
+		vrLen = 1941;
+		vrLoc = 0;
+	};
+	DCAF3D6F0E5621CD00FAFF89 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 29B97316FDCFA39411CA2CEA /* main.m */;
+		name = "main.m: 1";
+		rLen = 0;
+		rLoc = 0;
+		rType = 0;
+		vrLen = 264;
+		vrLoc = 0;
+	};
+	DCAF3D720E5621CD00FAFF89 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = DC41D6D80C178D5700F8D00D /* AppDelegate.h */;
+		name = "AppDelegate.h: 6";
+		rLen = 23;
+		rLoc = 83;
+		rType = 0;
+		vrLen = 114;
 		vrLoc = 0;
 	};
 	DCB1A70C0DF471C000EFCE73 /* PBXTextBookmark */ = {
@@ -270,7 +287,7 @@
 		fRef = DC41D6E10C178DE500F8D00D /* HTTPServer.m */;
 		name = "HTTPServer.m: 750";
 		rLen = 0;
-		rLoc = 26583;
+		rLoc = 27179;
 		rType = 0;
 		vrLen = 2280;
 		vrLoc = 23634;
@@ -305,15 +322,25 @@
 		vrLen = 469;
 		vrLoc = 0;
 	};
-	DCDF85CB0E3D05B6006EAF15 /* PBXTextBookmark */ = {
+	DCB73CED0E58F16F0086B3DC /* PBXTextBookmark */ = {
 		isa = PBXTextBookmark;
-		fRef = DC41D6D30C178D1000F8D00D /* AsyncSocket.m */;
-		name = "AsyncSocket.m: 1786";
-		rLen = 0;
-		rLoc = 55159;
+		fRef = DC41D6D70C178D5700F8D00D /* AppDelegate.m */;
+		name = "AppDelegate.m: 7";
+		rLen = 384;
+		rLoc = 78;
 		rType = 0;
-		vrLen = 2160;
-		vrLoc = 53250;
+		vrLen = 469;
+		vrLoc = 0;
+	};
+	DCB73CF00E58F16F0086B3DC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = DC41D6E10C178DE500F8D00D /* HTTPServer.m */;
+		name = "HTTPServer.m: 242";
+		rLen = 0;
+		rLoc = 6384;
+		rType = 0;
+		vrLen = 1618;
+		vrLoc = 5735;
 	};
 	DCDF85CC0E3D05B6006EAF15 /* PBXTextBookmark */ = {
 		isa = PBXTextBookmark;
