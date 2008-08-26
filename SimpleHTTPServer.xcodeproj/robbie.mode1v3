@@ -353,7 +353,7 @@
 										<key>_historyCapacity</key>
 										<integer>20</integer>
 										<key>bookmark</key>
-										<string>DCF61FDF0E64AB7B009BFEE4</string>
+										<string>DCF6201F0E64C035009BFEE4</string>
 										<key>history</key>
 										<array>
 											<string>DCAF3D670E5621CD00FAFF89</string>
@@ -365,7 +365,7 @@
 											<string>DCF61E300E639B33009BFEE4</string>
 											<string>DCF61E650E639B6F009BFEE4</string>
 											<string>DCF61FB50E64AB7B009BFEE4</string>
-											<string>DCF61FB60E64AB7B009BFEE4</string>
+											<string>DCF61FDF0E64AB7B009BFEE4</string>
 										</array>
 										<key>prevStack</key>
 										<array>
@@ -379,46 +379,6 @@
 											<string>DCF61D440E632CE0009BFEE4</string>
 											<string>DCF61E350E639B33009BFEE4</string>
 											<string>DCF61E390E639B33009BFEE4</string>
-											<string>DCF61FB70E64AB7B009BFEE4</string>
-											<string>DCF61FB80E64AB7B009BFEE4</string>
-											<string>DCF61FB90E64AB7B009BFEE4</string>
-											<string>DCF61FBA0E64AB7B009BFEE4</string>
-											<string>DCF61FBB0E64AB7B009BFEE4</string>
-											<string>DCF61FBC0E64AB7B009BFEE4</string>
-											<string>DCF61FBD0E64AB7B009BFEE4</string>
-											<string>DCF61FBE0E64AB7B009BFEE4</string>
-											<string>DCF61FBF0E64AB7B009BFEE4</string>
-											<string>DCF61FC00E64AB7B009BFEE4</string>
-											<string>DCF61FC10E64AB7B009BFEE4</string>
-											<string>DCF61FC20E64AB7B009BFEE4</string>
-											<string>DCF61FC30E64AB7B009BFEE4</string>
-											<string>DCF61FC40E64AB7B009BFEE4</string>
-											<string>DCF61FC50E64AB7B009BFEE4</string>
-											<string>DCF61FC60E64AB7B009BFEE4</string>
-											<string>DCF61FC70E64AB7B009BFEE4</string>
-											<string>DCF61FC80E64AB7B009BFEE4</string>
-											<string>DCF61FC90E64AB7B009BFEE4</string>
-											<string>DCF61FCA0E64AB7B009BFEE4</string>
-											<string>DCF61FCB0E64AB7B009BFEE4</string>
-											<string>DCF61FCC0E64AB7B009BFEE4</string>
-											<string>DCF61FCD0E64AB7B009BFEE4</string>
-											<string>DCF61FCE0E64AB7B009BFEE4</string>
-											<string>DCF61FCF0E64AB7B009BFEE4</string>
-											<string>DCF61FD00E64AB7B009BFEE4</string>
-											<string>DCF61FD10E64AB7B009BFEE4</string>
-											<string>DCF61FD20E64AB7B009BFEE4</string>
-											<string>DCF61FD30E64AB7B009BFEE4</string>
-											<string>DCF61FD40E64AB7B009BFEE4</string>
-											<string>DCF61FD50E64AB7B009BFEE4</string>
-											<string>DCF61FD60E64AB7B009BFEE4</string>
-											<string>DCF61FD70E64AB7B009BFEE4</string>
-											<string>DCF61FD80E64AB7B009BFEE4</string>
-											<string>DCF61FD90E64AB7B009BFEE4</string>
-											<string>DCF61FDA0E64AB7B009BFEE4</string>
-											<string>DCF61FDB0E64AB7B009BFEE4</string>
-											<string>DCF61FDC0E64AB7B009BFEE4</string>
-											<string>DCF61FDD0E64AB7B009BFEE4</string>
-											<string>DCF61FDE0E64AB7B009BFEE4</string>
 										</array>
 									</dict>
 									<key>SplitCount</key>
@@ -476,9 +436,9 @@
 			</array>
 			<key>TableOfContents</key>
 			<array>
-				<string>DCF61FE00E64AB7B009BFEE4</string>
+				<string>DCF620200E64C035009BFEE4</string>
 				<string>1CE0B1FE06471DED0097A5F4</string>
-				<string>DCF61FE10E64AB7B009BFEE4</string>
+				<string>DCF620210E64C035009BFEE4</string>
 				<string>1CE0B20306471E060097A5F4</string>
 				<string>1CE0B20506471E060097A5F4</string>
 			</array>
@@ -595,7 +555,7 @@
 	<key>StatusbarIsVisible</key>
 	<true/>
 	<key>TimeStamp</key>
-	<real>241478523.56096101</real>
+	<real>241483829.97566</real>
 	<key>ToolbarDisplayMode</key>
 	<integer>1</integer>
 	<key>ToolbarIsVisible</key>
@@ -610,10 +570,8 @@
 	<integer>5</integer>
 	<key>WindowOrderList</key>
 	<array>
-		<string>1CD10A99069EF8BA00B06720</string>
 		<string>DC7B2B8A0CE81D29007ADBB1</string>
 		<string>/Users/robbie/Programs/Google Code/CocoaHTTPServer/SimpleHTTPServer.xcodeproj</string>
-		<string>1C78EAAD065D492600B07095</string>
 	</array>
 	<key>WindowString</key>
 	<string>62 60 1207 960 0 0 1680 1028 </string>
@@ -695,7 +653,7 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>DC7B2B8A0CE81D29007ADBB1</string>
-				<string>DCF61F590E64691B009BFEE4</string>
+				<string>DCF6200F0E64C025009BFEE4</string>
 				<string>1CD0528F0623707200166675</string>
 				<string>XCMainBuildResultsModuleGUID</string>
 			</array>

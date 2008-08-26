@@ -905,6 +905,10 @@ static NSMutableArray *recentNonces;
 	if(contentLength == 0)
 	{
 		[self handleResourceNotFound];
+		
+		[httpResponse release];
+		httpResponse = nil;
+		
 		return;
     }
 	
@@ -1558,6 +1562,8 @@ static NSMutableArray *recentNonces;
 	unsigned int length = lengthParameter < remaining ? lengthParameter : remaining;
 	
 	void *bytes = (void *)([data bytes] + offset);
+	
+	offset += length;
 	
 	return [NSData dataWithBytesNoCopy:bytes length:length freeWhenDone:NO];
 }
