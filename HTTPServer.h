@@ -129,6 +129,7 @@
 }
 
 - (id)initWithFilePath:(NSString *)filePath;
+- (NSString *)filePath;
 
 @end
 
