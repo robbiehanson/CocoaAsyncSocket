@@ -17,6 +17,8 @@
 		DC41D6E30C178DE500F8D00D /* HTTPServer.m in Sources */ = {isa = PBXBuildFile; fileRef = DC41D6E10C178DE500F8D00D /* HTTPServer.m */; };
 		DC41D6F10C178E8500F8D00D /* SSCrypto.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC41D6F00C178E8500F8D00D /* SSCrypto.framework */; };
 		DC41D6F80C178EAE00F8D00D /* SSCrypto.framework in Copy Internal Frameworks */ = {isa = PBXBuildFile; fileRef = DC41D6F00C178E8500F8D00D /* SSCrypto.framework */; };
+		DCF61A820E609737009BFEE4 /* DDNumber.m in Sources */ = {isa = PBXBuildFile; fileRef = DCF61A810E609737009BFEE4 /* DDNumber.m */; };
+		DCF61D540E632D0F009BFEE4 /* DDRange.m in Sources */ = {isa = PBXBuildFile; fileRef = DCF61D530E632D0F009BFEE4 /* DDRange.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -53,6 +55,10 @@
 		DC41D6E00C178DE500F8D00D /* HTTPServer.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = HTTPServer.h; sourceTree = "<group>"; };
 		DC41D6E10C178DE500F8D00D /* HTTPServer.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = HTTPServer.m; sourceTree = "<group>"; };
 		DC41D6F00C178E8500F8D00D /* SSCrypto.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = SSCrypto.framework; sourceTree = "<group>"; };
+		DCF61A800E609737009BFEE4 /* DDNumber.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DDNumber.h; sourceTree = "<group>"; };
+		DCF61A810E609737009BFEE4 /* DDNumber.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DDNumber.m; sourceTree = "<group>"; };
+		DCF61D520E632D0F009BFEE4 /* DDRange.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DDRange.h; sourceTree = "<group>"; };
+		DCF61D530E632D0F009BFEE4 /* DDRange.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DDRange.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -107,6 +113,7 @@
 		29B97314FDCFA39411CA2CEA /* SimpleHTTPServer */ = {
 			isa = PBXGroup;
 			children = (
+				DCF61A7F0E609727009BFEE4 /* Categories */,
 				DC41D6CD0C178CEA00F8D00D /* TCP */,
 				DC41D6D50C178D1600F8D00D /* HTTP */,
 				080E96DDFE201D6D7F000001 /* Classes */,
@@ -164,6 +171,17 @@
 				DC41D6E10C178DE500F8D00D /* HTTPServer.m */,
 			);
 			name = HTTP;
+			sourceTree = "<group>";
+		};
+		DCF61A7F0E609727009BFEE4 /* Categories */ = {
+			isa = PBXGroup;
+			children = (
+				DCF61A800E609737009BFEE4 /* DDNumber.h */,
+				DCF61A810E609737009BFEE4 /* DDNumber.m */,
+				DCF61D520E632D0F009BFEE4 /* DDRange.h */,
+				DCF61D530E632D0F009BFEE4 /* DDRange.m */,
+			);
+			name = Categories;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -227,6 +245,8 @@
 				DC41D6D90C178D5700F8D00D /* AppDelegate.m in Sources */,
 				DC41D6E20C178DE500F8D00D /* HTTPAuthenticationRequest.m in Sources */,
 				DC41D6E30C178DE500F8D00D /* HTTPServer.m in Sources */,
+				DCF61A820E609737009BFEE4 /* DDNumber.m in Sources */,
+				DCF61D540E632D0F009BFEE4 /* DDRange.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

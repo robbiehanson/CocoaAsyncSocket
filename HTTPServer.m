@@ -1,6 +1,8 @@
 #import "AsyncSocket.h"
 #import "HTTPServer.h"
 #import "HTTPAuthenticationRequest.h"
+#import "DDNumber.h"
+#import "DDRange.h"
 
 #import <stdlib.h>
 
@@ -27,11 +29,14 @@
 #define LIMIT_MAX_HEADER_LINES         100
 
 // Define the various tags we'll use to differentiate what it is we're currently doing
-#define HTTP_REQUEST                  15
-#define HTTP_PARTIAL_RESPONSE_HEADER  28
-#define HTTP_PARTIAL_RESPONSE_BODY    29
-#define HTTP_RESPONSE                 30
-#define HTTP_FINAL_RESPONSE           45
+#define HTTP_REQUEST                           15
+#define HTTP_PARTIAL_RESPONSE_HEADER           25
+#define HTTP_PARTIAL_DATA_RESPONSE_BODY        26
+#define HTTP_PARTIAL_FILE_RESPONSE_BODY        27
+#define HTTP_PARTIAL_FILE_RANGE_RESPONSE_BODY  28
+#define HTTP_PARTIAL_FILE_RANGES_RESPONSE_BODY 29
+#define HTTP_RESPONSE                          30
+#define HTTP_FINAL_RESPONSE                    45
 
 #define HTTPConnectionDidDieNotification  @"HTTPConnectionDidDie"
 
@@ -480,8 +485,13 @@ static NSMutableArray *recentNonces;
 	
 	[nonce release];
 	
+	[customData release];
 	[fileResponse closeFile];
 	[fileResponse release];
+	
+	[ranges release];
+	[ranges_headers release];
+	[ranges_boundry release];
 	
 	[super dealloc];
 }
@@ -676,6 +686,150 @@ static NSMutableArray *recentNonces;
 }
 
 /**
+ * Attempts to parse the given range header into a series of non-overlapping ranges.
+ * If successfull, the variables 'ranges' and 'rangeIndex' will be updated, and YES will be returned.
+ * Otherwise, NO is returned, and the range request should be ignored.
+ **/
+- (BOOL)parseRangeRequest:(NSString *)rangeHeader withContentLength:(UInt64)contentLength
+{
+	// Examples of byte-ranges-specifier values (assuming an entity-body of length 10000):
+	// 
+	// - The first 500 bytes (byte offsets 0-499, inclusive):  bytes=0-499
+	// 
+	// - The second 500 bytes (byte offsets 500-999, inclusive): bytes=500-999
+	// 
+	// - The final 500 bytes (byte offsets 9500-9999, inclusive): bytes=-500
+	// 
+	// - Or bytes=9500-
+	// 
+	// - The first and last bytes only (bytes 0 and 9999):  bytes=0-0,-1
+	// 
+	// - Several legal but not canonical specifications of the second 500 bytes (byte offsets 500-999, inclusive):
+	// bytes=500-600,601-999
+	// bytes=500-700,601-999
+	// 
+	
+	NSRange eqsignRange = [rangeHeader rangeOfString:@"="];
+	
+	if(eqsignRange.location == NSNotFound) return NO;
+	
+	NSUInteger tIndex = eqsignRange.location;
+	NSUInteger fIndex = eqsignRange.location + eqsignRange.length;
+	
+	NSString *rangeType  = [[[rangeHeader substringToIndex:tIndex] mutableCopy] autorelease];
+	NSString *rangeValue = [[[rangeHeader substringFromIndex:fIndex] mutableCopy] autorelease];
+	
+	CFStringTrimWhitespace((CFMutableStringRef)rangeType);
+	CFStringTrimWhitespace((CFMutableStringRef)rangeValue);
+	
+	if([rangeType caseInsensitiveCompare:@"bytes"] != NSOrderedSame) return NO;
+	
+	NSArray *rangeComponents = [rangeValue componentsSeparatedByString:@","];
+	
+	if([rangeComponents count] == 0) return NO;
+	
+	[ranges release];
+	ranges = [[NSMutableArray alloc] initWithCapacity:[rangeComponents count]];
+	
+	rangeIndex = 0;
+	
+	// Note: We store all range values in the form of NSRange structs, wrapped in NSValue objects.
+	// Since NSRange consists of NSUInteger values, the range is limited to 4 gigs on 32-bit architectures (ppc, i386)
+	
+	NSUInteger i;
+	for(i = 0; i < [rangeComponents count]; i++)
+	{
+		NSString *rangeComponent = [rangeComponents objectAtIndex:i];
+		
+		NSRange dashRange = [rangeComponent rangeOfString:@"-"];
+		
+		if(dashRange.location == NSNotFound)
+		{
+			// We're dealing with an individual byte number
+			
+			UInt64 byteIndex;
+			if(![NSNumber parseString:rangeComponent intoUInt64:&byteIndex]) return NO;
+			
+			[ranges addObject:[NSValue valueWithDDRange:DDMakeRange(byteIndex, 1)]];
+		}
+		else
+		{
+			// We're dealing with a range of bytes
+			
+			tIndex = dashRange.location;
+			fIndex = dashRange.location + dashRange.length;
+			
+			NSString *r1str = [rangeComponent substringToIndex:tIndex];
+			NSString *r2str = [rangeComponent substringFromIndex:fIndex];
+			
+			UInt64 r1, r2;
+			
+			BOOL hasR1 = [NSNumber parseString:r1str intoUInt64:&r1];
+			BOOL hasR2 = [NSNumber parseString:r2str intoUInt64:&r2];
+			
+			if(!hasR1)
+			{
+				// We're dealing with a "-[#]" range
+				// 
+				// r2 is the number of ending bytes to include in the range
+				
+				if(!hasR2) return NO;
+				if(r2 > contentLength) return NO;
+				
+				UInt64 startIndex = contentLength - r2;
+				
+				[ranges addObject:[NSValue valueWithDDRange:DDMakeRange(startIndex, r2)]];
+			}
+			else if(!hasR2)
+			{
+				// We're dealing with a "[#]-" range
+				// 
+				// r1 is the starting index of the range, which goes all the way to the end
+				
+				if(!hasR1) return NO;
+				if(r1 >= contentLength) return NO;
+				
+				[ranges addObject:[NSValue valueWithDDRange:DDMakeRange(r1, contentLength - r1)]];
+			}
+			else
+			{
+				// We're dealing with a normal "[#]-[#]" range
+				// 
+				// Note: The range is inclusive. So 0-1 has a length of 2 bytes.
+				
+				if(!hasR1) return NO;
+				if(!hasR2) return NO;
+				if(r1 > r2) return NO;
+				
+				[ranges addObject:[NSValue valueWithDDRange:DDMakeRange(r1, r2 - r1 + 1)]];
+			}
+		}
+	}
+	
+	if([ranges count] == 0) return NO;
+	
+	for(i = 0; i < [ranges count] - 1; i++)
+	{
+		DDRange range1 = [[ranges objectAtIndex:i] ddrangeValue];
+		
+		NSUInteger j;
+		for(j = i+1; j < [ranges count]; j++)
+		{
+			DDRange range2 = [[ranges objectAtIndex:j] ddrangeValue];
+			
+			DDRange iRange = DDIntersectionRange(range1, range2);
+			
+			if(iRange.length != 0)
+			{
+				return NO;
+			}
+		}
+	}
+	
+	return YES;
+}
+
+/**
  * This method is called after a full HTTP request has been received.
  * The current request is in the CFHTTPMessage request variable.
 **/
@@ -730,7 +884,7 @@ static NSMutableArray *recentNonces;
 	}
 	
 	// Respond properly to HTTP 'GET' and 'HEAD' commands
-	NSData *customData = [self dataForURI:[uri relativeString]];
+	customData = [[self dataForURI:[uri relativeString]] retain];
 	UInt64 contentLength = (UInt64)[customData length];
 	if(contentLength == 0)
 	{
@@ -750,11 +904,117 @@ static NSMutableArray *recentNonces;
 		return;
     }
 	
-	// Status Code 200 - OK
-	CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 200, NULL, kCFHTTPVersion1_1);
+	// Check for specific range request
+	NSString *rangeHeader = [(NSString *)CFHTTPMessageCopyHeaderFieldValue(request, CFSTR("Range")) autorelease];
 	
-	NSString *contentLengthStr = [NSString stringWithFormat:@"%qu", contentLength];
-	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), (CFStringRef)contentLengthStr);
+	BOOL isRangeRequest = NO;
+	
+	if(rangeHeader)
+	{
+		if([self parseRangeRequest:rangeHeader withContentLength:contentLength])
+		{
+			isRangeRequest = YES;
+		}
+	}
+	
+	CFHTTPMessageRef response;
+	
+	if(!isRangeRequest)
+	{
+		// Status Code 200 - OK
+		response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 200, NULL, kCFHTTPVersion1_1);
+		
+		CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Accept-Ranges"), CFSTR("bytes"));
+		
+		NSString *contentLengthStr = [NSString stringWithFormat:@"%qu", contentLength];
+		CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), (CFStringRef)contentLengthStr);
+	}
+	else
+	{
+		if([ranges count] == 1)
+		{
+			// Status Code 206 - Partial Content
+			response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 206, NULL, kCFHTTPVersion1_1);
+			
+			DDRange range = [[ranges objectAtIndex:0] ddrangeValue];
+			
+			NSString *contentLengthStr = [NSString stringWithFormat:@"%qu", range.length];
+			CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), (CFStringRef)contentLengthStr);
+			
+			NSString *rangeStr = [NSString stringWithFormat:@"%qu-%qu", range.location, DDMaxRange(range) - 1];
+			NSString *contentRangeStr = [NSString stringWithFormat:@"bytes %@/%qu", rangeStr, contentLength];
+			CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Range"), (CFStringRef)contentRangeStr);
+		}
+		else
+		{
+			// Status Code 206 - Partial Content
+			response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 206, NULL, kCFHTTPVersion1_1);
+			
+			// We have to send each range using multipart/byteranges
+			// So each byterange has to be prefix'd and suffix'd with the boundry
+			// Example:
+			// 
+			// HTTP/1.1 206 Partial Content
+			// Content-Length: 220
+			// Content-Type: multipart/byteranges; boundary=4554d24e986f76dd6
+			// 
+			// 
+			// --4554d24e986f76dd6
+			// Content-range: bytes 0-25/4025
+			// 
+			// [...]
+			// --4554d24e986f76dd6
+			// Content-range: bytes 3975-4024/4025
+			// 
+			// [...]
+			// --4554d24e986f76dd6--
+			
+			[ranges_headers release];
+			[ranges_boundry release];
+			
+			ranges_headers = [[NSMutableArray alloc] initWithCapacity:[ranges count]];
+			
+			CFUUIDRef theUUID = CFUUIDCreate(NULL);
+			ranges_boundry = (NSString *)CFUUIDCreateString(NULL, theUUID);
+			CFRelease(theUUID);
+			
+			[ranges_boundry release];
+			ranges_boundry = @"4554d24e986f76dd6";
+			
+			NSString *startingBoundryStr = [NSString stringWithFormat:@"\r\n--%@\r\n", ranges_boundry];
+			NSString *endingBoundryStr = [NSString stringWithFormat:@"\r\n--%@--\r\n", ranges_boundry];
+			
+			UInt64 actualContentLength = 0;
+			
+			unsigned i;
+			for(i = 0; i < [ranges count]; i++)
+			{
+				DDRange range = [[ranges objectAtIndex:i] ddrangeValue];
+				
+				NSString *rangeStr = [NSString stringWithFormat:@"%qu-%qu", range.location, DDMaxRange(range) - 1];
+				NSString *contentRangeVal = [NSString stringWithFormat:@"bytes %@/%qu", rangeStr, contentLength];
+				NSString *contentRangeStr = [NSString stringWithFormat:@"Content-Range: %@\r\n\r\n", contentRangeVal];
+				
+				NSString *fullHeader = [startingBoundryStr stringByAppendingString:contentRangeStr];
+				NSData *fullHeaderData = [fullHeader dataUsingEncoding:NSUTF8StringEncoding];
+				
+				[ranges_headers addObject:fullHeaderData];
+				
+				actualContentLength += [fullHeaderData length];
+				actualContentLength += range.length;
+			}
+			
+			NSData *endingBoundryData = [endingBoundryStr dataUsingEncoding:NSUTF8StringEncoding];
+			
+			actualContentLength += [endingBoundryData length];
+			
+			NSString *contentLengthStr = [NSString stringWithFormat:@"%qu", actualContentLength];
+			CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), (CFStringRef)contentLengthStr);
+			
+			NSString *contentTypeStr = [NSString stringWithFormat:@"multipart/byteranges; boundary=%@", ranges_boundry];
+			CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Type"), (CFStringRef)contentTypeStr);
+		}
+	}
     
 	// If they issue a 'HEAD' command, we don't have to include the file
 	// If they issue a 'GET' command, we need to include the file
@@ -773,15 +1033,115 @@ static NSMutableArray *recentNonces;
 		// Now we need to send the file
 		if(customData)
 		{
-			[asyncSocket writeData:customData withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_RESPONSE];
+			if(!isRangeRequest)
+			{
+				// Regular request
+				[asyncSocket writeData:customData withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_RESPONSE];
+				
+				[customData release];
+				customData = nil;
+			}
+			else
+			{
+				// Client specified a byte range in request
+				
+				if([ranges count] == 1)
+				{
+					// Client is requesting a single range
+					DDRange range = [[ranges objectAtIndex:0] ddrangeValue];
+					
+					void *bytes = (void *)([customData bytes] + range.location);
+					
+					NSData *rangeData = [NSData dataWithBytesNoCopy:bytes length:range.length freeWhenDone:NO];
+					
+					[asyncSocket writeData:rangeData withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_RESPONSE];
+				}
+				else
+				{
+					// Client is requesting multiple ranges
+					// We have to send each range using multipart/byteranges
+					
+					unsigned i;
+					for(i = 0; i < [ranges count]; i++)
+					{
+						NSData *rangeHeader = [ranges_headers objectAtIndex:i];
+						[asyncSocket writeData:rangeHeader
+								   withTimeout:WRITE_HEAD_TIMEOUT
+										   tag:HTTP_PARTIAL_RESPONSE_HEADER];
+						
+						// Start writing range body
+						DDRange range = [[ranges objectAtIndex:i] ddrangeValue];
+						
+						void *bytes = (void *)([customData bytes] + range.location);
+						
+						NSData *rangeData = [NSData dataWithBytesNoCopy:bytes length:range.length freeWhenDone:NO];
+						
+						[asyncSocket writeData:rangeData
+								   withTimeout:WRITE_BODY_TIMEOUT
+										   tag:HTTP_PARTIAL_DATA_RESPONSE_BODY];
+					}
+					
+					// We're not done yet - we still have to send the closing boundry tag
+					NSString *endingBoundryStr = [NSString stringWithFormat:@"\r\n--%@--\r\n", ranges_boundry];
+					NSData *endingBoundryData = [endingBoundryStr dataUsingEncoding:NSUTF8StringEncoding];
+					
+					[asyncSocket writeData:endingBoundryData withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_RESPONSE];
+				}
+			}
 		}
 		else
 		{
 			fileResponse = [[self fileForURI:[uri relativeString]] retain];
 			
-			NSData *fileData = [fileResponse readDataOfLength:READ_CHUNKSIZE];
+			if(!isRangeRequest)
+			{
+				// Regular request
+				NSData *fileData = [fileResponse readDataOfLength:READ_CHUNKSIZE];
 			
-			[asyncSocket writeData:fileData withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_BODY];
+				[asyncSocket writeData:fileData withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_PARTIAL_FILE_RESPONSE_BODY];
+			}
+			else
+			{
+				// Client specified a byte range in request
+				
+				if([ranges count] == 1)
+				{
+					// Client is requesting a single range
+					DDRange range = [[ranges objectAtIndex:0] ddrangeValue];
+					
+					[fileResponse seekToFileOffset:range.location];
+					
+					NSUInteger bytesToRead = range.length < READ_CHUNKSIZE ? range.length : READ_CHUNKSIZE;
+					
+					NSData *fileData = [fileResponse readDataOfLength:bytesToRead];
+					
+					[asyncSocket writeData:fileData
+							   withTimeout:WRITE_BODY_TIMEOUT
+									   tag:HTTP_PARTIAL_FILE_RANGE_RESPONSE_BODY];
+				}
+				else
+				{
+					// Client is requesting multiple ranges
+					// We have to send each range using multipart/byteranges
+					
+					// Write range header
+					NSData *rangeHeader = [ranges_headers objectAtIndex:0];
+					[asyncSocket writeData:rangeHeader withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_HEADER];
+					
+					// Start writing range body
+					DDRange range = [[ranges objectAtIndex:0] ddrangeValue];
+					
+					[fileResponse seekToFileOffset:range.location];
+					
+					NSUInteger bytesToRead = range.length < READ_CHUNKSIZE ? range.length : READ_CHUNKSIZE;
+					
+					NSData *fileData = [fileResponse readDataOfLength:bytesToRead];
+					
+					[asyncSocket writeData:fileData
+							   withTimeout:WRITE_BODY_TIMEOUT
+									   tag:HTTP_PARTIAL_FILE_RANGES_RESPONSE_BODY];
+				}
+			}
 		}
 	}
 	
@@ -1021,22 +1381,87 @@ static NSMutableArray *recentNonces;
 {
 	BOOL doneSendingResponse = NO;
 	
-	if(tag == HTTP_PARTIAL_RESPONSE_BODY)
+	if(tag == HTTP_PARTIAL_FILE_RESPONSE_BODY)
 	{
 		// We only wrote a part of the file - there may be more.
 		NSData *data = [fileResponse readDataOfLength:READ_CHUNKSIZE];
 		
 		if([data length] > 0)
 		{
-			[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_BODY];
+			[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:tag];
 		}
 		else
 		{
-			[fileResponse closeFile];
-			[fileResponse release];
-			fileResponse = nil;
-			
 			doneSendingResponse = YES;
+		}
+	}
+	else if(tag == HTTP_PARTIAL_FILE_RANGE_RESPONSE_BODY)
+	{
+		// We only wrote a part of the range - there may be more.
+		DDRange range = [[ranges objectAtIndex:0] ddrangeValue];
+		
+		UInt64 fileOffset = [fileResponse offsetInFile];
+		UInt64 bytesRead = fileOffset - range.location;
+		UInt64 bytesLeft = range.length - bytesRead;
+		
+		if(bytesLeft > 0)
+		{
+			NSUInteger bytesToRead = bytesLeft < READ_CHUNKSIZE ? bytesLeft : READ_CHUNKSIZE;
+			
+			NSData *fileData = [fileResponse readDataOfLength:bytesToRead];
+			
+			[asyncSocket writeData:fileData withTimeout:WRITE_BODY_TIMEOUT tag:tag];
+		}
+		else
+		{
+			doneSendingResponse = YES;
+		}
+	}
+	else if(tag == HTTP_PARTIAL_FILE_RANGES_RESPONSE_BODY)
+	{
+		// We only wrote part of the range - there may be more.
+		// Plus, there may be more ranges.
+		DDRange range = [[ranges objectAtIndex:rangeIndex] ddrangeValue];
+		
+		UInt64 fileOffset = [fileResponse offsetInFile];
+		UInt64 bytesRead = fileOffset - range.location;
+		UInt64 bytesLeft = range.length - bytesRead;
+		
+		if(bytesLeft > 0)
+		{
+			NSUInteger bytesToRead = bytesLeft < READ_CHUNKSIZE ? bytesLeft : READ_CHUNKSIZE;
+			
+			NSData *fileData = [fileResponse readDataOfLength:bytesToRead];
+			
+			[asyncSocket writeData:fileData withTimeout:WRITE_BODY_TIMEOUT tag:tag];
+		}
+		else
+		{
+			if(++rangeIndex < [ranges count])
+			{
+				// Write range header
+				NSData *rangeHeader = [ranges_headers objectAtIndex:rangeIndex];
+				[asyncSocket writeData:rangeHeader withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_HEADER];
+				
+				// Start writing range body
+				range = [[ranges objectAtIndex:rangeIndex] ddrangeValue];
+				
+				[fileResponse seekToFileOffset:range.location];
+				
+				NSUInteger bytesToRead = range.length < READ_CHUNKSIZE ? range.length : READ_CHUNKSIZE;
+				
+				NSData *fileData = [fileResponse readDataOfLength:bytesToRead];
+				
+				[asyncSocket writeData:fileData withTimeout:WRITE_BODY_TIMEOUT tag:tag];
+			}
+			else
+			{
+				// We're not done yet - we still have to send the closing boundry tag
+				NSString *endingBoundryStr = [NSString stringWithFormat:@"\r\n--%@--\r\n", ranges_boundry];
+				NSData *endingBoundryData = [endingBoundryStr dataUsingEncoding:NSUTF8StringEncoding];
+				
+				[asyncSocket writeData:endingBoundryData withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_RESPONSE];
+			}
 		}
 	}
 	else if(tag == HTTP_RESPONSE)
@@ -1046,6 +1471,21 @@ static NSMutableArray *recentNonces;
 	
 	if(doneSendingResponse)
 	{
+		// Release any resources we no longer need
+		[ranges release];
+		[ranges_headers release];
+		[ranges_boundry release];
+		ranges = nil;
+		ranges_headers = nil;
+		ranges_boundry = nil;
+		
+		[customData release];
+		customData = nil;
+		
+		[fileResponse closeFile];
+		[fileResponse release];
+		fileResponse = nil;
+		
 		// Release the old request, and create a new one
 		if(request) CFRelease(request);
 		request = CFHTTPMessageCreateEmpty(kCFAllocatorDefault, YES);

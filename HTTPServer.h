@@ -69,7 +69,13 @@
 	NSString *nonce;
 	int lastNC;
 	
+	NSData *customData;
 	NSFileHandle *fileResponse;
+	
+	NSMutableArray *ranges;
+	NSMutableArray *ranges_headers;
+	NSString *ranges_boundry;
+	int rangeIndex;
 }
 
 - (id)initWithAsyncSocket:(AsyncSocket *)newSocket forServer:(HTTPServer *)myServer;
