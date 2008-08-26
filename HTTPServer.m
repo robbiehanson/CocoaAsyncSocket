@@ -936,6 +936,8 @@ static NSMutableArray *recentNonces;
 			// Status Code 206 - Partial Content
 			response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 206, NULL, kCFHTTPVersion1_1);
 			
+			CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Accept-Ranges"), CFSTR("bytes"));
+			
 			DDRange range = [[ranges objectAtIndex:0] ddrangeValue];
 			
 			NSString *contentLengthStr = [NSString stringWithFormat:@"%qu", range.length];
@@ -949,6 +951,8 @@ static NSMutableArray *recentNonces;
 		{
 			// Status Code 206 - Partial Content
 			response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 206, NULL, kCFHTTPVersion1_1);
+			
+			CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Accept-Ranges"), CFSTR("bytes"));
 			
 			// We have to send each range using multipart/byteranges
 			// So each byterange has to be prefix'd and suffix'd with the boundry
