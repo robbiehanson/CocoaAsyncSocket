@@ -29,14 +29,13 @@
 #define LIMIT_MAX_HEADER_LINES         100
 
 // Define the various tags we'll use to differentiate what it is we're currently doing
-#define HTTP_REQUEST                           15
-#define HTTP_PARTIAL_RESPONSE_HEADER           25
-#define HTTP_PARTIAL_DATA_RESPONSE_BODY        26
-#define HTTP_PARTIAL_FILE_RESPONSE_BODY        27
-#define HTTP_PARTIAL_FILE_RANGE_RESPONSE_BODY  28
-#define HTTP_PARTIAL_FILE_RANGES_RESPONSE_BODY 29
-#define HTTP_RESPONSE                          30
-#define HTTP_FINAL_RESPONSE                    45
+#define HTTP_REQUEST                       15
+#define HTTP_PARTIAL_RESPONSE_HEADER       25
+#define HTTP_PARTIAL_RESPONSE_BODY         26
+#define HTTP_PARTIAL_RANGE_RESPONSE_BODY   28
+#define HTTP_PARTIAL_RANGES_RESPONSE_BODY  29
+#define HTTP_RESPONSE                      30
+#define HTTP_FINAL_RESPONSE                45
 
 #define HTTPConnectionDidDieNotification  @"HTTPConnectionDidDie"
 
@@ -485,9 +484,7 @@ static NSMutableArray *recentNonces;
 	
 	[nonce release];
 	
-	[customData release];
-	[fileResponse closeFile];
-	[fileResponse release];
+	[httpResponse release];
 	
 	[ranges release];
 	[ranges_headers release];
@@ -830,6 +827,23 @@ static NSMutableArray *recentNonces;
 }
 
 /**
+ * Gets the current date and time, formatted properly (according to RFC) for insertion into an HTTP header.
+**/
+- (NSString *)dateAsString:(NSDate *)date
+{
+	// Example: Sun, 06 Nov 1994 08:49:37 GMT
+	
+	NSDateFormatter *df = [[[NSDateFormatter alloc] init] autorelease];
+	[df setFormatterBehavior:NSDateFormatterBehavior10_4];
+	[df setTimeZone:[NSTimeZone timeZoneWithAbbreviation:@"GMT"]];
+	[df setDateFormat:@"EEE, dd MMM y hh:mm:ss 'GMT'"];
+	
+	// For some reason, using zzz in the format string produces GMT+00:00
+	
+	return [df stringFromDate:date];
+}
+
+/**
  * This method is called after a full HTTP request has been received.
  * The current request is in the CFHTTPMessage request variable.
 **/
@@ -884,23 +898,13 @@ static NSMutableArray *recentNonces;
 	}
 	
 	// Respond properly to HTTP 'GET' and 'HEAD' commands
-	customData = [[self dataForURI:[uri relativeString]] retain];
-	UInt64 contentLength = (UInt64)[customData length];
-	if(contentLength == 0)
-	{
-		contentLength = [self contentLengthForURI:[uri relativeString]];
-	}
+	httpResponse = [[self httpResponseForURI:[uri relativeString]] retain];
+	
+	UInt64 contentLength = [httpResponse contentLength];
 	
 	if(contentLength == 0)
 	{
-		NSLog(@"HTTP Server: Error 404 - Not Found");
-		
-		// Status Code 404 - Not Found
-		CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 404, NULL, kCFHTTPVersion1_1);
-		CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), CFSTR("0"));
-		NSData *responseData = [self preprocessErrorResponse:response];
-		[asyncSocket writeData:responseData withTimeout:WRITE_ERROR_TIMEOUT tag:HTTP_RESPONSE];
-		CFRelease(response);
+		[self handleResourceNotFound];
 		return;
     }
 	
@@ -924,8 +928,6 @@ static NSMutableArray *recentNonces;
 		// Status Code 200 - OK
 		response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 200, NULL, kCFHTTPVersion1_1);
 		
-		CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Accept-Ranges"), CFSTR("bytes"));
-		
 		NSString *contentLengthStr = [NSString stringWithFormat:@"%qu", contentLength];
 		CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), (CFStringRef)contentLengthStr);
 	}
@@ -935,8 +937,6 @@ static NSMutableArray *recentNonces;
 		{
 			// Status Code 206 - Partial Content
 			response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 206, NULL, kCFHTTPVersion1_1);
-			
-			CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Accept-Ranges"), CFSTR("bytes"));
 			
 			DDRange range = [[ranges objectAtIndex:0] ddrangeValue];
 			
@@ -951,8 +951,6 @@ static NSMutableArray *recentNonces;
 		{
 			// Status Code 206 - Partial Content
 			response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 206, NULL, kCFHTTPVersion1_1);
-			
-			CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Accept-Ranges"), CFSTR("bytes"));
 			
 			// We have to send each range using multipart/byteranges
 			// So each byterange has to be prefix'd and suffix'd with the boundry
@@ -973,17 +971,11 @@ static NSMutableArray *recentNonces;
 			// [...]
 			// --4554d24e986f76dd6--
 			
-			[ranges_headers release];
-			[ranges_boundry release];
-			
 			ranges_headers = [[NSMutableArray alloc] initWithCapacity:[ranges count]];
 			
 			CFUUIDRef theUUID = CFUUIDCreate(NULL);
 			ranges_boundry = (NSString *)CFUUIDCreateString(NULL, theUUID);
 			CFRelease(theUUID);
-			
-			[ranges_boundry release];
-			ranges_boundry = @"4554d24e986f76dd6";
 			
 			NSString *startingBoundryStr = [NSString stringWithFormat:@"\r\n--%@\r\n", ranges_boundry];
 			NSString *endingBoundryStr = [NSString stringWithFormat:@"\r\n--%@--\r\n", ranges_boundry];
@@ -1030,121 +1022,53 @@ static NSMutableArray *recentNonces;
 	else
 	{
 		// Write the header response
-		
 		NSData *responseData = [self preprocessResponse:response];
 		[asyncSocket writeData:responseData withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_HEADER];
 		
-		// Now we need to send the file
-		if(customData)
+		// Now we need to send the body of the response
+		if(!isRangeRequest)
 		{
-			if(!isRangeRequest)
-			{
-				// Regular request
-				[asyncSocket writeData:customData withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_RESPONSE];
-				
-				[customData release];
-				customData = nil;
-			}
-			else
-			{
-				// Client specified a byte range in request
-				
-				if([ranges count] == 1)
-				{
-					// Client is requesting a single range
-					DDRange range = [[ranges objectAtIndex:0] ddrangeValue];
-					
-					void *bytes = (void *)([customData bytes] + range.location);
-					
-					NSData *rangeData = [NSData dataWithBytesNoCopy:bytes length:range.length freeWhenDone:NO];
-					
-					[asyncSocket writeData:rangeData withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_RESPONSE];
-				}
-				else
-				{
-					// Client is requesting multiple ranges
-					// We have to send each range using multipart/byteranges
-					
-					unsigned i;
-					for(i = 0; i < [ranges count]; i++)
-					{
-						NSData *rangeHeader = [ranges_headers objectAtIndex:i];
-						[asyncSocket writeData:rangeHeader
-								   withTimeout:WRITE_HEAD_TIMEOUT
-										   tag:HTTP_PARTIAL_RESPONSE_HEADER];
-						
-						// Start writing range body
-						DDRange range = [[ranges objectAtIndex:i] ddrangeValue];
-						
-						void *bytes = (void *)([customData bytes] + range.location);
-						
-						NSData *rangeData = [NSData dataWithBytesNoCopy:bytes length:range.length freeWhenDone:NO];
-						
-						[asyncSocket writeData:rangeData
-								   withTimeout:WRITE_BODY_TIMEOUT
-										   tag:HTTP_PARTIAL_DATA_RESPONSE_BODY];
-					}
-					
-					// We're not done yet - we still have to send the closing boundry tag
-					NSString *endingBoundryStr = [NSString stringWithFormat:@"\r\n--%@--\r\n", ranges_boundry];
-					NSData *endingBoundryData = [endingBoundryStr dataUsingEncoding:NSUTF8StringEncoding];
-					
-					[asyncSocket writeData:endingBoundryData withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_RESPONSE];
-				}
-			}
+			// Regular request
+			NSData *data = [httpResponse readDataOfLength:READ_CHUNKSIZE];
+		
+			[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_BODY];
 		}
 		else
 		{
-			fileResponse = [[self fileForURI:[uri relativeString]] retain];
+			// Client specified a byte range in request
 			
-			if(!isRangeRequest)
+			if([ranges count] == 1)
 			{
-				// Regular request
-				NSData *fileData = [fileResponse readDataOfLength:READ_CHUNKSIZE];
-			
-				[asyncSocket writeData:fileData withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_PARTIAL_FILE_RESPONSE_BODY];
+				// Client is requesting a single range
+				DDRange range = [[ranges objectAtIndex:0] ddrangeValue];
+				
+				[httpResponse setOffset:range.location];
+				
+				unsigned int bytesToRead = range.length < READ_CHUNKSIZE ? range.length : READ_CHUNKSIZE;
+				
+				NSData *data = [httpResponse readDataOfLength:bytesToRead];
+				
+				[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_PARTIAL_RANGE_RESPONSE_BODY];
 			}
 			else
 			{
-				// Client specified a byte range in request
+				// Client is requesting multiple ranges
+				// We have to send each range using multipart/byteranges
 				
-				if([ranges count] == 1)
-				{
-					// Client is requesting a single range
-					DDRange range = [[ranges objectAtIndex:0] ddrangeValue];
-					
-					[fileResponse seekToFileOffset:range.location];
-					
-					NSUInteger bytesToRead = range.length < READ_CHUNKSIZE ? range.length : READ_CHUNKSIZE;
-					
-					NSData *fileData = [fileResponse readDataOfLength:bytesToRead];
-					
-					[asyncSocket writeData:fileData
-							   withTimeout:WRITE_BODY_TIMEOUT
-									   tag:HTTP_PARTIAL_FILE_RANGE_RESPONSE_BODY];
-				}
-				else
-				{
-					// Client is requesting multiple ranges
-					// We have to send each range using multipart/byteranges
-					
-					// Write range header
-					NSData *rangeHeader = [ranges_headers objectAtIndex:0];
-					[asyncSocket writeData:rangeHeader withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_HEADER];
-					
-					// Start writing range body
-					DDRange range = [[ranges objectAtIndex:0] ddrangeValue];
-					
-					[fileResponse seekToFileOffset:range.location];
-					
-					NSUInteger bytesToRead = range.length < READ_CHUNKSIZE ? range.length : READ_CHUNKSIZE;
-					
-					NSData *fileData = [fileResponse readDataOfLength:bytesToRead];
-					
-					[asyncSocket writeData:fileData
-							   withTimeout:WRITE_BODY_TIMEOUT
-									   tag:HTTP_PARTIAL_FILE_RANGES_RESPONSE_BODY];
-				}
+				// Write range header
+				NSData *rangeHeader = [ranges_headers objectAtIndex:0];
+				[asyncSocket writeData:rangeHeader withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_HEADER];
+				
+				// Start writing range body
+				DDRange range = [[ranges objectAtIndex:0] ddrangeValue];
+				
+				[httpResponse setOffset:range.location];
+				
+				unsigned int bytesToRead = range.length < READ_CHUNKSIZE ? range.length : READ_CHUNKSIZE;
+				
+				NSData *data = [httpResponse readDataOfLength:bytesToRead];
+				
+				[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_PARTIAL_RANGES_RESPONSE_BODY];
 			}
 		}
 	}
@@ -1198,39 +1122,22 @@ static NSMutableArray *recentNonces;
 }
 
 /**
- * If the dataForURI method returns nil, then this method is consulted to obtain a file size.
- * If this method returns 0, then a 404 error is returned.
+ * This method is called to get a response for a request.
+ * You may return any object that adopts the HTTPResponse protocol.
+ * The HTTPServer comes with two such classes: HTTPFileResponse and HTTPDataResponse.
+ * HTTPFileResponse is a wrapper for an NSFileHandle object, and is the preferred way to send a file response.
+ * HTTPDataResopnse is a wrapper for an NSData object, and may be used to send a custom response.
 **/
-- (UInt64)contentLengthForURI:(NSString *)path
+- (NSObject<HTTPResponse> *)httpResponseForURI:(NSString *)path
 {
+	// Override me to provide custom responses.
+	
 	NSString *filePath = [self filePathForURI:path];
 	
-	NSDictionary *attributes = [[NSFileManager defaultManager] fileAttributesAtPath:filePath traverseLink:NO];
-	
-	NSNumber *fileSize = [attributes objectForKey:NSFileSize];
-	
-	return (UInt64)[fileSize unsignedLongLongValue];
-}
-
-/**
- * This method is called to get a file handle for a request.
- * This is the preferred way to serve files straight from disk, especially large files.
-**/
-- (NSFileHandle *)fileForURI:(NSString *)path
-{
-	NSString *filePath = [self filePathForURI:path];
-	
-	return [NSFileHandle fileHandleForReadingAtPath:filePath];
-}
-
-/**
- * This method is called first during requests.
- * Use this method to return custom non-file data.
- * The fileForURI method is better equipped to serve files straight from disk.
-**/
-- (NSData *)dataForURI:(NSString *)path
-{
-	// Override me to provide custom non-file data.
+	if([[NSFileManager defaultManager] fileExistsAtPath:filePath])
+	{
+		return [[[HTTPFileResponse alloc] initWithFilePath:filePath] autorelease];
+	}
 	
 	return nil;
 }
@@ -1273,18 +1180,52 @@ static NSMutableArray *recentNonces;
     CFRelease(response);
 }
 
+- (void)handleResourceNotFound
+{
+	// Override me for custom error handling of 404 not found responses
+	
+	NSLog(@"HTTP Server: Error 404 - Not Found");
+	
+	// Status Code 404 - Not Found
+	CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 404, NULL, kCFHTTPVersion1_1);
+	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), CFSTR("0"));
+	NSData *responseData = [self preprocessErrorResponse:response];
+	[asyncSocket writeData:responseData withTimeout:WRITE_ERROR_TIMEOUT tag:HTTP_RESPONSE];
+	CFRelease(response);
+	return;
+}
+
+/**
+ * This method is called immediately prior to sending the response headers.
+ * This method adds standard header fields, and then converts the response to an NSData object.
+**/
 - (NSData *)preprocessResponse:(CFHTTPMessageRef)response
 {
-	// Override me to customize the response
-	// You may want to add mime types, etc
+	// Override me to customize the response headers
+	// You'll likely want to add your own custom headers, and then return [super preprocessResponse:response]
+	
+	NSString *now = [self dateAsString:[NSDate date]];
+	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Date"), (CFStringRef)now);
+	
+	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Accept-Ranges"), CFSTR("bytes"));
 	
 	NSData *result = (NSData *)CFHTTPMessageCopySerializedMessage(response);
 	return [result autorelease];
 }
 
+/**
+ * This method is called immediately prior to sending the response headers (for an error).
+ * This method adds standard header fields, and then converts the response to an NSData object.
+**/
 - (NSData *)preprocessErrorResponse:(CFHTTPMessageRef)response;
 {
-	// Override me to customize the error response
+	// Override me to customize the error response headers
+	// You'll likely want to add your own custom headers, and then return [super preprocessErrorResponse:response]
+	
+	NSString *now = [self dateAsString:[NSDate date]];
+	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Date"), (CFStringRef)now);
+	
+	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Accept-Ranges"), CFSTR("bytes"));
 	
 	NSData *result = (NSData *)CFHTTPMessageCopySerializedMessage(response);
 	return [result autorelease];
@@ -1385,10 +1326,10 @@ static NSMutableArray *recentNonces;
 {
 	BOOL doneSendingResponse = NO;
 	
-	if(tag == HTTP_PARTIAL_FILE_RESPONSE_BODY)
+	if(tag == HTTP_PARTIAL_RESPONSE_BODY)
 	{
-		// We only wrote a part of the file - there may be more.
-		NSData *data = [fileResponse readDataOfLength:READ_CHUNKSIZE];
+		// We only wrote a part of the http response - there may be more.
+		NSData *data = [httpResponse readDataOfLength:READ_CHUNKSIZE];
 		
 		if([data length] > 0)
 		{
@@ -1399,45 +1340,45 @@ static NSMutableArray *recentNonces;
 			doneSendingResponse = YES;
 		}
 	}
-	else if(tag == HTTP_PARTIAL_FILE_RANGE_RESPONSE_BODY)
+	else if(tag == HTTP_PARTIAL_RANGE_RESPONSE_BODY)
 	{
 		// We only wrote a part of the range - there may be more.
 		DDRange range = [[ranges objectAtIndex:0] ddrangeValue];
 		
-		UInt64 fileOffset = [fileResponse offsetInFile];
-		UInt64 bytesRead = fileOffset - range.location;
+		UInt64 offset = [httpResponse offset];
+		UInt64 bytesRead = offset - range.location;
 		UInt64 bytesLeft = range.length - bytesRead;
 		
 		if(bytesLeft > 0)
 		{
-			NSUInteger bytesToRead = bytesLeft < READ_CHUNKSIZE ? bytesLeft : READ_CHUNKSIZE;
+			unsigned int bytesToRead = bytesLeft < READ_CHUNKSIZE ? bytesLeft : READ_CHUNKSIZE;
 			
-			NSData *fileData = [fileResponse readDataOfLength:bytesToRead];
+			NSData *data = [httpResponse readDataOfLength:bytesToRead];
 			
-			[asyncSocket writeData:fileData withTimeout:WRITE_BODY_TIMEOUT tag:tag];
+			[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:tag];
 		}
 		else
 		{
 			doneSendingResponse = YES;
 		}
 	}
-	else if(tag == HTTP_PARTIAL_FILE_RANGES_RESPONSE_BODY)
+	else if(tag == HTTP_PARTIAL_RANGES_RESPONSE_BODY)
 	{
 		// We only wrote part of the range - there may be more.
 		// Plus, there may be more ranges.
 		DDRange range = [[ranges objectAtIndex:rangeIndex] ddrangeValue];
 		
-		UInt64 fileOffset = [fileResponse offsetInFile];
-		UInt64 bytesRead = fileOffset - range.location;
+		UInt64 offset = [httpResponse offset];
+		UInt64 bytesRead = offset - range.location;
 		UInt64 bytesLeft = range.length - bytesRead;
 		
 		if(bytesLeft > 0)
 		{
-			NSUInteger bytesToRead = bytesLeft < READ_CHUNKSIZE ? bytesLeft : READ_CHUNKSIZE;
+			unsigned int bytesToRead = bytesLeft < READ_CHUNKSIZE ? bytesLeft : READ_CHUNKSIZE;
 			
-			NSData *fileData = [fileResponse readDataOfLength:bytesToRead];
+			NSData *data = [httpResponse readDataOfLength:bytesToRead];
 			
-			[asyncSocket writeData:fileData withTimeout:WRITE_BODY_TIMEOUT tag:tag];
+			[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:tag];
 		}
 		else
 		{
@@ -1450,13 +1391,13 @@ static NSMutableArray *recentNonces;
 				// Start writing range body
 				range = [[ranges objectAtIndex:rangeIndex] ddrangeValue];
 				
-				[fileResponse seekToFileOffset:range.location];
+				[httpResponse setOffset:range.location];
 				
-				NSUInteger bytesToRead = range.length < READ_CHUNKSIZE ? range.length : READ_CHUNKSIZE;
+				unsigned int bytesToRead = range.length < READ_CHUNKSIZE ? range.length : READ_CHUNKSIZE;
 				
-				NSData *fileData = [fileResponse readDataOfLength:bytesToRead];
+				NSData *data = [httpResponse readDataOfLength:bytesToRead];
 				
-				[asyncSocket writeData:fileData withTimeout:WRITE_BODY_TIMEOUT tag:tag];
+				[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:tag];
 			}
 			else
 			{
@@ -1476,19 +1417,15 @@ static NSMutableArray *recentNonces;
 	if(doneSendingResponse)
 	{
 		// Release any resources we no longer need
+		[httpResponse release];
+		httpResponse = nil;
+		
 		[ranges release];
 		[ranges_headers release];
 		[ranges_boundry release];
 		ranges = nil;
 		ranges_headers = nil;
 		ranges_boundry = nil;
-		
-		[customData release];
-		customData = nil;
-		
-		[fileResponse closeFile];
-		[fileResponse release];
-		fileResponse = nil;
 		
 		// Release the old request, and create a new one
 		if(request) CFRelease(request);
@@ -1524,6 +1461,105 @@ static NSMutableArray *recentNonces;
 - (void)onSocketDidDisconnect:(AsyncSocket *)sock
 {
 	[self die];
+}
+
+@end
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark -
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+@implementation HTTPFileResponse
+
+- (id)initWithFilePath:(NSString *)filePathParam
+{
+	if(self = [super init])
+	{
+		filePath = [filePathParam copy];
+		fileHandle = [[NSFileHandle fileHandleForReadingAtPath:filePath] retain];
+	}
+	return self;
+}
+
+- (void)dealloc
+{
+	[filePath release];
+	[fileHandle closeFile];
+	[fileHandle release];
+	[super dealloc];
+}
+
+- (UInt64)contentLength
+{
+	NSDictionary *fileAttributes = [[NSFileManager defaultManager] fileAttributesAtPath:filePath traverseLink:NO];
+	
+	NSNumber *fileSize = [fileAttributes objectForKey:NSFileSize];
+	
+	return (UInt64)[fileSize unsignedLongLongValue];
+}
+
+- (UInt64)offset
+{
+	return (UInt64)[fileHandle offsetInFile];
+}
+
+- (void)setOffset:(UInt64)offset
+{
+	[fileHandle seekToFileOffset:offset];
+}
+
+- (NSData *)readDataOfLength:(unsigned int)length
+{
+	return [fileHandle readDataOfLength:length];
+}
+
+@end
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark -
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+@implementation HTTPDataResponse
+
+- (id)initWithData:(NSData *)dataParam
+{
+	if(self = [super init])
+	{
+		offset = 0;
+		data = [dataParam retain];
+	}
+	return self;
+}
+
+- (void)dealloc
+{
+	[data release];
+	[super dealloc];
+}
+
+- (UInt64)contentLength
+{
+	return (UInt64)[data length];
+}
+
+- (UInt64)offset
+{
+	return offset;
+}
+
+- (void)setOffset:(UInt64)offsetParam
+{
+	offset = offsetParam;
+}
+
+- (NSData *)readDataOfLength:(unsigned int)lengthParameter
+{
+	unsigned int remaining = [data length] - offset;
+	unsigned int length = lengthParameter < remaining ? lengthParameter : remaining;
+	
+	void *bytes = (void *)([data bytes] + offset);
+	
+	return [NSData dataWithBytesNoCopy:bytes length:length freeWhenDone:NO];
 }
 
 @end
