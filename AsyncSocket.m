@@ -30,8 +30,8 @@ NSString *const AsyncSocketException = @"AsyncSocketException";
 NSString *const AsyncSocketErrorDomain = @"AsyncSocketErrorDomain";
 
 // This is a mutex lock used by all instances of AsyncSocket, to protect getaddrinfo.
-// The man page says it is not thread-safe.
-NSString *getaddrinfoLock = @"lock";
+// The man page says it is not thread-safe. (As of Mac OS X 10.4.7, and possibly earlier)
+static NSString *getaddrinfoLock = @"lock";
 
 enum AsyncSocketFlags
 {
@@ -460,10 +460,13 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 			
 			if(error)
 			{
-				NSString *errMsg = [NSString stringWithCString:gai_strerror(error) encoding:NSASCIIStringEncoding];
-				NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
-				
-				if(errPtr) *errPtr = [NSError errorWithDomain:@"kCFStreamErrorDomainNetDB" code:error userInfo:info];
+				if(errPtr)
+				{
+					NSString *errMsg = [NSString stringWithCString:gai_strerror(error) encoding:NSASCIIStringEncoding];
+					NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+					
+					*errPtr = [NSError errorWithDomain:@"kCFStreamErrorDomainNetDB" code:error userInfo:info];
+				}
 			}
 			
 			for(res = res0; res; res = res->ai_next)
@@ -969,8 +972,7 @@ Failed:;
 	{
 		if([theDelegate onSocketWillConnect:self] == NO)
 		{
-			NSError *err = [self getAbortError];
-			if (errPtr) *errPtr = err;
+			if (errPtr) *errPtr = [self getAbortError];
 			return NO;
 		}
 	}
@@ -995,9 +997,7 @@ Failed:;
 	
 	if(!pass)
 	{
-		NSError *err = [self getStreamError];
-		NSLog (@"%@", err);
-		if (errPtr) *errPtr = err;
+		if (errPtr) *errPtr = [self getStreamError];
 	}
 	
 	return pass;
