@@ -453,12 +453,6 @@ static NSMutableArray *recentNonces;
 		
 		numHeaderLines = 0;
 		
-		// Register for NSFileNotifications
-		[[NSNotificationCenter defaultCenter] addObserver:self
-												 selector:@selector(responseDataReady:)
-													 name:NSFileHandleReadCompletionNotification
-												   object:nil];
-		
 		// And now that we own the socket, and we have our CFHTTPMessage object (for requests) ready,
 		// we can start reading the HTTP requests...
 		[asyncSocket readDataToData:[AsyncSocket CRLFData]
@@ -474,8 +468,6 @@ static NSMutableArray *recentNonces;
 **/
 - (void)dealloc
 {
-	[[NSNotificationCenter defaultCenter] removeObserver:self];
-	
 	[asyncSocket setDelegate:nil];
 	[asyncSocket disconnect];
 	[asyncSocket release];
