@@ -892,13 +892,17 @@ static NSMutableArray *recentNonces;
 - (void)handleVersionNotSupported:(NSString *)version
 {
 	// Override me for custom error handling of unspupported http version responses
+	// If you simply want to add a few extra header fields, see the preprocessErrorResponse: method.
+	// You can also use preprocessErrorResponse: to add an optional HTML body.
 	
 	NSLog(@"HTTP Server: Error 505 - Version Not Supported: %@", version);
 	
 	CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 505, NULL, (CFStringRef)version);
 	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), CFSTR("0"));
-    NSData *responseData = [self preprocessErrorResponse:response];
+    
+	NSData *responseData = [self preprocessErrorResponse:response];
 	[asyncSocket writeData:responseData withTimeout:WRITE_ERROR_TIMEOUT tag:HTTP_RESPONSE];
+	
 	CFRelease(response);
 }
 
@@ -908,6 +912,8 @@ static NSMutableArray *recentNonces;
 - (void)handleAuthenticationFailed
 {
 	// Override me for custom handling of authentication challenges
+	// If you simply want to add a few extra header fields, see the preprocessErrorResponse: method.
+	// You can also use preprocessErrorResponse: to add an optional HTML body.
 	
 	NSLog(@"HTTP Server: Error 401 - Unauthorized");
 		
@@ -926,6 +932,7 @@ static NSMutableArray *recentNonces;
 	
 	NSData *responseData = [self preprocessErrorResponse:response];
 	[asyncSocket writeData:responseData withTimeout:WRITE_ERROR_TIMEOUT tag:HTTP_RESPONSE];
+	
 	CFRelease(response);
 }
 
@@ -936,14 +943,18 @@ static NSMutableArray *recentNonces;
 - (void)handleInvalidRequest:(NSData *)data
 {
 	// Override me for custom error handling of invalid HTTP requests
+	// If you simply want to add a few extra header fields, see the preprocessErrorResponse: method.
+	// You can also use preprocessErrorResponse: to add an optional HTML body.
 	
 	NSLog(@"HTTP Server: Error 400 - Bad Request");
 	
 	// Status Code 400 - Bad Request
 	CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 400, NULL, kCFHTTPVersion1_1);
 	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), CFSTR("0"));
+	
 	NSData *responseData = [self preprocessErrorResponse:response];
 	[asyncSocket writeData:responseData withTimeout:WRITE_ERROR_TIMEOUT tag:HTTP_FINAL_RESPONSE];
+	
 	CFRelease(response);
 	
 	// Close connection as soon as the error message is sent
@@ -956,28 +967,36 @@ static NSMutableArray *recentNonces;
 - (void)handleUnknownMethod:(NSString *)method
 {
 	// Override me to add support for methods other than GET and HEAD
+	// If you simply want to add a few extra header fields, see the preprocessErrorResponse: method.
+	// You can also use preprocessErrorResponse: to add an optional HTML body.
 	
 	NSLog(@"HTTP Server: Error 405 - Method Not Allowed: %@", method);
 	
 	// Status code 405 - Method Not Allowed
     CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 405, NULL, kCFHTTPVersion1_1);
 	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), CFSTR("0"));
+	
 	NSData *responseData = [self preprocessErrorResponse:response];
 	[asyncSocket writeData:responseData withTimeout:WRITE_ERROR_TIMEOUT tag:HTTP_RESPONSE];
-    CFRelease(response);
+    
+	CFRelease(response);
 }
 
 - (void)handleResourceNotFound
 {
 	// Override me for custom error handling of 404 not found responses
+	// If you simply want to add a few extra header fields, see the preprocessErrorResponse: method.
+	// You can also use preprocessErrorResponse: to add an optional HTML body.
 	
 	NSLog(@"HTTP Server: Error 404 - Not Found");
 	
 	// Status Code 404 - Not Found
 	CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 404, NULL, kCFHTTPVersion1_1);
 	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), CFSTR("0"));
+	
 	NSData *responseData = [self preprocessErrorResponse:response];
 	[asyncSocket writeData:responseData withTimeout:WRITE_ERROR_TIMEOUT tag:HTTP_RESPONSE];
+	
 	CFRelease(response);
 }
 
@@ -1007,6 +1026,22 @@ static NSMutableArray *recentNonces;
 {
 	// Override me to customize the error response headers
 	// You'll likely want to add your own custom headers, and then return [super preprocessErrorResponse:response]
+	// 
+	// Notes:
+	// You can use CFHTTPMessageGetResponseStatusCode(response) to get the type of error.
+	// You can use CFHTTPMessageSetBody() to add an optional HTML body.
+	// If you add a body, don't forget to update the Content-Length.
+	// 
+	// if(CFHTTPMessageGetResponseStatusCode(response) == 404)
+	// {
+	//     NSString *msg = @"<html><body>Error 404 - Not Found</body></html>";
+	//     NSData *msgData = [msg dataUsingEncoding:NSUTF8StringEncoding];
+	//     
+	//     CFHTTPMessageSetBody(response, (CFDataRef)msgData);
+	//     
+	//     NSString *contentLengthStr = [NSString stringWithFormat:@"%u", (unsigned)[msgData length]];
+	//     CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), (CFStringRef)contentLengthStr);
+	// }
 	
 	NSString *now = [self dateAsString:[NSDate date]];
 	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Date"), (CFStringRef)now);

@@ -322,7 +322,7 @@
 							<real>237</real>
 						</array>
 						<key>RubberWindowFrame</key>
-						<string>87 66 1207 960 0 0 1680 1028 </string>
+						<string>71 66 1207 960 0 0 1680 1028 </string>
 					</dict>
 					<key>Module</key>
 					<string>PBXSmartGroupTreeModule</string>
@@ -352,14 +352,13 @@
 										<key>_historyCapacity</key>
 										<integer>20</integer>
 										<key>bookmark</key>
-										<string>DC2EA3660E92237300BB17BF</string>
+										<string>DC2EA4050E92AD0200BB17BF</string>
 										<key>history</key>
 										<array>
 											<string>DCAF3D670E5621CD00FAFF89</string>
 											<string>DCAF3D6A0E5621CD00FAFF89</string>
 											<string>DC79FED90E5F5FED00F2C5AB</string>
 											<string>DCF61E300E639B33009BFEE4</string>
-											<string>DC2EA2520E91B83C00BB17BF</string>
 											<string>DC2EA2530E91B83C00BB17BF</string>
 											<string>DC2EA2540E91B83C00BB17BF</string>
 											<string>DC2EA3270E92205700BB17BF</string>
@@ -368,11 +367,13 @@
 											<string>DC2EA32A0E92205700BB17BF</string>
 											<string>DC2EA32B0E92205700BB17BF</string>
 											<string>DC2EA32C0E92205700BB17BF</string>
-											<string>DC2EA32E0E92205700BB17BF</string>
-											<string>DC2EA32F0E92205700BB17BF</string>
 											<string>DC2EA3300E92205700BB17BF</string>
-											<string>DC2EA3600E92237300BB17BF</string>
-											<string>DC2EA3610E92237300BB17BF</string>
+											<string>DC2EA3F70E92AD0200BB17BF</string>
+											<string>DC2EA3F80E92AD0200BB17BF</string>
+											<string>DC2EA3F90E92AD0200BB17BF</string>
+											<string>DC2EA3FA0E92AD0200BB17BF</string>
+											<string>DC2EA3FB0E92AD0200BB17BF</string>
+											<string>DC2EA3FC0E92AD0200BB17BF</string>
 										</array>
 										<key>prevStack</key>
 										<array>
@@ -392,47 +393,16 @@
 											<string>DC2EA2830E91B83C00BB17BF</string>
 											<string>DC2EA29E0E91F19D00BB17BF</string>
 											<string>DC2EA2A90E92086E00BB17BF</string>
-											<string>DC2EA2BA0E920E1300BB17BF</string>
-											<string>DC2EA2BB0E920E1300BB17BF</string>
-											<string>DC2EA3320E92205700BB17BF</string>
-											<string>DC2EA3330E92205700BB17BF</string>
-											<string>DC2EA3340E92205700BB17BF</string>
-											<string>DC2EA3350E92205700BB17BF</string>
-											<string>DC2EA3360E92205700BB17BF</string>
-											<string>DC2EA3370E92205700BB17BF</string>
-											<string>DC2EA3380E92205700BB17BF</string>
-											<string>DC2EA3390E92205700BB17BF</string>
-											<string>DC2EA33A0E92205700BB17BF</string>
-											<string>DC2EA33B0E92205700BB17BF</string>
-											<string>DC2EA33C0E92205700BB17BF</string>
-											<string>DC2EA33D0E92205700BB17BF</string>
-											<string>DC2EA33E0E92205700BB17BF</string>
-											<string>DC2EA33F0E92205700BB17BF</string>
-											<string>DC2EA3400E92205700BB17BF</string>
-											<string>DC2EA3410E92205700BB17BF</string>
-											<string>DC2EA3420E92205700BB17BF</string>
-											<string>DC2EA3430E92205700BB17BF</string>
 											<string>DC2EA3440E92205700BB17BF</string>
 											<string>DC2EA3450E92205700BB17BF</string>
-											<string>DC2EA3460E92205700BB17BF</string>
-											<string>DC2EA3470E92205700BB17BF</string>
-											<string>DC2EA3480E92205700BB17BF</string>
-											<string>DC2EA3490E92205700BB17BF</string>
-											<string>DC2EA34A0E92205700BB17BF</string>
-											<string>DC2EA34B0E92205700BB17BF</string>
-											<string>DC2EA34C0E92205700BB17BF</string>
-											<string>DC2EA34D0E92205700BB17BF</string>
-											<string>DC2EA34E0E92205700BB17BF</string>
-											<string>DC2EA34F0E92205700BB17BF</string>
-											<string>DC2EA3500E92205700BB17BF</string>
-											<string>DC2EA3510E92205700BB17BF</string>
-											<string>DC2EA3520E92205700BB17BF</string>
-											<string>DC2EA3530E92205700BB17BF</string>
-											<string>DC2EA3540E92205700BB17BF</string>
-											<string>DC2EA3620E92237300BB17BF</string>
-											<string>DC2EA3630E92237300BB17BF</string>
-											<string>DC2EA3640E92237300BB17BF</string>
-											<string>DC2EA3650E92237300BB17BF</string>
+											<string>DC2EA3FD0E92AD0200BB17BF</string>
+											<string>DC2EA3FE0E92AD0200BB17BF</string>
+											<string>DC2EA3FF0E92AD0200BB17BF</string>
+											<string>DC2EA4000E92AD0200BB17BF</string>
+											<string>DC2EA4010E92AD0200BB17BF</string>
+											<string>DC2EA4020E92AD0200BB17BF</string>
+											<string>DC2EA4030E92AD0200BB17BF</string>
+											<string>DC2EA4040E92AD0200BB17BF</string>
 										</array>
 									</dict>
 									<key>SplitCount</key>
@@ -446,7 +416,7 @@
 								<key>Frame</key>
 								<string>{{0, 0}, {948, 914}}</string>
 								<key>RubberWindowFrame</key>
-								<string>87 66 1207 960 0 0 1680 1028 </string>
+								<string>71 66 1207 960 0 0 1680 1028 </string>
 							</dict>
 							<key>Module</key>
 							<string>PBXNavigatorGroup</string>
@@ -466,7 +436,7 @@
 								<key>Frame</key>
 								<string>{{0, 919}, {948, 0}}</string>
 								<key>RubberWindowFrame</key>
-								<string>87 66 1207 960 0 0 1680 1028 </string>
+								<string>71 66 1207 960 0 0 1680 1028 </string>
 							</dict>
 							<key>Module</key>
 							<string>XCDetailModule</string>
@@ -490,9 +460,9 @@
 			</array>
 			<key>TableOfContents</key>
 			<array>
-				<string>DC2EA2AB0E92086E00BB17BF</string>
+				<string>DC2EA4060E92AD0200BB17BF</string>
 				<string>1CE0B1FE06471DED0097A5F4</string>
-				<string>DC2EA2AC0E92086E00BB17BF</string>
+				<string>DC2EA4070E92AD0200BB17BF</string>
 				<string>1CE0B20306471E060097A5F4</string>
 				<string>1CE0B20506471E060097A5F4</string>
 			</array>
@@ -609,7 +579,7 @@
 	<key>StatusbarIsVisible</key>
 	<true/>
 	<key>TimeStamp</key>
-	<real>244458355.55446601</real>
+	<real>244493570.61308101</real>
 	<key>ToolbarDisplayMode</key>
 	<integer>1</integer>
 	<key>ToolbarIsVisible</key>
@@ -624,14 +594,13 @@
 	<integer>5</integer>
 	<key>WindowOrderList</key>
 	<array>
-		<string>1C530D57069F1CE1000CFCEE</string>
-		<string>DC7B2B8A0CE81D29007ADBB1</string>
-		<string>1CD10A99069EF8BA00B06720</string>
 		<string>1C78EAAD065D492600B07095</string>
+		<string>1CD10A99069EF8BA00B06720</string>
+		<string>DC7B2B8A0CE81D29007ADBB1</string>
 		<string>/Users/robbie/Programs/Google Code/CocoaHTTPServer/SimpleHTTPServer.xcodeproj</string>
 	</array>
 	<key>WindowString</key>
-	<string>87 66 1207 960 0 0 1680 1028 </string>
+	<string>71 66 1207 960 0 0 1680 1028 </string>
 	<key>WindowToolsV3</key>
 	<array>
 		<dict>
@@ -710,7 +679,7 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>DC7B2B8A0CE81D29007ADBB1</string>
-				<string>DC2EA2CB0E92140900BB17BF</string>
+				<string>DC2EA3910E92A58F00BB17BF</string>
 				<string>1CD0528F0623707200166675</string>
 				<string>XCMainBuildResultsModuleGUID</string>
 			</array>
@@ -830,13 +799,13 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>1CD10A99069EF8BA00B06720</string>
-				<string>DC2EA2BD0E920E1300BB17BF</string>
+				<string>DC2EA3950E92A79500BB17BF</string>
 				<string>1C162984064C10D400B95A72</string>
-				<string>DC2EA2BE0E920E1300BB17BF</string>
-				<string>DC2EA2BF0E920E1300BB17BF</string>
-				<string>DC2EA2C00E920E1300BB17BF</string>
-				<string>DC2EA2C10E920E1300BB17BF</string>
-				<string>DC2EA2C20E920E1300BB17BF</string>
+				<string>DC2EA3960E92A79500BB17BF</string>
+				<string>DC2EA3970E92A79500BB17BF</string>
+				<string>DC2EA3980E92A79500BB17BF</string>
+				<string>DC2EA3990E92A79500BB17BF</string>
+				<string>DC2EA39A0E92A79500BB17BF</string>
 			</array>
 			<key>ToolbarConfiguration</key>
 			<string>xcode.toolbar.config.debugV3</string>
@@ -994,7 +963,7 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>1C78EAAD065D492600B07095</string>
-				<string>DC2EA3560E92205700BB17BF</string>
+				<string>DC2EA3AA0E92A88400BB17BF</string>
 				<string>1C78EAAC065D492600B07095</string>
 			</array>
 			<key>ToolbarConfiguration</key>
@@ -1004,7 +973,7 @@
 			<key>WindowToolGUID</key>
 			<string>1C78EAAD065D492600B07095</string>
 			<key>WindowToolIsVisible</key>
-			<true/>
+			<false/>
 		</dict>
 		<dict>
 			<key>Identifier</key>
