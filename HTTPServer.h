@@ -1,7 +1,6 @@
 #import <Foundation/Foundation.h>
 
 @class AsyncSocket;
-@protocol HTTPResponse;
 
 
 @interface HTTPServer : NSObject
@@ -55,90 +54,5 @@
 - (BOOL)stop;
 
 - (int)numberOfHTTPConnections;
-
-@end
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#pragma mark -
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-@interface HTTPConnection : NSObject
-{
-	AsyncSocket *asyncSocket;
-	HTTPServer *server;
-	
-	CFHTTPMessageRef request;
-	int numHeaderLines;
-	
-	NSString *nonce;
-	int lastNC;
-	
-	NSObject<HTTPResponse> *httpResponse;
-	
-	NSMutableArray *ranges;
-	NSMutableArray *ranges_headers;
-	NSString *ranges_boundry;
-	int rangeIndex;
-}
-
-- (id)initWithAsyncSocket:(AsyncSocket *)newSocket forServer:(HTTPServer *)myServer;
-
-- (BOOL)isSecureServer;
-
-- (NSArray *)sslIdentityAndCertificates;
-
-- (BOOL)isPasswordProtected:(NSString *)path;
-
-- (NSString *)realm;
-- (NSString *)passwordForUser:(NSString *)username;
-
-- (NSString *)filePathForURI:(NSString *)path;
-
-- (NSObject<HTTPResponse> *)httpResponseForURI:(NSString *)path;
-
-- (void)handleInvalidRequest:(NSData *)data;
-- (void)handleUnknownMethod:(NSString *)method;
-- (void)handleResourceNotFound;
-
-- (NSData *)preprocessResponse:(CFHTTPMessageRef)response;
-- (NSData *)preprocessErrorResponse:(CFHTTPMessageRef)response;
-
-- (void)die;
-
-@end
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#pragma mark -
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-@protocol HTTPResponse
-
-- (UInt64)contentLength;
-
-- (UInt64)offset;
-- (void)setOffset:(UInt64)offset;
-
-- (NSData *)readDataOfLength:(unsigned int)length;
-
-@end
-
-@interface HTTPFileResponse : NSObject <HTTPResponse>
-{
-	NSString *filePath;
-	NSFileHandle *fileHandle;
-}
-
-- (id)initWithFilePath:(NSString *)filePath;
-- (NSString *)filePath;
-
-@end
-
-@interface HTTPDataResponse : NSObject <HTTPResponse>
-{
-	unsigned offset;
-	NSData *data;
-}
-
-- (id)initWithData:(NSData *)data;
 
 @end

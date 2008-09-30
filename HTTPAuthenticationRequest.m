@@ -14,7 +14,27 @@
 	{
 		NSString *authInfo = (NSString *)CFHTTPMessageCopyHeaderFieldValue(request, CFSTR("Authorization"));
 		
-		if(authInfo != nil)
+		isBasic = NO;
+		if([authInfo length] >= 6)
+		{
+			isBasic = [[authInfo substringToIndex:6] caseInsensitiveCompare:@"Basic "] == NSOrderedSame;
+		}
+		
+		isDigest = NO;
+		if([authInfo length] >= 7)
+		{
+			isDigest = [[authInfo substringToIndex:7] caseInsensitiveCompare:@"Digest "] == NSOrderedSame;
+		}
+		
+		if(isBasic)
+		{
+			NSMutableString *temp = [[[authInfo substringFromIndex:6] mutableCopy] autorelease];
+			CFStringTrimWhitespace((CFMutableStringRef)temp);
+			
+			base64Credentials = [temp copy];
+		}
+		
+		if(isDigest)
 		{
 			username = [[self quotedSubHeaderFieldValue:@"username" fromHeaderFieldValue:authInfo] retain];
 			realm    = [[self quotedSubHeaderFieldValue:@"realm" fromHeaderFieldValue:authInfo] retain];
@@ -34,15 +54,16 @@
 			nc       = [[self nonquotedSubHeaderFieldValue:@"nc" fromHeaderFieldValue:authInfo] retain];
 			cnonce   = [[self quotedSubHeaderFieldValue:@"cnonce" fromHeaderFieldValue:authInfo] retain];
 			response = [[self quotedSubHeaderFieldValue:@"response" fromHeaderFieldValue:authInfo] retain];
-			
-			[authInfo release];
 		}
+		
+		[authInfo release];
 	}
 	return self;
 }
 
 - (void)dealloc
 {
+	[base64Credentials release];
 	[username release];
 	[realm release];
 	[nonce release];
@@ -57,6 +78,18 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Accessors:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+- (BOOL)isBasic {
+	return isBasic;
+}
+
+- (BOOL)isDigest {
+	return isDigest;
+}
+
+- (NSString *)base64Credentials {
+	return base64Credentials;
+}
 
 - (NSString *)username {
 	return username;
