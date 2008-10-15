@@ -905,7 +905,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		NSString *errMsg = @"remoteAddr parameter is not a valid address";
 		NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
 		
-		*errPtr = [NSError errorWithDomain:AsyncUdpSocketException
+		*errPtr = [NSError errorWithDomain:AsyncUdpSocketErrorDomain
 									  code:AsyncUdpSocketBadParameter
 								  userInfo:info];
 	}
@@ -1044,7 +1044,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	NSString *errMsg = @"IPv4 is unavailable due to binding/connecting using IPv6 only";
 	NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
 	
-	return [NSError errorWithDomain:AsyncUdpSocketException code:AsyncUdpSocketIPv4Unavailable userInfo:info];
+	return [NSError errorWithDomain:AsyncUdpSocketErrorDomain code:AsyncUdpSocketIPv4Unavailable userInfo:info];
 }
 
 - (NSError *)getIPv6UnavailableError
@@ -1052,7 +1052,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	NSString *errMsg = @"IPv6 is unavailable due to binding/connecting using IPv4 only or is not supported on this platform";
 	NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
 	
-	return [NSError errorWithDomain:AsyncUdpSocketException code:AsyncUdpSocketIPv6Unavailable userInfo:info];
+	return [NSError errorWithDomain:AsyncUdpSocketErrorDomain code:AsyncUdpSocketIPv6Unavailable userInfo:info];
 }
 
 - (NSError *)getSendTimeoutError
