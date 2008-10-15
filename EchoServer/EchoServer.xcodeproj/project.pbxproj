@@ -47,8 +47,8 @@
 		080E96DDFE201D6D7F000001 /* Classes */ = {
 			isa = PBXGroup;
 			children = (
-				DC50DAB50E4673910071BAD9 /* AsyncSocket.m */,
 				DC50DAB40E4673830071BAD9 /* AsyncSocket.h */,
+				DC50DAB50E4673910071BAD9 /* AsyncSocket.m */,
 				DC7619030E26F49700A77CA5 /* AppController.h */,
 				DC7619040E26F49700A77CA5 /* AppController.m */,
 			);

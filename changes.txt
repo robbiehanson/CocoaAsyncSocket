@@ -1,3 +1,5 @@
+The last version of AsyncSocket from Dustin Voss was version 4.3 released on 2005-11-23.  This document lists the bug fixes provided by Deusty Designs, prior to the creation of the Google Code project.
+
 CHANGES IN VERSION 4.3.1:
 
 Bugfix:

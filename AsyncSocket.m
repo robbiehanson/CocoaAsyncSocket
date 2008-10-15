@@ -802,10 +802,10 @@ Failed:;
 	
 	if(newSocket)
 	{
-		NSRunLoop *runLoop = nil;
 		if ([theDelegate respondsToSelector:@selector(onSocket:didAcceptNewSocket:)])
 			[theDelegate onSocket:self didAcceptNewSocket:newSocket];
 		
+		NSRunLoop *runLoop = nil;
 		if ([theDelegate respondsToSelector:@selector(onSocket:wantsRunLoopForNewSocket:)])
 			runLoop = [theDelegate onSocket:self wantsRunLoopForNewSocket:newSocket];
 		
@@ -848,7 +848,7 @@ Failed:;
 	// Invalidate and release the CFSocket - All we need from here on out is the nativeSocket
 	// Note: If we don't invalidate the socket (leaving the native socket open)
 	// then theReadStream and theWriteStream won't function properly.
-	// Specifically, their callbacks won't work, with the expection of kCFStreamEventOpenCompleted.
+	// Specifically, their callbacks won't work, with the exception of kCFStreamEventOpenCompleted.
 	// I'm not entirely sure why this is, but I'm guessing that events on the socket fire to the CFSocket we created,
 	// as opposed to the CFReadStream/CFWriteStream.
 	
