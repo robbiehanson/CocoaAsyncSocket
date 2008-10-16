@@ -39,6 +39,8 @@
 // The HTTP_RESPONSE and HTTP_FINAL_RESPONSE are designated tags signalling that the response is completely sent.
 // That is, in the onSocket:didWriteDataWithTag: method, if the tag is HTTP_RESPONSE or HTTP_FINAL_RESPONSE,
 // it is assumed that the response is now completely sent.
+// Use HTTP_RESPONSE if it's the end a response, and you want to start reading more requests afterwards.
+// Use HTTP_FINAL_RESPONSE if you wish to terminate the connection after sending the response.
 // 
 // If you are sending multiple data segments in a custom response, make sure that only the last segment has
 // the HTTP_RESPONSE tag. For all other segments prior to the last segment use HTTP_PARTIAL_RESPONSE, or some other
@@ -956,9 +958,6 @@ static NSMutableArray *recentNonces;
 	[asyncSocket writeData:responseData withTimeout:WRITE_ERROR_TIMEOUT tag:HTTP_FINAL_RESPONSE];
 	
 	CFRelease(response);
-	
-	// Close connection as soon as the error message is sent
-	[asyncSocket disconnectAfterWriting];
 }
 
 /**
@@ -977,9 +976,13 @@ static NSMutableArray *recentNonces;
 	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), CFSTR("0"));
 	
 	NSData *responseData = [self preprocessErrorResponse:response];
-	[asyncSocket writeData:responseData withTimeout:WRITE_ERROR_TIMEOUT tag:HTTP_RESPONSE];
+	[asyncSocket writeData:responseData withTimeout:WRITE_ERROR_TIMEOUT tag:HTTP_FINAL_RESPONSE];
     
 	CFRelease(response);
+	
+	// Note: We used the HTTP_FINAL_RESPONSE tag to disconnect after the response is sent.
+	// We do this because the method may include an http body.
+	// Since we can't be sure, we might as well close the connection.
 }
 
 - (void)handleResourceNotFound
@@ -1230,35 +1233,46 @@ static NSMutableArray *recentNonces;
 			}
 		}
 	}
-	else if(tag == HTTP_RESPONSE)
+	else if(tag == HTTP_RESPONSE || tag == HTTP_FINAL_RESPONSE)
 	{
 		doneSendingResponse = YES;
 	}
 	
 	if(doneSendingResponse)
 	{
-		// Release any resources we no longer need
-		[httpResponse release];
-		httpResponse = nil;
-		
-		[ranges release];
-		[ranges_headers release];
-		[ranges_boundry release];
-		ranges = nil;
-		ranges_headers = nil;
-		ranges_boundry = nil;
-		
-		// Release the old request, and create a new one
-		if(request) CFRelease(request);
-		request = CFHTTPMessageCreateEmpty(kCFAllocatorDefault, YES);
-		
-		numHeaderLines = 0;
-		
-		// And start listening for more requests
-		[asyncSocket readDataToData:[AsyncSocket CRLFData]
-						withTimeout:READ_TIMEOUT
-						  maxLength:LIMIT_MAX_HEADER_LINE_LENGTH
-								tag:HTTP_REQUEST];
+		if(tag == HTTP_FINAL_RESPONSE)
+		{
+			// Terminate the connection
+			[asyncSocket disconnect];
+		}
+		else
+		{
+			// Cleanup after the last request
+			// And start listening for the next request
+			
+			// Release any resources we no longer need
+			[httpResponse release];
+			httpResponse = nil;
+			
+			[ranges release];
+			[ranges_headers release];
+			[ranges_boundry release];
+			ranges = nil;
+			ranges_headers = nil;
+			ranges_boundry = nil;
+			
+			// Release the old request, and create a new one
+			if(request) CFRelease(request);
+			request = CFHTTPMessageCreateEmpty(kCFAllocatorDefault, YES);
+			
+			numHeaderLines = 0;
+			
+			// And start listening for more requests
+			[asyncSocket readDataToData:[AsyncSocket CRLFData]
+							withTimeout:READ_TIMEOUT
+							  maxLength:LIMIT_MAX_HEADER_LINE_LENGTH
+									tag:HTTP_REQUEST];
+		}
 	}
 }
 

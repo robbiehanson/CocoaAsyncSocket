@@ -34,13 +34,10 @@
 - (id)initWithAsyncSocket:(AsyncSocket *)newSocket forServer:(HTTPServer *)myServer;
 
 - (BOOL)isSecureServer;
-
 - (NSArray *)sslIdentityAndCertificates;
 
 - (BOOL)isPasswordProtected:(NSString *)path;
-
 - (BOOL)useDigestAccessAuthentication;
-
 - (NSString *)realm;
 - (NSString *)passwordForUser:(NSString *)username;
 
