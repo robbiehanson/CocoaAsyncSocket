@@ -30,8 +30,8 @@ NSString *const AsyncSocketException = @"AsyncSocketException";
 NSString *const AsyncSocketErrorDomain = @"AsyncSocketErrorDomain";
 
 // This is a mutex lock used by all instances of AsyncSocket, to protect getaddrinfo.
-// The man page says it is not thread-safe.
-NSString *getaddrinfoLock = @"lock";
+// The man page says it is not thread-safe. (As of Mac OS X 10.4.7, and possibly earlier)
+static NSString *getaddrinfoLock = @"lock";
 
 enum AsyncSocketFlags
 {
@@ -142,6 +142,8 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 		terminator:(NSData *)e
 	  	 maxLength:(CFIndex)m;
 
+- (unsigned)readLengthForTerm;
+
 - (void)dealloc;
 @end
 
@@ -165,6 +167,49 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 		maxLength = m;
 	}
 	return self;
+}
+
+/**
+ * For read packets with a set terminator, returns the safe length of data that can be read
+ * without going over a terminator, or the maxLength.
+ * 
+ * It is assumed the terminator has not already been read.
+**/
+- (unsigned)readLengthForTerm
+{
+	NSAssert(term != nil, @"Searching for term in data when there is no term.");
+	
+	// What we're going to do is look for a partial sequence of the terminator at the end of the buffer.
+	// If a partial sequence occurs, then we must assume the next bytes to arrive will be the rest of the term,
+	// and we can only read that amount.
+	// Otherwise, we're safe to read the entire length of the term.
+	
+	unsigned result = [term length];
+	
+	// i = index within buffer at which to check data
+	// j = length of term to check against
+	
+	CFIndex i = MAX(0, bytesDone - [term length] + 1);
+	CFIndex j = MIN([term length] - 1, bytesDone);
+	
+	while(i < bytesDone)
+	{
+		const void *subBuffer = [buffer bytes] + i;
+		
+		if(memcmp(subBuffer, [term bytes], j) == 0)
+		{
+			result = [term length] - j;
+			break;
+		}
+		
+		i++;
+		j--;
+	}
+	
+	if(maxLength > 0)
+		return MIN(result, (maxLength - bytesDone));
+	else
+		return result;
 }
 
 - (void)dealloc
@@ -460,10 +505,13 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 			
 			if(error)
 			{
-				NSString *errMsg = [NSString stringWithCString:gai_strerror(error) encoding:NSASCIIStringEncoding];
-				NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
-				
-				if(errPtr) *errPtr = [NSError errorWithDomain:@"kCFStreamErrorDomainNetDB" code:error userInfo:info];
+				if(errPtr)
+				{
+					NSString *errMsg = [NSString stringWithCString:gai_strerror(error) encoding:NSASCIIStringEncoding];
+					NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+					
+					*errPtr = [NSError errorWithDomain:@"kCFStreamErrorDomainNetDB" code:error userInfo:info];
+				}
 			}
 			
 			for(res = res0; res; res = res->ai_next)
@@ -799,10 +847,10 @@ Failed:;
 	
 	if(newSocket)
 	{
-		NSRunLoop *runLoop = nil;
 		if ([theDelegate respondsToSelector:@selector(onSocket:didAcceptNewSocket:)])
 			[theDelegate onSocket:self didAcceptNewSocket:newSocket];
 		
+		NSRunLoop *runLoop = nil;
 		if ([theDelegate respondsToSelector:@selector(onSocket:wantsRunLoopForNewSocket:)])
 			runLoop = [theDelegate onSocket:self wantsRunLoopForNewSocket:newSocket];
 		
@@ -845,7 +893,7 @@ Failed:;
 	// Invalidate and release the CFSocket - All we need from here on out is the nativeSocket
 	// Note: If we don't invalidate the socket (leaving the native socket open)
 	// then theReadStream and theWriteStream won't function properly.
-	// Specifically, their callbacks won't work, with the expection of kCFStreamEventOpenCompleted.
+	// Specifically, their callbacks won't work, with the exception of kCFStreamEventOpenCompleted.
 	// I'm not entirely sure why this is, but I'm guessing that events on the socket fire to the CFSocket we created,
 	// as opposed to the CFReadStream/CFWriteStream.
 	
@@ -969,8 +1017,7 @@ Failed:;
 	{
 		if([theDelegate onSocketWillConnect:self] == NO)
 		{
-			NSError *err = [self getAbortError];
-			if (errPtr) *errPtr = err;
+			if (errPtr) *errPtr = [self getAbortError];
 			return NO;
 		}
 	}
@@ -995,9 +1042,7 @@ Failed:;
 	
 	if(!pass)
 	{
-		NSError *err = [self getStreamError];
-		NSLog (@"%@", err);
-		if (errPtr) *errPtr = err;
+		if (errPtr) *errPtr = [self getStreamError];
 	}
 	
 	return pass;
@@ -1800,9 +1845,15 @@ Failed:;
 			if(theCurrentRead->readAllAvailableData == YES)
 				[theCurrentRead->buffer increaseLengthBy:READALL_CHUNKSIZE];
 
-			// If reading until data, just do one byte.
+			// If reading until data, just do a few bytes.
+			// Just enough to ensure we don't go past our term or over our max limit.
 			if(theCurrentRead->term != nil)
-				[theCurrentRead->buffer increaseLengthBy:1];
+			{
+				unsigned maxToRead = [theCurrentRead readLengthForTerm];
+				
+				unsigned bufferInc = maxToRead - ([theCurrentRead->buffer length] - theCurrentRead->bytesDone);
+				[theCurrentRead->buffer increaseLengthBy:bufferInc];
+			}
 			
 			// Number of bytes to read is space left in packet buffer.
 			CFIndex bytesToRead = [theCurrentRead->buffer length] - theCurrentRead->bytesDone;
