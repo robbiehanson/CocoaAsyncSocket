@@ -1,6 +1,9 @@
 #import "AppController.h"
 #import "AsyncSocket.h"
 
+#define WELCOME_MSG  0
+#define ECHO_MSG     1
+
 #define FORMAT(format, args...) [NSString stringWithFormat:format, args]
 
 @interface AppController (PrivateAPI)
@@ -27,6 +30,11 @@
 - (void)awakeFromNib
 {
 	[logView setString:@""];
+}
+
+- (void)applicationDidFinishLaunching:(NSNotification *)aNotification
+{
+	NSLog(@"Ready");
 }
 
 - (void)scrollToBottom
@@ -143,7 +151,11 @@
 	NSString *welcomeMsg = @"Welcome to the AsyncSocket Echo Server\r\n";
 	NSData *welcomeData = [welcomeMsg dataUsingEncoding:NSUTF8StringEncoding];
 	
-	[sock writeData:welcomeData withTimeout:-1 tag:0];
+	[sock writeData:welcomeData withTimeout:-1 tag:WELCOME_MSG];
+	
+	// We could call readDataToData:withTimeout:tag: here - that would be perfectly fine.
+	// If we did this, we'd want to add a check in onSocket:didWriteDataWithTag: and only
+	// queue another read if tag != WELCOME_MSG.
 }
 
 - (void)onSocket:(AsyncSocket *)sock didReadData:(NSData *)data withTag:(long)tag
@@ -161,7 +173,7 @@
 	
 	// Even if we were unable to write the incoming data to the log,
 	// we're still going to echo it back to the client.
-	[sock writeData:data withTimeout:-1 tag:0];
+	[sock writeData:data withTimeout:-1 tag:ECHO_MSG];
 }
 
 - (void)onSocket:(AsyncSocket *)sock didWriteDataWithTag:(long)tag
