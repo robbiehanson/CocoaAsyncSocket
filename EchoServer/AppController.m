@@ -141,6 +141,7 @@
 
 - (void)onSocket:(AsyncSocket *)sock didAcceptNewSocket:(AsyncSocket *)newSocket
 {
+	[newSocket enablePreBuffering];
 	[connectedSockets addObject:newSocket];
 }
 

@@ -35,10 +35,12 @@ static NSString *getaddrinfoLock = @"lock";
 
 enum AsyncSocketFlags
 {
-	kDidCallConnectDeleg  = 0x01,   // If set, connect delegate has been called.
-	kDidPassConnectMethod = 0x02,   // If set, disconnection results in delegate call.
-	kForbidReadsWrites    = 0x04,   // If set, no new reads or writes are allowed.
-	kDisconnectSoon       = 0x08    // If set, disconnect as soon as nothing is queued.
+	kEnablePreBuffering   = 1 << 0,   // If set, pre-buffering is enabled.
+	kDidCallConnectDeleg  = 1 << 1,   // If set, connect delegate has been called.
+	kDidPassConnectMethod = 1 << 2,   // If set, disconnection results in delegate call.
+	kForbidReadsWrites    = 1 << 3,   // If set, no new reads or writes are allowed.
+	kDisconnectSoon       = 1 << 4,   // If set, disconnect as soon as nothing is queued.
+	kClosingWithError     = 1 << 5,   // If set, the socket is being closed due to an error.
 };
 
 @interface AsyncSocket (Private)
@@ -144,6 +146,9 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 
 - (unsigned)readLengthForTerm;
 
+- (unsigned)prebufferReadLengthForTerm;
+- (CFIndex)searchForTermAfterPreBuffering:(CFIndex)numBytes;
+
 - (void)dealloc;
 @end
 
@@ -212,6 +217,51 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 		return result;
 }
 
+/**
+ * Assuming pre-buffering is enabled, returns the amount of data that can be read
+ * without going over the maxLength.
+**/
+- (unsigned)prebufferReadLengthForTerm
+{
+	if(maxLength > 0)
+		return MIN(READALL_CHUNKSIZE, (maxLength - bytesDone));
+	else
+		return READALL_CHUNKSIZE;
+}
+
+/**
+ * For read packets with a set terminator, scans the packet buffer for the term.
+ * It is assumed the terminator had not been fully read prior to the new bytes.
+ * 
+ * If the term is found, the number of excess bytes after the term are returned.
+ * If the term is not found, this method will return -1.
+ * 
+ * Note: A return value of zero means the term was found at the very end.
+**/
+- (CFIndex)searchForTermAfterPreBuffering:(CFIndex)numBytes
+{
+	NSAssert(term != nil, @"Searching for term in data when there is no term.");
+	
+	// We try to start the search such that the first new byte read matches up with the last byte of the term.
+	// We continue searching forward after this until the term no longer fits into the buffer.
+	
+	CFIndex i = MAX(0, bytesDone - numBytes - [term length] + 1);
+	
+	while(i + [term length] <= bytesDone)
+	{
+		const void *subBuffer = [buffer bytes] + i;
+		
+		if(memcmp(subBuffer, [term bytes], [term length]) == 0)
+		{
+			return bytesDone - (i + [term length]);
+		}
+		
+		i++;
+	}
+	
+	return -1;
+}
+
 - (void)dealloc
 {
 	[buffer release];
@@ -265,56 +315,56 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 
 @implementation AsyncSocket
 
-- (id) init
+- (id)init
 {
 	return [self initWithDelegate:nil userData:0];
 }
 
-- (id) initWithDelegate:(id)delegate
+- (id)initWithDelegate:(id)delegate
 {
 	return [self initWithDelegate:delegate userData:0];
 }
 
 // Designated initializer.
-- (id) initWithDelegate:(id)delegate userData:(long)userData
+- (id)initWithDelegate:(id)delegate userData:(long)userData
 {
-	self = [super init];
-
-	theFlags = 0x00;
-	theDelegate = delegate;
-	theUserData = userData;
-
-	theSocket = NULL;
-	theSource = NULL;
-	theSocket6 = NULL;
-	theSource6 = NULL;
-	theRunLoop = NULL;
-	theReadStream = NULL;
-	theWriteStream = NULL;
-
-	theReadQueue = [[NSMutableArray alloc] initWithCapacity:READQUEUE_CAPACITY];
-	theCurrentRead = nil;
-	theReadTimer = nil;
-	
-	partialReadBuffer = nil;
-	
-	theWriteQueue = [[NSMutableArray alloc] initWithCapacity:WRITEQUEUE_CAPACITY];
-	theCurrentWrite = nil;
-	theWriteTimer = nil;
-
-	// Socket context
-	NSAssert (sizeof(CFSocketContext) == sizeof(CFStreamClientContext), @"CFSocketContext and CFStreamClientContext aren't the same size anymore. Contact the developer.");
-	theContext.version = 0;
-	theContext.info = self;
-	theContext.retain = nil;
-	theContext.release = nil;
-	theContext.copyDescription = nil;
-
+	if(self = [super init])
+	{
+		theFlags = 0x00;
+		theDelegate = delegate;
+		theUserData = userData;
+		
+		theSocket = NULL;
+		theSource = NULL;
+		theSocket6 = NULL;
+		theSource6 = NULL;
+		theRunLoop = NULL;
+		theReadStream = NULL;
+		theWriteStream = NULL;
+		
+		theReadQueue = [[NSMutableArray alloc] initWithCapacity:READQUEUE_CAPACITY];
+		theCurrentRead = nil;
+		theReadTimer = nil;
+		
+		partialReadBuffer = [[NSMutableData alloc] initWithCapacity:READALL_CHUNKSIZE];
+		
+		theWriteQueue = [[NSMutableArray alloc] initWithCapacity:WRITEQUEUE_CAPACITY];
+		theCurrentWrite = nil;
+		theWriteTimer = nil;
+		
+		// Socket context
+		NSAssert(sizeof(CFSocketContext) == sizeof(CFStreamClientContext), @"CFSocketContext != CFStreamClientContext");
+		theContext.version = 0;
+		theContext.info = self;
+		theContext.retain = nil;
+		theContext.release = nil;
+		theContext.copyDescription = nil;
+	}
 	return self;
 }
 
 // The socket may been initialized in a connected state and auto-released, so this should close it down cleanly.
-- (void) dealloc
+- (void)dealloc
 {
 	[self close];
 	[theReadQueue release];
@@ -328,32 +378,32 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 #pragma mark Accessors
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-- (long) userData
+- (long)userData
 {
 	return theUserData;
 }
 
-- (void) setUserData:(long)userData
+- (void)setUserData:(long)userData
 {
 	theUserData = userData;
 }
 
-- (id) delegate
+- (id)delegate
 {
 	return theDelegate;
 }
 
-- (void) setDelegate:(id)delegate
+- (void)setDelegate:(id)delegate
 {
 	theDelegate = delegate;
 }
 
-- (BOOL) canSafelySetDelegate
+- (BOOL)canSafelySetDelegate
 {
 	return ([theReadQueue count] == 0 && [theWriteQueue count] == 0 && theCurrentRead == nil && theCurrentWrite == nil);
 }
 
-- (CFSocketRef) getCFSocket
+- (CFSocketRef)getCFSocket
 {
 	if(theSocket)
 		return theSocket;
@@ -361,17 +411,17 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 		return theSocket6;
 }
 
-- (CFReadStreamRef) getCFReadStream
+- (CFReadStreamRef)getCFReadStream
 {
 	return theReadStream;
 }
 
-- (CFWriteStreamRef) getCFWriteStream
+- (CFWriteStreamRef)getCFWriteStream
 {
 	return theWriteStream;
 }
 
-- (float) progressOfReadReturningTag:(long *)tag bytesDone:(CFIndex *)done total:(CFIndex *)total
+- (float)progressOfReadReturningTag:(long *)tag bytesDone:(CFIndex *)done total:(CFIndex *)total
 {
 	// Check to make sure we're actually reading something right now
 	if (!theCurrentRead) return NAN;
@@ -390,7 +440,7 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 	return isnan(ratio) ? 1.0 : ratio; // 0 of 0 bytes is 100% done.
 }
 
-- (float) progressOfWriteReturningTag:(long *)tag bytesDone:(CFIndex *)done total:(CFIndex *)total
+- (float)progressOfWriteReturningTag:(long *)tag bytesDone:(CFIndex *)done total:(CFIndex *)total
 {
 	if (!theCurrentWrite) return NAN;
 	CFIndex d = theCurrentWrite->bytesDone;
@@ -402,21 +452,16 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#pragma mark Class Methods
+#pragma mark Configuration
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Return line separators.
-+ (NSData *) CRLFData
-{ return [NSData dataWithBytes:"\x0D\x0A" length:2]; }
-
-+ (NSData *) CRData
-{ return [NSData dataWithBytes:"\x0D" length:1]; }
-
-+ (NSData *) LFData
-{ return [NSData dataWithBytes:"\x0A" length:1]; }
-
-+ (NSData *) ZeroData
-{ return [NSData dataWithBytes:"" length:1]; }
+/**
+ * See the header file for a full explanation of pre-buffering.
+**/
+- (void)enablePreBuffering
+{
+	theFlags |= kEnablePreBuffering;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Connection
@@ -1124,6 +1169,8 @@ Failed:;
 // Sends error message and disconnects
 - (void)closeWithError:(NSError *)err
 {
+	theFlags |= kClosingWithError;
+	
 	if (theFlags & kDidPassConnectMethod)
 	{
 		// Try to salvage what data we can.
@@ -1141,14 +1188,14 @@ Failed:;
 // Prepare partially read data for recovery.
 - (void)recoverUnreadData
 {
-	if (theCurrentRead)
+	if((theCurrentRead != nil) && (theCurrentRead->bytesDone > 0))
 	{
-		[theCurrentRead->buffer setLength: theCurrentRead->bytesDone];
-		partialReadBuffer = [theCurrentRead->buffer mutableCopy];
-	}
-	else
-	{
-		partialReadBuffer = [[NSMutableData alloc] initWithLength:0];
+		// We never finished the current read.
+		// We need to move its data into the front of the partial read buffer.
+		
+		[partialReadBuffer replaceBytesInRange:NSMakeRange(0, 0)
+									 withBytes:[theCurrentRead->buffer bytes]
+										length:theCurrentRead->bytesDone];
 	}
 	
 	[self emptyQueues];
@@ -1259,10 +1306,8 @@ Failed:;
 **/
 - (NSData *)unreadData
 {
-	// If the onSocket:willDisconnectWithError: method has been called, the partialReadBuffer will be initialized.
-	// Otherwise it remains nil.
-	// Thus checking this variable ensures this method will only return data in the event of an error.
-	if(partialReadBuffer == nil) return nil;
+	// Ensure this method will only return data in the event of an error
+	if(!(theFlags & kClosingWithError)) return nil;
 	
 	if(theReadStream == NULL) return nil;
 	
@@ -1825,6 +1870,40 @@ Failed:;
 }
 
 /**
+ * Call this method in doBytesAvailable instead of CFReadStreamHasBytesAvailable().
+ * This method supports pre-buffering properly.
+**/
+- (BOOL)hasBytesAvailable
+{
+	return ([partialReadBuffer length] > 0) || CFReadStreamHasBytesAvailable(theReadStream);
+}
+
+/**
+ * Call this method in doBytesAvailable instead of CFReadStreamRead().
+ * This method support pre-buffering properly.
+**/
+- (CFIndex)readIntoBuffer:(UInt8 *)buffer maxLength:(CFIndex)length
+{
+	if([partialReadBuffer length] > 0)
+	{
+		// Determine the maximum amount of data to read
+		CFIndex bytesToRead = MIN(length, [partialReadBuffer length]);
+		
+		// Copy the bytes from the buffer
+		memcpy(buffer, [partialReadBuffer bytes], bytesToRead);
+		
+		// Remove the copied bytes from the buffer
+		[partialReadBuffer replaceBytesInRange:NSMakeRange(0, bytesToRead) withBytes:NULL length:0];
+		
+		return bytesToRead;
+	}
+	else
+	{
+		return CFReadStreamRead(theReadStream, buffer, length);
+	}
+}
+
+/**
  * This method is called when a new read is taken from the read queue or when new data becomes available on the stream.
 **/
 - (void)doBytesAvailable
@@ -1839,29 +1918,54 @@ Failed:;
 		BOOL socketError = NO;
 		BOOL maxoutError = NO;
 		
-		while(!done && !socketError && !maxoutError && CFReadStreamHasBytesAvailable(theReadStream))
+		while(!done && !socketError && !maxoutError && [self hasBytesAvailable])
 		{
+			BOOL didPreBuffer = NO;
+			
 			// If reading all available data, make sure there's room in the packet buffer.
 			if(theCurrentRead->readAllAvailableData == YES)
-				[theCurrentRead->buffer increaseLengthBy:READALL_CHUNKSIZE];
+			{
+				// Make sure there is at least READALL_CHUNKSIZE bytes available.
+				// We don't want to increase the buffer any more than this or we'll waste space.
+				// With prebuffering it's possible to read in a small chunk on the first read.
+				
+				unsigned buffInc = READALL_CHUNKSIZE - ([theCurrentRead->buffer length] - theCurrentRead->bytesDone);
+				[theCurrentRead->buffer increaseLengthBy:buffInc];
+			}
 
-			// If reading until data, just do a few bytes.
+			// If reading until data, we may only want to read a few bytes.
 			// Just enough to ensure we don't go past our term or over our max limit.
+			// Unless pre-buffering is enabled, in which case we may want to read in a larger chunk.
 			if(theCurrentRead->term != nil)
 			{
-				unsigned maxToRead = [theCurrentRead readLengthForTerm];
+				// If we already have data pre-buffered, we obviously don't want to pre-buffer it again.
+				// So in this case we'll just read as usual.
 				
-				unsigned bufferInc = maxToRead - ([theCurrentRead->buffer length] - theCurrentRead->bytesDone);
-				[theCurrentRead->buffer increaseLengthBy:bufferInc];
+				if(([partialReadBuffer length] > 0) || !(theFlags & kEnablePreBuffering))
+				{
+					unsigned maxToRead = [theCurrentRead readLengthForTerm];
+					
+					unsigned bufInc = maxToRead - ([theCurrentRead->buffer length] - theCurrentRead->bytesDone);
+					[theCurrentRead->buffer increaseLengthBy:bufInc];
+				}
+				else
+				{
+					didPreBuffer = YES;
+					unsigned maxToRead = [theCurrentRead prebufferReadLengthForTerm];
+					
+					unsigned buffInc = maxToRead - ([theCurrentRead->buffer length] - theCurrentRead->bytesDone);
+					[theCurrentRead->buffer increaseLengthBy:buffInc];
+
+				}
 			}
 			
 			// Number of bytes to read is space left in packet buffer.
 			CFIndex bytesToRead = [theCurrentRead->buffer length] - theCurrentRead->bytesDone;
-
+			
 			// Read data into packet buffer
-			UInt8 *packetbuf = (UInt8 *)( [theCurrentRead->buffer mutableBytes] + theCurrentRead->bytesDone );
-			CFIndex bytesRead = CFReadStreamRead(theReadStream, packetbuf, bytesToRead);
-						
+			UInt8 *subBuffer = (UInt8 *)([theCurrentRead->buffer mutableBytes] + theCurrentRead->bytesDone);
+			CFIndex bytesRead = [self readIntoBuffer:subBuffer maxLength:bytesToRead];
+			
 			// Check results
 			if(bytesRead < 0)
 			{
@@ -1881,13 +1985,36 @@ Failed:;
 			{
 				if(theCurrentRead->term != nil)
 				{
-					// Search for the terminating sequence in the buffer.
-					int termlen = [theCurrentRead->term length];
-					if(theCurrentRead->bytesDone >= termlen)
+					if(didPreBuffer)
 					{
-						const void *buf = [theCurrentRead->buffer bytes] + (theCurrentRead->bytesDone - termlen);
-						const void *seq = [theCurrentRead->term bytes];
-						done = (memcmp (buf, seq, termlen) == 0);
+						// Search for the terminating sequence within the big chunk we just read.
+						CFIndex overflow = [theCurrentRead searchForTermAfterPreBuffering:bytesRead];
+						
+						if(overflow > 0)
+						{
+							// Copy excess data into partialReadBuffer
+							NSMutableData *buffer = theCurrentRead->buffer;
+							const void *overflowBuffer = [buffer bytes] + theCurrentRead->bytesDone - overflow;
+							
+							[partialReadBuffer appendBytes:overflowBuffer length:overflow];
+							
+							// Update the bytesDone variable.
+							// Note: The completeCurrentRead method will trim the buffer for us.
+							theCurrentRead->bytesDone -= overflow;
+						}
+						
+						done = (overflow >= 0);
+					}
+					else
+					{
+						// Search for the terminating sequence at the end of the buffer
+						int termlen = [theCurrentRead->term length];
+						if(theCurrentRead->bytesDone >= termlen)
+						{
+							const void *buf = [theCurrentRead->buffer bytes] + (theCurrentRead->bytesDone - termlen);
+							const void *seq = [theCurrentRead->term bytes];
+							done = (memcmp (buf, seq, termlen) == 0);
+						}
 					}
 					
 					if(!done && theCurrentRead->maxLength >= 0 && theCurrentRead->bytesDone >= theCurrentRead->maxLength)
@@ -2225,6 +2352,31 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 	[socket doCFWriteStreamCallback:type forStream:stream];
 	
 	[pool release];
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark Class Methods
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Return line separators.
++ (NSData *)CRLFData
+{
+	return [NSData dataWithBytes:"\x0D\x0A" length:2];
+}
+
++ (NSData *)CRData
+{
+	return [NSData dataWithBytes:"\x0D" length:1];
+}
+
++ (NSData *)LFData
+{
+	return [NSData dataWithBytes:"\x0A" length:1];
+}
+
++ (NSData *)ZeroData
+{
+	return [NSData dataWithBytes:"" length:1];
 }
 
 @end
