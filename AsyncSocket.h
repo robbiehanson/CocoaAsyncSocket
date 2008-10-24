@@ -184,11 +184,9 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (BOOL)isIPv4;
 - (BOOL)isIPv6;
 
-/**
- * The following methods won't block. To not time out, use a negative time interval.
- * If they time out, "onSocket:disconnectWithError:" is called. The tag is for your convenience.
- * You can use it as an array index, step number, state id, pointer, etc., just like the socket's user data.
-**/
+// The readData and writeData methods won't block. To not time out, use a negative time interval.
+// If they time out, "onSocket:disconnectWithError:" is called. The tag is for your convenience.
+// You can use it as an array index, step number, state id, pointer, etc., just like the socket's user data.
 
 /**
  * This will read a certain number of bytes into memory, and call the delegate method when those bytes have been read.
@@ -240,6 +238,24 @@ typedef enum AsyncSocketError AsyncSocketError;
 **/
 - (float)progressOfReadReturningTag:(long *)tag bytesDone:(CFIndex *)done total:(CFIndex *)total;
 - (float)progressOfWriteReturningTag:(long *)tag bytesDone:(CFIndex *)done total:(CFIndex *)total;
+
+/**
+ * For handling readDataToData requests, data is necessarily read from the socket in small increments.
+ * The performance can be improved by allowing AsyncSocket to read larger chunks at a time and
+ * store any overflow in a small internal buffer.
+ * This is termed pre-buffering, as some data may be read for you before you ask for it.
+ * If you use readDataToData a lot, enabling pre-buffering may offer a small performance improvement.
+ * 
+ * Pre-buffering is disabled by default. You must explicitly enable it to turn it on.
+ * 
+ * Note: If your protocol negotiates upgrades to TLS (as opposed to using TLS from the start), you should
+ * consider how, if at all, pre-buffering could affect the TLS negotiation sequence.
+ * This is because TLS runs atop TCP, and requires sending/receiving a TLS handshake over the TCP socket.
+ * If the negotiation sequence is poorly designed, pre-buffering could potentially pre-read part of the TLS handshake,
+ * thus causing TLS to fail. In almost all cases, especially when implementing a formalized protocol, this will never
+ * be a hazard.
+**/
+- (void)enablePreBuffering;
 
 /**
  * In the event of an error, this method may be called during onSocket:willDisconnectWithError: to read

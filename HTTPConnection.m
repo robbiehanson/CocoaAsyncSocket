@@ -101,6 +101,9 @@ static NSMutableArray *recentNonces;
 		asyncSocket = [newSocket retain];
 		[asyncSocket setDelegate:self];
 		
+		// Enable pre-buffering on the socket to improve readDataToData performance
+		[asyncSocket enablePreBuffering];
+		
 		// Store reference to server
 		// Note that we do not retain the server. Parents retain their children, children do not retain their parents.
 		server = myServer;
@@ -1284,10 +1287,7 @@ static NSMutableArray *recentNonces;
 **/
 - (void)onSocket:(AsyncSocket *)sock willDisconnectWithError:(NSError *)err
 {
-	if(err)
-	{
-		//NSLog(@"HTTPConnection:willDisconnectWithError: %@", err);
-	}
+//	NSLog(@"HTTPConnection: onSocket:willDisconnectWithError: %@", err);
 }
 
 /**
