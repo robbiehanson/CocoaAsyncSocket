@@ -194,7 +194,10 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 	// i = index within buffer at which to check data
 	// j = length of term to check against
 	
-	CFIndex i = MAX(0, bytesDone - [term length] + 1);
+	// Note: Beware of implicit casting rules
+	// This could give you -1: MAX(0, (0 - [term length] + 1));
+	
+	CFIndex i = MAX(0, (CFIndex)(bytesDone - [term length] + 1));
 	CFIndex j = MIN([term length] - 1, bytesDone);
 	
 	while(i < bytesDone)
@@ -245,7 +248,10 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 	// We try to start the search such that the first new byte read matches up with the last byte of the term.
 	// We continue searching forward after this until the term no longer fits into the buffer.
 	
-	CFIndex i = MAX(0, bytesDone - numBytes - [term length] + 1);
+	// Note: Beware of implicit casting rules
+	// This could give you -1: MAX(0, 1 - 1 - [term length] + 1);
+	
+	CFIndex i = MAX(0, (CFIndex)(bytesDone - numBytes - [term length] + 1));
 	
 	while(i + [term length] <= bytesDone)
 	{
