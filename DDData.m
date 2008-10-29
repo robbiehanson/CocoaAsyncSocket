@@ -3,7 +3,7 @@
 #if TARGET_OS_IPHONE
 #import <CommonCrypto/CommonDigest.h>
 #else
-#import <SSCrypto/SSCrypto.h>
+#import "SSCrypto.h"
 #endif
 
 @implementation NSData (DDData)
