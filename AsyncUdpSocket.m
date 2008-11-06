@@ -373,6 +373,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	[self close];
 	[theSendQueue release];
 	[theReceiveQueue release];
+	[NSObject cancelPreviousPerformRequestsWithTarget:theDelegate selector:@selector(onUdpSocketDidClose:) object:self];
 	[NSObject cancelPreviousPerformRequestsWithTarget:self];
 	[super dealloc];
 }
@@ -1618,26 +1619,6 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 			[self close];
 		}
 	}
-}
-
-/**
- * Puts an unscheduleDoReceive on the run loop.
-**/
-- (void)scheduleDoReceive
-{
-	[self performSelector:@selector(unscheduleDoReceive) withObject:nil afterDelay:0];
-}
-
-/**
- * This method attempts calls doReceive for all available sockets.
-**/
-- (void)unscheduleDoReceive
-{
-	// Immediately receive, if possible
-	[self doReceive4];
-	[self doReceive6];
-	
-	// Note: We always check both sockets so we don't ever starve one of them
 }
 
 - (void)doReceive4
