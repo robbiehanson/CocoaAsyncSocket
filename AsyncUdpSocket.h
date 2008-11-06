@@ -50,6 +50,8 @@ typedef enum AsyncUdpSocketError AsyncUdpSocketError;
 	Byte theFlags;
 	
 	long theUserData;
+	
+	UInt32 maxReceiveBufferSize;
 }
 
 /**
@@ -229,6 +231,23 @@ typedef enum AsyncUdpSocketError AsyncUdpSocketError;
  * The socket will close even if there are still pending send operations.
 **/
 - (void)closeAfterReceiving;
+
+/**
+ * Gets/Sets the maximum size of the buffer that will be allocated for receive operations.
+ * The default size is 9216 bytes.
+ * 
+ * The theoretical maximum size of any IPv4 UDP packet is UINT16_MAX = 65535.
+ * The theoretical maximum size of any IPv6 UDP packet is UINT32_MAX = 4294967295.
+ * 
+ * In practice, however, the size of UDP packets will be much smaller.
+ * Indeed most protocols will send and receive packets of only a few bytes,
+ * or will set a limit on the size of packets to prevent fragmentation in the IP layer.
+ * 
+ * If you set the buffer size too small, the sockets API in the OS will silently discard
+ * any extra data, and you will not be notified of the error.
+**/
+- (UInt32)maxReceiveBufferSize;
+- (void)setMaxReceiveBufferSize:(UInt32)max;
 
 @end
 

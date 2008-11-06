@@ -25,6 +25,8 @@
 #define SENDQUEUE_CAPACITY	  5   // Initial capacity
 #define RECEIVEQUEUE_CAPACITY 5   // Initial capacity
 
+#define DEFAULT_MAX_RECEIVE_BUFFER_SIZE 9216
+
 NSString *const AsyncUdpSocketException = @"AsyncUdpSocketException";
 NSString *const AsyncUdpSocketErrorDomain = @"AsyncUdpSocketErrorDomain";
 
@@ -203,6 +205,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		theFlags = 0x00;
 		theDelegate = delegate;
 		theUserData = userData;
+		maxReceiveBufferSize = DEFAULT_MAX_RECEIVE_BUFFER_SIZE;
 		
 		theSendQueue = [[NSMutableArray alloc] initWithCapacity:SENDQUEUE_CAPACITY];
 		theCurrentSend = nil;
@@ -269,6 +272,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		theFlags = 0x00;
 		theDelegate = nil;
 		theUserData = 0;
+		maxReceiveBufferSize = DEFAULT_MAX_RECEIVE_BUFFER_SIZE;
 		
 		theSendQueue = [[NSMutableArray alloc] initWithCapacity:SENDQUEUE_CAPACITY];
 		theCurrentSend = nil;
@@ -322,6 +326,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		theFlags = 0x00;
 		theDelegate = nil;
 		theUserData = 0;
+		maxReceiveBufferSize = DEFAULT_MAX_RECEIVE_BUFFER_SIZE;
 		
 		theSendQueue = [[NSMutableArray alloc] initWithCapacity:SENDQUEUE_CAPACITY];
 		theCurrentSend = nil;
@@ -400,6 +405,16 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 - (void)setUserData:(long)userData
 {
 	theUserData = userData;
+}
+
+- (UInt32)maxReceiveBufferSize
+{
+	return maxReceiveBufferSize;
+}
+
+- (void)setMaxReceiveBufferSize:(UInt32)max
+{
+	maxReceiveBufferSize = max;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1648,7 +1663,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 				int result;
 				CFSocketNativeHandle theNativeSocket = CFSocketGetNative(theSocket);
 				
-				Byte buf[65535];
+				Byte buf[maxReceiveBufferSize];
 				size_t bufSize = sizeof(buf);
 				
 				if(theSocket == theSocket4)
@@ -1707,7 +1722,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 			}
 			else
 			{
-				// Request notification when the socket is ready to send more data
+				// Request notification when the socket is ready to receive more data
 				CFSocketEnableCallBacks(theSocket, kCFSocketReadCallBack | kCFSocketWriteCallBack);
 			}
 			
