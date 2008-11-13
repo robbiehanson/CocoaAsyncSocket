@@ -51,6 +51,12 @@ typedef enum AsyncUdpSocketError AsyncUdpSocketError;
 	
 	long theUserData;
 	
+	NSString *cachedLocalHost;
+	UInt16 cachedLocalPort;
+	
+	NSString *cachedConnectedHost;
+	UInt16 cachedConnectedPort;
+	
 	UInt32 maxReceiveBufferSize;
 }
 
@@ -87,8 +93,8 @@ typedef enum AsyncUdpSocketError AsyncUdpSocketError;
 /**
  * Returns the remote address info for the socket.
  * 
- * Note: Since UDP is connectionless by design,
- * address info will not be available unless the socket is explicitly connected to a remote host/port
+ * Note: Since UDP is connectionless by design, connected address info
+ * will not be available unless the socket is explicitly connected to a remote host/port
 **/
 - (NSString *)connectedHost;
 - (UInt16)connectedPort;
@@ -161,10 +167,6 @@ typedef enum AsyncUdpSocketError AsyncUdpSocketError;
  * Connecting a UDP socket does not result in any communication on the socket.
  * It simply changes the internal state of the socket.
  * 
- * Note: If the socket has already read data from another client, you will still be able to receive
- * that data after connecting. However, post connecting, you will only be able to receive data
- * from the host you're connected to.
- * 
  * You cannot bind a socket after its been connected.
  * You can only connect a socket once.
  * 
@@ -175,7 +177,7 @@ typedef enum AsyncUdpSocketError AsyncUdpSocketError;
 - (BOOL)connectToAddress:(NSData *)remoteAddr error:(NSError **)errPtr;
 
 /**
- * Sends the given data, with the given timeout and tag.
+ * Asynchronously sends the given data, with the given timeout and tag.
  * 
  * This method may only be used with a connected socket.
  * 

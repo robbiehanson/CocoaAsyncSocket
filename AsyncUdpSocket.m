@@ -188,21 +188,11 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 
 @implementation AsyncUdpSocket
 
-- (id)init
-{
-	return [self initWithDelegate:nil userData:0];
-}
-
-- (id)initWithDelegate:(id)delegate
-{
-	return [self initWithDelegate:delegate userData:0];
-}
-
-- (id)initWithDelegate:(id)delegate userData:(long)userData
+- (id)initWithDelegate:(id)delegate userData:(long)userData enableIPv4:(BOOL)enableIPv4 enableIPv6:(BOOL)enableIPv6
 {
 	if(self = [super init])
 	{
-		theFlags = 0x00;
+		theFlags = 0;
 		theDelegate = delegate;
 		theUserData = userData;
 		maxReceiveBufferSize = DEFAULT_MAX_RECEIVE_BUFFER_SIZE;
@@ -223,27 +213,41 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		theContext.copyDescription = nil;
 		
 		// Create the sockets
-		theSocket4 = CFSocketCreate(kCFAllocatorDefault,
-								    PF_INET,
-								    SOCK_DGRAM,
-								    IPPROTO_UDP,
-								    kCFSocketReadCallBack | kCFSocketWriteCallBack,
-								    (CFSocketCallBack)&MyCFSocketCallback,
-								    &theContext);
+		theSocket4 = NULL;
+		theSocket6 = NULL;
 		
-		theSocket6 = CFSocketCreate(kCFAllocatorDefault,
-									PF_INET6,
-									SOCK_DGRAM,
-									IPPROTO_UDP,
-									kCFSocketReadCallBack | kCFSocketWriteCallBack,
-									(CFSocketCallBack)&MyCFSocketCallback,
-									&theContext);
+		if(enableIPv4)
+		{
+			theSocket4 = CFSocketCreate(kCFAllocatorDefault,
+										PF_INET,
+										SOCK_DGRAM,
+										IPPROTO_UDP,
+										kCFSocketReadCallBack | kCFSocketWriteCallBack,
+										(CFSocketCallBack)&MyCFSocketCallback,
+										&theContext);
+		}
+		if(enableIPv6)
+		{
+			theSocket6 = CFSocketCreate(kCFAllocatorDefault,
+										PF_INET6,
+										SOCK_DGRAM,
+										IPPROTO_UDP,
+										kCFSocketReadCallBack | kCFSocketWriteCallBack,
+										(CFSocketCallBack)&MyCFSocketCallback,
+										&theContext);
+		}
 		
 		// Disable continuous callbacks for read and write.
 		// If we don't do this, the socket(s) will just sit there firing read callbacks
 		// at us hundreds of times a second if we don't immediately read the available data.
-		CFSocketSetSocketFlags(theSocket4, kCFSocketCloseOnInvalidate);
-		CFSocketSetSocketFlags(theSocket6, kCFSocketCloseOnInvalidate);
+		if(theSocket4)
+		{
+			CFSocketSetSocketFlags(theSocket4, kCFSocketCloseOnInvalidate);
+		}
+		if(theSocket6)
+		{
+			CFSocketSetSocketFlags(theSocket6, kCFSocketCloseOnInvalidate);
+		}
 		
 		// Get the CFRunLoop to which the socket should be attached.
 		theRunLoop = CFRunLoopGetCurrent();
@@ -261,116 +265,36 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 			theSource6 = CFSocketCreateRunLoopSource(kCFAllocatorDefault, theSocket6, 0);
 			CFRunLoopAddSource(theRunLoop, theSource6, kCFRunLoopDefaultMode);
 		}
+		
+		cachedLocalPort = 0;
+		cachedConnectedPort = 0;
 	}
 	return self;
+}
+
+- (id)init
+{
+	return [self initWithDelegate:nil userData:0 enableIPv4:YES enableIPv6:YES];
+}
+
+- (id)initWithDelegate:(id)delegate
+{
+	return [self initWithDelegate:delegate userData:0 enableIPv4:YES enableIPv6:YES];
+}
+
+- (id)initWithDelegate:(id)delegate userData:(long)userData
+{
+	return [self initWithDelegate:delegate userData:userData enableIPv4:YES enableIPv6:YES];
 }
 
 - (id)initIPv4
 {
-	if(self = [super init])
-	{
-		theFlags = 0x00;
-		theDelegate = nil;
-		theUserData = 0;
-		maxReceiveBufferSize = DEFAULT_MAX_RECEIVE_BUFFER_SIZE;
-		
-		theSendQueue = [[NSMutableArray alloc] initWithCapacity:SENDQUEUE_CAPACITY];
-		theCurrentSend = nil;
-		theSendTimer = nil;
-		
-		theReceiveQueue = [[NSMutableArray alloc] initWithCapacity:RECEIVEQUEUE_CAPACITY];
-		theCurrentReceive = nil;
-		theReceiveTimer = nil;
-		
-		// Socket context
-		theContext.version = 0;
-		theContext.info = self;
-		theContext.retain = nil;
-		theContext.release = nil;
-		theContext.copyDescription = nil;
-		
-		// Create the sockets
-		theSocket4 = CFSocketCreate(kCFAllocatorDefault,
-								    PF_INET,
-								    SOCK_DGRAM,
-								    IPPROTO_UDP,
-								    kCFSocketReadCallBack | kCFSocketWriteCallBack,
-								    (CFSocketCallBack)&MyCFSocketCallback,
-								    &theContext);
-		
-		theSocket6 = NULL;
-		
-		// Disable continuous callbacks for read and write.
-		// If we don't do this, the socket(s) will just sit there firing read callbacks
-		// at us hundreds of times a second if we don't immediately read the available data.
-		CFSocketSetSocketFlags(theSocket4, kCFSocketCloseOnInvalidate);
-		
-		// Get the CFRunLoop to which the socket should be attached.
-		theRunLoop = CFRunLoopGetCurrent();
-		
-		// Attach the sockets to the run loop
-		
-		if(theSocket4)
-		{
-			theSource4  = CFSocketCreateRunLoopSource(kCFAllocatorDefault, theSocket4, 0);
-			CFRunLoopAddSource(theRunLoop, theSource4, kCFRunLoopDefaultMode);
-		}
-	}
-	return self;
+	return [self initWithDelegate:nil userData:0 enableIPv4:YES enableIPv6:NO];
 }
 
 - (id)initIPv6
 {
-	if(self = [super init])
-	{
-		theFlags = 0x00;
-		theDelegate = nil;
-		theUserData = 0;
-		maxReceiveBufferSize = DEFAULT_MAX_RECEIVE_BUFFER_SIZE;
-		
-		theSendQueue = [[NSMutableArray alloc] initWithCapacity:SENDQUEUE_CAPACITY];
-		theCurrentSend = nil;
-		theSendTimer = nil;
-		
-		theReceiveQueue = [[NSMutableArray alloc] initWithCapacity:RECEIVEQUEUE_CAPACITY];
-		theCurrentReceive = nil;
-		theReceiveTimer = nil;
-		
-		// Socket context
-		theContext.version = 0;
-		theContext.info = self;
-		theContext.retain = nil;
-		theContext.release = nil;
-		theContext.copyDescription = nil;
-		
-		// Create the sockets
-		theSocket4 = NULL;
-		
-		theSocket6 = CFSocketCreate(kCFAllocatorDefault,
-									PF_INET6,
-									SOCK_DGRAM,
-									IPPROTO_UDP,
-									kCFSocketReadCallBack | kCFSocketWriteCallBack,
-									(CFSocketCallBack)&MyCFSocketCallback,
-									&theContext);
-		
-		// Disable continuous callbacks for read and write.
-		// If we don't do this, the socket(s) will just sit there firing read callbacks
-		// at us hundreds of times a second if we don't immediately read the available data.
-		CFSocketSetSocketFlags(theSocket6, kCFSocketCloseOnInvalidate);
-		
-		// Get the CFRunLoop to which the socket should be attached.
-		theRunLoop = CFRunLoopGetCurrent();
-		
-		// Attach the sockets to the run loop
-		
-		if(theSocket6)
-		{
-			theSource6 = CFSocketCreateRunLoopSource(kCFAllocatorDefault, theSocket6, 0);
-			CFRunLoopAddSource(theRunLoop, theSource6, kCFRunLoopDefaultMode);
-		}
-	}
-	return self;
+	return [self initWithDelegate:nil userData:0 enableIPv4:NO enableIPv6:YES];
 }
 
 - (void) dealloc
@@ -378,6 +302,8 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	[self close];
 	[theSendQueue release];
 	[theReceiveQueue release];
+	[cachedLocalHost release];
+	[cachedConnectedHost release];
 	[NSObject cancelPreviousPerformRequestsWithTarget:theDelegate selector:@selector(onUdpSocketDidClose:) object:self];
 	[NSObject cancelPreviousPerformRequestsWithTarget:self];
 	[super dealloc];
@@ -1092,6 +1018,8 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 
 - (NSString *)localHost
 {
+	if(cachedLocalHost) return cachedLocalHost;
+	
 	if(theSocket4)
 		return [self localHost:theSocket4];
 	else
@@ -1100,6 +1028,8 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 
 - (UInt16)localPort
 {
+	if(cachedLocalPort > 0) return cachedLocalPort;
+	
 	if(theSocket4)
 		return [self localPort:theSocket4];
 	else
@@ -1108,6 +1038,8 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 
 - (NSString *)connectedHost
 {
+	if(cachedConnectedHost) return cachedConnectedHost;
+	
 	if(theSocket4)
 		return [self connectedHost:theSocket4];
 	else
@@ -1116,6 +1048,8 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 
 - (UInt16)connectedPort
 {
+	if(cachedConnectedPort > 0) return cachedConnectedPort;
+	
 	if(theSocket4)
 		return [self connectedPort:theSocket4];
 	else
@@ -1131,6 +1065,8 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	// So if this is called prior to binding/connecting/sending, it won't be updated again when necessary,
 	// and will continue to return the old value of the socket address.
 	
+	NSString *result = nil;
+	
 	if(socket == theSocket4)
 	{
 		struct sockaddr_in sockaddr4;
@@ -1140,7 +1076,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		{
 			return nil;
 		}
-		return [self addressHost4:&sockaddr4];
+		result = [self addressHost4:&sockaddr4];
 	}
 	else
 	{
@@ -1151,8 +1087,16 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		{
 			return nil;
 		}
-		return [self addressHost6:&sockaddr6];
+		result = [self addressHost6:&sockaddr6];
 	}
+	
+	if(theFlags & kDidBind)
+	{
+		[cachedLocalHost release];
+		cachedLocalHost = [result copy];
+	}
+	
+	return result;
 }
 
 - (UInt16)localPort:(CFSocketRef)socket
@@ -1164,6 +1108,8 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	// So if this is called prior to binding/connecting/sending, it won't be updated again when necessary,
 	// and will continue to return the old value of the socket address.
 	
+	UInt16 result = 0;
+	
 	if(socket == theSocket4)
 	{
 		struct sockaddr_in sockaddr4;
@@ -1173,7 +1119,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		{
 			return 0;
 		}
-		return ntohs(sockaddr4.sin_port);
+		result = ntohs(sockaddr4.sin_port);
 	}
 	else
 	{
@@ -1184,8 +1130,15 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		{
 			return 0;
 		}
-		return ntohs(sockaddr6.sin6_port);
+		result = ntohs(sockaddr6.sin6_port);
 	}
+	
+	if(theFlags & kDidBind)
+	{
+		cachedLocalPort = result;
+	}
+	
+	return result;
 }
 
 - (NSString *)connectedHost:(CFSocketRef)socket
@@ -1197,6 +1150,8 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	// So if this is called prior to binding/connecting/sending, it may not be updated again when necessary,
 	// and will continue to return the old value of the socket peer address.
 	
+	NSString *result = nil;
+	
 	if(socket == theSocket4)
 	{
 		struct sockaddr_in sockaddr4;
@@ -1206,7 +1161,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		{
 			return nil;
 		}
-		return [self addressHost4:&sockaddr4];
+		result = [self addressHost4:&sockaddr4];
 	}
 	else
 	{
@@ -1217,8 +1172,16 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		{
 			return nil;
 		}
-		return [self addressHost6:&sockaddr6];
+		result = [self addressHost6:&sockaddr6];
 	}
+	
+	if(theFlags & kDidConnect)
+	{
+		[cachedConnectedHost release];
+		cachedConnectedHost = [result copy];
+	}
+	
+	return result;
 }
 
 - (UInt16)connectedPort:(CFSocketRef)socket
@@ -1230,6 +1193,8 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	// So if this is called prior to binding/connecting/sending, it may not be updated again when necessary,
 	// and will continue to return the old value of the socket peer address.
 	
+	UInt16 result = 0;
+	
 	if(socket == theSocket4)
 	{
 		struct sockaddr_in sockaddr4;
@@ -1239,7 +1204,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		{
 			return 0;
 		}
-		return ntohs(sockaddr4.sin_port);
+		result = ntohs(sockaddr4.sin_port);
 	}
 	else
 	{
@@ -1250,13 +1215,25 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		{
 			return 0;
 		}
-		return ntohs(sockaddr6.sin6_port);
+		result = ntohs(sockaddr6.sin6_port);
 	}
+	
+	if(theFlags & kDidConnect)
+	{
+		cachedConnectedPort = result;
+	}
+	
+	return result;
 }
 
 - (BOOL)isConnected
 {
 	return (((theFlags & kDidConnect) != 0) && ((theFlags & kDidClose) == 0));
+}
+
+- (BOOL)isConnectedToHost:(NSString *)host port:(UInt16)port
+{
+	return [[self connectedHost] isEqualToString:host] && ([self connectedPort] == port);
 }
 
 - (BOOL)isClosed
@@ -1650,12 +1627,14 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 {
 	if (theCurrentReceive != nil)
 	{
+		BOOL appIgnoredReceivedData;
 		BOOL userIgnoredReceivedData;
 		
 		do
 		{
-			// Set or reset ignored variable.
-			// If the user ignores the received data, we'll continue this do-while loop.
+			// Set or reset ignored variables.
+			// If the app or user ignores the received data, we'll continue this do-while loop.
+			appIgnoredReceivedData = NO;
 			userIgnoredReceivedData = NO;
 		
 			if([self hasBytesAvailable:theSocket])
@@ -1675,9 +1654,21 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 					
 					if(result >= 0)
 					{
-						theCurrentReceive->buffer = [[NSData dataWithBytes:buf length:result] retain];
-						theCurrentReceive->host = [[self addressHost4:&sockaddr4] retain];
-						theCurrentReceive->port = ntohs(sockaddr4.sin_port);
+						NSString *host = [self addressHost4:&sockaddr4];
+						UInt16 port = ntohs(sockaddr4.sin_port);
+						
+						if([self isConnected] && ![self isConnectedToHost:host port:port])
+						{
+							// The user connected to an address, and the received data doesn't match the address.
+							// This may happen if the data is received by the kernel prior to the connect call.
+							appIgnoredReceivedData = YES;
+						}
+						else
+						{
+							theCurrentReceive->buffer = [[NSData dataWithBytes:buf length:result] retain];
+							theCurrentReceive->host = [host retain];
+							theCurrentReceive->port = port;
+						}
 					}
 				}
 				else
@@ -1689,9 +1680,21 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 					
 					if(result >= 0)
 					{
-						theCurrentReceive->buffer = [[NSData dataWithBytes:buf length:result] retain];
-						theCurrentReceive->host = [[self addressHost6:&sockaddr6] retain];
-						theCurrentReceive->port = ntohs(sockaddr6.sin6_port);
+						NSString *host = [self addressHost6:&sockaddr6];
+						UInt16 port = ntohs(sockaddr6.sin6_port);
+						
+						if([self isConnected] && ![self isConnectedToHost:host port:port])
+						{
+							// The user connected to an address, and the received data doesn't match the address.
+							// This may happen if the data is received by the kernel prior to the connect call.
+							appIgnoredReceivedData = YES;
+						}
+						else
+						{
+							theCurrentReceive->buffer = [[NSData dataWithBytes:buf length:result] retain];
+							theCurrentReceive->host = [host retain];
+							theCurrentReceive->port = port;
+						}
 					}
 				}
 				
@@ -1700,7 +1703,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 					[self failCurrentReceive:[self getErrnoError]];
 					[self scheduleDequeueReceive];
 				}
-				else
+				else if(!appIgnoredReceivedData)
 				{
 					BOOL finished = [self maybeCompleteCurrentReceive];
 					
@@ -1726,7 +1729,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 				CFSocketEnableCallBacks(theSocket, kCFSocketReadCallBack | kCFSocketWriteCallBack);
 			}
 			
-		} while(userIgnoredReceivedData);
+		} while(appIgnoredReceivedData || userIgnoredReceivedData);
 	}
 }
 
