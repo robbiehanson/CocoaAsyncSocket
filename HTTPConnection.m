@@ -9,7 +9,12 @@
 
 
 // Define chunk size used to read files from disk
-#define READ_CHUNKSIZE     (1024 * 512)
+// This is how much data will be read from disk into RAM at a time
+#if TARGET_OS_IPHONE
+  #define READ_CHUNKSIZE  (1024 * 128)
+#else
+  #define READ_CHUNKSIZE  (1024 * 512)
+#endif
 
 // Define the various timeouts (in seconds) for various parts of the HTTP process
 #define READ_TIMEOUT          -1
