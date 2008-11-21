@@ -29,9 +29,14 @@
 	NSMutableArray *ranges_headers;
 	NSString *ranges_boundry;
 	int rangeIndex;
+	
+	UInt64 postContentLength;
+	UInt64 postTotalBytesReceived;
 }
 
 - (id)initWithAsyncSocket:(AsyncSocket *)newSocket forServer:(HTTPServer *)myServer;
+
+- (BOOL)supportsPOST:(NSString *)path withSize:(UInt64)contentLength;
 
 - (BOOL)isSecureServer;
 - (NSArray *)sslIdentityAndCertificates;
@@ -44,6 +49,8 @@
 - (NSString *)filePathForURI:(NSString *)path;
 
 - (NSObject<HTTPResponse> *)httpResponseForURI:(NSString *)path;
+
+- (void)processPostDataChunk:(NSData *)postDataChunk;
 
 - (void)handleVersionNotSupported:(NSString *)version;
 - (void)handleAuthenticationFailed;

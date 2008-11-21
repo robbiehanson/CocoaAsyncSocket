@@ -8,12 +8,19 @@
 #import "DDData.h"
 
 
-// Define chunk size used to read files from disk
+// Define chunk size used to read in data for responses
 // This is how much data will be read from disk into RAM at a time
 #if TARGET_OS_IPHONE
   #define READ_CHUNKSIZE  (1024 * 128)
 #else
   #define READ_CHUNKSIZE  (1024 * 512)
+#endif
+
+// Define chunk size used to read in POST upload data
+#if TARGET_OS_IPHONE
+  #define POST_CHUNKSIZE  (1024 * 32)
+#else
+  #define POST_CHUNKSIZE  (1024 * 128)
 #endif
 
 // Define the various timeouts (in seconds) for various parts of the HTTP process
@@ -30,7 +37,8 @@
 #define LIMIT_MAX_HEADER_LINES         100
 
 // Define the various tags we'll use to differentiate what it is we're currently doing
-#define HTTP_REQUEST                       15
+#define HTTP_REQUEST_HEADER                15
+#define HTTP_REQUEST_BODY                  16
 #define HTTP_PARTIAL_RESPONSE              24
 #define HTTP_PARTIAL_RESPONSE_HEADER       25
 #define HTTP_PARTIAL_RESPONSE_BODY         26
@@ -128,7 +136,7 @@ static NSMutableArray *recentNonces;
 		[asyncSocket readDataToData:[AsyncSocket CRLFData]
 						withTimeout:READ_TIMEOUT
 						  maxLength:LIMIT_MAX_HEADER_LINE_LENGTH
-								tag:HTTP_REQUEST];
+								tag:HTTP_REQUEST_HEADER];
 	}
 	return self;
 }
@@ -158,6 +166,22 @@ static NSMutableArray *recentNonces;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Connection Control:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns whether or not the server will accept POSTs.
+ * That is, whether the server will accept uploaded data for the given URI.
+**/
+- (BOOL)supportsPOST:(NSString *)path withSize:(UInt64)contentLength
+{
+	// Override me to support POST uploads.
+	// Things to consider:
+	// - Does the given path represent a resource that is designed to accept POST data?
+	// - Is the size of the data being uploaded too big?
+	// 
+	// For more information, you can always access the CFHTTPMessageRef request variable.
+	
+	return NO;
+}
 
 /**
  * Returns whether or not the server is configured to be a secure server.
@@ -604,13 +628,13 @@ static NSMutableArray *recentNonces;
 	NSString *version = [(NSString *)CFHTTPMessageCopyVersion(request) autorelease];
 	if(!version || ![version isEqualToString:(NSString *)kCFHTTPVersion1_1])
 	{
-		[self handleVersionNotSupported: version];
+		[self handleVersionNotSupported:version];
 		return;
 	}
 	
 	// Check HTTP method
 	NSString *method = [(NSString *)CFHTTPMessageCopyRequestMethod(request) autorelease];
-    if(![method isEqualToString:@"GET"] && ![method isEqualToString:@"HEAD"])
+    if(![method isEqualToString:@"GET"] && ![method isEqualToString:@"HEAD"] && ![method isEqualToString:@"POST"])
 	{
 		[self handleUnknownMethod:method];
         return;
@@ -743,6 +767,8 @@ static NSMutableArray *recentNonces;
 
 /**
  * Prepares a single-range response.
+ * 
+ * Note: The returned CFHTTPMessageRef is owned by the sender, who is responsible for releasing it.
 **/
 - (CFHTTPMessageRef)prepareUniRangeResponse:(UInt64)contentLength
 {
@@ -763,6 +789,8 @@ static NSMutableArray *recentNonces;
 
 /**
  * Prepares a multi-range response.
+ * 
+ * Note: The returned CFHTTPMessageRef is owned by the sender, who is responsible for releasing it.
 **/
 - (CFHTTPMessageRef)prepareMultiRangeResponse:(UInt64)contentLength
 {
@@ -897,6 +925,22 @@ static NSMutableArray *recentNonces;
 }
 
 /**
+ * This method is called to handle data read from a POST.
+ * The given data is part of the POST body.
+**/
+- (void)processPostDataChunk:(NSData *)postDataChunk
+{
+	// Override me to do something useful with a POST.
+	// If the post is small, such as a simple form, you may want to simply append the data to the request.
+	// If the post is big, such as a file upload, you may want to store the file to disk.
+	// 
+	// Remember: In order to support LARGE POST uploads, the data is read in chunks.
+	// This prevents a 50 MB upload from being stored in RAM.
+	// The size of the chunks are limited by the POST_CHUNKSIZE definition.
+	// Therefore, this method may be called multiple times for the same POST request.
+}
+
+/**
  * Called if the HTML version is other than what is supported
 **/
 - (void)handleVersionNotSupported:(NSString *)version
@@ -949,6 +993,7 @@ static NSMutableArray *recentNonces;
 /**
  * Called if we receive some sort of malformed HTTP request.
  * The data parameter is the invalid HTTP header line, including CRLF, as read from AsyncSocket.
+ * The data parameter may also be nil if the request as a whole was invalid, such as a POST with no Content-Length.
 **/
 - (void)handleInvalidRequest:(NSData *)data
 {
@@ -990,7 +1035,7 @@ static NSMutableArray *recentNonces;
 	
 	// Note: We used the HTTP_FINAL_RESPONSE tag to disconnect after the response is sent.
 	// We do this because the method may include an http body.
-	// Since we can't be sure, we might as well close the connection.
+	// Since we can't be sure, we should close the connection.
 }
 
 - (void)handleResourceNotFound
@@ -1117,36 +1162,104 @@ static NSMutableArray *recentNonces;
 **/
 - (void)onSocket:(AsyncSocket *)sock didReadData:(NSData*)data withTag:(long)tag
 {
-	// Append the header line to the http message
-	BOOL result = CFHTTPMessageAppendBytes(request, [data bytes], [data length]);
-	if(!result)
+	if(tag == HTTP_REQUEST_HEADER)
 	{
-		// We have a received a malformed request
-		[self handleInvalidRequest:data];
-	}
-	else if(!CFHTTPMessageIsHeaderComplete(request))
-	{
-		// We don't have a complete header yet
-		// That is, we haven't yet received a CRLF on a line by itself, indicating the end of the header
-		if(++numHeaderLines > LIMIT_MAX_HEADER_LINES)
+		// Append the header line to the http message
+		BOOL result = CFHTTPMessageAppendBytes(request, [data bytes], [data length]);
+		if(!result)
 		{
-			// Reached the maximum amount of header lines in a single HTTP request
-			// This could be an attempted DOS attack
-			[asyncSocket disconnect];
+			// We have a received a malformed request
+			[self handleInvalidRequest:data];
+		}
+		else if(!CFHTTPMessageIsHeaderComplete(request))
+		{
+			// We don't have a complete header yet
+			// That is, we haven't yet received a CRLF on a line by itself, indicating the end of the header
+			if(++numHeaderLines > LIMIT_MAX_HEADER_LINES)
+			{
+				// Reached the maximum amount of header lines in a single HTTP request
+				// This could be an attempted DOS attack
+				[asyncSocket disconnect];
+			}
+			else
+			{
+				[asyncSocket readDataToData:[AsyncSocket CRLFData]
+								withTimeout:READ_TIMEOUT
+								  maxLength:LIMIT_MAX_HEADER_LINE_LENGTH
+										tag:HTTP_REQUEST_HEADER];
+			}
 		}
 		else
 		{
-			[asyncSocket readDataToData:[AsyncSocket CRLFData]
-							withTimeout:READ_TIMEOUT
-							  maxLength:LIMIT_MAX_HEADER_LINE_LENGTH
-									tag:HTTP_REQUEST];
+			// We have an entire HTTP request header from the client
+			
+			// Check to see if it's a POST (upload) request
+			NSString *method = [(NSString *)CFHTTPMessageCopyRequestMethod(request) autorelease];
+			if([method isEqualToString:@"POST"])
+			{
+				NSURL *uri = [(NSURL *)CFHTTPMessageCopyRequestURL(request) autorelease];
+				
+				NSString *contentLengthStr =
+				    [(NSString *)CFHTTPMessageCopyHeaderFieldValue(request, CFSTR("Content-Length")) autorelease];
+				
+				if(contentLengthStr == nil)
+				{
+					// Received POST with no specified Content-Length
+					[self handleInvalidRequest:nil];
+					return;
+				}
+				
+				if(![NSNumber parseString:(NSString *)contentLengthStr intoUInt64:&postContentLength])
+				{
+					// Unable to parse Content-Length header into a valid number
+					[self handleInvalidRequest:nil];
+					return;
+				}
+				
+				if(![self supportsPOST:[uri relativeString] withSize:postContentLength])
+				{
+					// POST is unsupported - either in general, or for this specific request
+					// Send a 405 - Method not allowed response
+					[self handleUnknownMethod:method];
+					return;
+				}
+				
+				// Reset the total amount of data received for the POST
+				postTotalBytesReceived = 0;
+				
+				// Start reading the POST body
+				unsigned int bytesToRead = postContentLength < POST_CHUNKSIZE ? postContentLength : POST_CHUNKSIZE;
+				
+				[asyncSocket readDataToLength:bytesToRead withTimeout:READ_TIMEOUT tag:HTTP_REQUEST_BODY];
+			}
+			else
+			{
+				// Now we need to reply to the request
+				[self replyToHTTPRequest];
+			}
 		}
 	}
 	else
 	{
-		// We have an entire HTTP request from the client
-		// Now we need to reply to it
-		[self replyToHTTPRequest];
+		// Handle a chunk of data from the POST body
+		
+		postTotalBytesReceived += [data length];
+		[self processPostDataChunk:data];
+		
+		if(postTotalBytesReceived < postContentLength)
+		{
+			// We're not done reading the post body yet...
+			UInt64 bytesLeft = postContentLength - postTotalBytesReceived;
+			
+			unsigned int bytesToRead = bytesLeft < POST_CHUNKSIZE ? bytesLeft : POST_CHUNKSIZE;
+			
+			[asyncSocket readDataToLength:bytesToRead withTimeout:READ_TIMEOUT tag:HTTP_REQUEST_BODY];
+		}
+		else
+		{
+			// Now we need to reply to the request
+			[self replyToHTTPRequest];
+		}
 	}
 }
 
@@ -1279,7 +1392,7 @@ static NSMutableArray *recentNonces;
 			[asyncSocket readDataToData:[AsyncSocket CRLFData]
 							withTimeout:READ_TIMEOUT
 							  maxLength:LIMIT_MAX_HEADER_LINE_LENGTH
-									tag:HTTP_REQUEST];
+									tag:HTTP_REQUEST_HEADER];
 		}
 	}
 }
