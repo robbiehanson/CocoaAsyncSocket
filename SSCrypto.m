@@ -146,7 +146,7 @@
         if (n%16 == 1) {
             /* store address for this line */
             snprintf(addrstr, sizeof(addrstr), "%.4x",
-                     ((unsigned int)p-(unsigned int)self) );
+                     (unsigned int)((long)p-(long)self) );
         }
         
         c = *p;
