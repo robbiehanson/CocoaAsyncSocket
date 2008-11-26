@@ -797,7 +797,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		[NSException raise:AsyncUdpSocketException format:message];
 	}
 	
-	// Is remoteAddr is IPv4 address?
+	// Is remoteAddr an IPv4 address?
 	if([remoteAddr length] == sizeof(struct sockaddr_in))
 	{
 		if(theSocket4)
@@ -819,7 +819,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		}
 	}
 	
-	// Is remoteAddr is IPv6 address?
+	// Is remoteAddr an IPv6 address?
 	if([remoteAddr length] == sizeof(struct sockaddr_in6))
 	{
 		if(theSocket6)
@@ -1642,8 +1642,11 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 				int result;
 				CFSocketNativeHandle theNativeSocket = CFSocketGetNative(theSocket);
 				
-				Byte buf[maxReceiveBufferSize];
-				size_t bufSize = sizeof(buf);
+				// Allocate buffer for recvfrom operation.
+				// If the operation is successful, we'll realloc the buffer to the appropriate size,
+				// and create an NSData wrapper around it without needing to copy any bytes around.
+				void *buf = malloc(maxReceiveBufferSize);
+				size_t bufSize = maxReceiveBufferSize;
 				
 				if(theSocket == theSocket4)
 				{
@@ -1665,7 +1668,10 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 						}
 						else
 						{
-							theCurrentReceive->buffer = [[NSData dataWithBytes:buf length:result] retain];
+							buf = realloc(buf, result);
+							theCurrentReceive->buffer = [[NSData alloc] initWithBytesNoCopy:buf
+																					 length:result
+																			   freeWhenDone:YES];
 							theCurrentReceive->host = [host retain];
 							theCurrentReceive->port = port;
 						}
@@ -1691,11 +1697,21 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 						}
 						else
 						{
-							theCurrentReceive->buffer = [[NSData dataWithBytes:buf length:result] retain];
+							buf = realloc(buf, result);
+							theCurrentReceive->buffer = [[NSData alloc] initWithBytesNoCopy:buf
+																					 length:result
+																			   freeWhenDone:YES];
 							theCurrentReceive->host = [host retain];
 							theCurrentReceive->port = port;
 						}
 					}
+				}
+				
+				// Check to see if we need to free our alloc'd buffer
+				// If the buffer is non-nil, this means it has taken ownership of the buffer
+				if(theCurrentReceive->buffer == nil)
+				{
+					free(buf);
 				}
 				
 				if(result < 0)
