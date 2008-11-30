@@ -308,6 +308,8 @@
 **/
 - (void)connectionDidDie:(NSNotification *)notification
 {
+	// Note: This method is called on the thread/runloop that posted the notification
+	
 	@synchronized(connections)
 	{
 		[connections removeObject:[notification object]];

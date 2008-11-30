@@ -258,6 +258,23 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (void)enablePreBuffering;
 
 /**
+ * When you create an AsyncSocket, it is added to the runloop of the current thread.
+ * So for manually created sockets, it is easiest to simply create the socket on the thread you intend to use it.
+ * 
+ * If a new socket is accepted, the delegate method onSocket:wantsRunLoopForNewSocket: is called to
+ * allow you to place the socket on a separate thread. This works best in conjunction with a thread pool design.
+ * 
+ * If, however, you need to move the socket to a separate thread at a later time, this
+ * method may be used to accomplish the task.
+ * 
+ * This method must be called from the thread/runloop the socket is currently running on.
+ * 
+ * Note: After calling this method, all further method calls to this object should be done from the given runloop.
+ * Also, all delegate calls will be sent on the given runloop.
+**/
+- (BOOL)moveToRunLoop:(NSRunLoop *)runLoop;
+
+/**
  * In the event of an error, this method may be called during onSocket:willDisconnectWithError: to read
  * any data that's left on the socket.
 **/

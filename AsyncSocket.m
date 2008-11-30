@@ -191,6 +191,9 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 	
 	unsigned result = [term length];
 	
+	// Shortcut when term is a single byte
+	if(result == 1) return result;
+	
 	// i = index within buffer at which to check data
 	// j = length of term to check against
 	
@@ -469,6 +472,64 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 	theFlags |= kEnablePreBuffering;
 }
 
+/**
+ * See the header file for a full explanation of this method.
+**/
+- (BOOL)moveToRunLoop:(NSRunLoop *)runLoop
+{
+	NSAssert((theRunLoop == CFRunLoopGetCurrent()), @"moveToRunLoop must be called from within the current RunLoop!");
+	
+	if(theRunLoop == [runLoop getCFRunLoop])
+	{
+		return YES;
+	}
+	
+	[NSObject cancelPreviousPerformRequestsWithTarget:self];
+	
+	if(theReadStream && theWriteStream)
+	{
+		CFReadStreamUnscheduleFromRunLoop(theReadStream, theRunLoop, kCFRunLoopDefaultMode);
+		CFReadStreamSetClient(theReadStream, kCFStreamEventNone, NULL, NULL);
+		
+		CFWriteStreamUnscheduleFromRunLoop(theWriteStream, theRunLoop, kCFRunLoopDefaultMode);
+		CFWriteStreamSetClient(theWriteStream, kCFStreamEventNone, NULL, NULL);
+	}
+	if(theSource)
+	{
+		CFRunLoopRemoveSource(theRunLoop, theSource, kCFRunLoopDefaultMode);
+	}
+	if(theSource6)
+	{
+		CFRunLoopRemoveSource(theRunLoop, theSource6, kCFRunLoopDefaultMode);
+	}
+	
+	theRunLoop = [runLoop getCFRunLoop];
+	
+	if(theSource != NULL)
+	{
+		CFRunLoopAddSource(theRunLoop, theSource, kCFRunLoopDefaultMode);
+	}
+	if(theSource6 != NULL)
+	{
+		CFRunLoopAddSource(theRunLoop, theSource6, kCFRunLoopDefaultMode);
+	}
+	if(theReadStream && theWriteStream)
+	{
+		if(![self attachStreamsToRunLoop:runLoop error:nil])
+		{
+			return NO;
+		}
+	}
+	
+	NSArray *modes = [NSArray arrayWithObject:NSDefaultRunLoopMode];
+	
+	[runLoop performSelector:@selector(maybeDequeueRead) target:self argument:nil order:0 modes:modes];
+	[runLoop performSelector:@selector(maybeDequeueWrite) target:self argument:nil order:0 modes:modes];
+	[runLoop performSelector:@selector(maybeScheduleDisconnect) target:self argument:nil order:0 modes:modes];
+	
+	return YES;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Connection
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -745,7 +806,7 @@ Failed:;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#pragma mark Socket Implementation:
+#pragma mark Socket Implementation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -967,7 +1028,7 @@ Failed:;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#pragma mark Stream Implementation:
+#pragma mark Stream Implementation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -1169,7 +1230,7 @@ Failed:;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#pragma mark Disconnect Implementation:
+#pragma mark Disconnect Implementation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Sends error message and disconnects
