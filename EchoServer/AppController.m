@@ -4,7 +4,7 @@
 #define WELCOME_MSG  0
 #define ECHO_MSG     1
 
-#define FORMAT(format, args...) [NSString stringWithFormat:format, args]
+#define FORMAT(format, ...) [NSString stringWithFormat:(format), ##__VA_ARGS__]
 
 @interface AppController (PrivateAPI)
 - (void)logError:(NSString *)msg;
