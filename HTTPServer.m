@@ -261,7 +261,10 @@
 	[asyncSocket disconnect];
 	
 	// Now stop all HTTP connections the server owns
-	[connections removeAllObjects];
+	@synchronized(connections)
+	{
+		[connections removeAllObjects];
+	}
 	
 	return YES;
 }
@@ -273,9 +276,15 @@
 /**
  * Returns the number of clients that are currently connected to the server.
 **/
-- (int)numberOfHTTPConnections
+- (uint)numberOfHTTPConnections
 {
-	return [connections count];
+	uint result = 0;
+	
+	@synchronized(connections)
+	{
+		result = [connections count];
+	}
+	return result;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -285,7 +294,11 @@
 -(void)onSocket:(AsyncSocket *)sock didAcceptNewSocket:(AsyncSocket *)newSocket
 {
 	id newConnection = [[connectionClass alloc] initWithAsyncSocket:newSocket forServer:self];
-	[connections addObject:newConnection];
+	
+	@synchronized(connections)
+	{
+		[connections addObject:newConnection];
+	}
 	[newConnection release];
 }
 
@@ -295,7 +308,10 @@
 **/
 - (void)connectionDidDie:(NSNotification *)notification
 {
-	[connections removeObject:[notification object]];
+	@synchronized(connections)
+	{
+		[connections removeObject:[notification object]];
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
