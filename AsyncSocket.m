@@ -1282,8 +1282,8 @@ Failed:;
 		}
 	}
 	
-	// Clear flags.
-	theFlags = 0x00;
+	// Clear all flags (except the pre-buffering flag, which should remain as is)
+	theFlags &= kEnablePreBuffering;
 }
 
 /**
