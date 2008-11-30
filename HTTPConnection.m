@@ -654,7 +654,7 @@ static NSMutableArray *recentNonces;
 	// Respond properly to HTTP 'GET' and 'HEAD' commands
 	httpResponse = [[self httpResponseForURI:[uri relativeString]] retain];
 	
-	UInt64 contentLength = [httpResponse contentLength];
+	UInt64 contentLength = httpResponse ? [httpResponse contentLength] : 0;
 	
 	if(contentLength == 0)
 	{
