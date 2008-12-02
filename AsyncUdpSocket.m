@@ -36,12 +36,13 @@ static NSString *getaddrinfoLock = @"lock";
 
 enum AsyncUdpSocketFlags
 {
-	kDidBind            =  1,  // If set, bind has been called.
-	kDidConnect         =  2,  // If set, connect has been called.
-	kForbidSendReceive  =  4,  // If set, no new send or receive operations are allowed to be queued.
-	kCloseAfterSends    =  8,  // If set, close as soon as no more sends are queued.
-	kCloseAfterReceives = 16,  // If set, close as soon as no more receives are queued.
-	kDidClose           = 32,  // If set, the socket has been closed, and should not be used anymore.
+	kDidBind            = 1 << 0,  // If set, bind has been called.
+	kDidConnect         = 1 << 1,  // If set, connect has been called.
+	kForbidSendReceive  = 1 << 2,  // If set, no new send or receive operations are allowed to be queued.
+	kCloseAfterSends    = 1 << 3,  // If set, close as soon as no more sends are queued.
+	kCloseAfterReceives = 1 << 4,  // If set, close as soon as no more receives are queued.
+	kDidClose           = 1 << 5,  // If set, the socket has been closed, and should not be used anymore.
+	kFlipFlop           = 1 << 7,  // Used to alternate between IPv4 and IPv6 sockets.
 };
 
 @interface AsyncUdpSocket (Private)
@@ -454,7 +455,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
  *
  * Returns zero on success, or one of the error codes listed in gai_strerror if an error occurs (as per getaddrinfo).
 **/
-- (BOOL)convertForSendHost:(NSString *)host
+- (int)convertForSendHost:(NSString *)host
 					  port:(UInt16)port
 			  intoAddress4:(NSData **)address4
 				  address6:(NSData **)address6
@@ -594,6 +595,11 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 **/
 - (BOOL)bindToAddress:(NSString *)host port:(UInt16)port error:(NSError **)errPtr
 {
+	if(theFlags & kDidClose)
+	{
+		NSString *message = @"The socket is closed.";
+		[NSException raise:AsyncUdpSocketException format:message];
+	}
 	if(theFlags & kDidBind)
 	{
 		NSString *message = @"Cannot bind a socket more than once.";
@@ -602,11 +608,6 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	if(theFlags & kDidConnect)
 	{
 		NSString *message = @"Cannot bind after connecting. If needed, bind first, then connect.";
-		[NSException raise:AsyncUdpSocketException format:message];
-	}
-	if(theFlags & kDidClose)
-	{
-		NSString *message = @"The socket is closed.";
 		[NSException raise:AsyncUdpSocketException format:message];
 	}
 	
@@ -705,11 +706,16 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		NSString *message = @"The socket is closed.";
 		[NSException raise:AsyncUdpSocketException format:message];
 	}
+	if(theFlags & kDidConnect)
+	{
+		NSString *message = @"Cannot connect a socket more than once.";
+		[NSException raise:AsyncUdpSocketException format:message];
+	}
 	
 	// Convert the given host/port into native address structures for CFSocketSetAddress
 	NSData *address4 = nil, *address6 = nil;
 	
-	int error = [self convertForBindHost:host port:port intoAddress4:&address4 address6:&address6];
+	int error = [self convertForSendHost:host port:port intoAddress4:&address4 address6:&address6];
 	if(error)
 	{
 		if(errPtr)
@@ -794,6 +800,11 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	if(theFlags & kDidClose)
 	{
 		NSString *message = @"The socket is closed.";
+		[NSException raise:AsyncUdpSocketException format:message];
+	}
+	if(theFlags & kDidConnect)
+	{
+		NSString *message = @"Cannot connect a socket more than once.";
 		[NSException raise:AsyncUdpSocketException format:message];
 	}
 	
@@ -1401,12 +1412,11 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 **/
 - (void)maybeDequeueSend
 {
-	// If we're not currently processing a read AND we have read requests sitting in the queue
-	if(theCurrentSend == nil && [theSendQueue count] > 0)
+	if(theCurrentSend == nil)
 	{
 		if([theSendQueue count] > 0)
 		{
-			// Get new current send AsyncSendPacket
+			// Get next send packet
 			AsyncSendPacket *newPacket = [theSendQueue objectAtIndex:0];
 			theCurrentSend = [newPacket retain];
 			[theSendQueue removeObjectAtIndex:0];
@@ -1585,7 +1595,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	{
 		if([theReceiveQueue count] > 0)
 		{
-			// Get new current receive AsyncReceivePacket
+			// Get next receive packet
 			AsyncReceivePacket *newPacket = [theReceiveQueue objectAtIndex:0];
 			theCurrentReceive = [newPacket retain];
 			[theReceiveQueue removeObjectAtIndex:0];
@@ -1601,10 +1611,21 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 			}
 			
 			// Immediately receive, if possible
-			[self doReceive4];
-			[self doReceive6];
+			// We always check both sockets so we don't ever starve one of them.
+			// We also check them in alternating orders to prevent starvation if both of them
+			// have a continuous flow of incoming data.
+			if(theFlags & kFlipFlop)
+			{
+				[self doReceive4];
+				[self doReceive6];
+			}
+			else
+			{
+				[self doReceive6];
+				[self doReceive4];
+			}
 			
-			// Note: We always check both sockets so we don't ever starve one of them
+			theFlags ^= kFlipFlop;
 		}
 		else if(theFlags & kCloseAfterReceives)
 		{

@@ -159,7 +159,7 @@ typedef enum AsyncUdpSocketError AsyncUdpSocketError;
  * Connects the UDP socket to the given host and port.
  * By design, UDP is a connectionless protocol, and connecting is not needed.
  * 
- * Choosing to connect to a specific host/port has the following consequences:
+ * Choosing to connect to a specific host/port has the following effect:
  * - You will only be able to send data to the connected host/port.
  * - You will only be able to receive data from the connected host/port.
  * - You will receive ICMP messages that come from the connected host/port, such as "connection refused".
