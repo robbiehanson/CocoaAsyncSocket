@@ -156,10 +156,14 @@
 
 /**
  * The name to use for this service via Bonjour.
- * The default name is the host name of the computer.
+ * The default name is an empty string,
+ * which should result in the published name being the host name of the computer.
 **/
 - (NSString *)name {
     return name;
+}
+- (NSString *)publishedName {
+	return [netService name];
 }
 - (void)setName:(NSString *)value
 {
@@ -240,7 +244,7 @@
 	}
 	else
 	{
-		NSLog(@"Failed to start HTTP Server: %@", error);
+		NSLog(@"Failed to start HTTP Server: %@", *error);
 	}
 	
 	return success;

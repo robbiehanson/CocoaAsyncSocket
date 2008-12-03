@@ -17,9 +17,9 @@
 	
 	// NSNetService and related variables
 	NSNetService *netService;
-    NSString *domain;
+	NSString *domain;
 	NSString *type;
-    NSString *name;
+	NSString *name;
 	UInt16 port;
 	NSDictionary *txtRecordDictionary;
 	
@@ -42,6 +42,7 @@
 - (void)setType:(NSString *)value;
 
 - (NSString *)name;
+- (NSString *)publishedName;
 - (void)setName:(NSString *)value;
 
 - (UInt16)port;
