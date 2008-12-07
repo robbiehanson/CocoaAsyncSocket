@@ -951,7 +951,7 @@ static NSMutableArray *recentNonces;
 	
 	NSLog(@"HTTP Server: Error 505 - Version Not Supported: %@", version);
 	
-	CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 505, NULL, (CFStringRef)version);
+	CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 505, NULL, kCFHTTPVersion1_1);
 	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), CFSTR("0"));
     
 	NSData *responseData = [self preprocessErrorResponse:response];
