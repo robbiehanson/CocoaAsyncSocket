@@ -168,18 +168,24 @@ static NSMutableArray *recentNonces;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Returns whether or not the server will accept POSTs.
- * That is, whether the server will accept uploaded data for the given URI.
+ * Returns whether or not the server will accept messages of a given method
+ * at a particular URI.
 **/
-- (BOOL)supportsPOST:(NSString *)path withSize:(UInt64)contentLength
+- (BOOL)supportsMethod:(NSString *)method atPath:(NSString *)relativePath
 {
-	// Override me to support POST uploads.
-	// Things to consider:
-	// - Does the given path represent a resource that is designed to accept POST data?
-	// - Is the size of the data being uploaded too big?
+	// Override me to support methods such as POST.
+	// 
+	// Things you may want to consider:
+	// - Does the given path represent a resource that is designed to accept this method?
+	// - If accepting an upload, is the size of the data being uploaded too big?
 	// 
 	// For more information, you can always access the CFHTTPMessageRef request variable.
 	
+	if([method isEqualToString:@"GET"])
+		return YES;
+	if([method isEqualToString:@"HEAD"])
+		return YES;
+		
 	return NO;
 }
 
@@ -632,13 +638,10 @@ static NSMutableArray *recentNonces;
 		return;
 	}
 	
-	// Check HTTP method
+	// Extract the method
 	NSString *method = [(NSString *)CFHTTPMessageCopyRequestMethod(request) autorelease];
-    if(![method isEqualToString:@"GET"] && ![method isEqualToString:@"HEAD"] && ![method isEqualToString:@"POST"])
-	{
-		[self handleUnknownMethod:method];
-        return;
-    }
+	
+	// Note: We already checked to ensure the method was supported in onSocket:didReadData:withTag:
 	
 	// Extract requested URI
 	NSURL *uri = [(NSURL *)CFHTTPMessageCopyRequestURL(request) autorelease];
@@ -652,7 +655,7 @@ static NSMutableArray *recentNonces;
 	}
 	
 	// Respond properly to HTTP 'GET' and 'HEAD' commands
-	httpResponse = [[self httpResponseForURI:[uri relativeString]] retain];
+	httpResponse = [[self httpResponseForMethod:method URI:[uri relativeString]] retain];
 	
 	UInt64 contentLength = httpResponse ? [httpResponse contentLength] : 0;
 	
@@ -908,9 +911,9 @@ static NSMutableArray *recentNonces;
  * You may return any object that adopts the HTTPResponse protocol.
  * The HTTPServer comes with two such classes: HTTPFileResponse and HTTPDataResponse.
  * HTTPFileResponse is a wrapper for an NSFileHandle object, and is the preferred way to send a file response.
- * HTTPDataResopnse is a wrapper for an NSData object, and may be used to send a custom response.
+ * HTTPDataResponse is a wrapper for an NSData object, and may be used to send a custom response.
 **/
-- (NSObject<HTTPResponse> *)httpResponseForURI:(NSString *)path
+- (NSObject<HTTPResponse> *)httpResponseForMethod:(NSString *)method URI:(NSString *)path
 {
 	// Override me to provide custom responses.
 	
@@ -925,12 +928,20 @@ static NSMutableArray *recentNonces;
 }
 
 /**
- * This method is called to handle data read from a POST.
- * The given data is part of the POST body.
+ * This method is called after receiving all HTTP headers, but before reading any of the request body.
 **/
-- (void)processPostDataChunk:(NSData *)postDataChunk
+- (void)prepareForBodyWithSize:(UInt64)contentLength
 {
-	// Override me to do something useful with a POST.
+	// Override me to allocate buffers, file handles, etc.
+}
+
+/**
+ * This method is called to handle data read from a POST / PUT.
+ * The given data is part of the request body.
+**/
+- (void)processDataChunk:(NSData *)postDataChunk
+{
+	// Override me to do something useful with a POST / PUT.
 	// If the post is small, such as a simple form, you may want to simply append the data to the request.
 	// If the post is big, such as a file upload, you may want to store the file to disk.
 	// 
@@ -1193,42 +1204,68 @@ static NSMutableArray *recentNonces;
 		{
 			// We have an entire HTTP request header from the client
 			
-			// Check to see if it's a POST (upload) request
+			// Extract the method (such as GET, HEAD, POST, etc)
 			NSString *method = [(NSString *)CFHTTPMessageCopyRequestMethod(request) autorelease];
-			if([method isEqualToString:@"POST"])
+			
+			// Extract the uri (such as "/index.html")
+			NSURL *uri = [(NSURL *)CFHTTPMessageCopyRequestURL(request) autorelease];
+			
+			// Check for a Content-Length field
+			NSString *contentLength =
+			    [(NSString *)CFHTTPMessageCopyHeaderFieldValue(request, CFSTR("Content-Length")) autorelease];
+			
+			// Content-Length MUST be present for upload methods (such as POST or PUT)
+			// and MUST NOT be present for other methods.
+			BOOL expectsUpload = [method isEqualToString:@"POST"] || [method isEqualToString:@"PUT"];
+			
+			if(expectsUpload)
 			{
-				NSURL *uri = [(NSURL *)CFHTTPMessageCopyRequestURL(request) autorelease];
-				
-				NSString *contentLengthStr =
-				    [(NSString *)CFHTTPMessageCopyHeaderFieldValue(request, CFSTR("Content-Length")) autorelease];
-				
-				if(contentLengthStr == nil)
+				if(contentLength == nil)
 				{
-					// Received POST with no specified Content-Length
+					// Received POST/PUT with no specified Content-Length
 					[self handleInvalidRequest:nil];
 					return;
 				}
 				
-				if(![NSNumber parseString:(NSString *)contentLengthStr intoUInt64:&postContentLength])
+				if(![NSNumber parseString:(NSString *)contentLength intoUInt64:&requestContentLength])
 				{
 					// Unable to parse Content-Length header into a valid number
 					[self handleInvalidRequest:nil];
 					return;
 				}
-				
-				if(![self supportsPOST:[uri relativeString] withSize:postContentLength])
+			}
+			else
+			{
+				if(contentLength != nil)
 				{
-					// POST is unsupported - either in general, or for this specific request
-					// Send a 405 - Method not allowed response
-					[self handleUnknownMethod:method];
+					// Received Content-Length header for method not expecting an upload
+					[self handleInvalidRequest:nil];
 					return;
 				}
 				
-				// Reset the total amount of data received for the POST
-				postTotalBytesReceived = 0;
+				requestContentLength = 0;
+				requestContentLengthReceived = 0;
+			}
+			
+			// Check to make sure the given method is supported
+			if(![self supportsMethod:method atPath:[uri relativeString]])
+			{
+				// The method is unsupported - either in general, or for this specific request
+				// Send a 405 - Method not allowed response
+				[self handleUnknownMethod:method];
+				return;
+			}
+			
+			if(expectsUpload)
+			{
+				// Reset the total amount of data received for the upload
+				requestContentLengthReceived = 0;
 				
-				// Start reading the POST body
-				unsigned int bytesToRead = postContentLength < POST_CHUNKSIZE ? postContentLength : POST_CHUNKSIZE;
+				// Prepare for the upload
+				[self prepareForBodyWithSize:requestContentLength];
+				
+				// Start reading the request body
+				uint bytesToRead = requestContentLength < POST_CHUNKSIZE ? requestContentLength : POST_CHUNKSIZE;
 				
 				[asyncSocket readDataToLength:bytesToRead withTimeout:READ_TIMEOUT tag:HTTP_REQUEST_BODY];
 			}
@@ -1243,15 +1280,15 @@ static NSMutableArray *recentNonces;
 	{
 		// Handle a chunk of data from the POST body
 		
-		postTotalBytesReceived += [data length];
-		[self processPostDataChunk:data];
+		requestContentLengthReceived += [data length];
+		[self processDataChunk:data];
 		
-		if(postTotalBytesReceived < postContentLength)
+		if(requestContentLengthReceived < requestContentLength)
 		{
 			// We're not done reading the post body yet...
-			UInt64 bytesLeft = postContentLength - postTotalBytesReceived;
+			UInt64 bytesLeft = requestContentLength - requestContentLengthReceived;
 			
-			unsigned int bytesToRead = bytesLeft < POST_CHUNKSIZE ? bytesLeft : POST_CHUNKSIZE;
+			uint bytesToRead = bytesLeft < POST_CHUNKSIZE ? bytesLeft : POST_CHUNKSIZE;
 			
 			[asyncSocket readDataToLength:bytesToRead withTimeout:READ_TIMEOUT tag:HTTP_REQUEST_BODY];
 		}

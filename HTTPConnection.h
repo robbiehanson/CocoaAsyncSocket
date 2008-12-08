@@ -30,13 +30,13 @@
 	NSString *ranges_boundry;
 	int rangeIndex;
 	
-	UInt64 postContentLength;
-	UInt64 postTotalBytesReceived;
+	UInt64 requestContentLength;
+	UInt64 requestContentLengthReceived;
 }
 
 - (id)initWithAsyncSocket:(AsyncSocket *)newSocket forServer:(HTTPServer *)myServer;
 
-- (BOOL)supportsPOST:(NSString *)path withSize:(UInt64)contentLength;
+- (BOOL)supportsMethod:(NSString *)method atPath:(NSString *)path;
 
 - (BOOL)isSecureServer;
 - (NSArray *)sslIdentityAndCertificates;
@@ -48,9 +48,10 @@
 
 - (NSString *)filePathForURI:(NSString *)path;
 
-- (NSObject<HTTPResponse> *)httpResponseForURI:(NSString *)path;
+- (NSObject<HTTPResponse> *)httpResponseForMethod:(NSString *)method URI:(NSString *)path;
 
-- (void)processPostDataChunk:(NSData *)postDataChunk;
+- (void)prepareForBodyWithSize:(UInt64)contentLength;
+- (void)processDataChunk:(NSData *)postDataChunk;
 
 - (void)handleVersionNotSupported:(NSString *)version;
 - (void)handleAuthenticationFailed;
