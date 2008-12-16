@@ -280,8 +280,8 @@ static NSMutableArray *recentNonces;
 	// We use the Core Foundation UUID class to generate a nonce value for us
 	// UUIDs (Universally Unique Identifiers) are 128-bit values guaranteed to be unique.
 	CFUUIDRef theUUID = CFUUIDCreate(NULL);
-    NSString *newNonce = [(NSString *)CFUUIDCreateString(NULL, theUUID) autorelease];
-    CFRelease(theUUID);
+	NSString *newNonce = [NSMakeCollectable(CFUUIDCreateString(NULL, theUUID)) autorelease];
+	CFRelease(theUUID);
 	
 	// We have to remember that the HTTP protocol is stateless
 	// Even though with version 1.1 persistent connections are the norm, they are not guaranteed
@@ -337,10 +337,10 @@ static NSMutableArray *recentNonces;
 			return YES;
 		}
 		
-		NSString *method = [(NSString *)CFHTTPMessageCopyRequestMethod(request) autorelease];
+		NSString *method = [NSMakeCollectable(CFHTTPMessageCopyRequestMethod(request)) autorelease];
 		
-		NSURL *absoluteUrl = [(NSURL *)CFHTTPMessageCopyRequestURL(request) autorelease];
-		NSString *url = [(NSURL *)absoluteUrl relativeString];
+		NSURL *absoluteUrl = [NSMakeCollectable(CFHTTPMessageCopyRequestURL(request)) autorelease];
+		NSString *url = [absoluteUrl relativeString];
 		
 		if(![url isEqualToString:[auth uri]])
 		{
@@ -631,7 +631,7 @@ static NSMutableArray *recentNonces;
 - (void)replyToHTTPRequest
 {
 	// Check the HTTP version - if it's anything but HTTP version 1.1, we don't support it
-	NSString *version = [(NSString *)CFHTTPMessageCopyVersion(request) autorelease];
+	NSString *version = [NSMakeCollectable(CFHTTPMessageCopyVersion(request)) autorelease];
 	if(!version || ![version isEqualToString:(NSString *)kCFHTTPVersion1_1])
 	{
 		[self handleVersionNotSupported:version];
@@ -639,12 +639,12 @@ static NSMutableArray *recentNonces;
 	}
 	
 	// Extract the method
-	NSString *method = [(NSString *)CFHTTPMessageCopyRequestMethod(request) autorelease];
+	NSString *method = [NSMakeCollectable(CFHTTPMessageCopyRequestMethod(request)) autorelease];
 	
 	// Note: We already checked to ensure the method was supported in onSocket:didReadData:withTag:
 	
 	// Extract requested URI
-	NSURL *uri = [(NSURL *)CFHTTPMessageCopyRequestURL(request) autorelease];
+	NSURL *uri = [NSMakeCollectable(CFHTTPMessageCopyRequestURL(request)) autorelease];
 	
 	// Check Authentication (if needed)
 	// If not properly authenticated for resource, issue Unauthorized response
@@ -670,7 +670,7 @@ static NSMutableArray *recentNonces;
     }
 	
 	// Check for specific range request
-	NSString *rangeHeader = [(NSString *)CFHTTPMessageCopyHeaderFieldValue(request, CFSTR("Range")) autorelease];
+	NSString *rangeHeader = [NSMakeCollectable(CFHTTPMessageCopyHeaderFieldValue(request, CFSTR("Range"))) autorelease];
 	
 	BOOL isRangeRequest = NO;
 	
@@ -822,7 +822,7 @@ static NSMutableArray *recentNonces;
 	ranges_headers = [[NSMutableArray alloc] initWithCapacity:[ranges count]];
 	
 	CFUUIDRef theUUID = CFUUIDCreate(NULL);
-	ranges_boundry = (NSString *)CFUUIDCreateString(NULL, theUUID);
+	ranges_boundry = NSMakeCollectable(CFUUIDCreateString(NULL, theUUID));
 	CFRelease(theUUID);
 	
 	NSString *startingBoundryStr = [NSString stringWithFormat:@"\r\n--%@\r\n", ranges_boundry];
@@ -1081,7 +1081,7 @@ static NSMutableArray *recentNonces;
 	
 	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Accept-Ranges"), CFSTR("bytes"));
 	
-	NSData *result = (NSData *)CFHTTPMessageCopySerializedMessage(response);
+	NSData *result = NSMakeCollectable(CFHTTPMessageCopySerializedMessage(response));
 	return [result autorelease];
 }
 
@@ -1115,7 +1115,7 @@ static NSMutableArray *recentNonces;
 	
 	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Accept-Ranges"), CFSTR("bytes"));
 	
-	NSData *result = (NSData *)CFHTTPMessageCopySerializedMessage(response);
+	NSData *result = NSMakeCollectable(CFHTTPMessageCopySerializedMessage(response));
 	return [result autorelease];
 }
 
@@ -1205,14 +1205,14 @@ static NSMutableArray *recentNonces;
 			// We have an entire HTTP request header from the client
 			
 			// Extract the method (such as GET, HEAD, POST, etc)
-			NSString *method = [(NSString *)CFHTTPMessageCopyRequestMethod(request) autorelease];
+			NSString *method = [NSMakeCollectable(CFHTTPMessageCopyRequestMethod(request)) autorelease];
 			
 			// Extract the uri (such as "/index.html")
-			NSURL *uri = [(NSURL *)CFHTTPMessageCopyRequestURL(request) autorelease];
+			NSURL *uri = [NSMakeCollectable(CFHTTPMessageCopyRequestURL(request)) autorelease];
 			
 			// Check for a Content-Length field
 			NSString *contentLength =
-			    [(NSString *)CFHTTPMessageCopyHeaderFieldValue(request, CFSTR("Content-Length")) autorelease];
+			    [NSMakeCollectable(CFHTTPMessageCopyHeaderFieldValue(request, CFSTR("Content-Length"))) autorelease];
 			
 			// Content-Length MUST be present for upload methods (such as POST or PUT)
 			// and MUST NOT be present for other methods.

@@ -56,7 +56,9 @@
 			response = [[self quotedSubHeaderFieldValue:@"response" fromHeaderFieldValue:authInfo] retain];
 		}
 		
-		[authInfo release];
+		// Remember, if using garbage collection:
+		// Core foundation objects must be released using CFRelease, as [id release] is a no-op.
+		if(authInfo) CFRelease((CFStringRef)authInfo);
 	}
 	return self;
 }
