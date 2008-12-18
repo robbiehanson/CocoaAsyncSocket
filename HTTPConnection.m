@@ -131,12 +131,11 @@ static NSMutableArray *recentNonces;
 		
 		numHeaderLines = 0;
 		
-		// And now that we own the socket, and we have our CFHTTPMessage object (for requests) ready,
-		// we can start reading the HTTP requests...
-		[asyncSocket readDataToData:[AsyncSocket CRLFData]
-						withTimeout:READ_TIMEOUT
-						  maxLength:LIMIT_MAX_HEADER_LINE_LENGTH
-								tag:HTTP_REQUEST_HEADER];
+		// Don't start reading the HTTP request here.
+		// We are currently running on the thread that the server's listen socket is running on.
+		// However, the server may place us on a different thread.
+		// We should only read/write to our socket on its proper thread.
+		// Instead, we'll wait for the call to onSocket:didConnectToHost:port: which will be on the proper thread.
 	}
 	return self;
 }
@@ -1165,6 +1164,20 @@ static NSMutableArray *recentNonces;
 		}
 	}
 	return YES;
+}
+
+/**
+ * This method is called after the socket has been fully opened.
+ * It is called on the proper thread/runloop that HTTPServer configured our socket to run on.
+**/
+- (void)onSocket:(AsyncSocket *)sock didConnectToHost:(NSString *)host port:(UInt16)port
+{
+	// The socket is up and ready, and this method is called on the socket's corresponding thread.
+	// We can now start reading the HTTP requests...
+	[asyncSocket readDataToData:[AsyncSocket CRLFData]
+					withTimeout:READ_TIMEOUT
+					  maxLength:LIMIT_MAX_HEADER_LINE_LENGTH
+							tag:HTTP_REQUEST_HEADER];
 }
 
 /**
