@@ -349,7 +349,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Attempts to convert the given host/port into and IPv6 and/or IPv6 data structure.
+ * Attempts to convert the given host/port into and IPv4 and/or IPv6 data structure.
  * The data structure is of type sockaddr_in for IPv4 and sockaddr_in6 for IPv6.
  *
  * Returns zero on success, or one of the error codes listed in gai_strerror if an error occurs (as per getaddrinfo).
@@ -450,7 +450,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 }
 
 /**
- * Attempts to convert the given host/port into and IPv6 and/or IPv6 data structure.
+ * Attempts to convert the given host/port into and IPv4 and/or IPv6 data structure.
  * The data structure is of type sockaddr_in for IPv4 and sockaddr_in6 for IPv6.
  *
  * Returns zero on success, or one of the error codes listed in gai_strerror if an error occurs (as per getaddrinfo).
@@ -863,6 +863,143 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 								  userInfo:info];
 	}
 	return NO;
+}
+
+/**
+ * Join multicast group
+ *
+ * Group should be a multicast IP address (eg. @"239.255.250.250" for IPv4).
+ * Address is local interface for IPv4, but currently defaults under IPv6.
+**/
+- (BOOL)joinMulticastGroup:(NSString *)group error:(NSError **)errPtr
+{
+	return [self joinMulticastGroup:group withAddress:nil error:errPtr];
+}
+
+- (BOOL)joinMulticastGroup:(NSString *)group withAddress:(NSString *)address error:(NSError **)errPtr
+{
+	if(theFlags & kDidClose)
+	{
+		NSString *message = @"The socket is closed.";
+		[NSException raise:AsyncUdpSocketException format:message];
+	}
+	if(!(theFlags & kDidBind))
+	{
+		NSString *message = @"Must bind a socket before joining a multicast group.";
+		[NSException raise:AsyncUdpSocketException format:message];
+	}
+	if(theFlags & kDidConnect)
+	{
+		NSString *message = @"Cannot join a multicast group if connected.";
+		[NSException raise:AsyncUdpSocketException format:message];
+	}
+	
+	// Get local interface address
+	// Convert the given host/port into native address structures for CFSocketSetAddress
+	NSData *address4 = nil, *address6 = nil;
+	
+	int error = [self convertForBindHost:address port:0 intoAddress4:&address4 address6:&address6];
+	if(error)
+	{
+		if(errPtr)
+		{
+			NSString *errMsg = [NSString stringWithCString:gai_strerror(error) encoding:NSASCIIStringEncoding];
+			NSString *errDsc = [NSString stringWithFormat:@"Invalid parameter 'address': %@", errMsg];
+			NSDictionary *info = [NSDictionary dictionaryWithObject:errDsc forKey:NSLocalizedDescriptionKey];
+			
+			*errPtr = [NSError errorWithDomain:@"kCFStreamErrorDomainNetDB" code:error userInfo:info];
+		}
+		return NO;
+	}
+	
+	NSAssert((address4 || address6), @"address4 and address6 are nil");
+	
+	// Get multicast address (group)
+	NSData *group4 = nil, *group6 = nil;
+
+	error = [self convertForBindHost:group port:0 intoAddress4:&group4 address6:&group6];
+	if(error)
+	{
+		if(errPtr)
+		{
+			NSString *errMsg = [NSString stringWithCString:gai_strerror(error) encoding:NSASCIIStringEncoding];
+			NSString *errDsc = [NSString stringWithFormat:@"Invalid parameter 'group': %@", errMsg];
+			NSDictionary *info = [NSDictionary dictionaryWithObject:errDsc forKey:NSLocalizedDescriptionKey];
+			
+			*errPtr = [NSError errorWithDomain:@"kCFStreamErrorDomainNetDB" code:error userInfo:info];
+		}
+		return NO;
+	}
+	
+	NSAssert((group4 || group6), @"group4 and group6 are nil");
+	
+	BOOL found = NO;
+	
+	if(theSocket4 && group4 && address4)
+	{
+		const struct sockaddr_in* nativeAddress = [address4 bytes];
+		const struct sockaddr_in* nativeGroup = [group4 bytes];
+		
+		struct ip_mreq imreq;
+		imreq.imr_multiaddr = nativeGroup->sin_addr;
+		imreq.imr_interface = nativeAddress->sin_addr;
+		
+		// JOIN multicast group on default interface
+		error = setsockopt(CFSocketGetNative(theSocket4), IPPROTO_IP, IP_ADD_MEMBERSHIP, 
+						   (const void *)&imreq, sizeof(struct ip_mreq));
+		if(error)
+		{
+			if(errPtr)
+			{
+				NSString *errMsg = @"Unable to join IPv4 multicast group";
+				NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+				
+				*errPtr = [NSError errorWithDomain:@"kCFStreamErrorDomainPOSIX" code:error userInfo:info];
+			}
+			return NO;
+		}
+		found = YES;
+	}
+	
+	if(theSocket6 && group6 && address6)
+	{
+		const struct sockaddr_in6* nativeGroup = [group6 bytes];
+		
+		struct ipv6_mreq imreq;
+		imreq.ipv6mr_multiaddr = nativeGroup->sin6_addr;
+		imreq.ipv6mr_interface = 0;
+		
+		// JOIN multicast group on default interface
+		error = setsockopt(CFSocketGetNative(theSocket6), IPPROTO_IP, IPV6_JOIN_GROUP, 
+						   (const void *)&imreq, sizeof(struct ipv6_mreq));
+		if(error)
+		{
+			if(errPtr)
+			{
+				NSString *errMsg = @"Unable to join IPv6 multicast group";
+				NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+				
+				*errPtr = [NSError errorWithDomain:@"kCFStreamErrorDomainPOSIX" code:error userInfo:info];
+			}
+			return NO;
+		}
+		found = YES;
+	}
+	
+	// The given address and group didn't match the existing socket(s).
+	// This means there were no compatible combination of all IPv4 or IPv6 socket, group and address.
+	if(!found)
+	{
+		NSString *errMsg = @"Invalid group and/or address, not matching existing socket(s)";
+		NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+		
+		*errPtr = [NSError errorWithDomain:AsyncUdpSocketErrorDomain
+									  code:AsyncUdpSocketBadParameter
+								  userInfo:info];
+	}
+	
+	return YES;
+	
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

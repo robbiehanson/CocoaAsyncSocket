@@ -177,6 +177,14 @@ typedef enum AsyncUdpSocketError AsyncUdpSocketError;
 - (BOOL)connectToAddress:(NSData *)remoteAddr error:(NSError **)errPtr;
 
 /**
+ * Join multicast group
+ *
+ * Group should be an IP address (@"225.228.0.1")
+**/
+- (BOOL)joinMulticastGroup:(NSString *)group error:(NSError **)errPtr;
+- (BOOL)joinMulticastGroup:(NSString *)group withAddress:(NSString *)interface error:(NSError **)errPtr;
+
+/**
  * Asynchronously sends the given data, with the given timeout and tag.
  * 
  * This method may only be used with a connected socket.
