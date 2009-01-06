@@ -990,12 +990,16 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	// This means there were no compatible combination of all IPv4 or IPv6 socket, group and address.
 	if(!found)
 	{
-		NSString *errMsg = @"Invalid group and/or address, not matching existing socket(s)";
-		NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
-		
-		*errPtr = [NSError errorWithDomain:AsyncUdpSocketErrorDomain
-									  code:AsyncUdpSocketBadParameter
-								  userInfo:info];
+		if(errPtr)
+		{
+			NSString *errMsg = @"Invalid group and/or address, not matching existing socket(s)";
+			NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+			
+			*errPtr = [NSError errorWithDomain:AsyncUdpSocketErrorDomain
+			                              code:AsyncUdpSocketBadParameter
+			                          userInfo:info];
+		}
+		return NO;
 	}
 	
 	return YES;
