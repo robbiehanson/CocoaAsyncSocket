@@ -21,6 +21,8 @@
 
 #pragma mark Declarations
 
+#define DEFAULT_PREBUFFERING YES        // Whether pre-buffering is enabled by default
+
 #define READQUEUE_CAPACITY	5           // Initial capacity
 #define WRITEQUEUE_CAPACITY 5           // Initial capacity
 #define READALL_CHUNKSIZE	256         // Incremental increase in buffer size
@@ -339,7 +341,7 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 {
 	if(self = [super init])
 	{
-		theFlags = 0x00;
+		theFlags = DEFAULT_PREBUFFERING ? kEnablePreBuffering : 0x00;
 		theDelegate = delegate;
 		theUserData = userData;
 		
@@ -368,6 +370,9 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 		theContext.retain = nil;
 		theContext.release = nil;
 		theContext.copyDescription = nil;
+		
+		// Default run loop modes
+		theRunLoopModes = [[NSArray arrayWithObject:NSDefaultRunLoopMode] retain];
 	}
 	return self;
 }
@@ -378,6 +383,7 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 	[self close];
 	[theReadQueue release];
 	[theWriteQueue release];
+	[theRunLoopModes release];
 	[NSObject cancelPreviousPerformRequestsWithTarget:theDelegate selector:@selector(onSocketDidDisconnect:) object:self];
 	[NSObject cancelPreviousPerformRequestsWithTarget:self];
 	[super dealloc];
@@ -484,34 +490,56 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 		return YES;
 	}
 	
+	int i;
+	
 	[NSObject cancelPreviousPerformRequestsWithTarget:self];
 	
 	if(theReadStream && theWriteStream)
 	{
-		CFReadStreamUnscheduleFromRunLoop(theReadStream, theRunLoop, kCFRunLoopDefaultMode);
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			
+			CFReadStreamUnscheduleFromRunLoop(theReadStream, theRunLoop, runLoopMode);
+			CFWriteStreamUnscheduleFromRunLoop(theWriteStream, theRunLoop, runLoopMode);
+		}
 		CFReadStreamSetClient(theReadStream, kCFStreamEventNone, NULL, NULL);
-		
-		CFWriteStreamUnscheduleFromRunLoop(theWriteStream, theRunLoop, kCFRunLoopDefaultMode);
 		CFWriteStreamSetClient(theWriteStream, kCFStreamEventNone, NULL, NULL);
 	}
 	if(theSource)
 	{
-		CFRunLoopRemoveSource(theRunLoop, theSource, kCFRunLoopDefaultMode);
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopRemoveSource(theRunLoop, theSource, runLoopMode);
+		}
 	}
 	if(theSource6)
 	{
-		CFRunLoopRemoveSource(theRunLoop, theSource6, kCFRunLoopDefaultMode);
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopRemoveSource(theRunLoop, theSource6, runLoopMode);
+		}
 	}
 	
 	theRunLoop = [runLoop getCFRunLoop];
 	
 	if(theSource != NULL)
 	{
-		CFRunLoopAddSource(theRunLoop, theSource, kCFRunLoopDefaultMode);
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopAddSource(theRunLoop, theSource, runLoopMode);
+		}
 	}
 	if(theSource6 != NULL)
 	{
-		CFRunLoopAddSource(theRunLoop, theSource6, kCFRunLoopDefaultMode);
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopAddSource(theRunLoop, theSource6, runLoopMode);
+		}
 	}
 	if(theReadStream && theWriteStream)
 	{
@@ -521,11 +549,86 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 		}
 	}
 	
-	NSArray *modes = [NSArray arrayWithObject:NSDefaultRunLoopMode];
+	[runLoop performSelector:@selector(maybeDequeueRead) target:self argument:nil order:0 modes:theRunLoopModes];
+	[runLoop performSelector:@selector(maybeDequeueWrite) target:self argument:nil order:0 modes:theRunLoopModes];
+	[runLoop performSelector:@selector(maybeScheduleDisconnect) target:self argument:nil order:0 modes:theRunLoopModes];
 	
-	[runLoop performSelector:@selector(maybeDequeueRead) target:self argument:nil order:0 modes:modes];
-	[runLoop performSelector:@selector(maybeDequeueWrite) target:self argument:nil order:0 modes:modes];
-	[runLoop performSelector:@selector(maybeScheduleDisconnect) target:self argument:nil order:0 modes:modes];
+	return YES;
+}
+
+/**
+ * See the header file for a full explanation of this method.
+**/
+- (BOOL)setRunLoopModes:(NSArray *)runLoopModes
+{
+	if([theRunLoopModes isEqualToArray:runLoopModes])
+	{
+		return YES;
+	}
+	
+	int i;
+	
+	[NSObject cancelPreviousPerformRequestsWithTarget:self];
+	
+	if(theReadStream && theWriteStream)
+	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			
+			CFReadStreamUnscheduleFromRunLoop(theReadStream, theRunLoop, runLoopMode);
+			CFWriteStreamUnscheduleFromRunLoop(theWriteStream, theRunLoop, runLoopMode);
+		}
+		CFReadStreamSetClient(theReadStream, kCFStreamEventNone, NULL, NULL);
+		CFWriteStreamSetClient(theWriteStream, kCFStreamEventNone, NULL, NULL);
+	}
+	if(theSource)
+	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopRemoveSource(theRunLoop, theSource, runLoopMode);
+		}
+	}
+	if(theSource6)
+	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopRemoveSource(theRunLoop, theSource6, runLoopMode);
+		}
+	}
+	
+	[theRunLoopModes release];
+	theRunLoopModes = [runLoopModes copy];
+	
+	if(theSource != NULL)
+	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopAddSource(theRunLoop, theSource, runLoopMode);
+		}
+	}
+	if(theSource6 != NULL)
+	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopAddSource(theRunLoop, theSource6, runLoopMode);
+		}
+	}
+	if(theReadStream && theWriteStream)
+	{
+		if(![self attachStreamsToRunLoop:(NSRunLoop *)theRunLoop error:nil])
+		{
+			return NO;
+		}
+	}
+	
+	[self performSelector:@selector(maybeDequeueRead) withObject:nil afterDelay:0 inModes:theRunLoopModes];
+	[self performSelector:@selector(maybeDequeueWrite) withObject:nil afterDelay:0 inModes:theRunLoopModes];
+	[self performSelector:@selector(maybeScheduleDisconnect) withObject:nil afterDelay:0 inModes:theRunLoopModes];
 	
 	return YES;
 }
@@ -885,19 +988,29 @@ Failed:;
 **/
 - (BOOL)attachSocketsToRunLoop:(NSRunLoop *)runLoop error:(NSError **)errPtr
 {
+	int i;
+	
 	// Get the CFRunLoop to which the socket should be attached.
 	theRunLoop = (runLoop == nil) ? CFRunLoopGetCurrent() : [runLoop getCFRunLoop];
 	
 	if(theSocket)
 	{
 		theSource  = CFSocketCreateRunLoopSource (kCFAllocatorDefault, theSocket, 0);
-		CFRunLoopAddSource (theRunLoop, theSource, kCFRunLoopDefaultMode);
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopAddSource (theRunLoop, theSource, runLoopMode);
+		}
 	}
 	
 	if(theSocket6)
 	{
 		theSource6 = CFSocketCreateRunLoopSource (kCFAllocatorDefault, theSocket6, 0);
-		CFRunLoopAddSource (theRunLoop, theSource6, kCFRunLoopDefaultMode);
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopAddSource (theRunLoop, theSource6, runLoopMode);
+		}
 	}
 	
 	return YES;
@@ -953,9 +1066,10 @@ Failed:;
 **/
 - (void)doAcceptWithSocket:(CFSocketNativeHandle)newNative
 {
-	AsyncSocket *newSocket = [[[[self class] alloc] initWithDelegate:theDelegate] autorelease];
-	
+	// New socket inherits same delegate and run loop modes.
 	// Note: We use [self class] to support subclassing AsyncSocket.
+	AsyncSocket *newSocket = [[[[self class] alloc] initWithDelegate:theDelegate] autorelease];
+	[newSocket setRunLoopModes:theRunLoopModes];
 	
 	if(newSocket)
 	{
@@ -1079,6 +1193,8 @@ Failed:;
 
 - (BOOL)attachStreamsToRunLoop:(NSRunLoop *)runLoop error:(NSError **)errPtr
 {
+	int i;
+	
 	// Get the CFRunLoop to which the socket should be attached.
 	theRunLoop = (runLoop == nil) ? CFRunLoopGetCurrent() : [runLoop getCFRunLoop];
 
@@ -1096,7 +1212,10 @@ Failed:;
 		if (errPtr) *errPtr = err;
 		return NO;
 	}
-	CFReadStreamScheduleWithRunLoop (theReadStream, theRunLoop, kCFRunLoopDefaultMode);
+	for(i = 0; i < [theRunLoopModes count]; i++)
+	{
+		CFReadStreamScheduleWithRunLoop(theReadStream, theRunLoop, (CFStringRef)[theRunLoopModes objectAtIndex:i]);
+	}
 
 	// Make write stream non-blocking.
 	if (!CFWriteStreamSetClient (theWriteStream,
@@ -1113,7 +1232,10 @@ Failed:;
 		return NO;
 		
 	}
-	CFWriteStreamScheduleWithRunLoop (theWriteStream, theRunLoop, kCFRunLoopDefaultMode);
+	for(i = 0; i < [theRunLoopModes count]; i++)
+	{
+		CFWriteStreamScheduleWithRunLoop (theWriteStream, theRunLoop, (CFStringRef)[theRunLoopModes objectAtIndex:i]);
+	}
 	
 	return YES;
 }
@@ -1281,6 +1403,8 @@ Failed:;
 // Disconnects. This is called for both error and clean disconnections.
 - (void)close
 {
+	int i;
+	
 	// Empty queues.
 	[self emptyQueues];
 	[partialReadBuffer release];
@@ -1290,18 +1414,26 @@ Failed:;
 	// Close streams.
 	if (theReadStream != NULL)
 	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFReadStreamUnscheduleFromRunLoop(theReadStream, theRunLoop, runLoopMode);
+		}
 		CFReadStreamSetClient(theReadStream, kCFStreamEventNone, NULL, NULL);
-		CFReadStreamUnscheduleFromRunLoop (theReadStream, theRunLoop, kCFRunLoopDefaultMode);
-		CFReadStreamClose (theReadStream);
-		CFRelease (theReadStream);
+		CFReadStreamClose(theReadStream);
+		CFRelease(theReadStream);
 		theReadStream = NULL;
 	}
 	if (theWriteStream != NULL)
 	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFWriteStreamUnscheduleFromRunLoop(theWriteStream, theRunLoop, runLoopMode);
+		}
 		CFWriteStreamSetClient(theWriteStream, kCFStreamEventNone, NULL, NULL);
-		CFWriteStreamUnscheduleFromRunLoop (theWriteStream, theRunLoop, kCFRunLoopDefaultMode);
-		CFWriteStreamClose (theWriteStream);
-		CFRelease (theWriteStream);
+		CFWriteStreamClose(theWriteStream);
+		CFRelease(theWriteStream);
 		theWriteStream = NULL;
 	}
 	
@@ -1320,13 +1452,21 @@ Failed:;
 	}
 	if (theSource != NULL)
 	{
-		CFRunLoopRemoveSource (theRunLoop, theSource, kCFRunLoopDefaultMode);
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopRemoveSource(theRunLoop, theSource, runLoopMode);
+		}
 		CFRelease (theSource);
 		theSource = NULL;
 	}
 	if (theSource6 != NULL)
 	{
-		CFRunLoopRemoveSource (theRunLoop, theSource6, kCFRunLoopDefaultMode);
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopRemoveSource(theRunLoop, theSource6, runLoopMode);
+		}
 		CFRelease (theSource6);
 		theSource6 = NULL;
 	}
@@ -1339,7 +1479,10 @@ Failed:;
 		// Delay notification to give him freedom to release without returning here and core-dumping.
 		if ([theDelegate respondsToSelector: @selector(onSocketDidDisconnect:)])
 		{
-			[theDelegate performSelector:@selector(onSocketDidDisconnect:) withObject:self afterDelay:0];
+			[theDelegate performSelector:@selector(onSocketDidDisconnect:)
+							  withObject:self
+							  afterDelay:0
+								 inModes:theRunLoopModes];
 		}
 	}
 	
@@ -1725,7 +1868,7 @@ Failed:;
 
 - (NSString *)description
 {
-	static const char *statstr[] = { "not open", "opening", "open", "reading", "writing", "at end", "closed", "has error" };
+	static const char *statstr[] = {"not open","opening","open","reading","writing","at end","closed","has error"};
 	CFStreamStatus rs = (theReadStream != NULL) ? CFReadStreamGetStatus (theReadStream) : 0;
 	CFStreamStatus ws = (theWriteStream != NULL) ? CFWriteStreamGetStatus (theWriteStream) : 0;
 	NSString *peerstr, *selfstr;
@@ -1738,7 +1881,8 @@ Failed:;
 	
 		if(theSocket6 && theSocket)
 		{
-			peerstr = [NSString stringWithFormat: @"%@/%@ %u", [self addressHost:peeraddr], [self addressHost:peeraddr6], [self addressPort:peeraddr]];
+			peerstr = [NSString stringWithFormat: @"%@/%@ %u", 
+					   [self addressHost:peeraddr], [self addressHost:peeraddr6], [self addressPort:peeraddr]];
 		}
 		else if(theSocket6)
 		{
@@ -1763,7 +1907,8 @@ Failed:;
 	
 		if (theSocket6 && theSocket)
 		{
-			selfstr = [NSString stringWithFormat: @"%@/%@ %u", [self addressHost:selfaddr], [self addressHost:selfaddr6], [self addressPort:selfaddr]];
+			selfstr = [NSString stringWithFormat: @"%@/%@ %u",
+					   [self addressHost:selfaddr], [self addressHost:selfaddr6], [self addressPort:selfaddr]];
 		}
 		else if (theSocket6)
 		{
@@ -1902,7 +2047,7 @@ Failed:;
 **/
 - (void)scheduleDequeueRead
 {
-	[self performSelector:@selector(maybeDequeueRead) withObject:nil afterDelay:0];
+	[self performSelector:@selector(maybeDequeueRead) withObject:nil afterDelay:0 inModes:theRunLoopModes];
 }
 
 /**
@@ -2185,7 +2330,7 @@ Failed:;
 
 - (void)scheduleDequeueWrite
 {
-	[self performSelector:@selector(maybeDequeueWrite) withObject:nil afterDelay:0];
+	[self performSelector:@selector(maybeDequeueWrite) withObject:nil afterDelay:0 inModes:theRunLoopModes];
 }
 
 // Start a new write.
@@ -2289,7 +2434,7 @@ Failed:;
 	{
 		if(([theWriteQueue count] == 0) && (theCurrentWrite == nil))
 		{
-			[self performSelector:@selector(disconnect) withObject:nil afterDelay:0];
+			[self performSelector:@selector(disconnect) withObject:nil afterDelay:0 inModes:theRunLoopModes];
 		}
 	}
 }

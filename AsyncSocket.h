@@ -106,6 +106,7 @@ typedef enum AsyncSocketError AsyncSocketError;
 	CFRunLoopSourceRef theSource6;     // For theSocket6
 	CFRunLoopRef theRunLoop;
 	CFSocketContext theContext;
+	NSArray *theRunLoopModes;
 
 	NSMutableArray *theReadQueue;
 	AsyncReadPacket *theCurrentRead;
@@ -241,19 +242,16 @@ typedef enum AsyncSocketError AsyncSocketError;
 
 /**
  * For handling readDataToData requests, data is necessarily read from the socket in small increments.
- * The performance can be improved by allowing AsyncSocket to read larger chunks at a time and
+ * The performance can be much improved by allowing AsyncSocket to read larger chunks at a time and
  * store any overflow in a small internal buffer.
  * This is termed pre-buffering, as some data may be read for you before you ask for it.
- * If you use readDataToData a lot, enabling pre-buffering may offer a small performance improvement.
+ * If you use readDataToData a lot, enabling pre-buffering will result in better performance.
  * 
- * Pre-buffering is disabled by default. You must explicitly enable it to turn it on.
+ * The default pre-buffering state is controlled by the DEFAULT_PREBUFFERING definition.
+ * It is highly recommended one leave this set to YES.
  * 
- * Note: If your protocol negotiates upgrades to TLS (as opposed to using TLS from the start), you should
- * consider how, if at all, pre-buffering could affect the TLS negotiation sequence.
- * This is because TLS runs atop TCP, and requires sending/receiving a TLS handshake over the TCP socket.
- * If the negotiation sequence is poorly designed, pre-buffering could potentially pre-read part of the TLS handshake,
- * thus causing TLS to fail. In almost all cases, especially when implementing a formalized protocol, this will never
- * be a hazard.
+ * This method exists in case pre-buffering needs to be disabled by default for some reason.
+ * In that case, this method exists to allow one to easily enable pre-buffering when ready.
 **/
 - (void)enablePreBuffering;
 
@@ -273,6 +271,17 @@ typedef enum AsyncSocketError AsyncSocketError;
  * Also, all delegate calls will be sent on the given runloop.
 **/
 - (BOOL)moveToRunLoop:(NSRunLoop *)runLoop;
+
+/**
+ * Allows you to configure which run modes the socket uses.
+ * The default set of run loop modes is NSDefaultRunLoopMode.
+ * 
+ * If you'd like your socket to continue operation during other modes, you may want to add modes such as
+ * NSModalPanelRunLoopMode or NSEventTrackingRunLoopMode. Or you may simply want to use NSRunLoopCommonModes.
+ * 
+ * Note: Accepted sockets will automatically inherit the same run loop modes as the listening socket.
+**/
+- (BOOL)setRunLoopModes:(NSArray *)runLoopModes;
 
 /**
  * In the event of an error, this method may be called during onSocket:willDisconnectWithError: to read

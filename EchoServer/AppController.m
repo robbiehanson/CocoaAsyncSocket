@@ -35,6 +35,9 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
 	NSLog(@"Ready");
+	
+	// Advanced options - enable the socket to contine operations even during modal dialogs, and menu browsing
+	[listenSocket setRunLoopModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
 }
 
 - (void)scrollToBottom
@@ -141,7 +144,6 @@
 
 - (void)onSocket:(AsyncSocket *)sock didAcceptNewSocket:(AsyncSocket *)newSocket
 {
-	[newSocket enablePreBuffering];
 	[connectedSockets addObject:newSocket];
 }
 
