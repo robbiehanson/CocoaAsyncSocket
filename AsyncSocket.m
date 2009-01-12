@@ -1405,10 +1405,12 @@ Failed:;
 {
 	int i;
 	
-	// Empty queues.
+	// Empty queues
 	[self emptyQueues];
-	[partialReadBuffer release];
-	partialReadBuffer = nil;
+	
+	// Clear partialReadBuffer (pre-buffer and also unreadData buffer in case of error)
+	[partialReadBuffer replaceBytesInRange:NSMakeRange(0, [partialReadBuffer length]) withBytes:NULL length:0];
+	
 	[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(disconnect) object:nil];
 	
 	// Close streams.
