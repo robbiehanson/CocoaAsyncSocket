@@ -375,13 +375,15 @@ static NSMutableArray *recentNonces;
 			}
 		}
 		
-		if([[auth nc] intValue] <= lastNC)
+		long authNC = strtol([[auth nc] UTF8String], NULL, 16);
+		
+		if(authNC <= lastNC)
 		{
 			// The nc value (nonce count) hasn't been incremented since the last request
 			// This could be a replay attack
 			return NO;
 		}
-		lastNC = [[auth nc] intValue];
+		lastNC = authNC;
 		
 		NSString *HA1str = [NSString stringWithFormat:@"%@:%@:%@", [auth username], [auth realm], password];
 		NSString *HA2str = [NSString stringWithFormat:@"%@:%@", method, [auth uri]];

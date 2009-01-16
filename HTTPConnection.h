@@ -21,7 +21,7 @@
 	int numHeaderLines;
 	
 	NSString *nonce;
-	int lastNC;
+	long lastNC;
 	
 	NSObject<HTTPResponse> *httpResponse;
 	
