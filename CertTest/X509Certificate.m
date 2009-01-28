@@ -554,6 +554,32 @@ static void AddCSSMField(const CSSM_FIELD *field, NSMutableDictionary *dict)
 	return result;
 }
 
++ (NSDictionary *)extractCertDictFromIdentity:(SecIdentityRef)identity
+{
+	if(identity == NULL)
+	{
+		return nil;
+	}
+	
+	NSDictionary *result = nil;
+	SecCertificateRef cert = NULL;
+	
+	OSStatus err = SecIdentityCopyCertificate(identity, &cert);
+	if(err)
+	{
+		cssmPerror("SecIdentityCopyCertificate", err);
+		return nil;
+	}
+	else
+	{
+		result = [self extractCertDictFromCert:cert];
+	}
+	
+	if(cert) CFRelease(cert);
+	
+	return result;
+}
+
 + (NSDictionary *)extractCertDictFromCert:(SecCertificateRef)cert
 {
 	CSSM_CL_HANDLE clHandle = CLStartup();

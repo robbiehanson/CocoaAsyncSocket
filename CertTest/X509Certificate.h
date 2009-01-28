@@ -38,6 +38,7 @@
 @interface X509Certificate : NSObject
 
 + (NSDictionary *)extractCertDictFromReadStream:(CFReadStreamRef)readStream;
++ (NSDictionary *)extractCertDictFromIdentity:(SecIdentityRef)identity;
 + (NSDictionary *)extractCertDictFromCert:(SecCertificateRef)cert;
 
 @end

@@ -25,9 +25,11 @@
 	}
 }
 
-- (BOOL)onSocketWillConnect:(AsyncSocket *)sock
+- (void)onSocket:(AsyncSocket *)sock didConnectToHost:(NSString *)host port:(UInt16)port
 {
-	// Connecting to a secure server
+	NSLog(@"onSocket:%p didConnectToHost:%@ port:%hu", sock, host, port);
+	
+	// Configure SSL/TLS settings
 	NSMutableDictionary *settings = [NSMutableDictionary dictionaryWithCapacity:4];
 	
 	// Use the highest possible security
@@ -46,22 +48,25 @@
 	[settings setObject:[NSNumber numberWithBool:NO]
 				 forKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
 	
-	CFReadStreamSetProperty([asyncSocket getCFReadStream],
-							kCFStreamPropertySSLSettings, (CFDictionaryRef)settings);
-	CFWriteStreamSetProperty([asyncSocket getCFWriteStream],
-							 kCFStreamPropertySSLSettings, (CFDictionaryRef)settings);
-	
-	return YES;
+	[sock startTLS:settings];
 }
 
-- (void)onSocket:(AsyncSocket *)sock didConnectToHost:(NSString *)host port:(UInt16)port
+- (void)onSocket:(AsyncSocket *)sock didSecure:(BOOL)flag
 {
-	NSLog(@"onSocket:%p didConnectToHost:%@ port:%hu", sock, host, port);
+	if(flag)
+		NSLog(@"onSocket:%p didSecure:YES", sock);
+	else
+		NSLog(@"onSocket:%p didSecure:NO", sock);
 }
 
 - (void)onSocket:(AsyncSocket *)sock willDisconnectWithError:(NSError *)err
 {
 	NSLog(@"onSocket:%p willDisconnectWithError:%@", sock, err);
+}
+
+- (void)onSocketDidDisconnect:(AsyncSocket *)sock
+{
+	NSLog(@"onSocketDidDisconnect:%p", sock);
 }
 
 - (IBAction)printCert:(id)sender
