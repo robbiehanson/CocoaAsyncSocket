@@ -1077,10 +1077,28 @@ static NSMutableArray *recentNonces;
 	// Override me to customize the response headers
 	// You'll likely want to add your own custom headers, and then return [super preprocessResponse:response]
 	
+	// Add standard headers
 	NSString *now = [self dateAsString:[NSDate date]];
 	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Date"), (CFStringRef)now);
 	
+	// Add server capability headers
 	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Accept-Ranges"), CFSTR("bytes"));
+	
+	// Add optional response headers
+	if([httpResponse respondsToSelector:@selector(httpHeaders:)])
+	{
+		NSDictionary *responseHeaders = [httpResponse httpHeaders];
+		
+		NSEnumerator *keyEnumerator = [responseHeaders keyEnumerator];
+		NSString *key;
+		
+		while(key = [keyEnumerator nextObject])
+		{
+			NSString *value = [responseHeaders objectForKey:key];
+			
+			CFHTTPMessageSetHeaderFieldValue(response, (CFStringRef)key, (CFStringRef)value);
+		}
+	}
 	
 	NSData *result = NSMakeCollectable(CFHTTPMessageCopySerializedMessage(response));
 	return [result autorelease];
@@ -1111,10 +1129,28 @@ static NSMutableArray *recentNonces;
 	//     CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), (CFStringRef)contentLengthStr);
 	// }
 	
+	// Add standard headers
 	NSString *now = [self dateAsString:[NSDate date]];
 	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Date"), (CFStringRef)now);
 	
+	// Add server capability headers
 	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Accept-Ranges"), CFSTR("bytes"));
+	
+	// Add optional response headers
+	if([httpResponse respondsToSelector:@selector(httpHeaders:)])
+	{
+		NSDictionary *responseHeaders = [httpResponse httpHeaders];
+		
+		NSEnumerator *keyEnumerator = [responseHeaders keyEnumerator];
+		NSString *key;
+		
+		while(key = [keyEnumerator nextObject])
+		{
+			NSString *value = [responseHeaders objectForKey:key];
+			
+			CFHTTPMessageSetHeaderFieldValue(response, (CFStringRef)key, (CFStringRef)value);
+		}
+	}
 	
 	NSData *result = NSMakeCollectable(CFHTTPMessageCopySerializedMessage(response));
 	return [result autorelease];
