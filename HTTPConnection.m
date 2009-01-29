@@ -264,7 +264,9 @@ static NSMutableArray *recentNonces;
 	// Override me to provide proper password authentication
 	// You can configure a password for the entire server, or custom passwords for users and/or resources
 	
-	// Note: A password of nil, or a zero-length password is considered the equivalent of no password
+	// Security Note:
+	// A nil password means no access at all. (Such as for user doesn't exist)
+	// An empty string password is allowed, and will be treated as any other password. (To support anonymous access)
 	
 	return nil;
 }
@@ -329,11 +331,10 @@ static NSMutableArray *recentNonces;
 		}
 		
 		NSString *password = [self passwordForUser:[auth username]];
-		if((password == nil) || ([password length] == 0))
+		if(password == nil)
 		{
-			// There is no password set, or the password is an empty string
-			// We can consider this the equivalent of not using password protection
-			return YES;
+			// No access allowed (username doesn't exist in system)
+			return NO;
 		}
 		
 		NSString *method = [NSMakeCollectable(CFHTTPMessageCopyRequestMethod(request)) autorelease];
@@ -431,11 +432,10 @@ static NSMutableArray *recentNonces;
 		NSString *credPassword = [credentials substringFromIndex:(colonRange.location + colonRange.length)];
 		
 		NSString *password = [self passwordForUser:credUsername];
-		if((password == nil) || ([password length] == 0))
+		if(password == nil)
 		{
-			// There is no password set, or the password is an empty string
-			// We can consider this the equivalent of not using password protection
-			return YES;
+			// No access allowed (username doesn't exist in system)
+			return NO;
 		}
 		
 		return [password isEqualToString:credPassword];
