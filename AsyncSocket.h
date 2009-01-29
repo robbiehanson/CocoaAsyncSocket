@@ -93,7 +93,17 @@ typedef enum AsyncSocketError AsyncSocketError;
 **/
 - (void)onSocket:(AsyncSocket *)sock didWriteDataWithTag:(long)tag;
 
+/**
+ * Called after the socket has completed SSL/TLS negotiation.
+ * This method is not called unless you use the provided startTLS method.
+**/
+- (void)onSocket:(AsyncSocket *)sock didSecure:(BOOL)flag;
+
 @end
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark -
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 @interface AsyncSocket : NSObject
 {
@@ -106,6 +116,7 @@ typedef enum AsyncSocketError AsyncSocketError;
 	CFRunLoopSourceRef theSource6;     // For theSocket6
 	CFRunLoopRef theRunLoop;
 	CFSocketContext theContext;
+	NSArray *theRunLoopModes;
 
 	NSMutableArray *theReadQueue;
 	AsyncReadPacket *theCurrentRead;
@@ -162,11 +173,24 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (void)disconnect;
 
 /**
+ * Disconnects after all pending reads have completed.
+ * After calling this, the read and write methods will do nothing.
+ * The socket will disconnect even if there are still pending writes.
+**/
+- (void)disconnectAfterReading;
+
+/**
  * Disconnects after all pending writes have completed.
- * After calling this, the read and write methods (including "readDataWithTimeout:tag:") will do nothing.
+ * After calling this, the read and write methods will do nothing.
  * The socket will disconnect even if there are still pending reads.
 **/
 - (void)disconnectAfterWriting;
+
+/**
+ * Disconnects after all pending reads and writes have completed.
+ * After calling this, the read and write methods will do nothing.
+**/
+- (void)disconnectAfterReadingAndWriting;
 
 /* Returns YES if the socket and streams are open, connected, and ready for reading and writing. */
 - (BOOL)isConnected;
@@ -226,7 +250,8 @@ typedef enum AsyncSocketError AsyncSocketError;
 **/
 - (void)readDataWithTimeout:(NSTimeInterval)timeout tag:(long)tag;
 
-/* Writes data to the socket, and calls the delegate when finished.
+/**
+ * Writes data to the socket, and calls the delegate when finished.
  * 
  * If you pass in nil or zero-length data, this method does nothing and the delegate will not be called.
 **/
@@ -240,20 +265,42 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (float)progressOfWriteReturningTag:(long *)tag bytesDone:(CFIndex *)done total:(CFIndex *)total;
 
 /**
+ * Secures the connection using SSL/TLS.
+ * 
+ * This method may be called at any time, and the TLS handshake will occur after all pending reads and writes
+ * are finished. This allows one the option of sending a protocol dependent StartTLS message, and queuing
+ * the upgrade to TLS at the same time, without having to wait for the write to finish.
+ * Any reads or writes scheduled after this method is called will occur over the secured connection.
+ * 
+ * The possible keys and values for the TLS settings are well documented.
+ * Some possible keys are:
+ * - kCFStreamSSLLevel
+ * - kCFStreamSSLAllowsExpiredCertificates
+ * - kCFStreamSSLAllowsExpiredRoots
+ * - kCFStreamSSLAllowsAnyRoot
+ * - kCFStreamSSLValidatesCertificateChain
+ * - kCFStreamSSLPeerName
+ * - kCFStreamSSLCertificates
+ * - kCFStreamSSLIsServer
+ * 
+ * Please refer to Apple's documentation for associated values, as well as other possible keys.
+ * 
+ * If you pass in nil or an empty dictionary, this method does nothing and the delegate will not be called.
+**/
+- (void)startTLS:(NSDictionary *)tlsSettings;
+
+/**
  * For handling readDataToData requests, data is necessarily read from the socket in small increments.
- * The performance can be improved by allowing AsyncSocket to read larger chunks at a time and
+ * The performance can be much improved by allowing AsyncSocket to read larger chunks at a time and
  * store any overflow in a small internal buffer.
  * This is termed pre-buffering, as some data may be read for you before you ask for it.
- * If you use readDataToData a lot, enabling pre-buffering may offer a small performance improvement.
+ * If you use readDataToData a lot, enabling pre-buffering will result in better performance, especially on the iPhone.
  * 
- * Pre-buffering is disabled by default. You must explicitly enable it to turn it on.
+ * The default pre-buffering state is controlled by the DEFAULT_PREBUFFERING definition.
+ * It is highly recommended one leave this set to YES.
  * 
- * Note: If your protocol negotiates upgrades to TLS (as opposed to using TLS from the start), you should
- * consider how, if at all, pre-buffering could affect the TLS negotiation sequence.
- * This is because TLS runs atop TCP, and requires sending/receiving a TLS handshake over the TCP socket.
- * If the negotiation sequence is poorly designed, pre-buffering could potentially pre-read part of the TLS handshake,
- * thus causing TLS to fail. In almost all cases, especially when implementing a formalized protocol, this will never
- * be a hazard.
+ * This method exists in case pre-buffering needs to be disabled by default for some reason.
+ * In that case, this method exists to allow one to easily enable pre-buffering when ready.
 **/
 - (void)enablePreBuffering;
 
@@ -275,12 +322,25 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (BOOL)moveToRunLoop:(NSRunLoop *)runLoop;
 
 /**
+ * Allows you to configure which run loop modes the socket uses.
+ * The default set of run loop modes is NSDefaultRunLoopMode.
+ * 
+ * If you'd like your socket to continue operation during other modes, you may want to add modes such as
+ * NSModalPanelRunLoopMode or NSEventTrackingRunLoopMode. Or you may simply want to use NSRunLoopCommonModes.
+ * 
+ * Accepted sockets will automatically inherit the same run loop modes as the listening socket.
+ * 
+ * Note: NSRunLoopCommonModes is defined in 10.5. For previous versions one can use kCFRunLoopCommonModes.
+**/
+- (BOOL)setRunLoopModes:(NSArray *)runLoopModes;
+
+/**
  * In the event of an error, this method may be called during onSocket:willDisconnectWithError: to read
  * any data that's left on the socket.
 **/
 - (NSData *)unreadData;
 
-/* A few common line separators, for use with "readDataToData:withTimeout:tag:". */
+/* A few common line separators, for use with the readDataToData:... methods. */
 + (NSData *)CRLFData;   // 0x0D0A
 + (NSData *)CRData;     // 0x0D
 + (NSData *)LFData;     // 0x0A
