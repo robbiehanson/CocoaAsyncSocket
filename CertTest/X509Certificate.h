@@ -11,6 +11,7 @@
 //  This class does not extract every bit of available information, just the most common fields.
 
 #import <Foundation/Foundation.h>
+@class AsyncSocket;
 
 // Top Level Keys
 #define X509_ISSUER                     @"Issuer"
@@ -37,6 +38,7 @@
 
 @interface X509Certificate : NSObject
 
++ (NSDictionary *)extractCertDictFromAsyncSocket:(AsyncSocket *)socket;
 + (NSDictionary *)extractCertDictFromReadStream:(CFReadStreamRef)readStream;
 + (NSDictionary *)extractCertDictFromIdentity:(SecIdentityRef)identity;
 + (NSDictionary *)extractCertDictFromCert:(SecCertificateRef)cert;

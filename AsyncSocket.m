@@ -1582,19 +1582,36 @@ Failed:;
 **/
 - (void)maybeScheduleDisconnect
 {
+	BOOL shouldDisconnect = NO;
+	
 	if(theFlags & kDisconnectAfterReads)
 	{
 		if(([theReadQueue count] == 0) && (theCurrentRead == nil))
 		{
-			[self performSelector:@selector(disconnect) withObject:nil afterDelay:0 inModes:theRunLoopModes];
+			if(theFlags & kDisconnectAfterWrites)
+			{
+				if(([theWriteQueue count] == 0) && (theCurrentWrite == nil))
+				{
+					shouldDisconnect = YES;
+				}
+			}
+			else
+			{
+				shouldDisconnect = YES;
+			}
 		}
 	}
 	else if(theFlags & kDisconnectAfterWrites)
 	{
 		if(([theWriteQueue count] == 0) && (theCurrentWrite == nil))
 		{
-			[self performSelector:@selector(disconnect) withObject:nil afterDelay:0 inModes:theRunLoopModes];
+			shouldDisconnect = YES;
 		}
+	}
+	
+	if(shouldDisconnect)
+	{
+		[self performSelector:@selector(disconnect) withObject:nil afterDelay:0 inModes:theRunLoopModes];
 	}
 }
 

@@ -30,23 +30,26 @@
 	NSLog(@"onSocket:%p didConnectToHost:%@ port:%hu", sock, host, port);
 	
 	// Configure SSL/TLS settings
-	NSMutableDictionary *settings = [NSMutableDictionary dictionaryWithCapacity:4];
+	NSMutableDictionary *settings = [NSMutableDictionary dictionaryWithCapacity:3];
 	
-	// Use the highest possible security
-	[settings setObject:(NSString *)kCFStreamSocketSecurityLevelNegotiatedSSL
-				 forKey:(NSString *)kCFStreamSSLLevel];
+	/* For your regular security checks, use only this setting */
 	
-	// Allow expired certificates
-	[settings setObject:[NSNumber numberWithBool:YES]
-				 forKey:(NSString *)kCFStreamSSLAllowsExpiredCertificates];
+	[settings setObject:@"www.paypal.com"
+				 forKey:(NSString *)kCFStreamSSLPeerName];
 	
-	// Allow self-signed certificates
-	[settings setObject:[NSNumber numberWithBool:YES]
-				 forKey:(NSString *)kCFStreamSSLAllowsAnyRoot];
+	/* To connect to a test server, with a self-signed certificate, use settings similar to this */
 	
-	// In fact, don't even validate the certificate chain
-	[settings setObject:[NSNumber numberWithBool:NO]
-				 forKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
+//	// Allow expired certificates
+//	[settings setObject:[NSNumber numberWithBool:YES]
+//				 forKey:(NSString *)kCFStreamSSLAllowsExpiredCertificates];
+//	
+//	// Allow self-signed certificates
+//	[settings setObject:[NSNumber numberWithBool:YES]
+//				 forKey:(NSString *)kCFStreamSSLAllowsAnyRoot];
+//	
+//	// In fact, don't even validate the certificate chain
+//	[settings setObject:[NSNumber numberWithBool:NO]
+//				 forKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
 	
 	[sock startTLS:settings];
 }
@@ -71,7 +74,7 @@
 
 - (IBAction)printCert:(id)sender
 {
-	NSDictionary *cert = [X509Certificate extractCertDictFromReadStream:[asyncSocket getCFReadStream]];
+	NSDictionary *cert = [X509Certificate extractCertDictFromAsyncSocket:asyncSocket];
 	NSLog(@"X509 Certificate: \n%@", cert);
 }
 

@@ -11,6 +11,7 @@
 //  This class does not extract every bit of available information, just the most common fields.
 
 #import "X509Certificate.h"
+#import "AsyncSocket.h"
 #import <Security/Security.h>
 
 #define UTC_TIME_STRLEN          13
@@ -529,6 +530,16 @@ static void AddCSSMField(const CSSM_FIELD *field, NSMutableDictionary *dict)
 			}
 		}
 	}
+}
+
++ (NSDictionary *)extractCertDictFromAsyncSocket:(AsyncSocket *)socket
+{
+	if(socket == nil)
+	{
+		return nil;
+	}
+	
+	return [self extractCertDictFromReadStream:[socket getCFReadStream]];
 }
 
 + (NSDictionary *)extractCertDictFromReadStream:(CFReadStreamRef)readStream
