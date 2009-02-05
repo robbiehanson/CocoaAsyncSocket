@@ -37,6 +37,7 @@ typedef enum AsyncUdpSocketError AsyncUdpSocketError;
 	CFRunLoopSourceRef theSource6;     // For theSocket6
 	CFRunLoopRef theRunLoop;
 	CFSocketContext theContext;
+	NSArray *theRunLoopModes;
 	
 	NSMutableArray *theSendQueue;
 	AsyncSendPacket *theCurrentSend;
@@ -179,7 +180,7 @@ typedef enum AsyncUdpSocketError AsyncUdpSocketError;
 /**
  * Join multicast group
  *
- * Group should be an IP address (@"225.228.0.1")
+ * Group should be an IP address (eg @"225.228.0.1")
 **/
 - (BOOL)joinMulticastGroup:(NSString *)group error:(NSError **)errPtr;
 - (BOOL)joinMulticastGroup:(NSString *)group withAddress:(NSString *)interface error:(NSError **)errPtr;
@@ -230,17 +231,26 @@ typedef enum AsyncUdpSocketError AsyncUdpSocketError;
 
 /**
  * Closes after all pending send operations have completed.
- * After calling this, the send and receive methods will do nothing.
+ * After calling this, the sendData: and receive: methods will do nothing.
+ * In other words, you won't be able to add any more send or receive operations to the queue.
  * The socket will close even if there are still pending receive operations.
 **/
 - (void)closeAfterSending;
 
 /**
  * Closes after all pending receive operations have completed.
- * After calling this, the send and receive methods will do nothing.
+ * After calling this, the sendData: and receive: methods will do nothing.
+ * In other words, you won't be able to add any more send or receive operations to the queue.
  * The socket will close even if there are still pending send operations.
 **/
 - (void)closeAfterReceiving;
+
+/**
+ * Closes after all pending send and receive operations have completed.
+ * After calling this, the sendData: and receive: methods will do nothing.
+ * In other words, you won't be able to add any more send or receive operations to the queue.
+**/
+- (void)closeAfterSendingAndReceiving;
 
 /**
  * Gets/Sets the maximum size of the buffer that will be allocated for receive operations.
@@ -258,6 +268,31 @@ typedef enum AsyncUdpSocketError AsyncUdpSocketError;
 **/
 - (UInt32)maxReceiveBufferSize;
 - (void)setMaxReceiveBufferSize:(UInt32)max;
+
+/**
+ * When you create an AsyncUdpSocket, it is added to the runloop of the current thread.
+ * So it is easiest to simply create the socket on the thread you intend to use it.
+ * 
+ * If, however, you need to move the socket to a separate thread at a later time, this
+ * method may be used to accomplish the task.
+ * 
+ * This method must be called from the thread/runloop the socket is currently running on.
+ * 
+ * Note: After calling this method, all further method calls to this object should be done from the given runloop.
+ * Also, all delegate calls will be sent on the given runloop.
+**/
+- (BOOL)moveToRunLoop:(NSRunLoop *)runLoop;
+
+/**
+ * Allows you to configure which run loop modes the socket uses.
+ * The default set of run loop modes is NSDefaultRunLoopMode.
+ * 
+ * If you'd like your socket to continue operation during other modes, you may want to add modes such as
+ * NSModalPanelRunLoopMode or NSEventTrackingRunLoopMode. Or you may simply want to use NSRunLoopCommonModes.
+ * 
+ * Note: NSRunLoopCommonModes is defined in 10.5. For previous versions one can use kCFRunLoopCommonModes.
+**/
+- (BOOL)setRunLoopModes:(NSArray *)runLoopModes;
 
 @end
 

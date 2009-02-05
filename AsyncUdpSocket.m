@@ -253,18 +253,30 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		// Get the CFRunLoop to which the socket should be attached.
 		theRunLoop = CFRunLoopGetCurrent();
 		
+		// Set default run loop modes
+		theRunLoopModes = [[NSArray arrayWithObject:NSDefaultRunLoopMode] retain];
+		
 		// Attach the sockets to the run loop
+		unsigned i;
 		
 		if(theSocket4)
 		{
-			theSource4  = CFSocketCreateRunLoopSource(kCFAllocatorDefault, theSocket4, 0);
-			CFRunLoopAddSource(theRunLoop, theSource4, kCFRunLoopDefaultMode);
+			theSource4 = CFSocketCreateRunLoopSource(kCFAllocatorDefault, theSocket4, 0);
+			for(i = 0; i < [theRunLoopModes count]; i++)
+			{
+				CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+				CFRunLoopAddSource(theRunLoop, theSource4, runLoopMode);
+			}
 		}
 		
 		if(theSocket6)
 		{
 			theSource6 = CFSocketCreateRunLoopSource(kCFAllocatorDefault, theSocket6, 0);
-			CFRunLoopAddSource(theRunLoop, theSource6, kCFRunLoopDefaultMode);
+			for(i = 0; i < [theRunLoopModes count]; i++)
+			{
+				CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+				CFRunLoopAddSource(theRunLoop, theSource6, runLoopMode);
+			}
 		}
 		
 		cachedLocalPort = 0;
@@ -303,6 +315,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	[self close];
 	[theSendQueue release];
 	[theReceiveQueue release];
+	[theRunLoopModes release];
 	[cachedLocalHost release];
 	[cachedConnectedHost release];
 	[NSObject cancelPreviousPerformRequestsWithTarget:theDelegate selector:@selector(onUdpSocketDidClose:) object:self];
@@ -334,6 +347,10 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	theUserData = userData;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark Configuration
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 - (UInt32)maxReceiveBufferSize
 {
 	return maxReceiveBufferSize;
@@ -342,6 +359,123 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 - (void)setMaxReceiveBufferSize:(UInt32)max
 {
 	maxReceiveBufferSize = max;
+}
+
+/**
+ * See the header file for a full explanation of this method.
+**/
+- (BOOL)moveToRunLoop:(NSRunLoop *)runLoop
+{
+	NSAssert((theRunLoop == CFRunLoopGetCurrent()), @"moveToRunLoop must be called from within the current RunLoop!");
+	
+	if(theRunLoop == [runLoop getCFRunLoop])
+	{
+		return YES;
+	}
+	
+	unsigned i;
+	
+	[NSObject cancelPreviousPerformRequestsWithTarget:self];
+	
+	if(theSource4)
+	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopRemoveSource(theRunLoop, theSource4, runLoopMode);
+		}
+	}
+	if(theSource6)
+	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopRemoveSource(theRunLoop, theSource6, runLoopMode);
+		}
+	}
+	
+	theRunLoop = [runLoop getCFRunLoop];
+	
+	if(theSource4)
+	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopAddSource(theRunLoop, theSource4, runLoopMode);
+		}
+	}
+	if(theSource6)
+	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopAddSource(theRunLoop, theSource6, runLoopMode);
+		}
+	}
+	
+	[runLoop performSelector:@selector(maybeDequeueSend) target:self argument:nil order:0 modes:theRunLoopModes];
+	[runLoop performSelector:@selector(maybeDequeueReceive) target:self argument:nil order:0 modes:theRunLoopModes];
+	[runLoop performSelector:@selector(maybeScheduleClose) target:self argument:nil order:0 modes:theRunLoopModes];
+	
+	return YES;
+}
+
+/**
+ * See the header file for a full explanation of this method.
+**/
+- (BOOL)setRunLoopModes:(NSArray *)runLoopModes
+{
+	if([theRunLoopModes isEqualToArray:runLoopModes])
+	{
+		return YES;
+	}
+	
+	unsigned i;
+	
+	[NSObject cancelPreviousPerformRequestsWithTarget:self];
+	
+	if(theSource4)
+	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopRemoveSource(theRunLoop, theSource4, runLoopMode);
+		}
+	}
+	if(theSource6)
+	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopRemoveSource(theRunLoop, theSource6, runLoopMode);
+		}
+	}
+	
+	[theRunLoopModes release];
+	theRunLoopModes = [runLoopModes copy];
+	
+	if(theSource4)
+	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopAddSource(theRunLoop, theSource4, runLoopMode);
+		}
+	}
+	if(theSource6)
+	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopAddSource(theRunLoop, theSource6, runLoopMode);
+		}
+	}
+	
+	[self performSelector:@selector(maybeDequeueSend) withObject:nil afterDelay:0 inModes:theRunLoopModes];
+	[self performSelector:@selector(maybeDequeueReceive) withObject:nil afterDelay:0 inModes:theRunLoopModes];
+	[self performSelector:@selector(maybeScheduleClose) withObject:nil afterDelay:0 inModes:theRunLoopModes];
+	
+	return YES;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1030,7 +1164,12 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	}
 	if (theSource4 != NULL)
 	{
-		CFRunLoopRemoveSource(theRunLoop, theSource4, kCFRunLoopDefaultMode);
+		unsigned i;
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopRemoveSource(theRunLoop, theSource4, runLoopMode);
+		}
 		CFRelease(theSource4);
 		theSource4 = NULL;
 	}
@@ -1046,7 +1185,12 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	}
 	if (theSource6 != NULL)
 	{
-		CFRunLoopRemoveSource(theRunLoop, theSource6, kCFRunLoopDefaultMode);
+		unsigned i;
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopRemoveSource(theRunLoop, theSource6, runLoopMode);
+		}
 		CFRelease(theSource6);
 		theSource6 = NULL;
 	}
@@ -1063,7 +1207,10 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	// Delay notification to give user freedom to release without returning here and core-dumping.
 	if ([theDelegate respondsToSelector: @selector(onUdpSocketDidClose:)])
 	{
-		[theDelegate performSelector:@selector(onUdpSocketDidClose:) withObject:self afterDelay:0];
+		[theDelegate performSelector:@selector(onUdpSocketDidClose:)
+						  withObject:self
+						  afterDelay:0
+							 inModes:theRunLoopModes];
 	}
 	
 	theFlags |= kDidClose;
@@ -1073,8 +1220,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 {
 	if(theFlags & kDidClose) return;
 	
-	theFlags |= kForbidSendReceive;
-	theFlags |= kCloseAfterSends;
+	theFlags |= (kForbidSendReceive | kCloseAfterSends);
 	[self maybeScheduleClose];
 }
 
@@ -1082,26 +1228,50 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 {
 	if(theFlags & kDidClose) return;
 	
-	theFlags |= kForbidSendReceive;
-	theFlags |= kCloseAfterReceives;
+	theFlags |= (kForbidSendReceive | kCloseAfterReceives);
+	[self maybeScheduleClose];
+}
+
+- (void)closeAfterSendingAndReceiving
+{
+	if(theFlags & kDidClose) return;
+	
+	theFlags |= (kForbidSendReceive | kCloseAfterSends | kCloseAfterReceives);
 	[self maybeScheduleClose];
 }
 
 - (void)maybeScheduleClose
 {
+	BOOL shouldDisconnect = NO;
+	
 	if(theFlags & kCloseAfterSends)
 	{
 		if(([theSendQueue count] == 0) && (theCurrentSend == nil))
 		{
-			[self performSelector:@selector(close) withObject:nil afterDelay:0];
+			if(theFlags & kCloseAfterReceives)
+			{
+				if(([theReceiveQueue count] == 0) && (theCurrentReceive == nil))
+				{
+					shouldDisconnect = YES;
+				}
+			}
+			else
+			{
+				shouldDisconnect = YES;
+			}
 		}
 	}
-	if(theFlags & kCloseAfterReceives)
+	else if(theFlags & kCloseAfterReceives)
 	{
 		if(([theReceiveQueue count] == 0) && (theCurrentReceive == nil))
 		{
-			[self performSelector:@selector(close) withObject:nil afterDelay:0];
+			shouldDisconnect = YES;
 		}
+	}
+	
+	if(shouldDisconnect)
+	{
+		[self performSelector:@selector(close) withObject:nil afterDelay:0 inModes:theRunLoopModes];
 	}
 }
 
@@ -1544,7 +1714,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 **/
 - (void)scheduleDequeueSend
 {
-	[self performSelector:@selector(maybeDequeueSend) withObject:nil afterDelay:0];
+	[self performSelector:@selector(maybeDequeueSend) withObject:nil afterDelay:0 inModes:theRunLoopModes];
 }
 
 /**
@@ -1577,7 +1747,17 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		}
 		else if(theFlags & kCloseAfterSends)
 		{
-			[self close];
+			if(theFlags & kCloseAfterReceives)
+			{
+				if(([theReceiveQueue count] == 0) && (theCurrentReceive == nil))
+				{
+					[self close];
+				}
+			}
+			else
+			{
+				[self close];
+			}
 		}
 	}
 }
@@ -1724,7 +1904,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 **/
 - (void)scheduleDequeueReceive
 {
-	[self performSelector:@selector(maybeDequeueReceive) withObject:nil afterDelay:0];
+	[self performSelector:@selector(maybeDequeueReceive) withObject:nil afterDelay:0 inModes:theRunLoopModes];
 }
 
 /**
@@ -1770,7 +1950,17 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		}
 		else if(theFlags & kCloseAfterReceives)
 		{
-			[self close];
+			if(theFlags & kCloseAfterSends)
+			{
+				if(([theSendQueue count] == 0) && (theCurrentSend == nil))
+				{
+					[self close];
+				}
+			}
+			else
+			{
+				[self close];
+			}
 		}
 	}
 }
