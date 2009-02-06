@@ -528,6 +528,10 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 {
 	NSAssert((theRunLoop == CFRunLoopGetCurrent()), @"moveToRunLoop must be called from within the current RunLoop!");
 	
+	if(runLoop == nil)
+	{
+		return NO;
+	}
 	if(theRunLoop == [runLoop getCFRunLoop])
 	{
 		return YES;
@@ -565,10 +569,34 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 			CFRunLoopRemoveSource(theRunLoop, theSource6, runLoopMode);
 		}
 	}
+	if(theReadTimer)
+	{
+		// We do not retain the read timer - it gets retained by the runloop when we add it as a source.
+		// Since we're about to remove it as a source, we retain it now, and release it again below.
+		[theReadTimer retain];
+		
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopRemoveTimer(theRunLoop, (CFRunLoopTimerRef)theReadTimer, runLoopMode);
+		}
+	}
+	if(theWriteTimer)
+	{
+		// We do not retain the write timer - it gets retained by the runloop when we add it as a source.
+		// Since we're about to remove it as a source, we retain it now, and release it again below.
+		[theWriteTimer retain];
+		
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopRemoveTimer(theRunLoop, (CFRunLoopTimerRef)theWriteTimer, runLoopMode);
+		}
+	}
 	
 	theRunLoop = [runLoop getCFRunLoop];
 	
-	if(theSource != NULL)
+	if(theSource)
 	{
 		for(i = 0; i < [theRunLoopModes count]; i++)
 		{
@@ -576,7 +604,7 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 			CFRunLoopAddSource(theRunLoop, theSource, runLoopMode);
 		}
 	}
-	if(theSource6 != NULL)
+	if(theSource6)
 	{
 		for(i = 0; i < [theRunLoopModes count]; i++)
 		{
@@ -591,6 +619,28 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 			return NO;
 		}
 	}
+	if(theReadTimer)
+	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)theReadTimer, runLoopMode);
+		}
+		
+		// Release here since we retained it above
+		[theReadTimer release];
+	}
+	if(theWriteTimer)
+	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)theWriteTimer, runLoopMode);
+		}
+		
+		// Release here since we retained it above
+		[theWriteTimer release];
+	}
 	
 	[runLoop performSelector:@selector(maybeDequeueRead) target:self argument:nil order:0 modes:theRunLoopModes];
 	[runLoop performSelector:@selector(maybeDequeueWrite) target:self argument:nil order:0 modes:theRunLoopModes];
@@ -604,6 +654,10 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 **/
 - (BOOL)setRunLoopModes:(NSArray *)runLoopModes
 {
+	if([runLoopModes count] == 0)
+	{
+		return NO;
+	}
 	if([theRunLoopModes isEqualToArray:runLoopModes])
 	{
 		return YES;
@@ -641,11 +695,35 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 			CFRunLoopRemoveSource(theRunLoop, theSource6, runLoopMode);
 		}
 	}
+	if(theReadTimer)
+	{
+		// We do not retain the read timer - it gets retained by the runloop when we add it as a source.
+		// Since we're about to remove it as a source, we retain it now, and release it again below.
+		[theReadTimer retain];
+		
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopRemoveTimer(theRunLoop, (CFRunLoopTimerRef)theReadTimer, runLoopMode);
+		}
+	}
+	if(theWriteTimer)
+	{
+		// We do not retain the write timer - it gets retained by the runloop when we add it as a source.
+		// Since we're about to remove it as a source, we retain it now, and release it again below.
+		[theWriteTimer retain];
+		
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopRemoveTimer(theRunLoop, (CFRunLoopTimerRef)theWriteTimer, runLoopMode);
+		}
+	}
 	
 	[theRunLoopModes release];
 	theRunLoopModes = [runLoopModes copy];
 	
-	if(theSource != NULL)
+	if(theSource)
 	{
 		for(i = 0; i < [theRunLoopModes count]; i++)
 		{
@@ -653,7 +731,7 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 			CFRunLoopAddSource(theRunLoop, theSource, runLoopMode);
 		}
 	}
-	if(theSource6 != NULL)
+	if(theSource6)
 	{
 		for(i = 0; i < [theRunLoopModes count]; i++)
 		{
@@ -667,6 +745,28 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 		{
 			return NO;
 		}
+	}
+	if(theReadTimer)
+	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)theReadTimer, runLoopMode);
+		}
+		
+		// Release here since we retained it above
+		[theReadTimer release];
+	}
+	if(theWriteTimer)
+	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)theWriteTimer, runLoopMode);
+		}
+		
+		// Release here since we retained it above
+		[theWriteTimer release];
 	}
 	
 	[self performSelector:@selector(maybeDequeueRead) withObject:nil afterDelay:0 inModes:theRunLoopModes];
@@ -2201,11 +2301,17 @@ Failed:;
 				// Start time-out timer
 				if(theCurrentRead->timeout >= 0.0)
 				{
-					theReadTimer = [NSTimer scheduledTimerWithTimeInterval:theCurrentRead->timeout
-																	target:self 
-																  selector:@selector(doReadTimeout:)
-																  userInfo:nil
-																   repeats:NO];
+					theReadTimer = [NSTimer timerWithTimeInterval:theCurrentRead->timeout
+														   target:self 
+														 selector:@selector(doReadTimeout:)
+														 userInfo:nil
+														  repeats:NO];
+					unsigned i;
+					for(i = 0; i < [theRunLoopModes count]; i++)
+					{
+						CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+						CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)theReadTimer, runLoopMode);
+					}
 				}
 				
 				// Immediately read, if possible
@@ -2504,11 +2610,17 @@ Failed:;
 				// Start time-out timer
 				if (theCurrentWrite->timeout >= 0.0)
 				{
-					theWriteTimer = [NSTimer scheduledTimerWithTimeInterval:theCurrentWrite->timeout
-																	 target:self
-																   selector:@selector(doWriteTimeout:)
-																   userInfo:nil
-																	repeats:NO];
+					theWriteTimer = [NSTimer timerWithTimeInterval:theCurrentWrite->timeout
+															target:self
+														  selector:@selector(doWriteTimeout:)
+														  userInfo:nil
+														   repeats:NO];
+					unsigned i;
+					for(i = 0; i < [theRunLoopModes count]; i++)
+					{
+						CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+						CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)theWriteTimer, runLoopMode);
+					}
 				}
 				
 				// Immediately write, if possible

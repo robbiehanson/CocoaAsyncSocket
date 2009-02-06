@@ -161,6 +161,11 @@
 	// queue another read if tag != WELCOME_MSG.
 }
 
+- (void)onSocket:(AsyncSocket *)sock didWriteDataWithTag:(long)tag
+{
+	[sock readDataToData:[AsyncSocket CRLFData] withTimeout:-1 tag:0];
+}
+
 - (void)onSocket:(AsyncSocket *)sock didReadData:(NSData *)data withTag:(long)tag
 {
 	NSData *strData = [data subdataWithRange:NSMakeRange(0, [data length] - 2)];
@@ -177,11 +182,6 @@
 	// Even if we were unable to write the incoming data to the log,
 	// we're still going to echo it back to the client.
 	[sock writeData:data withTimeout:-1 tag:ECHO_MSG];
-}
-
-- (void)onSocket:(AsyncSocket *)sock didWriteDataWithTag:(long)tag
-{
-	[sock readDataToData:[AsyncSocket CRLFData] withTimeout:-1 tag:0];
 }
 
 - (void)onSocket:(AsyncSocket *)sock willDisconnectWithError:(NSError *)err

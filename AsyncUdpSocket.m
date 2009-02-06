@@ -368,6 +368,10 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 {
 	NSAssert((theRunLoop == CFRunLoopGetCurrent()), @"moveToRunLoop must be called from within the current RunLoop!");
 	
+	if(runLoop == nil)
+	{
+		return NO;
+	}
 	if(theRunLoop == [runLoop getCFRunLoop])
 	{
 		return YES;
@@ -393,6 +397,30 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 			CFRunLoopRemoveSource(theRunLoop, theSource6, runLoopMode);
 		}
 	}
+	if(theSendTimer)
+	{
+		// We do not retain the send timer - it gets retained by the runloop when we add it as a source.
+		// Since we're about to remove it as a source, we retain it now, and release it again below.
+		[theSendTimer retain];
+		
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopRemoveTimer(theRunLoop, (CFRunLoopTimerRef)theSendTimer, runLoopMode);
+		}
+	}
+	if(theReceiveTimer)
+	{
+		// We do not retain the recieve timer - it gets retained by the runloop when we add it as a source.
+		// Since we're about to remove it as a source, we retain it now, and release it again below.
+		[theReceiveTimer retain];
+		
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopRemoveTimer(theRunLoop, (CFRunLoopTimerRef)theReceiveTimer, runLoopMode);
+		}
+	}
 	
 	theRunLoop = [runLoop getCFRunLoop];
 	
@@ -412,6 +440,28 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 			CFRunLoopAddSource(theRunLoop, theSource6, runLoopMode);
 		}
 	}
+	if(theSendTimer)
+	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)theSendTimer, runLoopMode);
+		}
+		
+		// Release here since we retained it above
+		[theSendTimer release];
+	}
+	if(theReceiveTimer)
+	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)theReceiveTimer, runLoopMode);
+		}
+		
+		// Release here since we retained it above
+		[theReceiveTimer release];
+	}
 	
 	[runLoop performSelector:@selector(maybeDequeueSend) target:self argument:nil order:0 modes:theRunLoopModes];
 	[runLoop performSelector:@selector(maybeDequeueReceive) target:self argument:nil order:0 modes:theRunLoopModes];
@@ -425,6 +475,10 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 **/
 - (BOOL)setRunLoopModes:(NSArray *)runLoopModes
 {
+	if([runLoopModes count] == 0)
+	{
+		return NO;
+	}
 	if([theRunLoopModes isEqualToArray:runLoopModes])
 	{
 		return YES;
@@ -450,6 +504,30 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 			CFRunLoopRemoveSource(theRunLoop, theSource6, runLoopMode);
 		}
 	}
+	if(theSendTimer)
+	{
+		// We do not retain the send timer - it gets retained by the runloop when we add it as a source.
+		// Since we're about to remove it as a source, we retain it now, and release it again below.
+		[theSendTimer retain];
+		
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopRemoveTimer(theRunLoop, (CFRunLoopTimerRef)theSendTimer, runLoopMode);
+		}
+	}
+	if(theReceiveTimer)
+	{
+		// We do not retain the recieve timer - it gets retained by the runloop when we add it as a source.
+		// Since we're about to remove it as a source, we retain it now, and release it again below.
+		[theReceiveTimer retain];
+		
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopRemoveTimer(theRunLoop, (CFRunLoopTimerRef)theReceiveTimer, runLoopMode);
+		}
+	}
 	
 	[theRunLoopModes release];
 	theRunLoopModes = [runLoopModes copy];
@@ -469,6 +547,28 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
 			CFRunLoopAddSource(theRunLoop, theSource6, runLoopMode);
 		}
+	}
+	if(theSendTimer)
+	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)theSendTimer, runLoopMode);
+		}
+		
+		// Release here since we retained it above
+		[theSendTimer release];
+	}
+	if(theReceiveTimer)
+	{
+		for(i = 0; i < [theRunLoopModes count]; i++)
+		{
+			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+			CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)theReceiveTimer, runLoopMode);
+		}
+		
+		// Release here since we retained it above
+		[theReceiveTimer release];
 	}
 	
 	[self performSelector:@selector(maybeDequeueSend) withObject:nil afterDelay:0 inModes:theRunLoopModes];
@@ -1205,7 +1305,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	theRunLoop = NULL;
 	
 	// Delay notification to give user freedom to release without returning here and core-dumping.
-	if ([theDelegate respondsToSelector: @selector(onUdpSocketDidClose:)])
+	if ([theDelegate respondsToSelector:@selector(onUdpSocketDidClose:)])
 	{
 		[theDelegate performSelector:@selector(onUdpSocketDidClose:)
 						  withObject:self
@@ -1735,11 +1835,17 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 			// Start time-out timer.
 			if(theCurrentSend->timeout >= 0.0)
 			{
-				theSendTimer = [NSTimer scheduledTimerWithTimeInterval:theCurrentSend->timeout
-																target:self 
-															  selector:@selector(doSendTimeout:)
-															  userInfo:nil
-															   repeats:NO];
+				theSendTimer = [NSTimer timerWithTimeInterval:theCurrentSend->timeout
+													   target:self 
+													 selector:@selector(doSendTimeout:)
+													 userInfo:nil
+													  repeats:NO];
+				unsigned i;
+				for(i = 0; i < [theRunLoopModes count]; i++)
+				{
+					CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+					CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)theSendTimer, runLoopMode);
+				}
 			}
 			
 			// Immediately send, if possible.
@@ -1924,11 +2030,17 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 			// Start time-out timer.
 			if (theCurrentReceive->timeout >= 0.0)
 			{
-				theReceiveTimer = [NSTimer scheduledTimerWithTimeInterval:theCurrentReceive->timeout
-																   target:self
-																 selector:@selector(doReceiveTimeout:)
-																 userInfo:nil
-																  repeats:NO];
+				theReceiveTimer = [NSTimer timerWithTimeInterval:theCurrentReceive->timeout
+														  target:self
+														selector:@selector(doReceiveTimeout:)
+														userInfo:nil
+														 repeats:NO];
+				unsigned i;
+				for(i = 0; i < [theRunLoopModes count]; i++)
+				{
+					CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+					CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)theReceiveTimer, runLoopMode);
+				}
 			}
 			
 			// Immediately receive, if possible
