@@ -36,13 +36,17 @@ static NSString *getaddrinfoLock = @"lock";
 
 enum AsyncUdpSocketFlags
 {
-	kDidBind            = 1 << 0,  // If set, bind has been called.
-	kDidConnect         = 1 << 1,  // If set, connect has been called.
-	kForbidSendReceive  = 1 << 2,  // If set, no new send or receive operations are allowed to be queued.
-	kCloseAfterSends    = 1 << 3,  // If set, close as soon as no more sends are queued.
-	kCloseAfterReceives = 1 << 4,  // If set, close as soon as no more receives are queued.
-	kDidClose           = 1 << 5,  // If set, the socket has been closed, and should not be used anymore.
-	kFlipFlop           = 1 << 7,  // Used to alternate between IPv4 and IPv6 sockets.
+	kDidBind                 = 1 <<  0,  // If set, bind has been called.
+	kDidConnect              = 1 <<  1,  // If set, connect has been called.
+	kSock4CanAcceptBytes     = 1 <<  2,  // If set, we know socket4 can accept bytes. If unset, it's unknown.
+	kSock6CanAcceptBytes     = 1 <<  3,  // If set, we know socket6 can accept bytes. If unset, it's unknown.
+	kSock4HasBytesAvailable  = 1 <<  4,  // If set, we know socket4 has bytes available. If unset, it's unknown.
+	kSock6HasBytesAvailable  = 1 <<  5,  // If set, we know socket6 has bytes available. If unset, it's unknown.
+	kForbidSendReceive       = 1 <<  6,  // If set, no new send or receive operations are allowed to be queued.
+	kCloseAfterSends         = 1 <<  7,  // If set, close as soon as no more sends are queued.
+	kCloseAfterReceives      = 1 <<  8,  // If set, close as soon as no more receives are queued.
+	kDidClose                = 1 <<  9,  // If set, the socket has been closed, and should not be used anymore.
+	kFlipFlop                = 1 << 10,  // Used to alternate between IPv4 and IPv6 sockets.
 };
 
 @interface AsyncUdpSocket (Private)
@@ -76,7 +80,7 @@ enum AsyncUdpSocketFlags
 - (BOOL)canAcceptBytes:(CFSocketRef)sockRef;
 - (void)scheduleDequeueSend;
 - (void)maybeDequeueSend;
-- (void)doSend;
+- (void)doSend:(CFSocketRef)sockRef;
 - (void)completeCurrentSend;
 - (void)failCurrentSend:(NSError *)error;
 - (void)endCurrentSend;
@@ -1780,6 +1784,15 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 
 - (BOOL)canAcceptBytes:(CFSocketRef)sockRef
 {
+	if(sockRef == theSocket4)
+	{
+		if(theFlags & kSock4CanAcceptBytes) return YES;
+	}
+	else
+	{
+		if(theFlags & kSock6CanAcceptBytes) return YES;
+	}
+	
 	CFSocketNativeHandle theNativeSocket = CFSocketGetNative(sockRef);
 	
 	if(theNativeSocket == 0)
@@ -1827,9 +1840,8 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	{
 		if([theSendQueue count] > 0)
 		{
-			// Get next send packet
-			AsyncSendPacket *newPacket = [theSendQueue objectAtIndex:0];
-			theCurrentSend = [newPacket retain];
+			// Dequeue next send packet
+			theCurrentSend = [[theSendQueue objectAtIndex:0] retain];
 			[theSendQueue removeObjectAtIndex:0];
 			
 			// Start time-out timer.
@@ -1849,7 +1861,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 			}
 			
 			// Immediately send, if possible.
-			[self doSend];
+			[self doSend:[self socketForPacket:theCurrentSend]];
 		}
 		else if(theFlags & kCloseAfterSends)
 		{
@@ -1871,11 +1883,15 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 /**
  * This method is called when a new read is taken from the read queue or when new data becomes available on the stream.
 **/
-- (void)doSend
+- (void)doSend:(CFSocketRef)theSocket
 {
 	if(theCurrentSend != nil)
 	{
-		CFSocketRef theSocket = [self socketForPacket:theCurrentSend];
+		if(theSocket != [self socketForPacket:theCurrentSend])
+		{
+			// Current send is for the other socket
+			return;
+		}
 		
 		if([self canAcceptBytes:theSocket])
 		{
@@ -1896,6 +1912,11 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 				
 				result = sendto(theNativeSocket, buf, bufSize, 0, dst, dstSize);
 			}
+			
+			if(theSocket == theSocket4)
+				theFlags &= ~kSock4CanAcceptBytes;
+			else
+				theFlags &= ~kSock6CanAcceptBytes;
 			
 			if(result < 0)
 			{
@@ -1986,6 +2007,15 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 
 - (BOOL)hasBytesAvailable:(CFSocketRef)sockRef
 {
+	if(sockRef == theSocket4)
+	{
+		if(theFlags & kSock4HasBytesAvailable) return YES;
+	}
+	else
+	{
+		if(theFlags & kSock6HasBytesAvailable) return YES;
+	}
+	
 	CFSocketNativeHandle theNativeSocket = CFSocketGetNative(sockRef);
 	
 	if(theNativeSocket == 0)
@@ -2022,9 +2052,8 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	{
 		if([theReceiveQueue count] > 0)
 		{
-			// Get next receive packet
-			AsyncReceivePacket *newPacket = [theReceiveQueue objectAtIndex:0];
-			theCurrentReceive = [newPacket retain];
+			// Dequeue next receive packet
+			theCurrentReceive = [[theReceiveQueue objectAtIndex:0] retain];
 			[theReceiveQueue removeObjectAtIndex:0];
 			
 			// Start time-out timer.
@@ -2132,7 +2161,10 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 						}
 						else
 						{
-							buf = realloc(buf, result);
+							if(result != bufSize)
+							{
+								buf = realloc(buf, result);
+							}
 							theCurrentReceive->buffer = [[NSData alloc] initWithBytesNoCopy:buf
 																					 length:result
 																			   freeWhenDone:YES];
@@ -2140,6 +2172,8 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 							theCurrentReceive->port = port;
 						}
 					}
+					
+					theFlags &= ~kSock4HasBytesAvailable;
 				}
 				else
 				{
@@ -2161,7 +2195,10 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 						}
 						else
 						{
-							buf = realloc(buf, result);
+							if(result != bufSize)
+							{
+								buf = realloc(buf, result);
+							}
 							theCurrentReceive->buffer = [[NSData alloc] initWithBytesNoCopy:buf
 																					 length:result
 																			   freeWhenDone:YES];
@@ -2169,6 +2206,8 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 							theCurrentReceive->port = port;
 						}
 					}
+					
+					theFlags &= ~kSock6HasBytesAvailable;
 				}
 				
 				// Check to see if we need to free our alloc'd buffer
@@ -2282,10 +2321,18 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	switch (type)
 	{
 		case kCFSocketReadCallBack:
+			if(sock == theSocket4)
+				theFlags |= kSock4HasBytesAvailable;
+			else
+				theFlags |= kSock6HasBytesAvailable;
 			[self doReceive:sock];
 			break;
 		case kCFSocketWriteCallBack:
-			[self doSend];
+			if(sock == theSocket4)
+				theFlags |= kSock4CanAcceptBytes;
+			else
+				theFlags |= kSock6CanAcceptBytes;
+			[self doSend:sock];
 			break;
 		default:
 			NSLog (@"AsyncUdpSocket %p received unexpected CFSocketCallBackType %d.", self, type);

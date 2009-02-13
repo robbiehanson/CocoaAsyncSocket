@@ -48,7 +48,7 @@ typedef enum AsyncUdpSocketError AsyncUdpSocketError;
 	NSTimer *theReceiveTimer;
 	
 	id theDelegate;
-	Byte theFlags;
+	UInt16 theFlags;
 	
 	long theUserData;
 	
