@@ -52,7 +52,7 @@
 // The HTTP_RESPONSE and HTTP_FINAL_RESPONSE are designated tags signalling that the response is completely sent.
 // That is, in the onSocket:didWriteDataWithTag: method, if the tag is HTTP_RESPONSE or HTTP_FINAL_RESPONSE,
 // it is assumed that the response is now completely sent.
-// Use HTTP_RESPONSE if it's the end a response, and you want to start reading more requests afterwards.
+// Use HTTP_RESPONSE if it's the end of a response, and you want to start reading more requests afterwards.
 // Use HTTP_FINAL_RESPONSE if you wish to terminate the connection after sending the response.
 // 
 // If you are sending multiple data segments in a custom response, make sure that only the last segment has
@@ -1085,7 +1085,7 @@ static NSMutableArray *recentNonces;
 	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Accept-Ranges"), CFSTR("bytes"));
 	
 	// Add optional response headers
-	if([httpResponse respondsToSelector:@selector(httpHeaders:)])
+	if([httpResponse respondsToSelector:@selector(httpHeaders)])
 	{
 		NSDictionary *responseHeaders = [httpResponse httpHeaders];
 		
@@ -1137,7 +1137,7 @@ static NSMutableArray *recentNonces;
 	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Accept-Ranges"), CFSTR("bytes"));
 	
 	// Add optional response headers
-	if([httpResponse respondsToSelector:@selector(httpHeaders:)])
+	if([httpResponse respondsToSelector:@selector(httpHeaders)])
 	{
 		NSDictionary *responseHeaders = [httpResponse httpHeaders];
 		
