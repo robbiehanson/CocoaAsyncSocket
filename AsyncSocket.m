@@ -39,15 +39,20 @@ enum AsyncSocketFlags
 {
 	kEnablePreBuffering      = 1 << 0,  // If set, pre-buffering is enabled
 	kDidPassConnectMethod    = 1 << 1,  // If set, disconnection results in delegate call
-	kDidCallConnectDelegate  = 1 << 2,  // If set, connect delegate has been called
-	kStartingTLS             = 1 << 3,  // If set, we're waiting for TLS negotiation to complete
-	kForbidReadsWrites       = 1 << 4,  // If set, no new reads or writes are allowed
-	kDisconnectAfterReads    = 1 << 5,  // If set, disconnect after no more reads are queued
-	kDisconnectAfterWrites   = 1 << 6,  // If set, disconnect after no more writes are queued
-	kClosingWithError        = 1 << 7,  // If set, the socket is being closed due to an error
+	kDidCompleteOpenForRead  = 1 << 2,  // If set, open callback has been called for read stream
+	kDidCompleteOpenForWrite = 1 << 3,  // If set, open callback has been called for write stream
+	kStartingTLS             = 1 << 4,  // If set, we're waiting for TLS negotiation to complete
+	kForbidReadsWrites       = 1 << 5,  // If set, no new reads or writes are allowed
+	kDisconnectAfterReads    = 1 << 6,  // If set, disconnect after no more reads are queued
+	kDisconnectAfterWrites   = 1 << 7,  // If set, disconnect after no more writes are queued
+	kClosingWithError        = 1 << 8,  // If set, the socket is being closed due to an error
 };
 
 @interface AsyncSocket (Private)
+
+// Connecting
+- (void)startConnectTimeout:(NSTimeInterval)timeout;
+- (void)endConnectTimeout;
 
 // Socket Implementation
 - (CFSocketRef) createAcceptSocketForAddress:(NSData *)addr error:(NSError **)errPtr;
@@ -78,6 +83,7 @@ enum AsyncSocketFlags
 - (NSError *) getAbortError;
 - (NSError *) getStreamError;
 - (NSError *) getSocketError;
+- (NSError *) getConnectTimeoutError;
 - (NSError *) getReadMaxedOutError;
 - (NSError *) getReadTimeoutError;
 - (NSError *) getWriteTimeoutError;
@@ -404,6 +410,8 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 		theReadStream = NULL;
 		theWriteStream = NULL;
 		
+		theConnectTimer = nil;
+		
 		theReadQueue = [[NSMutableArray alloc] initWithCapacity:READQUEUE_CAPACITY];
 		theCurrentRead = nil;
 		theReadTimer = nil;
@@ -721,7 +729,7 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#pragma mark Connection
+#pragma mark Accepting
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 - (BOOL)acceptOnPort:(UInt16)port error:(NSError **)errPtr
@@ -916,6 +924,15 @@ Failed:;
 	return NO;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark Connecting
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+- (BOOL)connectToHost:(NSString*)hostname onPort:(UInt16)port error:(NSError **)errPtr
+{
+	return [self connectToHost:hostname onPort:port withTimeout:-1 error:errPtr];
+}
+
 /**
  * This method creates an initial CFReadStream and CFWriteStream to the given host on the given port.
  * The connection is then opened, and the corresponding CFSocket will be extracted after the connection succeeds.
@@ -923,7 +940,10 @@ Failed:;
  * Thus the delegate will have access to the CFReadStream and CFWriteStream prior to connection,
  * specifically in the onSocketWillConnect: method.
 **/
-- (BOOL)connectToHost:(NSString*)hostname onPort:(UInt16)port error:(NSError **)errPtr
+- (BOOL)connectToHost:(NSString *)hostname
+			   onPort:(UInt16)port
+		  withTimeout:(NSTimeInterval)timeout
+				error:(NSError **)errPtr
 {
 	if(theDelegate == NULL)
 	{
@@ -945,11 +965,21 @@ Failed:;
 	if(pass && ![self openStreamsAndReturnError:errPtr])                      pass = NO;
 	
 	if(pass)
+	{
+		[self startConnectTimeout:timeout];
 		theFlags |= kDidPassConnectMethod;
+	}
 	else
+	{
 		[self close];
+	}
 	
 	return pass;
+}
+
+- (BOOL)connectToAddress:(NSData *)remoteAddr error:(NSError **)errPtr
+{
+	return [self connectToAddress:remoteAddr withTimeout:-1 error:errPtr];
 }
 
 /**
@@ -966,7 +996,7 @@ Failed:;
  * struct sockaddr sa  -> NSData *dsa = [NSData dataWithBytes:&remoteAddr length:remoteAddr.sa_len];
  * struct sockaddr *sa -> NSData *dsa = [NSData dataWithBytes:remoteAddr length:remoteAddr->sa_len];
 **/
-- (BOOL)connectToAddress:(NSData *)remoteAddr error:(NSError **)errPtr
+- (BOOL)connectToAddress:(NSData *)remoteAddr withTimeout:(NSTimeInterval)timeout error:(NSError **)errPtr
 {
 	if (theDelegate == NULL)
 	{
@@ -988,11 +1018,41 @@ Failed:;
 	if(pass && ![self connectSocketToAddress:remoteAddr error:errPtr])   pass = NO;
 	
 	if(pass)
+	{
+		[self startConnectTimeout:timeout];
 		theFlags |= kDidPassConnectMethod;
+	}
 	else
+	{
 		[self close];
+	}
 	
 	return pass;
+}
+
+- (void)startConnectTimeout:(NSTimeInterval)timeout
+{
+	if(timeout >= 0.0)
+	{
+		theConnectTimer = [NSTimer timerWithTimeInterval:timeout
+											      target:self 
+											    selector:@selector(doConnectTimeout:)
+											    userInfo:nil
+											     repeats:NO];
+		[self runLoopAddTimer:theConnectTimer];
+	}
+}
+
+- (void)endConnectTimeout
+{
+	[theConnectTimer invalidate];
+	theConnectTimer = nil;
+}
+
+- (void)doConnectTimeout:(NSTimer *)timer
+{
+	[self endConnectTimeout];
+	[self closeWithError:[self getConnectTimeoutError]];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1235,7 +1295,9 @@ Failed:;
 	if (theReadStream == NULL || theWriteStream == NULL)
 	{
 		NSError *err = [self getStreamError];
+		
 		NSLog (@"AsyncSocket %p couldn't create streams from accepted socket: %@", self, err);
+		
 		if (errPtr) *errPtr = err;
 		return NO;
 	}
@@ -1366,7 +1428,7 @@ Failed:;
 - (void)doStreamOpen
 {
 	NSError *err = nil;
-	if ([self areStreamsConnected] && !(theFlags & kDidCallConnectDelegate))
+	if ((theFlags & kDidCompleteOpenForRead) && (theFlags & kDidCompleteOpenForWrite))
 	{
 		// Get the socket.
 		if (![self setSocketFromStreamsAndReturnError: &err])
@@ -1376,12 +1438,13 @@ Failed:;
 			return;
 		}
 		
-		// Call the delegate.
-		theFlags |= kDidCallConnectDelegate;
 		if ([theDelegate respondsToSelector:@selector(onSocket:didConnectToHost:port:)])
 		{
 			[theDelegate onSocket:self didConnectToHost:[self connectedHost] port:[self connectedPort]];
 		}
+		
+		// Stop the connection attempt timeout timer
+		[self endConnectTimeout];
 		
 		// Immediately deal with any already-queued requests.
 		[self maybeDequeueRead];
@@ -1412,6 +1475,13 @@ Failed:;
 	
 	// Determine whether the connection was IPv4 or IPv6
 	CFDataRef peeraddr = CFSocketCopyPeerAddress(socket);
+	if(peeraddr == NULL)
+	{
+		NSLog(@"AsyncSocket couldn't determine IP version of socket");
+		
+		if (errPtr) *errPtr = [self getSocketError];
+		return NO;
+	}
 	struct sockaddr *sa = (struct sockaddr *)CFDataGetBytePtr(peeraddr);
 	
 	if(sa->sa_family == AF_INET)
@@ -1489,6 +1559,12 @@ Failed:;
 	[partialReadBuffer replaceBytesInRange:NSMakeRange(0, [partialReadBuffer length]) withBytes:NULL length:0];
 	
 	[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(disconnect) object:nil];
+	
+	// Stop the connection attempt timeout timer
+	if (theConnectTimer != nil)
+	{
+		[self endConnectTimeout];
+	}
 	
 	// Close streams.
 	if (theReadStream != NULL)
@@ -1732,6 +1808,23 @@ Failed:;
 	return [NSError errorWithDomain:AsyncSocketErrorDomain code:AsyncSocketCanceledError userInfo:info];
 }
 
+/**
+ * Returns a standard AsyncSocket connect timeout error.
+**/
+- (NSError *)getConnectTimeoutError
+{
+	NSString *errMsg = NSLocalizedStringWithDefaultValue(@"AsyncSocketConnectTimeoutError",
+														 @"AsyncSocket", [NSBundle mainBundle],
+														 @"Attempt to connect to host timed out", nil);
+	
+	NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+	
+	return [NSError errorWithDomain:AsyncSocketErrorDomain code:AsyncSocketConnectTimeoutError userInfo:info];
+}
+
+/**
+ * Returns a standard AsyncSocket maxed out error.
+**/
 - (NSError *)getReadMaxedOutError
 {
 	NSString *errMsg = NSLocalizedStringWithDefaultValue(@"AsyncSocketReadMaxedOutError",
@@ -2726,6 +2819,7 @@ Failed:;
 	switch (type)
 	{
 		case kCFStreamEventOpenCompleted:
+			theFlags |= kDidCompleteOpenForRead;
 			[self doStreamOpen];
 			break;
 		case kCFStreamEventHasBytesAvailable:
@@ -2752,6 +2846,7 @@ Failed:;
 	switch (type)
 	{
 		case kCFStreamEventOpenCompleted:
+			theFlags |= kDidCompleteOpenForWrite;
 			[self doStreamOpen];
 			break;
 		case kCFStreamEventCanAcceptBytes:
