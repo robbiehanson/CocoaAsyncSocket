@@ -971,8 +971,6 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	// We only want to connect via a single interface.
 	// IPv4 is currently preferred, but this may change in the future.
 	
-	BOOL done = NO;
-	
 	if(address4)
 	{
 		if(theSocket4)
@@ -983,10 +981,12 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 				if(errPtr) *errPtr = [self getSocketError];
 				return NO;
 			}
-			done = YES;
+			theFlags |= kDidConnect;
 			
 			// We're connected to an IPv4 address, so no need for the IPv6 socket
 			[self closeSocket6];
+			
+			return YES;
 		}
 		else if(!address6)
 		{
@@ -995,7 +995,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		}
 	}
 	
-	if(!done && address6)
+	if(address6)
 	{
 		// Note: The iPhone doesn't currently support IPv6
 		
@@ -1007,9 +1007,12 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 				if(errPtr) *errPtr = [self getSocketError];
 				return NO;
 			}
+			theFlags |= kDidConnect;
 			
 			// We're connected to an IPv6 address, so no need for the IPv4 socket
 			[self closeSocket4];
+			
+			return YES;
 		}
 		else
 		{
@@ -1018,8 +1021,9 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		}
 	}
 	
-	theFlags |= kDidConnect;
-	return YES;
+	// It shouldn't be possible to get to this point because either address4 or address6 was non-nil.
+	if(errPtr) *errPtr = nil;
+	return NO;
 }
 
 /**
@@ -1057,8 +1061,11 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 				if(errPtr) *errPtr = [self getSocketError];
 				return NO;
 			}
-			
 			theFlags |= kDidConnect;
+			
+			// We're connected to an IPv4 address, so no need for the IPv6 socket
+			[self closeSocket6];
+			
 			return YES;
 		}
 		else
@@ -1079,8 +1086,11 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 				if(errPtr) *errPtr = [self getSocketError];
 				return NO;
 			}
-			
 			theFlags |= kDidConnect;
+			
+			// We're connected to an IPv6 address, so no need for the IPv4 socket
+			[self closeSocket4];
+			
 			return YES;
 		}
 		else
@@ -1171,8 +1181,6 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	
 	NSAssert((group4 || group6), @"group4 and group6 are nil");
 	
-	BOOL found = NO;
-	
 	if(theSocket4 && group4 && address4)
 	{
 		const struct sockaddr_in* nativeAddress = [address4 bytes];
@@ -1196,7 +1204,11 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 			}
 			return NO;
 		}
-		found = YES;
+		
+		// Using IPv4 only
+		[self closeSocket6];
+		
+		return YES;
 	}
 	
 	if(theSocket6 && group6 && address6)
@@ -1221,27 +1233,25 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 			}
 			return NO;
 		}
-		found = YES;
+		
+		// Using IPv6 only
+		[self closeSocket4];
+		
+		return YES;
 	}
 	
 	// The given address and group didn't match the existing socket(s).
 	// This means there were no compatible combination of all IPv4 or IPv6 socket, group and address.
-	if(!found)
+	if(errPtr)
 	{
-		if(errPtr)
-		{
-			NSString *errMsg = @"Invalid group and/or address, not matching existing socket(s)";
-			NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
-			
-			*errPtr = [NSError errorWithDomain:AsyncUdpSocketErrorDomain
-			                              code:AsyncUdpSocketBadParameter
-			                          userInfo:info];
-		}
-		return NO;
+		NSString *errMsg = @"Invalid group and/or address, not matching existing socket(s)";
+		NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+		
+		*errPtr = [NSError errorWithDomain:AsyncUdpSocketErrorDomain
+		                              code:AsyncUdpSocketBadParameter
+		                          userInfo:info];
 	}
-	
-	return YES;
-	
+	return NO;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
