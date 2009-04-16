@@ -186,6 +186,17 @@ typedef enum AsyncUdpSocketError AsyncUdpSocketError;
 - (BOOL)joinMulticastGroup:(NSString *)group withAddress:(NSString *)interface error:(NSError **)errPtr;
 
 /**
+ * By default, the underlying socket in the OS will not allow you to send broadcast messages.
+ * In order to send broadcast messages, you need to enable this functionality in the socket.
+ * 
+ * A broadcast is a UDP message to addresses like "192.168.255.255" or "255.255.255.255" that is
+ * delivered to every host on the network.
+ * The reason this is generally disabled by default is to prevent
+ * accidental broadcast messages from flooding the network.
+**/
+- (BOOL)enableBroadcast:(BOOL)flag error:(NSError **)errPtr;
+
+/**
  * Asynchronously sends the given data, with the given timeout and tag.
  * 
  * This method may only be used with a connected socket.

@@ -1254,6 +1254,41 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	return NO;
 }
 
+/**
+ * By default, the underlying socket in the OS will not allow you to send broadcast messages.
+ * In order to send broadcast messages, you need to enable this functionality in the socket.
+ * 
+ * A broadcast is a UDP message to addresses like "192.168.255.255" or "255.255.255.255" that is
+ * delivered to every host on the network.
+ * The reason this is generally disabled by default is to prevent
+ * accidental broadcast messages from flooding the network.
+**/
+- (BOOL)enableBroadcast:(BOOL)flag error:(NSError **)errPtr
+{
+	if (theSocket4)
+	{
+		int value = flag ? 1 : 0;
+		int error = setsockopt(CFSocketGetNative(theSocket4), SOL_SOCKET, SO_BROADCAST,
+						   (const void *)&value, sizeof(value));
+		if(error)
+		{
+			if(errPtr)
+			{
+				NSString *errMsg = @"Unable to enable broadcast message sending";
+				NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+				
+				*errPtr = [NSError errorWithDomain:@"kCFStreamErrorDomainPOSIX" code:error userInfo:info];
+			}
+			return NO;
+		}
+	}
+	
+	// IPv6 does not implement broadcast, the ability to send a packet to all hosts on the attached link.
+	// The same effect can be achieved by sending a packet to the link-local all hosts multicast group.
+	
+	return YES;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Disconnect Implementation:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
