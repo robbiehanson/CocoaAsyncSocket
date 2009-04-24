@@ -189,6 +189,31 @@ static NSMutableArray *recentNonces;
 }
 
 /**
+ * Returns whether or not the server expects a body from the given method.
+ * 
+ * In other words, should the server expect a content-length header and associated body from this method.
+ * This would be true in the case of a POST, where the client is sending data,
+ * or for something like PUT where the client is supposed to be uploading a file.
+**/
+- (BOOL)expectsRequestBodyFromMethod:(NSString *)method atPath:(NSString *)relativePath
+{
+	// Override me to add support for other methods that expect the client
+	// to send a body along with the request header.
+	// 
+	// You should fall through with a call to [super expectsRequestBodyFromMethod:method atPath:relativePath]
+	// 
+	// See also: supportsMethod:atPath:
+	
+	if([method isEqualToString:@"POST"])
+		return YES;
+	
+	if([method isEqualToString:@"PUT"])
+		return YES;
+	
+	return NO;
+}
+
+/**
  * Returns whether or not the server is configured to be a secure server.
  * In other words, all connections to this server are immediately secured, thus only secure connections are allowed.
  * This is the equivalent of having an https server, where it is assumed that all connections must be secure.
@@ -1030,9 +1055,11 @@ static NSMutableArray *recentNonces;
 **/
 - (void)handleUnknownMethod:(NSString *)method
 {
-	// Override me to add support for methods other than GET and HEAD
+	// Override me for custom error handling of 405 method not allowed responses.
 	// If you simply want to add a few extra header fields, see the preprocessErrorResponse: method.
 	// You can also use preprocessErrorResponse: to add an optional HTML body.
+	// 
+	// See also: supportsMethod:atPath:
 	
 	NSLog(@"HTTP Server: Error 405 - Method Not Allowed: %@", method);
 	
@@ -1050,6 +1077,9 @@ static NSMutableArray *recentNonces;
 	// Since we can't be sure, we should close the connection.
 }
 
+/**
+ * Called if we're unable to find the requested resource.
+**/
 - (void)handleResourceNotFound
 {
 	// Override me for custom error handling of 404 not found responses
@@ -1185,20 +1215,17 @@ static NSMutableArray *recentNonces;
 			NSMutableDictionary *settings = [NSMutableDictionary dictionaryWithCapacity:3];
 			
 			// Configure this connection as the server
-			CFDictionaryAddValue((CFMutableDictionaryRef)settings,
-								 kCFStreamSSLIsServer, kCFBooleanTrue);
+			[settings setObject:[NSNumber numberWithBool:YES]
+						 forKey:(NSString *)kCFStreamSSLIsServer];
 			
-			CFDictionaryAddValue((CFMutableDictionaryRef)settings,
-								 kCFStreamSSLCertificates, (CFArrayRef)certificates);
+			[settings setObject:certificates
+						 forKey:(NSString *)kCFStreamSSLCertificates];
 			
 			// Configure this connection to use the highest possible SSL level
-			CFDictionaryAddValue((CFMutableDictionaryRef)settings,
-								 kCFStreamSSLLevel, kCFStreamSocketSecurityLevelNegotiatedSSL);
+			[settings setObject:(NSString *)kCFStreamSocketSecurityLevelNegotiatedSSL
+						 forKey:(NSString *)kCFStreamSSLLevel];
 			
-			CFReadStreamSetProperty([asyncSocket getCFReadStream],
-									kCFStreamPropertySSLSettings, (CFDictionaryRef)settings);
-			CFWriteStreamSetProperty([asyncSocket getCFWriteStream],
-									 kCFStreamPropertySSLSettings, (CFDictionaryRef)settings);
+			[asyncSocket startTLS:settings];
 		}
 	}
 	return YES;
@@ -1267,13 +1294,13 @@ static NSMutableArray *recentNonces;
 			
 			// Content-Length MUST be present for upload methods (such as POST or PUT)
 			// and MUST NOT be present for other methods.
-			BOOL expectsUpload = [method isEqualToString:@"POST"] || [method isEqualToString:@"PUT"];
+			BOOL expectsUpload = [self expectsRequestBodyFromMethod:method atPath:[uri relativeString]];
 			
 			if(expectsUpload)
 			{
 				if(contentLength == nil)
 				{
-					// Received POST/PUT with no specified Content-Length
+					// Method expects request body, but request had no specified Content-Length
 					[self handleInvalidRequest:nil];
 					return;
 				}
