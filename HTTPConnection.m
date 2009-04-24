@@ -1316,9 +1316,21 @@ static NSMutableArray *recentNonces;
 			{
 				if(contentLength != nil)
 				{
-					// Received Content-Length header for method not expecting an upload
-					[self handleInvalidRequest:nil];
-					return;
+					// Received Content-Length header for method not expecting an upload.
+					// This better be zero...
+					
+					if(![NSNumber parseString:(NSString *)contentLength intoUInt64:&requestContentLength])
+					{
+						// Unable to parse Content-Length header into a valid number
+						[self handleInvalidRequest:nil];
+						return;
+					}
+					
+					if(requestContentLength > 0)
+					{
+						[self handleInvalidRequest:nil];
+						return;
+					}
 				}
 				
 				requestContentLength = 0;
