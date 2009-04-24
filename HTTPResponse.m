@@ -9,6 +9,12 @@
 	{
 		filePath = [filePathParam copy];
 		fileHandle = [[NSFileHandle fileHandleForReadingAtPath:filePath] retain];
+		
+		if(fileHandle == nil)
+		{
+			[self release];
+			return nil;
+		}
 	}
 	return self;
 }

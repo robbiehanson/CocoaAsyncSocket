@@ -554,6 +554,8 @@ static NSMutableArray *recentNonces;
 			UInt64 byteIndex;
 			if(![NSNumber parseString:rangeComponent intoUInt64:&byteIndex]) return NO;
 			
+			if(byteIndex >= contentLength) return NO;
+			
 			[ranges addObject:[NSValue valueWithDDRange:DDMakeRange(byteIndex, 1)]];
 		}
 		else
@@ -601,16 +603,20 @@ static NSMutableArray *recentNonces;
 				// 
 				// Note: The range is inclusive. So 0-1 has a length of 2 bytes.
 				
-				if(!hasR1) return NO;
-				if(!hasR2) return NO;
 				if(r1 > r2) return NO;
 				
-				[ranges addObject:[NSValue valueWithDDRange:DDMakeRange(r1, r2 - r1 + 1)]];
+				DDRange range = DDMakeRange(r1, r2 - r1 + 1);
+				
+				if(DDMaxRange(range) >= contentLength) return NO;
+				
+				[ranges addObject:[NSValue valueWithDDRange:range]];
 			}
 		}
 	}
 	
 	if([ranges count] == 0) return NO;
+	
+	// Now make sure none of the ranges overlap
 	
 	for(i = 0; i < [ranges count] - 1; i++)
 	{
@@ -629,6 +635,10 @@ static NSMutableArray *recentNonces;
 			}
 		}
 	}
+	
+	// Sort the ranges
+	
+	[ranges sortUsingSelector:@selector(ddrangeCompare:)];
 	
 	return YES;
 }
@@ -683,17 +693,13 @@ static NSMutableArray *recentNonces;
 	// Respond properly to HTTP 'GET' and 'HEAD' commands
 	httpResponse = [[self httpResponseForMethod:method URI:[uri relativeString]] retain];
 	
-	UInt64 contentLength = httpResponse ? [httpResponse contentLength] : 0;
-	
-	if(contentLength == 0)
+	if(httpResponse == nil)
 	{
 		[self handleResourceNotFound];
-		
-		[httpResponse release];
-		httpResponse = nil;
-		
 		return;
-    }
+	}
+	
+	UInt64 contentLength = [httpResponse contentLength];
 	
 	// Check for specific range request
 	NSString *rangeHeader = [NSMakeCollectable(CFHTTPMessageCopyHeaderFieldValue(request, CFSTR("Range"))) autorelease];
@@ -732,7 +738,7 @@ static NSMutableArray *recentNonces;
     
 	// If they issue a 'HEAD' command, we don't have to include the file
 	// If they issue a 'GET' command, we need to include the file
-	if([method isEqual:@"HEAD"])
+	if([method isEqual:@"HEAD"] || contentLength == 0)
 	{
 		NSData *responseData = [self preprocessResponse:response];
 		[asyncSocket writeData:responseData withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_RESPONSE];
