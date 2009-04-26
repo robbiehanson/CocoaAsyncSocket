@@ -22,6 +22,7 @@ enum AsyncSocketError
 	AsyncSocketCFSocketError = kCFSocketError,	// From CFSocketError enum.
 	AsyncSocketNoError = 0,						// Never used.
 	AsyncSocketCanceledError,					// onSocketWillConnect: returned NO.
+	AsyncSocketConnectTimeoutError,
 	AsyncSocketReadMaxedOutError,               // Reached set maxLength without completing
 	AsyncSocketReadTimeoutError,
 	AsyncSocketWriteTimeoutError
@@ -117,6 +118,8 @@ typedef enum AsyncSocketError AsyncSocketError;
 	CFRunLoopRef theRunLoop;
 	CFSocketContext theContext;
 	NSArray *theRunLoopModes;
+	
+	NSTimer *theConnectTimer;
 
 	NSMutableArray *theReadQueue;
 	AsyncReadPacket *theCurrentRead;
@@ -128,7 +131,7 @@ typedef enum AsyncSocketError AsyncSocketError;
 	NSTimer *theWriteTimer;
 
 	id theDelegate;
-	Byte theFlags;
+	UInt16 theFlags;
 	
 	long theUserData;
 }
@@ -157,15 +160,72 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (CFReadStreamRef)getCFReadStream;
 - (CFWriteStreamRef)getCFWriteStream;
 
+// Once one of the accept or connect methods are called, the AsyncSocket instance is locked in
+// and the other accept/connect methods can't be called without disconnecting the socket first.
+// If the attempt fails or times out, these methods either return NO or
+// call "onSocket:willDisconnectWithError:" and "onSockedDidDisconnect:".
+
+// When an incoming connection is accepted, AsyncSocket invokes several delegate methods.
+// These methods are (in chronological order):
+// 1. onSocket:didAcceptNewSocket:
+// 2. onSocket:wantsRunLoopForNewSocket:
+// 3. onSocketWillConnect:
+// 
+// Your server code will need to retain the accepted socket (if you want to accept it).
+// The best place to do this is probably in the onSocket:didAcceptNewSocket: method.
+// 
+// After the read and write streams have been setup for the newly accepted socket,
+// the onSocket:didConnectToHost:port: method will be called on the proper run loop.
+
 /**
- * Once one of these methods is called, the AsyncSocket instance is locked in, and the rest can't be called without
- * disconnecting the socket first.  If the attempt times out or fails, these methods either return NO or
- * call "onSocket:willDisconnectWithError:" and "onSockedDidDisconnect:".
+ * Tells the socket to begin listening and accepting connections on the given port.
+ * When a connection comes in, the AsyncSocket instance will call the various delegate methods (see above).
+ * The socket will listen on all available interfaces (e.g. wifi, ethernet, etc)
 **/
 - (BOOL)acceptOnPort:(UInt16)port error:(NSError **)errPtr;
+
+/**
+ * This method is the same as acceptOnPort:error: with the additional option
+ * of specifying which interface to listen on. So, for example, if you were writing code for a server that
+ * has multiple IP addresses, you could specify which address you wanted to listen on.  Or you could use it
+ * to specify that the socket should only accept connections over ethernet, and not other interfaces such as wifi.
+ * You may also use the special strings "localhost" or "loopback" to specify that
+ * the socket only accept connections from the local machine.
+ * 
+ * To accept connections on any interface pass nil, or simply use the acceptOnPort:error: method.
+**/
 - (BOOL)acceptOnAddress:(NSString *)hostaddr port:(UInt16)port error:(NSError **)errPtr;
+
+/**
+ * Connects to the given host and port.
+ * The host may be a domain name (e.g. "deusty.com") or an IP address string (e.g. "192.168.0.2")
+**/
 - (BOOL)connectToHost:(NSString *)hostname onPort:(UInt16)port error:(NSError **)errPtr;
+
+/**
+ * This method is the same as connectToHost:onPort:error: with an additional timeout option.
+ * To not time out use a negative time interval, or simply use the connectToHost:onPort:error: method.
+**/
+- (BOOL)connectToHost:(NSString *)hostname
+			   onPort:(UInt16)port
+		  withTimeout:(NSTimeInterval)timeout
+				error:(NSError **)errPtr;
+
+/**
+ * Connects to the given address, specified as a sockaddr structure wrapped in a NSData object.
+ * For example, a NSData object returned from NSNetservice's addresses method.
+ * 
+ * If you have an existing struct sockaddr you can convert it to a NSData object like so:
+ * struct sockaddr sa  -> NSData *dsa = [NSData dataWithBytes:&remoteAddr length:remoteAddr.sa_len];
+ * struct sockaddr *sa -> NSData *dsa = [NSData dataWithBytes:remoteAddr length:remoteAddr->sa_len];
+**/
 - (BOOL)connectToAddress:(NSData *)remoteAddr error:(NSError **)errPtr;
+
+/**
+ * This method is the same as connectToAddress:error: with an additional timeout option.
+ * To not time out use a negative time interval, or simply use the connectToAddress:error: method.
+**/
+- (BOOL)connectToAddress:(NSData *)remoteAddr withTimeout:(NSTimeInterval)timeout error:(NSError **)errPtr;
 
 /**
  * Disconnects immediately. Any pending reads or writes are dropped.
