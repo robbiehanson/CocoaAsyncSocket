@@ -108,12 +108,12 @@ typedef enum AsyncSocketError AsyncSocketError;
 
 @interface AsyncSocket : NSObject
 {
-	CFSocketRef theSocket;             // IPv4 accept or connect socket
+	CFSocketRef theSocket4;            // IPv4 accept or connect socket
 	CFSocketRef theSocket6;            // IPv6 accept or connect socket
 	CFReadStreamRef theReadStream;
 	CFWriteStreamRef theWriteStream;
 
-	CFRunLoopSourceRef theSource;      // For theSocket
+	CFRunLoopSourceRef theSource4;     // For theSocket4
 	CFRunLoopSourceRef theSource6;     // For theSocket6
 	CFRunLoopRef theRunLoop;
 	CFSocketContext theContext;
