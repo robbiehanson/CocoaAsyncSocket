@@ -305,6 +305,12 @@ typedef enum AsyncUdpSocketError AsyncUdpSocketError;
 **/
 - (BOOL)setRunLoopModes:(NSArray *)runLoopModes;
 
+/**
+ * Returns the current run loop modes the AsyncSocket instance is operating in.
+ * The default set of run loop modes is NSDefaultRunLoopMode.
+**/
+- (NSArray *)runLoopModes;
+
 @end
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

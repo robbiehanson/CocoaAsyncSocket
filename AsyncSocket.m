@@ -496,6 +496,10 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 	return theWriteStream;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark Progress
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 - (float)progressOfReadReturningTag:(long *)tag bytesDone:(CFIndex *)done total:(CFIndex *)total
 {
 	// Check to make sure we're actually reading something right now
@@ -726,6 +730,11 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 	[self performSelector:@selector(maybeScheduleDisconnect) withObject:nil afterDelay:0 inModes:theRunLoopModes];
 	
 	return YES;
+}
+
+- (NSArray *)runLoopModes
+{
+	return [[theRunLoopModes retain] autorelease];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -94,5 +94,5 @@ Bugfix:
 
 
 
-There have been several more bug fixes and changes. Please consult the google code changes list:
+There have been MANY more bug fixes and changes. Please consult the google code changes list:
 http://code.google.com/p/cocoaasyncsocket/source/list

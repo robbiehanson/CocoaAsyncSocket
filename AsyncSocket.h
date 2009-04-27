@@ -395,6 +395,12 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (BOOL)setRunLoopModes:(NSArray *)runLoopModes;
 
 /**
+ * Returns the current run loop modes the AsyncSocket instance is operating in.
+ * The default set of run loop modes is NSDefaultRunLoopMode.
+**/
+- (NSArray *)runLoopModes;
+
+/**
  * In the event of an error, this method may be called during onSocket:willDisconnectWithError: to read
  * any data that's left on the socket.
 **/

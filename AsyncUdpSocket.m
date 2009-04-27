@@ -51,6 +51,12 @@ enum AsyncUdpSocketFlags
 
 @interface AsyncUdpSocket (Private)
 
+// Run Loop
+- (void)runLoopAddSource:(CFRunLoopSourceRef)source;
+- (void)runLoopRemoveSource:(CFRunLoopSourceRef)source;
+- (void)runLoopAddTimer:(NSTimer *)timer;
+- (void)runLoopRemoveTimer:(NSTimer *)timer;
+
 // Utilities
 - (NSString *)addressHost4:(struct sockaddr_in *)pSockaddr4;
 - (NSString *)addressHost6:(struct sockaddr_in6 *)pSockaddr6;
@@ -261,26 +267,17 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		theRunLoopModes = [[NSArray arrayWithObject:NSDefaultRunLoopMode] retain];
 		
 		// Attach the sockets to the run loop
-		unsigned i;
 		
 		if(theSocket4)
 		{
 			theSource4 = CFSocketCreateRunLoopSource(kCFAllocatorDefault, theSocket4, 0);
-			for(i = 0; i < [theRunLoopModes count]; i++)
-			{
-				CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-				CFRunLoopAddSource(theRunLoop, theSource4, runLoopMode);
-			}
+			[self runLoopAddSource:theSource4];
 		}
 		
 		if(theSocket6)
 		{
 			theSource6 = CFSocketCreateRunLoopSource(kCFAllocatorDefault, theSocket6, 0);
-			for(i = 0; i < [theRunLoopModes count]; i++)
-			{
-				CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-				CFRunLoopAddSource(theRunLoop, theSource6, runLoopMode);
-			}
+			[self runLoopAddSource:theSource6];
 		}
 		
 		cachedLocalPort = 0;
@@ -352,6 +349,50 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark Run Loop
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+- (void)runLoopAddSource:(CFRunLoopSourceRef)source
+{
+	unsigned i, count = [theRunLoopModes count];
+	for(i = 0; i < count; i++)
+	{
+		CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+		CFRunLoopAddSource(theRunLoop, source, runLoopMode);
+	}
+}
+
+- (void)runLoopRemoveSource:(CFRunLoopSourceRef)source
+{
+	unsigned i, count = [theRunLoopModes count];
+	for(i = 0; i < count; i++)
+	{
+		CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+		CFRunLoopRemoveSource(theRunLoop, source, runLoopMode);
+	}
+}
+
+- (void)runLoopAddTimer:(NSTimer *)timer
+{
+	unsigned i, count = [theRunLoopModes count];
+	for(i = 0; i < count; i++)
+	{
+		CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+		CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)timer, runLoopMode);
+	}
+}
+
+- (void)runLoopRemoveTimer:(NSTimer *)timer
+{
+	unsigned i, count = [theRunLoopModes count];
+	for(i = 0; i < count; i++)		
+	{
+		CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+		CFRunLoopRemoveTimer(theRunLoop, (CFRunLoopTimerRef)timer, runLoopMode);
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Configuration
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -381,91 +422,30 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		return YES;
 	}
 	
-	unsigned i;
-	
 	[NSObject cancelPreviousPerformRequestsWithTarget:self];
 	
-	if(theSource4)
-	{
-		for(i = 0; i < [theRunLoopModes count]; i++)
-		{
-			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-			CFRunLoopRemoveSource(theRunLoop, theSource4, runLoopMode);
-		}
-	}
-	if(theSource6)
-	{
-		for(i = 0; i < [theRunLoopModes count]; i++)
-		{
-			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-			CFRunLoopRemoveSource(theRunLoop, theSource6, runLoopMode);
-		}
-	}
-	if(theSendTimer)
-	{
-		// We do not retain the send timer - it gets retained by the runloop when we add it as a source.
-		// Since we're about to remove it as a source, we retain it now, and release it again below.
-		[theSendTimer retain];
-		
-		for(i = 0; i < [theRunLoopModes count]; i++)
-		{
-			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-			CFRunLoopRemoveTimer(theRunLoop, (CFRunLoopTimerRef)theSendTimer, runLoopMode);
-		}
-	}
-	if(theReceiveTimer)
-	{
-		// We do not retain the recieve timer - it gets retained by the runloop when we add it as a source.
-		// Since we're about to remove it as a source, we retain it now, and release it again below.
-		[theReceiveTimer retain];
-		
-		for(i = 0; i < [theRunLoopModes count]; i++)
-		{
-			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-			CFRunLoopRemoveTimer(theRunLoop, (CFRunLoopTimerRef)theReceiveTimer, runLoopMode);
-		}
-	}
+	if(theSource4) [self runLoopRemoveSource:theSource4];
+	if(theSource6) [self runLoopRemoveSource:theSource6];
+	
+	// We do not retain the timers - they get retained by the runloop when we add them as a source.
+	// Since we're about to remove them as a source, we retain now, and release again below.
+	[theSendTimer retain];
+	[theReceiveTimer retain];
+	
+	if(theSendTimer)    [self runLoopRemoveTimer:theSendTimer];
+	if(theReceiveTimer) [self runLoopRemoveTimer:theReceiveTimer];
 	
 	theRunLoop = [runLoop getCFRunLoop];
 	
-	if(theSource4)
-	{
-		for(i = 0; i < [theRunLoopModes count]; i++)
-		{
-			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-			CFRunLoopAddSource(theRunLoop, theSource4, runLoopMode);
-		}
-	}
-	if(theSource6)
-	{
-		for(i = 0; i < [theRunLoopModes count]; i++)
-		{
-			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-			CFRunLoopAddSource(theRunLoop, theSource6, runLoopMode);
-		}
-	}
-	if(theSendTimer)
-	{
-		for(i = 0; i < [theRunLoopModes count]; i++)
-		{
-			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-			CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)theSendTimer, runLoopMode);
-		}
-		
-		// Release here since we retained it above
-		[theSendTimer release];
-	}
-	if(theReceiveTimer)
-	{
-		for(i = 0; i < [theRunLoopModes count]; i++)
-		{
-			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-			CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)theReceiveTimer, runLoopMode);
-		}
-		
-		// Release here since we retained it above
-		[theReceiveTimer release];
-	}
+	if(theSendTimer)    [self runLoopAddTimer:theSendTimer];
+	if(theReceiveTimer) [self runLoopAddTimer:theReceiveTimer];
+	
+	// Release timers since we retained them above
+	[theSendTimer release];
+	[theReceiveTimer release];
+	
+	if(theSource4) [self runLoopAddSource:theSource4];
+	if(theSource6) [self runLoopAddSource:theSource6];
 	
 	[runLoop performSelector:@selector(maybeDequeueSend) target:self argument:nil order:0 modes:theRunLoopModes];
 	[runLoop performSelector:@selector(maybeDequeueReceive) target:self argument:nil order:0 modes:theRunLoopModes];
@@ -488,98 +468,42 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		return YES;
 	}
 	
-	unsigned i;
-	
 	[NSObject cancelPreviousPerformRequestsWithTarget:self];
 	
-	if(theSource4)
-	{
-		for(i = 0; i < [theRunLoopModes count]; i++)
-		{
-			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-			CFRunLoopRemoveSource(theRunLoop, theSource4, runLoopMode);
-		}
-	}
-	if(theSource6)
-	{
-		for(i = 0; i < [theRunLoopModes count]; i++)
-		{
-			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-			CFRunLoopRemoveSource(theRunLoop, theSource6, runLoopMode);
-		}
-	}
-	if(theSendTimer)
-	{
-		// We do not retain the send timer - it gets retained by the runloop when we add it as a source.
-		// Since we're about to remove it as a source, we retain it now, and release it again below.
-		[theSendTimer retain];
-		
-		for(i = 0; i < [theRunLoopModes count]; i++)
-		{
-			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-			CFRunLoopRemoveTimer(theRunLoop, (CFRunLoopTimerRef)theSendTimer, runLoopMode);
-		}
-	}
-	if(theReceiveTimer)
-	{
-		// We do not retain the recieve timer - it gets retained by the runloop when we add it as a source.
-		// Since we're about to remove it as a source, we retain it now, and release it again below.
-		[theReceiveTimer retain];
-		
-		for(i = 0; i < [theRunLoopModes count]; i++)
-		{
-			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-			CFRunLoopRemoveTimer(theRunLoop, (CFRunLoopTimerRef)theReceiveTimer, runLoopMode);
-		}
-	}
+	if(theSource4) [self runLoopRemoveSource:theSource4];
+	if(theSource6) [self runLoopRemoveSource:theSource6];
+	
+	// We do not retain the timers - they get retained by the runloop when we add them as a source.
+	// Since we're about to remove them as a source, we retain now, and release again below.
+	[theSendTimer retain];
+	[theReceiveTimer retain];
+	
+	if(theSendTimer)    [self runLoopRemoveTimer:theSendTimer];
+	if(theReceiveTimer) [self runLoopRemoveTimer:theReceiveTimer];
 	
 	[theRunLoopModes release];
 	theRunLoopModes = [runLoopModes copy];
 	
-	if(theSource4)
-	{
-		for(i = 0; i < [theRunLoopModes count]; i++)
-		{
-			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-			CFRunLoopAddSource(theRunLoop, theSource4, runLoopMode);
-		}
-	}
-	if(theSource6)
-	{
-		for(i = 0; i < [theRunLoopModes count]; i++)
-		{
-			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-			CFRunLoopAddSource(theRunLoop, theSource6, runLoopMode);
-		}
-	}
-	if(theSendTimer)
-	{
-		for(i = 0; i < [theRunLoopModes count]; i++)
-		{
-			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-			CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)theSendTimer, runLoopMode);
-		}
-		
-		// Release here since we retained it above
-		[theSendTimer release];
-	}
-	if(theReceiveTimer)
-	{
-		for(i = 0; i < [theRunLoopModes count]; i++)
-		{
-			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-			CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)theReceiveTimer, runLoopMode);
-		}
-		
-		// Release here since we retained it above
-		[theReceiveTimer release];
-	}
+	if(theSendTimer)    [self runLoopAddTimer:theSendTimer];
+	if(theReceiveTimer) [self runLoopAddTimer:theReceiveTimer];
+	
+	// Release timers since we retained them above
+	[theSendTimer release];
+	[theReceiveTimer release];
+	
+	if(theSource4) [self runLoopAddSource:theSource4];
+	if(theSource6) [self runLoopAddSource:theSource6];
 	
 	[self performSelector:@selector(maybeDequeueSend) withObject:nil afterDelay:0 inModes:theRunLoopModes];
 	[self performSelector:@selector(maybeDequeueReceive) withObject:nil afterDelay:0 inModes:theRunLoopModes];
 	[self performSelector:@selector(maybeScheduleClose) withObject:nil afterDelay:0 inModes:theRunLoopModes];
 	
 	return YES;
+}
+
+- (NSArray *)runLoopModes
+{
+	return [[theRunLoopModes retain] autorelease];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1313,12 +1237,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	}
 	if (theSource4 != NULL)
 	{
-		unsigned i;
-		for(i = 0; i < [theRunLoopModes count]; i++)
-		{
-			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-			CFRunLoopRemoveSource(theRunLoop, theSource4, runLoopMode);
-		}
+		[self runLoopRemoveSource:theSource4];
 		CFRelease(theSource4);
 		theSource4 = NULL;
 	}
@@ -1334,12 +1253,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	}
 	if (theSource6 != NULL)
 	{
-		unsigned i;
-		for(i = 0; i < [theRunLoopModes count]; i++)
-		{
-			CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-			CFRunLoopRemoveSource(theRunLoop, theSource6, runLoopMode);
-		}
+		[self runLoopRemoveSource:theSource6];
 		CFRelease(theSource6);
 		theSource6 = NULL;
 	}
@@ -1897,12 +1811,8 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 													 selector:@selector(doSendTimeout:)
 													 userInfo:nil
 													  repeats:NO];
-				unsigned i;
-				for(i = 0; i < [theRunLoopModes count]; i++)
-				{
-					CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-					CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)theSendTimer, runLoopMode);
-				}
+				
+				[self runLoopAddTimer:theSendTimer];
 			}
 			
 			// Immediately send, if possible.
@@ -2109,12 +2019,8 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 														selector:@selector(doReceiveTimeout:)
 														userInfo:nil
 														 repeats:NO];
-				unsigned i;
-				for(i = 0; i < [theRunLoopModes count]; i++)
-				{
-					CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-					CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)theReceiveTimer, runLoopMode);
-				}
+				
+				[self runLoopAddTimer:theReceiveTimer];
 			}
 			
 			// Immediately receive, if possible
