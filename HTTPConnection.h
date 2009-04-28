@@ -32,6 +32,8 @@
 	
 	UInt64 requestContentLength;
 	UInt64 requestContentLengthReceived;
+	
+	NSMutableArray *responseDataSizes;
 }
 
 - (id)initWithAsyncSocket:(AsyncSocket *)newSocket forServer:(HTTPServer *)myServer;
@@ -65,4 +67,8 @@
 
 - (void)die;
 
+@end
+
+@interface HTTPConnection (AsynchronousHTTPResponse)
+- (void)responseHasAvailableData;
 @end

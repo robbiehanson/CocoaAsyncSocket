@@ -15,6 +15,10 @@
 			[self release];
 			return nil;
 		}
+		
+		NSDictionary *fileAttributes = [[NSFileManager defaultManager] fileAttributesAtPath:filePath traverseLink:NO];
+		NSNumber *fileSize = [fileAttributes objectForKey:NSFileSize];
+		fileLength = (UInt64)[fileSize unsignedLongLongValue];
 	}
 	return self;
 }
@@ -29,11 +33,7 @@
 
 - (UInt64)contentLength
 {
-	NSDictionary *fileAttributes = [[NSFileManager defaultManager] fileAttributesAtPath:filePath traverseLink:NO];
-	
-	NSNumber *fileSize = [fileAttributes objectForKey:NSFileSize];
-	
-	return (UInt64)[fileSize unsignedLongLongValue];
+	return fileLength;
 }
 
 - (UInt64)offset
@@ -49,6 +49,11 @@
 - (NSData *)readDataOfLength:(unsigned int)length
 {
 	return [fileHandle readDataOfLength:length];
+}
+
+- (BOOL)isDone
+{
+	return ([fileHandle offsetInFile] == fileLength);
 }
 
 - (NSString *)filePath
@@ -105,6 +110,11 @@
 	offset += length;
 	
 	return [NSData dataWithBytesNoCopy:bytes length:length freeWhenDone:NO];
+}
+
+- (BOOL)isDone
+{
+	return (offset == [data length]);
 }
 
 @end

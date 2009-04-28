@@ -6,6 +6,7 @@
 #import "DDNumber.h"
 #import "DDRange.h"
 #import "DDData.h"
+#import "HTTPAsyncFileResponse.h"
 
 
 // Define chunk size used to read in data for responses
@@ -62,6 +63,8 @@
 @interface HTTPConnection (PrivateAPI)
 - (CFHTTPMessageRef)prepareUniRangeResponse:(UInt64)contentLength;
 - (CFHTTPMessageRef)prepareMultiRangeResponse:(UInt64)contentLength;
+- (NSData *)chunkedTransferSizeLineForLength:(unsigned int)length;
+- (NSData *)chunkedTransferFooter;
 @end
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -114,7 +117,7 @@ static NSMutableArray *recentNonces;
 		asyncSocket = [newSocket retain];
 		[asyncSocket setDelegate:self];
 		
-		// Enable pre-buffering on the socket to improve readDataToData performance
+		// Ensure pre-buffering is enabled to improve readDataToData performance
 		[asyncSocket enablePreBuffering];
 		
 		// Store reference to server
@@ -130,6 +133,8 @@ static NSMutableArray *recentNonces;
 		request = CFHTTPMessageCreateEmpty(kCFAllocatorDefault, YES);
 		
 		numHeaderLines = 0;
+		
+		responseDataSizes = [[NSMutableArray alloc] initWithCapacity:5];
 		
 		// Don't start reading the HTTP request here.
 		// We are currently running on the thread that the server's listen socket is running on.
@@ -159,11 +164,13 @@ static NSMutableArray *recentNonces;
 	[ranges_headers release];
 	[ranges_boundry release];
 	
+	[responseDataSizes release];
+	
 	[super dealloc];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#pragma mark Connection Control:
+#pragma mark Method Support
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -213,6 +220,10 @@ static NSMutableArray *recentNonces;
 	return NO;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark HTTPS
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /**
  * Returns whether or not the server is configured to be a secure server.
  * In other words, all connections to this server are immediately secured, thus only secure connections are allowed.
@@ -240,6 +251,10 @@ static NSMutableArray *recentNonces;
 	
 	return nil;
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark Password Protection
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Returns whether or not the requested resource is password protected.
@@ -309,15 +324,15 @@ static NSMutableArray *recentNonces;
 	NSString *newNonce = [NSMakeCollectable(CFUUIDCreateString(NULL, theUUID)) autorelease];
 	CFRelease(theUUID);
 	
-	// We have to remember that the HTTP protocol is stateless
-	// Even though with version 1.1 persistent connections are the norm, they are not guaranteed
+	// We have to remember that the HTTP protocol is stateless.
+	// Even though with version 1.1 persistent connections are the norm, they are not guaranteed.
 	// Thus if we generate a nonce for this connection,
-	// it should be honored for other connections in the near future
+	// it should be honored for other connections in the near future.
 	// 
-	// In fact, this is absolutely necessary in order to support QuickTime
-	// When QuickTime makes it's initial connection, it will be unauthorized, and will receive a nonce
-	// It then disconnects, and creates a new connection with the nonce, and proper authentication
-	// If we don't honor the nonce for the second connection, QuickTime will repeat the process and never connect
+	// In fact, this is absolutely necessary in order to support QuickTime.
+	// When QuickTime makes it's initial connection, it will be unauthorized, and will receive a nonce.
+	// It then disconnects, and creates a new connection with the nonce, and proper authentication.
+	// If we don't honor the nonce for the second connection, QuickTime will repeat the process and never connect.
 	
 	[recentNonces addObject:newNonce];
 	
@@ -331,7 +346,6 @@ static NSMutableArray *recentNonces;
 
 /**
  * Returns whether or not the user is properly authenticated.
- * Authentication is done using Digest Access Authentication accoring to RFC 2617.
 **/
 - (BOOL)isAuthenticated
 {
@@ -340,7 +354,7 @@ static NSMutableArray *recentNonces;
 	
 	if([self useDigestAccessAuthentication])
 	{
-		// Digest Access Authentication
+		// Digest Access Authentication (RFC 2617)
 		
 		if(![auth isDigest])
 		{
@@ -395,8 +409,8 @@ static NSMutableArray *recentNonces;
 			}
 			else
 			{
-				// We have no knowledge of ever distributing such a nonce
-				// This could be a replay attack from a previous connection in the past
+				// We have no knowledge of ever distributing such a nonce.
+				// This could be a replay attack from a previous connection in the past.
 				return NO;
 			}
 		}
@@ -405,8 +419,8 @@ static NSMutableArray *recentNonces;
 		
 		if(authNC <= lastNC)
 		{
-			// The nc value (nonce count) hasn't been incremented since the last request
-			// This could be a replay attack
+			// The nc value (nonce count) hasn't been incremented since the last request.
+			// This could be a replay attack.
 			return NO;
 		}
 		lastNC = authNC;
@@ -488,6 +502,10 @@ static NSMutableArray *recentNonces;
 	
 	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("WWW-Authenticate"), (CFStringRef)authInfo);
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark Core
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Attempts to parse the given range header into a series of non-overlapping ranges.
@@ -644,23 +662,6 @@ static NSMutableArray *recentNonces;
 }
 
 /**
- * Gets the current date and time, formatted properly (according to RFC) for insertion into an HTTP header.
-**/
-- (NSString *)dateAsString:(NSDate *)date
-{
-	// Example: Sun, 06 Nov 1994 08:49:37 GMT
-	
-	NSDateFormatter *df = [[[NSDateFormatter alloc] init] autorelease];
-	[df setFormatterBehavior:NSDateFormatterBehavior10_4];
-	[df setTimeZone:[NSTimeZone timeZoneWithAbbreviation:@"GMT"]];
-	[df setDateFormat:@"EEE, dd MMM y HH:mm:ss 'GMT'"];
-	
-	// For some reason, using zzz in the format string produces GMT+00:00
-	
-	return [df stringFromDate:date];
-}
-
-/**
  * This method is called after a full HTTP request has been received.
  * The current request is in the CFHTTPMessage request variable.
 **/
@@ -699,14 +700,33 @@ static NSMutableArray *recentNonces;
 		return;
 	}
 	
-	UInt64 contentLength = [httpResponse contentLength];
+	BOOL isChunked = NO;
+	
+	if([httpResponse respondsToSelector:@selector(isChunked)])
+	{
+		isChunked = [httpResponse isChunked];
+	}
+	
+	// If a response is "chunked", this simply means the HTTPResponse object
+	// doesn't know the content-length in advance.
+	
+	UInt64 contentLength = 0;
+	
+	if(!isChunked)
+	{
+		contentLength = [httpResponse contentLength];
+	}
 	
 	// Check for specific range request
 	NSString *rangeHeader = [NSMakeCollectable(CFHTTPMessageCopyHeaderFieldValue(request, CFSTR("Range"))) autorelease];
 	
 	BOOL isRangeRequest = NO;
 	
-	if(rangeHeader)
+	// If the response is "chunked" then we don't know the exact content-length.
+	// This means we'll be unable to process any range requests.
+	// This is because range requests might include a range like "give me the last 100 bytes"
+	
+	if(!isChunked && rangeHeader)
 	{
 		if([self parseRangeRequest:rangeHeader withContentLength:contentLength])
 		{
@@ -721,8 +741,15 @@ static NSMutableArray *recentNonces;
 		// Status Code 200 - OK
 		response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 200, NULL, kCFHTTPVersion1_1);
 		
-		NSString *contentLengthStr = [NSString stringWithFormat:@"%qu", contentLength];
-		CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), (CFStringRef)contentLengthStr);
+		if(isChunked)
+		{
+			CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Transfer-Encoding"), CFSTR("chunked"));
+		}
+		else
+		{
+			NSString *contentLengthStr = [NSString stringWithFormat:@"%qu", contentLength];
+			CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), (CFStringRef)contentLengthStr);
+		}
 	}
 	else
 	{
@@ -735,10 +762,13 @@ static NSMutableArray *recentNonces;
 			response = [self prepareMultiRangeResponse:contentLength];
 		}
 	}
+	
+	BOOL isZeroLengthResponse = !isChunked && (contentLength == 0);
     
 	// If they issue a 'HEAD' command, we don't have to include the file
 	// If they issue a 'GET' command, we need to include the file
-	if([method isEqual:@"HEAD"] || contentLength == 0)
+	
+	if([method isEqual:@"HEAD"] || isZeroLengthResponse)
 	{
 		NSData *responseData = [self preprocessResponse:response];
 		[asyncSocket writeData:responseData withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_RESPONSE];
@@ -755,7 +785,34 @@ static NSMutableArray *recentNonces;
 			// Regular request
 			NSData *data = [httpResponse readDataOfLength:READ_CHUNKSIZE];
 			
-			[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_BODY];
+			if([data length] > 0)
+			{
+				[responseDataSizes addObject:[NSNumber numberWithUnsignedInt:[data length]]];
+				
+				if(isChunked)
+				{
+					NSData *chunkSize = [self chunkedTransferSizeLineForLength:[data length]];
+					[asyncSocket writeData:chunkSize withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_HEADER];
+					
+					[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_BODY];
+					
+					if([httpResponse isDone])
+					{
+						NSData *footer = [self chunkedTransferFooter];
+						[asyncSocket writeData:footer withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_RESPONSE];
+					}
+					else
+					{
+						NSData *footer = [AsyncSocket CRLFData];
+						[asyncSocket writeData:footer withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_HEADER];
+					}
+				}
+				else
+				{
+					long tag = [httpResponse isDone] ? HTTP_RESPONSE : HTTP_PARTIAL_RESPONSE_BODY;
+					[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:tag];
+				}
+			}
 		}
 		else
 		{
@@ -772,7 +829,13 @@ static NSMutableArray *recentNonces;
 				
 				NSData *data = [httpResponse readDataOfLength:bytesToRead];
 				
-				[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_PARTIAL_RANGE_RESPONSE_BODY];
+				if([data length] > 0)
+				{
+					[responseDataSizes addObject:[NSNumber numberWithUnsignedInt:[data length]]];
+					
+					long tag = [httpResponse isDone] ? HTTP_RESPONSE : HTTP_PARTIAL_RANGE_RESPONSE_BODY;
+					[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:tag];
+				}
 			}
 			else
 			{
@@ -792,7 +855,12 @@ static NSMutableArray *recentNonces;
 				
 				NSData *data = [httpResponse readDataOfLength:bytesToRead];
 				
-				[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_PARTIAL_RANGES_RESPONSE_BODY];
+				if([data length] > 0)
+				{
+					[responseDataSizes addObject:[NSNumber numberWithUnsignedInt:[data length]]];
+					
+					[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_PARTIAL_RANGES_RESPONSE_BODY];
+				}
 			}
 		}
 	}
@@ -894,6 +962,241 @@ static NSMutableArray *recentNonces;
 }
 
 /**
+ * Returns the chunk size line that must precede each chunk of data when using chunked transfer encoding.
+ * This consists of the size of the data, in hexadecimal, followed by a CRLF.
+**/
+- (NSData *)chunkedTransferSizeLineForLength:(unsigned int)length
+{
+	return [[NSString stringWithFormat:@"%x\r\n", length] dataUsingEncoding:NSUTF8StringEncoding];
+}
+
+/**
+ * Returns the data that signals the end of a chunked transfer.
+**/
+- (NSData *)chunkedTransferFooter
+{
+	// Each data chunk is preceded by a size line (in hex and including a CRLF),
+	// followed by the data itself, followed by another CRLF.
+	// After every data chunk has been sent, a zero size line is sent,
+	// followed by optional footer (which are just more headers),
+	// and followed by a CRLF on a line by itself.
+	
+	return [@"\r\n0\r\n\r\n" dataUsingEncoding:NSUTF8StringEncoding];
+}
+
+/**
+ * Returns the number of bytes of the http response body that are sitting in asyncSocket's write queue.
+ * 
+ * We keep track of this information in order to keep our memory footprint low while
+ * working with asynchronous HTTPResponse objects.
+**/
+- (unsigned int)writeQueueSize
+{
+	unsigned int result = 0;
+	
+	unsigned int i;
+	for(i = 0; i < [responseDataSizes count]; i++)
+	{
+		result += [[responseDataSizes objectAtIndex:i] unsignedIntValue];
+	}
+	
+	return result;
+}
+
+/**
+ * Sends more data, if needed, without growing the write queue over its approximate size limit.
+ * The last chunk of the response body will be sent with a tag of HTTP_RESPONSE.
+ * 
+ * This method should only be called for standard (non-range) responses.
+**/
+- (void)continueSendingStandardResponseBody
+{
+	// This method is called when either asyncSocket has finished writing one of the response data chunks,
+	// or when an asynchronous HTTPResponse object informs us that is has more available data for us to send.
+	// In the case of the asynchronous HTTPResponse, we don't want to blindly grab the new data,
+	// and shove it onto asyncSocket's write queue.
+	// Doing so could negatively affect the memory footprint of the application.
+	// Instead, we always ensure that we place no more than READ_CHUNKSIZE bytes onto the write queue.
+	// 
+	// Note that this does not affect the rate at which the HTTPResponse object may generate data.
+	// The HTTPResponse is free to do as it pleases, and this is up to the application's developer.
+	// If the memory footprint is a concern, the developer creating the custom HTTPResponse object may freely
+	// use the calls to readDataOfLength as an indication to start generating more data.
+	// This provides an easy way for the HTTPResponse object to throttle its data allocation in step with the rate
+	// at which the socket is able to send it.
+	
+	unsigned int available = READ_CHUNKSIZE - [self writeQueueSize];
+	
+	if(available > 0)
+	{
+		NSData *data = [httpResponse readDataOfLength:available];
+		
+		if([data length] > 0)
+		{
+			[responseDataSizes addObject:[NSNumber numberWithUnsignedInt:[data length]]];
+			
+			BOOL isChunked = NO;
+			
+			if([httpResponse respondsToSelector:@selector(isChunked)])
+			{
+				isChunked = [httpResponse isChunked];
+			}
+			
+			if(isChunked)
+			{
+				NSData *chunkSize = [self chunkedTransferSizeLineForLength:[data length]];
+				[asyncSocket writeData:chunkSize withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_HEADER];
+				
+				[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_BODY];
+				
+				if([httpResponse isDone])
+				{
+					NSData *footer = [self chunkedTransferFooter];
+					[asyncSocket writeData:footer withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_RESPONSE];
+				}
+				else
+				{
+					NSData *footer = [AsyncSocket CRLFData];
+					[asyncSocket writeData:footer withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_HEADER];
+				}
+			}
+			else
+			{
+				long tag = [httpResponse isDone] ? HTTP_RESPONSE : HTTP_PARTIAL_RESPONSE_BODY;
+				[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:tag];
+			}
+		}
+	}
+}
+
+/**
+ * Sends more data, if needed, without growing the write queue over its approximate size limit.
+ * The last chunk of the response body will be sent with a tag of HTTP_RESPONSE.
+ * 
+ * This method should only be called for single-range responses.
+**/
+- (void)continueSendingSingleRangeResponseBody
+{
+	// This method is called when either asyncSocket has finished writing one of the response data chunks,
+	// or when an asynchronous response informs us that is has more available data for us to send.
+	// In the case of the asynchronous response, we don't want to blindly grab the new data,
+	// and shove it onto asyncSocket's write queue.
+	// Doing so could negatively affect the memory footprint of the application.
+	// Instead, we always ensure that we place no more than READ_CHUNKSIZE bytes onto the write queue.
+	// 
+	// Note that this does not affect the rate at which the HTTPResponse object may generate data.
+	// The HTTPResponse is free to do as it pleases, and this is up to the application's developer.
+	// If the memory footprint is a concern, the developer creating the custom HTTPResponse object may freely
+	// use the calls to readDataOfLength as an indication to start generating more data.
+	// This provides an easy way for the HTTPResponse object to throttle its data allocation in step with the rate
+	// at which the socket is able to send it.
+	
+	DDRange range = [[ranges objectAtIndex:0] ddrangeValue];
+	
+	UInt64 offset = [httpResponse offset];
+	UInt64 bytesRead = offset - range.location;
+	UInt64 bytesLeft = range.length - bytesRead;
+	
+	if(bytesLeft > 0)
+	{
+		unsigned int available = READ_CHUNKSIZE - [self writeQueueSize];
+		unsigned int bytesToRead = bytesLeft < available ? bytesLeft : available;
+		
+		NSData *data = [httpResponse readDataOfLength:bytesToRead];
+		
+		if([data length] > 0)
+		{
+			[responseDataSizes addObject:[NSNumber numberWithUnsignedInt:[data length]]];
+			
+			long tag = [httpResponse isDone] ? HTTP_RESPONSE : HTTP_PARTIAL_RANGE_RESPONSE_BODY;
+			[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:tag];
+		}
+	}
+}
+
+/**
+ * Sends more data, if needed, without growing the write queue over its approximate size limit.
+ * The last chunk of the response body will be sent with a tag of HTTP_RESPONSE.
+ * 
+ * This method should only be called for single-range responses.
+**/
+- (void)continueSendingMultiRangeResponseBody
+{
+	// This method is called when either asyncSocket has finished writing one of the response data chunks,
+	// or when an asynchronous HTTPResponse object informs us that is has more available data for us to send.
+	// In the case of the asynchronous HTTPResponse, we don't want to blindly grab the new data,
+	// and shove it onto asyncSocket's write queue.
+	// Doing so could negatively affect the memory footprint of the application.
+	// Instead, we always ensure that we place no more than READ_CHUNKSIZE bytes onto the write queue.
+	// 
+	// Note that this does not affect the rate at which the HTTPResponse object may generate data.
+	// The HTTPResponse is free to do as it pleases, and this is up to the application's developer.
+	// If the memory footprint is a concern, the developer creating the custom HTTPResponse object may freely
+	// use the calls to readDataOfLength as an indication to start generating more data.
+	// This provides an easy way for the HTTPResponse object to throttle its data allocation in step with the rate
+	// at which the socket is able to send it.
+	
+	DDRange range = [[ranges objectAtIndex:rangeIndex] ddrangeValue];
+	
+	UInt64 offset = [httpResponse offset];
+	UInt64 bytesRead = offset - range.location;
+	UInt64 bytesLeft = range.length - bytesRead;
+	
+	if(bytesLeft > 0)
+	{
+		unsigned int available = READ_CHUNKSIZE - [self writeQueueSize];
+		unsigned int bytesToRead = bytesLeft < available ? bytesLeft : available;
+		
+		NSData *data = [httpResponse readDataOfLength:bytesToRead];
+		
+		if([data length] > 0)
+		{
+			[responseDataSizes addObject:[NSNumber numberWithUnsignedInt:[data length]]];
+			
+			[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_PARTIAL_RANGES_RESPONSE_BODY];
+		}
+	}
+	else
+	{
+		if(++rangeIndex < [ranges count])
+		{
+			// Write range header
+			NSData *rangeHeader = [ranges_headers objectAtIndex:rangeIndex];
+			[asyncSocket writeData:rangeHeader withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_HEADER];
+			
+			// Start writing range body
+			range = [[ranges objectAtIndex:rangeIndex] ddrangeValue];
+			
+			[httpResponse setOffset:range.location];
+			
+			unsigned int available = READ_CHUNKSIZE - [self writeQueueSize];
+			unsigned int bytesToRead = range.length < available ? range.length : available;
+			
+			NSData *data = [httpResponse readDataOfLength:bytesToRead];
+			
+			if([data length] > 0)
+			{
+				[responseDataSizes addObject:[NSNumber numberWithUnsignedInt:[data length]]];
+				
+				[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_PARTIAL_RANGES_RESPONSE_BODY];
+			}
+		}
+		else
+		{
+			// We're not done yet - we still have to send the closing boundry tag
+			NSString *endingBoundryStr = [NSString stringWithFormat:@"\r\n--%@--\r\n", ranges_boundry];
+			NSData *endingBoundryData = [endingBoundryStr dataUsingEncoding:NSUTF8StringEncoding];
+			
+			[asyncSocket writeData:endingBoundryData withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_RESPONSE];
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark Responses
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
  * Converts relative URI path into full file-system path.
 **/
 - (NSString *)filePathForURI:(NSString *)path
@@ -954,10 +1257,20 @@ static NSMutableArray *recentNonces;
 	if([[NSFileManager defaultManager] fileExistsAtPath:filePath])
 	{
 		return [[[HTTPFileResponse alloc] initWithFilePath:filePath] autorelease];
+	
+	//	// Use me instead to test the HTTPAsyncFileResponse class
+	//	
+	//	return [[[HTTPAsyncFileResponse alloc] initWithFilePath:filePath
+	//											  forConnection:self
+	//											   runLoopModes:[asyncSocket runLoopModes]] autorelease];
 	}
 	
 	return nil;
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark Uploads
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * This method is called after receiving all HTTP headers, but before reading any of the request body.
@@ -982,6 +1295,10 @@ static NSMutableArray *recentNonces;
 	// The size of the chunks are limited by the POST_CHUNKSIZE definition.
 	// Therefore, this method may be called multiple times for the same POST request.
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark Errors
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Called if the HTML version is other than what is supported
@@ -1054,6 +1371,11 @@ static NSMutableArray *recentNonces;
 	[asyncSocket writeData:responseData withTimeout:WRITE_ERROR_TIMEOUT tag:HTTP_FINAL_RESPONSE];
 	
 	CFRelease(response);
+	
+	// Note: We used the HTTP_FINAL_RESPONSE tag to disconnect after the response is sent.
+	// We do this because we couldn't parse the request,
+	// so we won't be able to recover and move on to another request afterwards.
+	// In other words, we wouldn't know where the first request ends and the second request begins.
 }
 
 /**
@@ -1102,6 +1424,27 @@ static NSMutableArray *recentNonces;
 	[asyncSocket writeData:responseData withTimeout:WRITE_ERROR_TIMEOUT tag:HTTP_RESPONSE];
 	
 	CFRelease(response);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark Headers
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Gets the current date and time, formatted properly (according to RFC) for insertion into an HTTP header.
+**/
+- (NSString *)dateAsString:(NSDate *)date
+{
+	// Example: Sun, 06 Nov 1994 08:49:37 GMT
+	
+	NSDateFormatter *df = [[[NSDateFormatter alloc] init] autorelease];
+	[df setFormatterBehavior:NSDateFormatterBehavior10_4];
+	[df setTimeZone:[NSTimeZone timeZoneWithAbbreviation:@"GMT"]];
+	[df setDateFormat:@"EEE, dd MMM y HH:mm:ss 'GMT'"];
+	
+	// For some reason, using zzz in the format string produces GMT+00:00
+	
+	return [df stringFromDate:date];
 }
 
 /**
@@ -1192,15 +1535,8 @@ static NSMutableArray *recentNonces;
 	return [result autorelease];
 }
 
-- (void)die
-{
-	// Post notification of dead connection
-	// This will allow our server to release us from its array of connections
-	[[NSNotificationCenter defaultCenter] postNotificationName:HTTPConnectionDidDieNotification object:self];
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#pragma mark AsyncSocket Delegate Methods:
+#pragma mark AsyncSocket Delegate Methods
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -1211,12 +1547,13 @@ static NSMutableArray *recentNonces;
 {
 	if([self isSecureServer])
 	{
+		// We are configured to be an HTTPS server.
+		// That is, we secure via SSL/TLS the connection prior to any communication.
+		
 		NSArray *certificates = [self sslIdentityAndCertificates];
 		
 		if([certificates count] > 0)
 		{
-			NSLog(@"Securing connection...");
-			
 			// All connections are assumed to be secure. Only secure connections are allowed on this server.
 			NSMutableDictionary *settings = [NSMutableDictionary dictionaryWithCapacity:3];
 			
@@ -1275,6 +1612,9 @@ static NSMutableArray *recentNonces;
 				// Reached the maximum amount of header lines in a single HTTP request
 				// This could be an attempted DOS attack
 				[asyncSocket disconnect];
+				
+				// Explictly return to ensure we don't do anything after the socket disconnect
+				return;
 			}
 			else
 			{
@@ -1406,89 +1746,36 @@ static NSMutableArray *recentNonces;
 	
 	if(tag == HTTP_PARTIAL_RESPONSE_BODY)
 	{
-		// We only wrote a part of the http response - there may be more.
-		NSData *data = [httpResponse readDataOfLength:READ_CHUNKSIZE];
+		// Update the amount of data we have in asyncSocket's write queue
+		[responseDataSizes removeObjectAtIndex:0];
 		
-		if([data length] > 0)
-		{
-			[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:tag];
-		}
-		else
-		{
-			doneSendingResponse = YES;
-		}
+		// We only wrote a part of the response - there may be more
+		[self continueSendingStandardResponseBody];
 	}
 	else if(tag == HTTP_PARTIAL_RANGE_RESPONSE_BODY)
 	{
-		// We only wrote a part of the range - there may be more.
-		DDRange range = [[ranges objectAtIndex:0] ddrangeValue];
+		// Update the amount of data we have in asyncSocket's write queue
+		[responseDataSizes removeObjectAtIndex:0];
 		
-		UInt64 offset = [httpResponse offset];
-		UInt64 bytesRead = offset - range.location;
-		UInt64 bytesLeft = range.length - bytesRead;
-		
-		if(bytesLeft > 0)
-		{
-			unsigned int bytesToRead = bytesLeft < READ_CHUNKSIZE ? bytesLeft : READ_CHUNKSIZE;
-			
-			NSData *data = [httpResponse readDataOfLength:bytesToRead];
-			
-			[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:tag];
-		}
-		else
-		{
-			doneSendingResponse = YES;
-		}
+		// We only wrote a part of the range - there may be more
+		[self continueSendingSingleRangeResponseBody];
 	}
 	else if(tag == HTTP_PARTIAL_RANGES_RESPONSE_BODY)
 	{
-		// We only wrote part of the range - there may be more.
-		// Plus, there may be more ranges.
-		DDRange range = [[ranges objectAtIndex:rangeIndex] ddrangeValue];
+		// Update the amount of data we have in asyncSocket's write queue
+		[responseDataSizes removeObjectAtIndex:0];
 		
-		UInt64 offset = [httpResponse offset];
-		UInt64 bytesRead = offset - range.location;
-		UInt64 bytesLeft = range.length - bytesRead;
-		
-		if(bytesLeft > 0)
-		{
-			unsigned int bytesToRead = bytesLeft < READ_CHUNKSIZE ? bytesLeft : READ_CHUNKSIZE;
-			
-			NSData *data = [httpResponse readDataOfLength:bytesToRead];
-			
-			[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:tag];
-		}
-		else
-		{
-			if(++rangeIndex < [ranges count])
-			{
-				// Write range header
-				NSData *rangeHeader = [ranges_headers objectAtIndex:rangeIndex];
-				[asyncSocket writeData:rangeHeader withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_HEADER];
-				
-				// Start writing range body
-				range = [[ranges objectAtIndex:rangeIndex] ddrangeValue];
-				
-				[httpResponse setOffset:range.location];
-				
-				unsigned int bytesToRead = range.length < READ_CHUNKSIZE ? range.length : READ_CHUNKSIZE;
-				
-				NSData *data = [httpResponse readDataOfLength:bytesToRead];
-				
-				[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:tag];
-			}
-			else
-			{
-				// We're not done yet - we still have to send the closing boundry tag
-				NSString *endingBoundryStr = [NSString stringWithFormat:@"\r\n--%@--\r\n", ranges_boundry];
-				NSData *endingBoundryData = [endingBoundryStr dataUsingEncoding:NSUTF8StringEncoding];
-				
-				[asyncSocket writeData:endingBoundryData withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_RESPONSE];
-			}
-		}
+		// We only wrote part of the range - there may be more, or there may be more ranges
+		[self continueSendingMultiRangeResponseBody];
 	}
 	else if(tag == HTTP_RESPONSE || tag == HTTP_FINAL_RESPONSE)
 	{
+		// Update the amount of data we have in asyncSocket's write queue
+		if([responseDataSizes count] > 0)
+		{
+			[responseDataSizes removeObjectAtIndex:0];
+		}
+		
 		doneSendingResponse = YES;
 	}
 	
@@ -1498,6 +1785,9 @@ static NSMutableArray *recentNonces;
 		{
 			// Terminate the connection
 			[asyncSocket disconnect];
+			
+			// Explictly return to ensure we don't do anything after the socket disconnect
+			return;
 		}
 		else
 		{
@@ -1547,6 +1837,45 @@ static NSMutableArray *recentNonces;
 - (void)onSocketDidDisconnect:(AsyncSocket *)sock
 {
 	[self die];
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark HTTPResponse Notifications
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * This method may be called by asynchronous HTTPResponse objects.
+ * That is, HTTPResponse objects that return YES in their "- (BOOL)isAsynchronous" method.
+ * 
+ * This informs us that the response object has generated more data that we may be able to send.
+**/
+- (void)responseHasAvailableData
+{
+	if(ranges == nil)
+	{
+		[self continueSendingStandardResponseBody];
+	}
+	else
+	{
+		if([ranges count] == 1)
+			[self continueSendingSingleRangeResponseBody];
+		else
+			[self continueSendingMultiRangeResponseBody];
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark Closing
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+- (void)die
+{
+	// Override me if you want to perform any custom actions when a connection is closed.
+	// Then call [super die] when you're done.
+	
+	// Post notification of dead connection
+	// This will allow our server to release us from its array of connections
+	[[NSNotificationCenter defaultCenter] postNotificationName:HTTPConnectionDidDieNotification object:self];
 }
 
 @end

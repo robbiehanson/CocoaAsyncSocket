@@ -108,12 +108,12 @@ typedef enum AsyncSocketError AsyncSocketError;
 
 @interface AsyncSocket : NSObject
 {
-	CFSocketRef theSocket;             // IPv4 accept or connect socket
+	CFSocketRef theSocket4;            // IPv4 accept or connect socket
 	CFSocketRef theSocket6;            // IPv6 accept or connect socket
 	CFReadStreamRef theReadStream;
 	CFWriteStreamRef theWriteStream;
 
-	CFRunLoopSourceRef theSource;      // For theSocket
+	CFRunLoopSourceRef theSource4;     // For theSocket4
 	CFRunLoopSourceRef theSource6;     // For theSocket6
 	CFRunLoopRef theRunLoop;
 	CFSocketContext theContext;
@@ -393,6 +393,12 @@ typedef enum AsyncSocketError AsyncSocketError;
  * Note: NSRunLoopCommonModes is defined in 10.5. For previous versions one can use kCFRunLoopCommonModes.
 **/
 - (BOOL)setRunLoopModes:(NSArray *)runLoopModes;
+
+/**
+ * Returns the current run loop modes the AsyncSocket instance is operating in.
+ * The default set of run loop modes is NSDefaultRunLoopMode.
+**/
+- (NSArray *)runLoopModes;
 
 /**
  * In the event of an error, this method may be called during onSocket:willDisconnectWithError: to read

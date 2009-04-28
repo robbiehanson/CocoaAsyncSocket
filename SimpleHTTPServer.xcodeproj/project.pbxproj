@@ -20,6 +20,7 @@
 		DC41D6E30C178DE500F8D00D /* HTTPServer.m in Sources */ = {isa = PBXBuildFile; fileRef = DC41D6E10C178DE500F8D00D /* HTTPServer.m */; };
 		DC7A904A0EB8D297000BA995 /* SSCrypto.m in Sources */ = {isa = PBXBuildFile; fileRef = DC7A90490EB8D297000BA995 /* SSCrypto.m */; };
 		DC7A90540EB8D2EB000BA995 /* libcrypto.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = DC7A90530EB8D2EB000BA995 /* libcrypto.dylib */; };
+		DCA9EB8D0FA2579900FB1AC7 /* HTTPAsyncFileResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = DCA9EB8C0FA2579900FB1AC7 /* HTTPAsyncFileResponse.m */; };
 		DCF61A820E609737009BFEE4 /* DDNumber.m in Sources */ = {isa = PBXBuildFile; fileRef = DCF61A810E609737009BFEE4 /* DDNumber.m */; };
 		DCF61D540E632D0F009BFEE4 /* DDRange.m in Sources */ = {isa = PBXBuildFile; fileRef = DCF61D530E632D0F009BFEE4 /* DDRange.m */; };
 /* End PBXBuildFile section */
@@ -65,6 +66,8 @@
 		DC7A90480EB8D297000BA995 /* SSCrypto.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SSCrypto.h; sourceTree = "<group>"; };
 		DC7A90490EB8D297000BA995 /* SSCrypto.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SSCrypto.m; sourceTree = "<group>"; };
 		DC7A90530EB8D2EB000BA995 /* libcrypto.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcrypto.dylib; path = /usr/lib/libcrypto.dylib; sourceTree = "<absolute>"; };
+		DCA9EB8B0FA2579900FB1AC7 /* HTTPAsyncFileResponse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HTTPAsyncFileResponse.h; sourceTree = "<group>"; };
+		DCA9EB8C0FA2579900FB1AC7 /* HTTPAsyncFileResponse.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HTTPAsyncFileResponse.m; sourceTree = "<group>"; };
 		DCF61A800E609737009BFEE4 /* DDNumber.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DDNumber.h; sourceTree = "<group>"; };
 		DCF61A810E609737009BFEE4 /* DDNumber.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DDNumber.m; sourceTree = "<group>"; };
 		DCF61D520E632D0F009BFEE4 /* DDRange.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DDRange.h; sourceTree = "<group>"; };
@@ -184,6 +187,7 @@
 				DC2EA2300E91B40B00BB17BF /* HTTPConnection.m */,
 				DC2EA2490E91B76A00BB17BF /* HTTPResponse.h */,
 				DC2EA24A0E91B76A00BB17BF /* HTTPResponse.m */,
+				DCA9EB8E0FA257A600FB1AC7 /* Advanced */,
 			);
 			name = HTTP;
 			sourceTree = "<group>";
@@ -195,6 +199,15 @@
 				DC7A90490EB8D297000BA995 /* SSCrypto.m */,
 			);
 			name = SSCrypto;
+			sourceTree = "<group>";
+		};
+		DCA9EB8E0FA257A600FB1AC7 /* Advanced */ = {
+			isa = PBXGroup;
+			children = (
+				DCA9EB8B0FA2579900FB1AC7 /* HTTPAsyncFileResponse.h */,
+				DCA9EB8C0FA2579900FB1AC7 /* HTTPAsyncFileResponse.m */,
+			);
+			name = Advanced;
 			sourceTree = "<group>";
 		};
 		DCF61A7F0E609727009BFEE4 /* Categories */ = {
@@ -277,6 +290,7 @@
 				DC2EA24B0E91B76A00BB17BF /* HTTPResponse.m in Sources */,
 				DC2EA2D90E92152D00BB17BF /* DDData.m in Sources */,
 				DC7A904A0EB8D297000BA995 /* SSCrypto.m in Sources */,
+				DCA9EB8D0FA2579900FB1AC7 /* HTTPAsyncFileResponse.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
