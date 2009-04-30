@@ -158,6 +158,10 @@ static NSMutableArray *recentNonces;
 	
 	[nonce release];
 	
+	if([httpResponse respondsToSelector:@selector(connectionDidClose)])
+	{
+		[httpResponse connectionDidClose];
+	}
 	[httpResponse release];
 	
 	[ranges release];
@@ -1258,7 +1262,7 @@ static NSMutableArray *recentNonces;
 	{
 		return [[[HTTPFileResponse alloc] initWithFilePath:filePath] autorelease];
 	
-	//	// Use me instead to test the HTTPAsyncFileResponse class
+	//	// Use me instead for asynchronous file IO
 	//	
 	//	return [[[HTTPAsyncFileResponse alloc] initWithFilePath:filePath
 	//											  forConnection:self
@@ -1794,6 +1798,12 @@ static NSMutableArray *recentNonces;
 			// Cleanup after the last request
 			// And start listening for the next request
 			
+			// Inform the http response that we're done
+			if([httpResponse respondsToSelector:@selector(connectionDidClose)])
+			{
+				[httpResponse connectionDidClose];
+			}
+			
 			// Release any resources we no longer need
 			[httpResponse release];
 			httpResponse = nil;
@@ -1872,6 +1882,16 @@ static NSMutableArray *recentNonces;
 {
 	// Override me if you want to perform any custom actions when a connection is closed.
 	// Then call [super die] when you're done.
+	
+	// Inform the http response that we're done
+	if([httpResponse respondsToSelector:@selector(connectionDidClose)])
+	{
+		[httpResponse connectionDidClose];
+	}
+	
+	// Release the http response so we don't call it's connectionDidClose method again in our dealloc method
+	[httpResponse release];
+	httpResponse = nil;
 	
 	// Post notification of dead connection
 	// This will allow our server to release us from its array of connections

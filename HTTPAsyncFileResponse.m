@@ -43,8 +43,8 @@ static NSOperationQueue *operationQueue;
 	{
 		connection = parent; // Parents retain children, children do NOT retain parents
 		
-		runLoop = [NSRunLoop currentRunLoop]; // No need to retain the runloop
-		runLoopModes = [modes copy];
+		connectionThread = [[NSThread currentThread] retain];
+		connectionRunLoopModes = [modes copy];
 		
 		filePath = [fpath copy];
 		fileHandle = [[NSFileHandle fileHandleForReadingAtPath:filePath] retain];
@@ -71,7 +71,8 @@ static NSOperationQueue *operationQueue;
 
 - (void)dealloc
 {
-	[runLoopModes release];
+	[connectionThread release];
+	[connectionRunLoopModes release];
 	[filePath release];
 	[fileHandle closeFile];
 	[fileHandle release];
@@ -144,17 +145,23 @@ static NSOperationQueue *operationQueue;
 	return YES;
 }
 
+- (void)connectionDidClose
+{
+	// Prevent any further calls to the connection
+	connection = nil;
+}
+
 - (void)readDataInBackground:(NSNumber *)lengthNumber
 {
 	unsigned int length = [lengthNumber unsignedIntValue];
 	
 	NSData *readData = [fileHandle readDataOfLength:length];
 	
-	[runLoop performSelector:@selector(fileHandleDidReadData:)
-					  target:self
-					argument:readData
-					   order:0
-					   modes:runLoopModes];
+	[self performSelector:@selector(fileHandleDidReadData:)
+				 onThread:connectionThread
+			   withObject:readData
+			waitUntilDone:NO
+					modes:connectionRunLoopModes];
 }
 
 - (void)fileHandleDidReadData:(NSData *)readData

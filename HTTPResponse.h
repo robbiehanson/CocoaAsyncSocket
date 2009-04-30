@@ -30,6 +30,12 @@
 // Important: You should read the discussion at the bottom of this header.
 - (BOOL)isAsynchronous;
 
+// This method is called from the HTTPConnection when the connection is closed,
+// or when the connection is finished with the response.
+// If your response is asynchronous, you should implement this method so you can be sure not to
+// invoke HTTPConnection's responseHasAvailableData method after this method is called.
+- (void)connectionDidClose;
+
 // If you don't know the content-length in advance,
 // implement this method in your custom response class and return YES.
 // 

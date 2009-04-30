@@ -7,9 +7,8 @@
 @interface HTTPAsyncFileResponse : NSObject <HTTPResponse>
 {
 	HTTPConnection *connection;
-	
-	NSRunLoop *runLoop;
-	NSArray *runLoopModes;
+	NSThread *connectionThread;
+	NSArray *connectionRunLoopModes;
 	
 	NSString *filePath;
 	NSFileHandle *fileHandle;
