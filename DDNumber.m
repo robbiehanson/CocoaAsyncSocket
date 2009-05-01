@@ -5,16 +5,17 @@
 
 + (BOOL)parseString:(NSString *)str intoSInt64:(SInt64 *)pNum
 {
+	if(str == nil)
+	{
+		*pNum = 0;
+		return NO;
+	}
+	
 	errno = 0;
 	
-#if __LP64__
-	// long = 64 bit
-	*pNum = strtol([str UTF8String], NULL, 10);
-#else
-	// long = 32 bit
-	// long long = 64 bit
+	// On both 32-bit and 64-bit machines, long long = 64 bit
+	
 	*pNum = strtoll([str UTF8String], NULL, 10);
-#endif
 	
 	if(errno != 0)
 		return NO;
@@ -24,16 +25,17 @@
 
 + (BOOL)parseString:(NSString *)str intoUInt64:(UInt64 *)pNum
 {
+	if(str == nil)
+	{
+		*pNum = 0;
+		return NO;
+	}
+	
 	errno = 0;
 	
-#if __LP64__
-	// unsigned long = 64 bit
-	*pNum = strtoul([str UTF8String], NULL, 10);
-#else
-	// unsigned long = 32 bit
-	// unsigned long long = 64 bit
+	// On both 32-bit and 64-bit machines, unsigned long long = 64 bit
+	
 	*pNum = strtoull([str UTF8String], NULL, 10);
-#endif
 	
 	if(errno != 0)
 		return NO;
@@ -43,6 +45,12 @@
 
 + (BOOL)parseString:(NSString *)str intoNSInteger:(NSInteger *)pNum
 {
+	if(str == nil)
+	{
+		*pNum = 0;
+		return NO;
+	}
+	
 	errno = 0;
 	
 	// On LP64, NSInteger = long = 64 bit
@@ -58,6 +66,12 @@
 
 + (BOOL)parseString:(NSString *)str intoNSUInteger:(NSUInteger *)pNum
 {
+	if(str == nil)
+	{
+		*pNum = 0;
+		return NO;
+	}
+	
 	errno = 0;
 	
 	// On LP64, NSUInteger = unsigned long = 64 bit
