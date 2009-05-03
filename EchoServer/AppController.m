@@ -17,7 +17,7 @@
 
 - (id)init
 {
-	if(self = [super init])
+	if((self = [super init]))
 	{
 		listenSocket = [[AsyncSocket alloc] initWithDelegate:self];
 		connectedSockets = [[NSMutableArray alloc] initWithCapacity:1];
@@ -46,9 +46,9 @@
 	NSPoint newScrollOrigin;
 	
 	if ([[scrollView documentView] isFlipped])
-		newScrollOrigin = NSMakePoint(0.0, NSMaxY([[scrollView documentView] frame]));
+		newScrollOrigin = NSMakePoint(0.0F, NSMaxY([[scrollView documentView] frame]));
 	else
-		newScrollOrigin = NSMakePoint(0.0, 0.0);
+		newScrollOrigin = NSMakePoint(0.0F, 0.0F);
 	
 	[[scrollView documentView] scrollPoint:newScrollOrigin];
 }

@@ -183,7 +183,7 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 		terminator:(NSData *)e
          maxLength:(CFIndex)m
 {
-	if(self = [super init])
+	if((self = [super init]))
 	{
 		buffer = [d retain];
 		timeout = t;
@@ -324,7 +324,7 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 
 - (id)initWithData:(NSData *)d timeout:(NSTimeInterval)t tag:(long)i
 {
-	if(self = [super init])
+	if((self = [super init]))
 	{
 		buffer = [d retain];
 		timeout = t;
@@ -362,7 +362,7 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 
 - (id)initWithTLSSettings:(NSDictionary *)settings
 {
-	if(self = [super init])
+	if((self = [super init]))
 	{
 		tlsSettings = [settings copy];
 	}
@@ -396,7 +396,7 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 // Designated initializer.
 - (id)initWithDelegate:(id)delegate userData:(long)userData
 {
-	if(self = [super init])
+	if((self = [super init]))
 	{
 		theFlags = DEFAULT_PREBUFFERING ? kEnablePreBuffering : 0x00;
 		theDelegate = delegate;
@@ -516,7 +516,7 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 	if (done != NULL)  *done = d;
 	if (total != NULL) *total = t;
 	float ratio = (float)d/(float)t;
-	return isnan(ratio) ? 1.0 : ratio; // 0 of 0 bytes is 100% done.
+	return isnan(ratio) ? 1.0F : ratio; // 0 of 0 bytes is 100% done.
 }
 
 - (float)progressOfWriteReturningTag:(long *)tag bytesDone:(CFIndex *)done total:(CFIndex *)total
@@ -1078,20 +1078,20 @@ Failed:;
 	struct sockaddr *pSockAddr = (struct sockaddr *)[addr bytes];
 	int addressFamily = pSockAddr->sa_family;
 	
-	CFSocketRef socket = CFSocketCreate(kCFAllocatorDefault,
-										addressFamily,
-										SOCK_STREAM,
-										0,
-										kCFSocketAcceptCallBack,                // Callback flags
-										(CFSocketCallBack)&MyCFSocketCallback,  // Callback method
-										&theContext);
+	CFSocketRef theSocket = CFSocketCreate(kCFAllocatorDefault,
+	                                       addressFamily,
+	                                       SOCK_STREAM,
+	                                       0,
+	                                       kCFSocketAcceptCallBack,                // Callback flags
+	                                       (CFSocketCallBack)&MyCFSocketCallback,  // Callback method
+	                                       &theContext);
 
-	if(socket == NULL)
+	if(theSocket == NULL)
 	{
 		if(errPtr) *errPtr = [self getSocketError];
 	}
 	
-	return socket;
+	return theSocket;
 }
 
 - (BOOL)createSocketForAddress:(NSData *)remoteAddr error:(NSError **)errPtr
@@ -1475,15 +1475,15 @@ Failed:;
 	CFDataGetBytes(nativeProp, CFRangeMake(0, CFDataGetLength(nativeProp)), (UInt8 *)&native);
 	CFRelease(nativeProp);
 	
-	CFSocketRef socket = CFSocketCreateWithNative(kCFAllocatorDefault, native, 0, NULL, NULL);
-	if(socket == NULL)
+	CFSocketRef theSocket = CFSocketCreateWithNative(kCFAllocatorDefault, native, 0, NULL, NULL);
+	if(theSocket == NULL)
 	{
 		if (errPtr) *errPtr = [self getSocketError];
 		return NO;
 	}
 	
 	// Determine whether the connection was IPv4 or IPv6
-	CFDataRef peeraddr = CFSocketCopyPeerAddress(socket);
+	CFDataRef peeraddr = CFSocketCopyPeerAddress(theSocket);
 	if(peeraddr == NULL)
 	{
 		NSLog(@"AsyncSocket couldn't determine IP version of socket");
@@ -1495,11 +1495,11 @@ Failed:;
 	
 	if(sa->sa_family == AF_INET)
 	{
-		theSocket4 = socket;
+		theSocket4 = theSocket;
 	}
 	else
 	{
-		theSocket6 = socket;
+		theSocket6 = theSocket;
 	}
 	
 	CFRelease(peeraddr);
@@ -1560,7 +1560,7 @@ Failed:;
  * Disconnects. This is called for both error and clean disconnections.
 **/
 - (void)close
-{	
+{
 	// Empty queues
 	[self emptyQueues];
 	
@@ -1957,13 +1957,14 @@ Failed:;
 		return [self localPort:theSocket6];
 }
 
-- (NSString *)connectedHost:(CFSocketRef)socket
+- (NSString *)connectedHost:(CFSocketRef)theSocket
 {
-	if (socket == NULL) return nil;
+	if (theSocket == NULL) return nil;
+	
 	CFDataRef peeraddr;
 	NSString *peerstr = nil;
 
-	if(socket && (peeraddr = CFSocketCopyPeerAddress(socket)))
+	if((peeraddr = CFSocketCopyPeerAddress(theSocket)))
 	{
 		peerstr = [self addressHost:peeraddr];
 		CFRelease (peeraddr);
@@ -1972,13 +1973,14 @@ Failed:;
 	return peerstr;
 }
 
-- (UInt16)connectedPort:(CFSocketRef)socket
+- (UInt16)connectedPort:(CFSocketRef)theSocket
 {
-	if (socket == NULL) return 0;
+	if (theSocket == NULL) return 0;
+	
 	CFDataRef peeraddr;
 	UInt16 peerport = 0;
 
-	if(socket && (peeraddr = CFSocketCopyPeerAddress(socket)))
+	if((peeraddr = CFSocketCopyPeerAddress(theSocket)))
 	{
 		peerport = [self addressPort:peeraddr];
 		CFRelease (peeraddr);
@@ -1987,13 +1989,14 @@ Failed:;
 	return peerport;
 }
 
-- (NSString *)localHost:(CFSocketRef)socket
+- (NSString *)localHost:(CFSocketRef)theSocket
 {
-	if (socket == NULL) return nil;
+	if (theSocket == NULL) return nil;
+	
 	CFDataRef selfaddr;
 	NSString *selfstr = nil;
 
-	if(socket && (selfaddr = CFSocketCopyAddress(socket)))
+	if((selfaddr = CFSocketCopyAddress(theSocket)))
 	{
 		selfstr = [self addressHost:selfaddr];
 		CFRelease (selfaddr);
@@ -2002,13 +2005,14 @@ Failed:;
 	return selfstr;
 }
 
-- (UInt16)localPort:(CFSocketRef)socket
+- (UInt16)localPort:(CFSocketRef)theSocket
 {
-	if (socket == NULL) return 0;
+	if (theSocket == NULL) return 0;
+	
 	CFDataRef selfaddr;
 	UInt16 selfport = 0;
 
-	if (socket && (selfaddr = CFSocketCopyAddress(socket)))
+	if ((selfaddr = CFSocketCopyAddress(theSocket)))
 	{
 		selfport = [self addressPort:selfaddr];
 		CFRelease (selfaddr);
@@ -2165,9 +2169,9 @@ Failed:;
 		int percentDone;
 		if ([theCurrentRead->buffer length] != 0)
 			percentDone = (float)theCurrentRead->bytesDone /
-						  (float)[theCurrentRead->buffer length] * 100.0;
+						  (float)[theCurrentRead->buffer length] * 100.0F;
 		else
-			percentDone = 100;
+			percentDone = 100.0F;
 
 		[ms appendString: [NSString stringWithFormat:@"currently read %u bytes (%d%% done), ",
 			(unsigned int)[theCurrentRead->buffer length],
@@ -2181,9 +2185,9 @@ Failed:;
 		int percentDone;
 		if ([theCurrentWrite->buffer length] != 0)
 			percentDone = (float)theCurrentWrite->bytesDone /
-						  (float)[theCurrentWrite->buffer length] * 100.0;
+						  (float)[theCurrentWrite->buffer length] * 100.0F;
 		else
-			percentDone = 100;
+			percentDone = 100.0F;
 
 		[ms appendString: [NSString stringWithFormat:@"currently written %u (%d%%), ",
 			(unsigned int)[theCurrentWrite->buffer length],
@@ -2882,8 +2886,8 @@ static void MyCFSocketCallback (CFSocketRef sref, CFSocketCallBackType type, CFD
 {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	
-	AsyncSocket *socket = [[(AsyncSocket *)pInfo retain] autorelease];
-	[socket doCFSocketCallback:type forSocket:sref withAddress:(NSData *)address withData:pData];
+	AsyncSocket *theSocket = [[(AsyncSocket *)pInfo retain] autorelease];
+	[theSocket doCFSocketCallback:type forSocket:sref withAddress:(NSData *)address withData:pData];
 	
 	[pool release];
 }
@@ -2896,8 +2900,8 @@ static void MyCFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType ty
 {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	
-	AsyncSocket *socket = [[(AsyncSocket *)pInfo retain] autorelease];
-	[socket doCFReadStreamCallback:type forStream:stream];
+	AsyncSocket *theSocket = [[(AsyncSocket *)pInfo retain] autorelease];
+	[theSocket doCFReadStreamCallback:type forStream:stream];
 	
 	[pool release];
 }
@@ -2910,8 +2914,8 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	
-	AsyncSocket *socket = [[(AsyncSocket *)pInfo retain] autorelease];
-	[socket doCFWriteStreamCallback:type forStream:stream];
+	AsyncSocket *theSocket = [[(AsyncSocket *)pInfo retain] autorelease];
+	[theSocket doCFWriteStreamCallback:type forStream:stream];
 	
 	[pool release];
 }

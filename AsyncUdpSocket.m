@@ -130,7 +130,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 
 - (id)initWithData:(NSData *)d address:(NSData *)a timeout:(NSTimeInterval)t tag:(long)i
 {
-	if(self = [super init])
+	if((self = [super init]))
 	{
 		buffer = [d retain];
 		address = [a retain];
@@ -172,7 +172,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 
 - (id)initWithTimeout:(NSTimeInterval)t tag:(long)i
 {
-	if(self = [super init])
+	if((self = [super init]))
 	{
 		timeout = t;
 		tag = i;
@@ -201,7 +201,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 
 - (id)initWithDelegate:(id)delegate userData:(long)userData enableIPv4:(BOOL)enableIPv4 enableIPv6:(BOOL)enableIPv6
 {
-	if(self = [super init])
+	if((self = [super init]))
 	{
 		theFlags = 0;
 		theDelegate = delegate;
@@ -776,15 +776,15 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	// Convert the given host/port into native address structures for CFSocketSetAddress
 	NSData *address4 = nil, *address6 = nil;
 	
-	int error = [self convertForBindHost:host port:port intoAddress4:&address4 address6:&address6];
-	if(error)
+	int gai_error = [self convertForBindHost:host port:port intoAddress4:&address4 address6:&address6];
+	if(gai_error)
 	{
 		if(errPtr)
 		{
-			NSString *errMsg = [NSString stringWithCString:gai_strerror(error) encoding:NSASCIIStringEncoding];
+			NSString *errMsg = [NSString stringWithCString:gai_strerror(gai_error) encoding:NSASCIIStringEncoding];
 			NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
 			
-			*errPtr = [NSError errorWithDomain:@"kCFStreamErrorDomainNetDB" code:error userInfo:info];
+			*errPtr = [NSError errorWithDomain:@"kCFStreamErrorDomainNetDB" code:gai_error userInfo:info];
 		}
 		return NO;
 	}
@@ -1441,9 +1441,9 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		return [self connectedPort:theSocket6];
 }
 
-- (NSString *)localHost:(CFSocketRef)socket
+- (NSString *)localHost:(CFSocketRef)theSocket
 {
-	if(socket == NULL) return nil;
+	if(theSocket == NULL) return nil;
 	
 	// Unfortunately we can't use CFSocketCopyAddress.
 	// The CFSocket library caches the address the first time you call CFSocketCopyAddress.
@@ -1452,12 +1452,12 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	
 	NSString *result = nil;
 	
-	if(socket == theSocket4)
+	if(theSocket == theSocket4)
 	{
 		struct sockaddr_in sockaddr4;
 		socklen_t sockaddr4len = sizeof(sockaddr4);
 		
-		if(getsockname(CFSocketGetNative(socket), (struct sockaddr *)&sockaddr4, &sockaddr4len) < 0)
+		if(getsockname(CFSocketGetNative(theSocket), (struct sockaddr *)&sockaddr4, &sockaddr4len) < 0)
 		{
 			return nil;
 		}
@@ -1468,7 +1468,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		struct sockaddr_in6 sockaddr6;
 		socklen_t sockaddr6len = sizeof(sockaddr6);
 		
-		if(getsockname(CFSocketGetNative(socket), (struct sockaddr *)&sockaddr6, &sockaddr6len) < 0)
+		if(getsockname(CFSocketGetNative(theSocket), (struct sockaddr *)&sockaddr6, &sockaddr6len) < 0)
 		{
 			return nil;
 		}
@@ -1484,9 +1484,9 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	return result;
 }
 
-- (UInt16)localPort:(CFSocketRef)socket
+- (UInt16)localPort:(CFSocketRef)theSocket
 {
-	if(socket == NULL) return 0;
+	if(theSocket == NULL) return 0;
 	
 	// Unfortunately we can't use CFSocketCopyAddress.
 	// The CFSocket library caches the address the first time you call CFSocketCopyAddress.
@@ -1495,12 +1495,12 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	
 	UInt16 result = 0;
 	
-	if(socket == theSocket4)
+	if(theSocket == theSocket4)
 	{
 		struct sockaddr_in sockaddr4;
 		socklen_t sockaddr4len = sizeof(sockaddr4);
 		
-		if(getsockname(CFSocketGetNative(socket), (struct sockaddr *)&sockaddr4, &sockaddr4len) < 0)
+		if(getsockname(CFSocketGetNative(theSocket), (struct sockaddr *)&sockaddr4, &sockaddr4len) < 0)
 		{
 			return 0;
 		}
@@ -1511,7 +1511,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		struct sockaddr_in6 sockaddr6;
 		socklen_t sockaddr6len = sizeof(sockaddr6);
 		
-		if(getsockname(CFSocketGetNative(socket), (struct sockaddr *)&sockaddr6, &sockaddr6len) < 0)
+		if(getsockname(CFSocketGetNative(theSocket), (struct sockaddr *)&sockaddr6, &sockaddr6len) < 0)
 		{
 			return 0;
 		}
@@ -1526,9 +1526,9 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	return result;
 }
 
-- (NSString *)connectedHost:(CFSocketRef)socket
+- (NSString *)connectedHost:(CFSocketRef)theSocket
 {
-	if(socket == NULL) return nil;
+	if(theSocket == NULL) return nil;
 	
 	// Unfortunately we can't use CFSocketCopyPeerAddress.
 	// The CFSocket library caches the address the first time you call CFSocketCopyPeerAddress.
@@ -1537,12 +1537,12 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	
 	NSString *result = nil;
 	
-	if(socket == theSocket4)
+	if(theSocket == theSocket4)
 	{
 		struct sockaddr_in sockaddr4;
 		socklen_t sockaddr4len = sizeof(sockaddr4);
 		
-		if(getpeername(CFSocketGetNative(socket), (struct sockaddr *)&sockaddr4, &sockaddr4len) < 0)
+		if(getpeername(CFSocketGetNative(theSocket), (struct sockaddr *)&sockaddr4, &sockaddr4len) < 0)
 		{
 			return nil;
 		}
@@ -1553,7 +1553,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		struct sockaddr_in6 sockaddr6;
 		socklen_t sockaddr6len = sizeof(sockaddr6);
 		
-		if(getpeername(CFSocketGetNative(socket), (struct sockaddr *)&sockaddr6, &sockaddr6len) < 0)
+		if(getpeername(CFSocketGetNative(theSocket), (struct sockaddr *)&sockaddr6, &sockaddr6len) < 0)
 		{
 			return nil;
 		}
@@ -1569,9 +1569,9 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	return result;
 }
 
-- (UInt16)connectedPort:(CFSocketRef)socket
+- (UInt16)connectedPort:(CFSocketRef)theSocket
 {
-	if(socket == NULL) return 0;
+	if(theSocket == NULL) return 0;
 	
 	// Unfortunately we can't use CFSocketCopyPeerAddress.
 	// The CFSocket library caches the address the first time you call CFSocketCopyPeerAddress.
@@ -1580,12 +1580,12 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	
 	UInt16 result = 0;
 	
-	if(socket == theSocket4)
+	if(theSocket == theSocket4)
 	{
 		struct sockaddr_in sockaddr4;
 		socklen_t sockaddr4len = sizeof(sockaddr4);
 		
-		if(getpeername(CFSocketGetNative(socket), (struct sockaddr *)&sockaddr4, &sockaddr4len) < 0)
+		if(getpeername(CFSocketGetNative(theSocket), (struct sockaddr *)&sockaddr4, &sockaddr4len) < 0)
 		{
 			return 0;
 		}
@@ -1596,7 +1596,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		struct sockaddr_in6 sockaddr6;
 		socklen_t sockaddr6len = sizeof(sockaddr6);
 		
-		if(getpeername(CFSocketGetNative(socket), (struct sockaddr *)&sockaddr6, &sockaddr6len) < 0)
+		if(getpeername(CFSocketGetNative(theSocket), (struct sockaddr *)&sockaddr6, &sockaddr6len) < 0)
 		{
 			return 0;
 		}
@@ -2299,8 +2299,8 @@ static void MyCFSocketCallback(CFSocketRef sref, CFSocketCallBackType type, CFDa
 {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	
-	AsyncUdpSocket *socket = [[(AsyncUdpSocket *)pInfo retain] autorelease];
-	[socket doCFSocketCallback:type forSocket:sref withAddress:(NSData *)address withData:pData];
+	AsyncUdpSocket *theSocket = [[(AsyncUdpSocket *)pInfo retain] autorelease];
+	[theSocket doCFSocketCallback:type forSocket:sref withAddress:(NSData *)address withData:pData];
 	
 	[pool release];
 }
