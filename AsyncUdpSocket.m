@@ -459,6 +459,8 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 **/
 - (BOOL)setRunLoopModes:(NSArray *)runLoopModes
 {
+	NSAssert((theRunLoop == CFRunLoopGetCurrent()), @"setRunLoopModes must be called from within the current RunLoop!");
+	
 	if([runLoopModes count] == 0)
 	{
 		return NO;

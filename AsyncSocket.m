@@ -676,6 +676,8 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 **/
 - (BOOL)setRunLoopModes:(NSArray *)runLoopModes
 {
+	NSAssert((theRunLoop == CFRunLoopGetCurrent()), @"setRunLoopModes must be called from within the current RunLoop!");
+	
 	if([runLoopModes count] == 0)
 	{
 		return NO;
@@ -719,7 +721,11 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
     
 	if(theReadStream && theWriteStream)
 	{
-		if(![self attachStreamsToRunLoop:(NSRunLoop *)theRunLoop error:nil])
+		// Note: theRunLoop variable is a CFRunLoop, and NSRunLoop is NOT toll-free bridged with CFRunLoop.
+		// So we cannot pass theRunLoop to the method below, which is expecting a NSRunLoop parameter.
+		// Instead we pass nil, which will result in the method properly using the current run loop.
+		
+		if(![self attachStreamsToRunLoop:nil error:nil])
 		{
 			return NO;
 		}
@@ -1341,16 +1347,20 @@ Failed:;
 
 - (BOOL)attachStreamsToRunLoop:(NSRunLoop *)runLoop error:(NSError **)errPtr
 {
-	int i;
-	
 	// Get the CFRunLoop to which the socket should be attached.
 	theRunLoop = (runLoop == nil) ? CFRunLoopGetCurrent() : [runLoop getCFRunLoop];
 
-	// Make read stream non-blocking.
-	if (!CFReadStreamSetClient (theReadStream,
-		kCFStreamEventHasBytesAvailable | kCFStreamEventErrorOccurred | kCFStreamEventEndEncountered | kCFStreamEventOpenCompleted,
-		(CFReadStreamClientCallBack)&MyCFReadStreamCallback,
-		(CFStreamClientContext *)(&theContext) ))
+	// Setup read stream callbacks
+	
+	CFOptionFlags readStreamEvents = kCFStreamEventHasBytesAvailable | 
+	                                 kCFStreamEventErrorOccurred     |
+	                                 kCFStreamEventEndEncountered    |
+	                                 kCFStreamEventOpenCompleted;
+	
+	if (!CFReadStreamSetClient(theReadStream,
+							   readStreamEvents,
+							   (CFReadStreamClientCallBack)&MyCFReadStreamCallback,
+							   (CFStreamClientContext *)(&theContext)))
 	{
 		NSError *err = [self getStreamError];
 		
@@ -1360,16 +1370,18 @@ Failed:;
 		if (errPtr) *errPtr = err;
 		return NO;
 	}
-	for(i = 0; i < [theRunLoopModes count]; i++)
-	{
-		CFReadStreamScheduleWithRunLoop(theReadStream, theRunLoop, (CFStringRef)[theRunLoopModes objectAtIndex:i]);
-	}
 
-	// Make write stream non-blocking.
+	// Setup write stream callbacks
+	
+	CFOptionFlags writeStreamEvents = kCFStreamEventCanAcceptBytes |
+	                                  kCFStreamEventErrorOccurred  |
+	                                  kCFStreamEventEndEncountered |
+	                                  kCFStreamEventOpenCompleted;
+	
 	if (!CFWriteStreamSetClient (theWriteStream,
-		kCFStreamEventCanAcceptBytes | kCFStreamEventErrorOccurred | kCFStreamEventEndEncountered | kCFStreamEventOpenCompleted,
-		(CFWriteStreamClientCallBack)&MyCFWriteStreamCallback,
-		(CFStreamClientContext *)(&theContext) ))
+								 writeStreamEvents,
+								 (CFWriteStreamClientCallBack)&MyCFWriteStreamCallback,
+								 (CFStreamClientContext *)(&theContext)))
 	{
 		NSError *err = [self getStreamError];
 		
@@ -1378,11 +1390,16 @@ Failed:;
 		
 		if (errPtr) *errPtr = err;
 		return NO;
-		
 	}
-	for(i = 0; i < [theRunLoopModes count]; i++)
+	
+	// Add read and write streams to run loop
+	
+	unsigned i, count = [theRunLoopModes count];
+	for(i = 0; i < count; i++)
 	{
-		CFWriteStreamScheduleWithRunLoop (theWriteStream, theRunLoop, (CFStringRef)[theRunLoopModes objectAtIndex:i]);
+		CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
+		CFReadStreamScheduleWithRunLoop(theReadStream, theRunLoop, runLoopMode);
+		CFWriteStreamScheduleWithRunLoop(theWriteStream, theRunLoop, runLoopMode);
 	}
 	
 	return YES;
