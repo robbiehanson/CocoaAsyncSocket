@@ -614,7 +614,8 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 **/
 - (BOOL)moveToRunLoop:(NSRunLoop *)runLoop
 {
-	NSAssert((theRunLoop == CFRunLoopGetCurrent()), @"moveToRunLoop must be called from within the current RunLoop!");
+	NSAssert((theRunLoop == NULL) || (theRunLoop == CFRunLoopGetCurrent()),
+			 @"moveToRunLoop must be called from within the current RunLoop!");
 	
 	if(runLoop == nil)
 	{
@@ -676,7 +677,8 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 **/
 - (BOOL)setRunLoopModes:(NSArray *)runLoopModes
 {
-	NSAssert((theRunLoop == CFRunLoopGetCurrent()), @"setRunLoopModes must be called from within the current RunLoop!");
+	NSAssert((theRunLoop == NULL) || (theRunLoop == CFRunLoopGetCurrent()),
+			 @"setRunLoopModes must be called from within the current RunLoop!");
 	
 	if([runLoopModes count] == 0)
 	{
