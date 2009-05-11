@@ -10,7 +10,7 @@
 
 - (id)initWithRequest:(CFHTTPMessageRef)request
 {
-	if(self = [super init])
+	if((self = [super init]))
 	{
 		NSString *authInfo = (NSString *)CFHTTPMessageCopyHeaderFieldValue(request, CFSTR("Authorization"));
 		

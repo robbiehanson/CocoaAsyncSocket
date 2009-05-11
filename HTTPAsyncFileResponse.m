@@ -39,7 +39,7 @@ static NSOperationQueue *operationQueue;
 
 - (id)initWithFilePath:(NSString *)fpath forConnection:(HTTPConnection *)parent runLoopModes:(NSArray *)modes
 {
-	if(self = [super init])
+	if((self = [super init]))
 	{
 		connection = parent; // Parents retain children, children do NOT retain parents
 		

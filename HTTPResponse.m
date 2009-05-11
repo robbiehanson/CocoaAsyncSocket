@@ -5,7 +5,7 @@
 
 - (id)initWithFilePath:(NSString *)filePathParam
 {
-	if(self = [super init])
+	if((self = [super init]))
 	{
 		filePath = [filePathParam copy];
 		fileHandle = [[NSFileHandle fileHandleForReadingAtPath:filePath] retain];
@@ -71,7 +71,7 @@
 
 - (id)initWithData:(NSData *)dataParam
 {
-	if(self = [super init])
+	if((self = [super init]))
 	{
 		offset = 0;
 		data = [dataParam retain];
