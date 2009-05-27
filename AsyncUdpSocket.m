@@ -46,7 +46,9 @@ enum AsyncUdpSocketFlags
 	kCloseAfterSends         = 1 <<  7,  // If set, close as soon as no more sends are queued.
 	kCloseAfterReceives      = 1 <<  8,  // If set, close as soon as no more receives are queued.
 	kDidClose                = 1 <<  9,  // If set, the socket has been closed, and should not be used anymore.
-	kFlipFlop                = 1 << 10,  // Used to alternate between IPv4 and IPv6 sockets.
+	kDequeueSendScheduled    = 1 << 10,  // If set, a maybeDequeueSend operation is already scheduled.
+	kDequeueReceiveScheduled = 1 << 11,  // If set, a maybeDequeueReceive operation is already scheduled.
+	kFlipFlop                = 1 << 12,  // Used to alternate between IPv4 and IPv6 sockets.
 };
 
 @interface AsyncUdpSocket (Private)
@@ -424,6 +426,8 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	}
 	
 	[NSObject cancelPreviousPerformRequestsWithTarget:self];
+	theFlags &= ~kDequeueSendScheduled;
+	theFlags &= ~kDequeueReceiveScheduled;
 	
 	if(theSource4) [self runLoopRemoveSource:theSource4];
 	if(theSource6) [self runLoopRemoveSource:theSource6];
@@ -473,6 +477,8 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	}
 	
 	[NSObject cancelPreviousPerformRequestsWithTarget:self];
+	theFlags &= ~kDequeueSendScheduled;
+	theFlags &= ~kDequeueReceiveScheduled;
 	
 	if(theSource4) [self runLoopRemoveSource:theSource4];
 	if(theSource6) [self runLoopRemoveSource:theSource6];
@@ -1225,10 +1231,15 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 {
 	if (theCurrentSend)     [self endCurrentSend];
 	if (theCurrentReceive)  [self endCurrentReceive];
+	
 	[theSendQueue removeAllObjects];
 	[theReceiveQueue removeAllObjects];
+	
 	[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(maybeDequeueSend) object:nil];
 	[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(maybeDequeueReceive) object:nil];
+	
+	theFlags &= ~kDequeueSendScheduled;
+	theFlags &= ~kDequeueReceiveScheduled;
 }
 
 - (void)closeSocket4
@@ -1790,7 +1801,11 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 **/
 - (void)scheduleDequeueSend
 {
-	[self performSelector:@selector(maybeDequeueSend) withObject:nil afterDelay:0 inModes:theRunLoopModes];
+	if((theFlags & kDequeueSendScheduled) == 0)
+	{
+		theFlags |= kDequeueSendScheduled;
+		[self performSelector:@selector(maybeDequeueSend) withObject:nil afterDelay:0 inModes:theRunLoopModes];
+	}
 }
 
 /**
@@ -1799,6 +1814,9 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 **/
 - (void)maybeDequeueSend
 {
+	// Unset the flag indicating a call to this method is scheduled
+	theFlags &= ~kDequeueSendScheduled;
+	
 	if(theCurrentSend == nil)
 	{
 		if([theSendQueue count] > 0)
@@ -1999,7 +2017,11 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 **/
 - (void)scheduleDequeueReceive
 {
-	[self performSelector:@selector(maybeDequeueReceive) withObject:nil afterDelay:0 inModes:theRunLoopModes];
+	if((theFlags & kDequeueReceiveScheduled) == 0)
+	{
+		theFlags |= kDequeueReceiveScheduled;
+		[self performSelector:@selector(maybeDequeueReceive) withObject:nil afterDelay:0 inModes:theRunLoopModes];
+	}
 }
 
 /**
@@ -2007,6 +2029,9 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 **/
 - (void)maybeDequeueReceive
 {
+	// Unset the flag indicating a call to this method is scheduled
+	theFlags &= ~kDequeueReceiveScheduled;
+	
 	if (theCurrentReceive == nil)
 	{
 		if([theReceiveQueue count] > 0)
