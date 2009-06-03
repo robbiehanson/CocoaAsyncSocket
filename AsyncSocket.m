@@ -57,89 +57,89 @@ enum AsyncSocketFlags
 - (void)endConnectTimeout;
 
 // Socket Implementation
-- (CFSocketRef) newAcceptSocketForAddress:(NSData *)addr error:(NSError **)errPtr;
-- (BOOL) createSocketForAddress:(NSData *)remoteAddr error:(NSError **)errPtr;
-- (BOOL) attachSocketsToRunLoop:(NSRunLoop *)runLoop error:(NSError **)errPtr;
-- (BOOL) configureSocketAndReturnError:(NSError **)errPtr;
-- (BOOL) connectSocketToAddress:(NSData *)remoteAddr error:(NSError **)errPtr;
-- (void) doAcceptWithSocket:(CFSocketNativeHandle)newSocket;
-- (void) doSocketOpen:(CFSocketRef)sock withCFSocketError:(CFSocketError)err;
+- (CFSocketRef)newAcceptSocketForAddress:(NSData *)addr error:(NSError **)errPtr;
+- (BOOL)createSocketForAddress:(NSData *)remoteAddr error:(NSError **)errPtr;
+- (BOOL)attachSocketsToRunLoop:(NSRunLoop *)runLoop error:(NSError **)errPtr;
+- (BOOL)configureSocketAndReturnError:(NSError **)errPtr;
+- (BOOL)connectSocketToAddress:(NSData *)remoteAddr error:(NSError **)errPtr;
+- (void)doAcceptWithSocket:(CFSocketNativeHandle)newSocket;
+- (void)doSocketOpen:(CFSocketRef)sock withCFSocketError:(CFSocketError)err;
 
 // Stream Implementation
-- (BOOL) createStreamsFromNative:(CFSocketNativeHandle)native error:(NSError **)errPtr;
-- (BOOL) createStreamsToHost:(NSString *)hostname onPort:(UInt16)port error:(NSError **)errPtr;
-- (BOOL) attachStreamsToRunLoop:(NSRunLoop *)runLoop error:(NSError **)errPtr;
-- (BOOL) configureStreamsAndReturnError:(NSError **)errPtr;
-- (BOOL) openStreamsAndReturnError:(NSError **)errPtr;
-- (void) doStreamOpen;
-- (BOOL) setSocketFromStreamsAndReturnError:(NSError **)errPtr;
+- (BOOL)createStreamsFromNative:(CFSocketNativeHandle)native error:(NSError **)errPtr;
+- (BOOL)createStreamsToHost:(NSString *)hostname onPort:(UInt16)port error:(NSError **)errPtr;
+- (BOOL)attachStreamsToRunLoop:(NSRunLoop *)runLoop error:(NSError **)errPtr;
+- (BOOL)configureStreamsAndReturnError:(NSError **)errPtr;
+- (BOOL)openStreamsAndReturnError:(NSError **)errPtr;
+- (void)doStreamOpen;
+- (BOOL)setSocketFromStreamsAndReturnError:(NSError **)errPtr;
 
 // Disconnect Implementation
-- (void) closeWithError:(NSError *)err;
-- (void) recoverUnreadData;
-- (void) emptyQueues;
-- (void) close;
+- (void)closeWithError:(NSError *)err;
+- (void)recoverUnreadData;
+- (void)emptyQueues;
+- (void)close;
 
 // Errors
-- (NSError *) getErrnoError;
-- (NSError *) getAbortError;
-- (NSError *) getStreamError;
-- (NSError *) getSocketError;
-- (NSError *) getConnectTimeoutError;
-- (NSError *) getReadMaxedOutError;
-- (NSError *) getReadTimeoutError;
-- (NSError *) getWriteTimeoutError;
-- (NSError *) errorFromCFStreamError:(CFStreamError)err;
+- (NSError *)getErrnoError;
+- (NSError *)getAbortError;
+- (NSError *)getStreamError;
+- (NSError *)getSocketError;
+- (NSError *)getConnectTimeoutError;
+- (NSError *)getReadMaxedOutError;
+- (NSError *)getReadTimeoutError;
+- (NSError *)getWriteTimeoutError;
+- (NSError *)errorFromCFStreamError:(CFStreamError)err;
 
 // Diagnostics
-- (BOOL) isSocketConnected;
-- (BOOL) areStreamsConnected;
-- (NSString *) connectedHost: (CFSocketRef)socket;
-- (UInt16) connectedPort: (CFSocketRef)socket;
-- (NSString *) localHost: (CFSocketRef)socket;
-- (UInt16) localPort: (CFSocketRef)socket;
-- (NSString *) addressHost: (CFDataRef)cfaddr;
-- (UInt16) addressPort: (CFDataRef)cfaddr;
+- (BOOL)isSocketConnected;
+- (BOOL)areStreamsConnected;
+- (NSString *)connectedHost:(CFSocketRef)socket;
+- (UInt16)connectedPort:(CFSocketRef)socket;
+- (NSString *)localHost:(CFSocketRef)socket;
+- (UInt16)localPort:(CFSocketRef)socket;
+- (NSString *)addressHost:(CFDataRef)cfaddr;
+- (UInt16)addressPort:(CFDataRef)cfaddr;
 
 // Reading
-- (void) doBytesAvailable;
-- (void) completeCurrentRead;
-- (void) endCurrentRead;
-- (void) scheduleDequeueRead;
-- (void) maybeDequeueRead;
-- (void) doReadTimeout:(NSTimer *)timer;
+- (void)doBytesAvailable;
+- (void)completeCurrentRead;
+- (void)endCurrentRead;
+- (void)scheduleDequeueRead;
+- (void)maybeDequeueRead;
+- (void)doReadTimeout:(NSTimer *)timer;
 
 // Writing
-- (void) doSendBytes;
-- (void) completeCurrentWrite;
-- (void) endCurrentWrite;
-- (void) scheduleDequeueWrite;
-- (void) maybeDequeueWrite;
-- (void) maybeScheduleDisconnect;
-- (void) doWriteTimeout:(NSTimer *)timer;
+- (void)doSendBytes;
+- (void)completeCurrentWrite;
+- (void)endCurrentWrite;
+- (void)scheduleDequeueWrite;
+- (void)maybeDequeueWrite;
+- (void)maybeScheduleDisconnect;
+- (void)doWriteTimeout:(NSTimer *)timer;
 
 // Run Loop
-- (void) runLoopAddSource:(CFRunLoopSourceRef)source;
-- (void) runLoopRemoveSource:(CFRunLoopSourceRef)source;
-- (void) runLoopAddTimer:(NSTimer *)timer;
-- (void) runLoopRemoveTimer:(NSTimer *)timer;
-- (void) runLoopUnscheduleReadStream;
-- (void) runLoopUnscheduleWriteStream;
+- (void)runLoopAddSource:(CFRunLoopSourceRef)source;
+- (void)runLoopRemoveSource:(CFRunLoopSourceRef)source;
+- (void)runLoopAddTimer:(NSTimer *)timer;
+- (void)runLoopRemoveTimer:(NSTimer *)timer;
+- (void)runLoopUnscheduleReadStream;
+- (void)runLoopUnscheduleWriteStream;
 
 // Security
 - (void)maybeStartTLS;
 - (void)onTLSStarted:(BOOL)flag;
 
 // Callbacks
-- (void) doCFCallback:(CFSocketCallBackType)type forSocket:(CFSocketRef)sock withAddress:(NSData *)address withData:(const void *)pData;
-- (void) doCFReadStreamCallback:(CFStreamEventType)type forStream:(CFReadStreamRef)stream;
-- (void) doCFWriteStreamCallback:(CFStreamEventType)type forStream:(CFWriteStreamRef)stream;
+- (void)doCFCallback:(CFSocketCallBackType)type forSocket:(CFSocketRef)sock withAddress:(NSData *)address withData:(const void *)pData;
+- (void)doCFReadStreamCallback:(CFStreamEventType)type forStream:(CFReadStreamRef)stream;
+- (void)doCFWriteStreamCallback:(CFStreamEventType)type forStream:(CFWriteStreamRef)stream;
 
 @end
 
-static void MyCFSocketCallback (CFSocketRef, CFSocketCallBackType, CFDataRef, const void *, void *);
-static void MyCFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType type, void *pInfo);
-static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType type, void *pInfo);
+static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, const void *, void *);
+static void MyCFReadStreamCallback(CFReadStreamRef stream, CFStreamEventType type, void *pInfo);
+static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType type, void *pInfo);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark -
@@ -400,7 +400,7 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 {
 	if((self = [super init]))
 	{
-		theFlags = DEFAULT_PREBUFFERING ? kEnablePreBuffering : 0x00;
+		theFlags = DEFAULT_PREBUFFERING ? kEnablePreBuffering : 0;
 		theDelegate = delegate;
 		theUserData = userData;
 		
@@ -1807,7 +1807,7 @@ Failed:
 	return [NSError errorWithDomain:AsyncSocketErrorDomain code:AsyncSocketCFSocketError userInfo:info];
 }
 
-- (NSError *) getStreamError
+- (NSError *)getStreamError
 {
 	CFStreamError err;
 	if (theReadStream != NULL)
@@ -2242,7 +2242,7 @@ Failed:
 #pragma mark Reading
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-- (void)readDataToLength:(CFIndex)length withTimeout:(NSTimeInterval)timeout tag:(long)tag;
+- (void)readDataToLength:(CFIndex)length withTimeout:(NSTimeInterval)timeout tag:(long)tag
 {
 	if(length == 0) return;
 	if(theFlags & kForbidReadsWrites) return;
@@ -2612,7 +2612,7 @@ Failed:
 #pragma mark Writing
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-- (void)writeData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag;
+- (void)writeData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag
 {
 	if (data == nil || [data length] == 0) return;
 	if (theFlags & kForbidReadsWrites) return;
