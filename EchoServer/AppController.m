@@ -3,6 +3,10 @@
 
 #define WELCOME_MSG  0
 #define ECHO_MSG     1
+#define WARNING_MSG  2
+
+#define READ_TIMEOUT 15.0
+#define READ_TIMEOUT_EXTENSION 10.0
 
 #define FORMAT(format, ...) [NSString stringWithFormat:(format), ##__VA_ARGS__]
 
@@ -156,14 +160,15 @@
 	
 	[sock writeData:welcomeData withTimeout:-1 tag:WELCOME_MSG];
 	
-	// We could call readDataToData:withTimeout:tag: here - that would be perfectly fine.
-	// If we did this, we'd want to add a check in onSocket:didWriteDataWithTag: and only
-	// queue another read if tag != WELCOME_MSG.
+	[sock readDataToData:[AsyncSocket CRLFData] withTimeout:READ_TIMEOUT tag:0];
 }
 
 - (void)onSocket:(AsyncSocket *)sock didWriteDataWithTag:(long)tag
 {
-	[sock readDataToData:[AsyncSocket CRLFData] withTimeout:-1 tag:0];
+	if(tag == ECHO_MSG)
+	{
+		[sock readDataToData:[AsyncSocket CRLFData] withTimeout:READ_TIMEOUT tag:0];
+	}
 }
 
 - (void)onSocket:(AsyncSocket *)sock didReadData:(NSData *)data withTag:(long)tag
@@ -182,6 +187,29 @@
 	// Even if we were unable to write the incoming data to the log,
 	// we're still going to echo it back to the client.
 	[sock writeData:data withTimeout:-1 tag:ECHO_MSG];
+}
+
+/**
+ * This method is called if a read has timed out.
+ * It allows us to optionally extend the timeout.
+ * We use this method to issue a warning to the user prior to disconnecting them.
+**/
+- (NSTimeInterval)onSocket:(AsyncSocket *)sock
+  shouldTimeoutReadWithTag:(long)tag
+				   elapsed:(NSTimeInterval)elapsed
+				 bytesDone:(CFIndex)length
+{
+	if(elapsed <= READ_TIMEOUT)
+	{
+		NSString *warningMsg = @"Are you still there?\r\n";
+		NSData *warningData = [warningMsg dataUsingEncoding:NSUTF8StringEncoding];
+		
+		[sock writeData:warningData withTimeout:-1 tag:WARNING_MSG];
+		
+		return READ_TIMEOUT_EXTENSION;
+	}
+	
+	return 0.0;
 }
 
 - (void)onSocket:(AsyncSocket *)sock willDisconnectWithError:(NSError *)err

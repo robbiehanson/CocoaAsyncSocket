@@ -2601,11 +2601,31 @@ Failed:
 
 - (void)doReadTimeout:(NSTimer *)timer
 {
-	if (theCurrentRead != nil)
+	NSTimeInterval timeoutExtension = 0.0;
+	
+	if([theDelegate respondsToSelector:@selector(onSocket:shouldTimeoutReadWithTag:elapsed:bytesDone:)])
+	{
+		timeoutExtension = [theDelegate onSocket:self shouldTimeoutReadWithTag:theCurrentRead->tag
+		                                                               elapsed:theCurrentRead->timeout
+		                                                             bytesDone:theCurrentRead->bytesDone];
+	}
+	
+	if(timeoutExtension > 0.0)
+	{
+		theCurrentRead->timeout += timeoutExtension;
+		
+		theReadTimer = [NSTimer timerWithTimeInterval:timeoutExtension
+											   target:self 
+											 selector:@selector(doReadTimeout:)
+											 userInfo:nil
+											  repeats:NO];
+		[self runLoopAddTimer:theReadTimer];
+	}
+	else
 	{
 		[self endCurrentRead];
+		[self closeWithError:[self getReadTimeoutError]];
 	}
-	[self closeWithError:[self getReadTimeoutError]];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2758,11 +2778,31 @@ Failed:
 
 - (void)doWriteTimeout:(NSTimer *)timer
 {
-	if(theCurrentWrite != nil)
+	NSTimeInterval timeoutExtension = 0.0;
+	
+	if([theDelegate respondsToSelector:@selector(onSocket:shouldTimeoutWriteWithTag:elapsed:bytesDone:)])
+	{
+		timeoutExtension = [theDelegate onSocket:self shouldTimeoutWriteWithTag:theCurrentWrite->tag
+		                                                                elapsed:theCurrentWrite->timeout
+		                                                              bytesDone:theCurrentWrite->bytesDone];
+	}
+	
+	if(timeoutExtension > 0.0)
+	{
+		theCurrentWrite->timeout += timeoutExtension;
+		
+		theWriteTimer = [NSTimer timerWithTimeInterval:timeoutExtension
+		                                        target:self 
+		                                      selector:@selector(doWriteTimeout:)
+		                                      userInfo:nil
+		                                       repeats:NO];
+		[self runLoopAddTimer:theWriteTimer];
+	}
+	else
 	{
 		[self endCurrentWrite];
+		[self closeWithError:[self getWriteTimeoutError]];
 	}
-	[self closeWithError:[self getWriteTimeoutError]];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

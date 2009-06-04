@@ -98,6 +98,38 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (void)onSocket:(AsyncSocket *)sock didWriteDataWithTag:(long)tag;
 
 /**
+ * Called if a read operation has reached its timeout without completing.
+ * This method allows you to optionally extend the timeout.
+ * If you return a positive time interval (> 0) the read's timeout will be extended by the given amount.
+ * If you don't implement this method, or return a non-positive time interval (<= 0) the read will timeout as usual.
+ * 
+ * The elapsed parameter is the sum of the original timeout, plus any additions previously added via this method.
+ * The length parameter is the number of bytes that have been read so far for the read operation.
+ * 
+ * Note that this method may be called multiple times for a single read if you return positive numbers.
+**/
+- (NSTimeInterval)onSocket:(AsyncSocket *)sock
+  shouldTimeoutReadWithTag:(long)tag
+				   elapsed:(NSTimeInterval)elapsed
+				 bytesDone:(CFIndex)length;
+
+/**
+ * Called if a write operation has reached its timeout without completing.
+ * This method allows you to optionally extend the timeout.
+ * If you return a positive time interval (> 0) the write's timeout will be extended by the given amount.
+ * If you don't implement this method, or return a non-positive time interval (<= 0) the write will timeout as usual.
+ * 
+ * The elapsed parameter is the sum of the original timeout, plus any additions previously added via this method.
+ * The length parameter is the number of bytes that have been written so far for the write operation.
+ * 
+ * Note that this method may be called multiple times for a single write if you return positive numbers.
+**/
+- (NSTimeInterval)onSocket:(AsyncSocket *)sock
+ shouldTimeoutWriteWithTag:(long)tag
+				   elapsed:(NSTimeInterval)elapsed
+				 bytesDone:(CFIndex)length;
+
+/**
  * Called after the socket has completed SSL/TLS negotiation.
  * This method is not called unless you use the provided startTLS method.
 **/
@@ -278,14 +310,21 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (BOOL)isIPv4;
 - (BOOL)isIPv6;
 
-// The readData and writeData methods won't block. To not time out, use a negative time interval.
-// If they time out, "onSocket:disconnectWithError:" is called. The tag is for your convenience.
+// The readData and writeData methods won't block.
+// 
+// You may optionally set a timeout for any read/write operation. (To not timeout, use a negative time interval.)
+// If a read/write opertion times out, the corresponding "onSocket:shouldTimeout..." delegate method
+// is called to optionally allow you to extend the timeout.
+// Upon a timeout, the "onSocket:willDisconnectWithError:" method is called, followed by "onSocketDidDisconnect".
+// 
+// The tag is for your convenience.
 // You can use it as an array index, step number, state id, pointer, etc., just like the socket's user data.
 
 /**
  * This will read a certain number of bytes into memory, and call the delegate method when those bytes have been read.
- * If there is an error, partially read data is lost.
+ * 
  * If the length is 0, this method does nothing and the delegate is not called.
+ * If the timeout value is negative, the read operation will not use a timeout.
 **/
 - (void)readDataToLength:(CFIndex)length withTimeout:(NSTimeInterval)timeout tag:(long)tag;
 
@@ -295,6 +334,7 @@ typedef enum AsyncSocketError AsyncSocketError;
  * 
  * If you pass nil or zero-length data as the "data" parameter,
  * the method will do nothing, and the delegate will not be called.
+ * If the timeout value is negative, the read operation will not use a timeout.
  * 
  * To read a line from the socket, use the line separator (e.g. CRLF for HTTP, see below) as the "data" parameter.
  * Note that this method is not character-set aware, so if a separator can occur naturally as part of the encoding for
@@ -317,6 +357,8 @@ typedef enum AsyncSocketError AsyncSocketError;
 
 /**
  * Reads the first available bytes that become available on the socket.
+ * 
+ * If the timeout value is negative, the read operation will not use a timeout.
 **/
 - (void)readDataWithTimeout:(NSTimeInterval)timeout tag:(long)tag;
 
@@ -324,6 +366,7 @@ typedef enum AsyncSocketError AsyncSocketError;
  * Writes data to the socket, and calls the delegate when finished.
  * 
  * If you pass in nil or zero-length data, this method does nothing and the delegate will not be called.
+ * If the timeout value is negative, the write operation will not use a timeout.
 **/
 - (void)writeData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag;
 
