@@ -446,7 +446,6 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 	[theWriteQueue release];
 	[theRunLoopModes release];
 	[partialReadBuffer release];
-	[NSObject cancelPreviousPerformRequestsWithTarget:theDelegate selector:@selector(onSocketDidDisconnect:) object:self];
 	[NSObject cancelPreviousPerformRequestsWithTarget:self];
 	[super dealloc];
 }
@@ -1642,20 +1641,21 @@ Failed:
 	
 	// If the client has passed the connect/accept method, then the connection has at least begun.
 	// Notify delegate that it is now ending.
-	if (theFlags & kDidPassConnectMethod)
-	{
-		// Delay notification to give dev freedom to release without returning here and core-dumping.
-		if ([theDelegate respondsToSelector: @selector(onSocketDidDisconnect:)])
-		{
-			[theDelegate performSelector:@selector(onSocketDidDisconnect:)
-							  withObject:self
-							  afterDelay:0
-								 inModes:theRunLoopModes];
-		}
-	}
+	BOOL shouldCallDelegate = (theFlags & kDidPassConnectMethod);
 	
 	// Clear all flags (except the pre-buffering flag, which should remain as is)
 	theFlags &= kEnablePreBuffering;
+	
+	if (shouldCallDelegate)
+	{
+		if ([theDelegate respondsToSelector: @selector(onSocketDidDisconnect:)])
+		{
+			[theDelegate onSocketDidDisconnect:self];
+		}
+	}
+	
+	// Do not access any instance variables after calling onSocketDidDisconnect.
+	// This gives the delegate freedom to release us without returning here and crashing.
 }
 
 /**

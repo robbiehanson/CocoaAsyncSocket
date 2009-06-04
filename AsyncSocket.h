@@ -42,6 +42,9 @@ typedef enum AsyncSocketError AsyncSocketError;
 /**
  * Called when a socket disconnects with or without error.  If you want to release a socket after it disconnects,
  * do so here. It is not safe to do that during "onSocket:willDisconnectWithError:".
+ * 
+ * If you call the disconnect method, and the socket wasn't already disconnected,
+ * this delegate method will be called before the disconnect method returns.
 **/
 - (void)onSocketDidDisconnect:(AsyncSocket *)sock;
 
@@ -229,6 +232,13 @@ typedef enum AsyncSocketError AsyncSocketError;
 
 /**
  * Disconnects immediately. Any pending reads or writes are dropped.
+ * If the socket is not already disconnected, the onSocketDidDisconnect delegate method
+ * will be called immediately, before this method returns.
+ * 
+ * Please note the recommended way of releasing an AsyncSocket instance (e.g. in a dealloc method)
+ * [asyncSocket setDelegate:nil];
+ * [asyncSocket disconnect];
+ * [asyncSocket release];
 **/
 - (void)disconnect;
 
