@@ -202,7 +202,7 @@
 **/
 - (id)init
 {
-    if(self = [super init])
+    if((self = [super init]))
 	{
         // Call private method to handle the setup for internal OpenSSL stuff
 		[self setupOpenSSL];
@@ -216,7 +216,7 @@
 **/
 - (id)initWithSymmetricKey:(NSData *)k
 {
-    if(self = [super init])
+    if((self = [super init]))
 	{
         // Call private method to handle the setup for internal OpenSSL stuff
 		[self setupOpenSSL];
@@ -251,7 +251,7 @@
 **/
 - (id)initWithPublicKey:(NSData *)pub privateKey:(NSData *)priv;
 {
-    if(self = [super init])
+    if((self = [super init]))
 	{
 		// Call private method to handle the setup for internal OpenSSL stuff
 		[self setupOpenSSL];

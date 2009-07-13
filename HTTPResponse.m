@@ -97,7 +97,7 @@
 
 - (void)setOffset:(UInt64)offsetParam
 {
-	offset = offsetParam;
+	offset = (unsigned)offsetParam;
 }
 
 - (NSData *)readDataOfLength:(unsigned int)lengthParameter

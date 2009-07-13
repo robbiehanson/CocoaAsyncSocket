@@ -63,7 +63,7 @@
 @interface HTTPConnection (PrivateAPI)
 - (CFHTTPMessageRef)prepareUniRangeResponse:(UInt64)contentLength;
 - (CFHTTPMessageRef)prepareMultiRangeResponse:(UInt64)contentLength;
-- (NSData *)chunkedTransferSizeLineForLength:(unsigned int)length;
+- (NSData *)chunkedTransferSizeLineForLength:(uint)length;
 - (NSData *)chunkedTransferFooter;
 @end
 
@@ -823,7 +823,7 @@ static NSMutableArray *recentNonces;
 				
 				[httpResponse setOffset:range.location];
 				
-				unsigned int bytesToRead = range.length < READ_CHUNKSIZE ? range.length : READ_CHUNKSIZE;
+				uint bytesToRead = range.length < READ_CHUNKSIZE ? (uint)range.length : READ_CHUNKSIZE;
 				
 				NSData *data = [httpResponse readDataOfLength:bytesToRead];
 				
@@ -841,15 +841,15 @@ static NSMutableArray *recentNonces;
 				// We have to send each range using multipart/byteranges
 				
 				// Write range header
-				NSData *rangeHeader = [ranges_headers objectAtIndex:0];
-				[asyncSocket writeData:rangeHeader withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_HEADER];
+				NSData *rangeHeaderData = [ranges_headers objectAtIndex:0];
+				[asyncSocket writeData:rangeHeaderData withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_HEADER];
 				
 				// Start writing range body
 				DDRange range = [[ranges objectAtIndex:0] ddrangeValue];
 				
 				[httpResponse setOffset:range.location];
 				
-				unsigned int bytesToRead = range.length < READ_CHUNKSIZE ? range.length : READ_CHUNKSIZE;
+				uint bytesToRead = range.length < READ_CHUNKSIZE ? (uint)range.length : READ_CHUNKSIZE;
 				
 				NSData *data = [httpResponse readDataOfLength:bytesToRead];
 				
@@ -928,7 +928,7 @@ static NSMutableArray *recentNonces;
 	
 	UInt64 actualContentLength = 0;
 	
-	unsigned i;
+	uint i;
 	for(i = 0; i < [ranges count]; i++)
 	{
 		DDRange range = [[ranges objectAtIndex:i] ddrangeValue];
@@ -963,7 +963,7 @@ static NSMutableArray *recentNonces;
  * Returns the chunk size line that must precede each chunk of data when using chunked transfer encoding.
  * This consists of the size of the data, in hexadecimal, followed by a CRLF.
 **/
-- (NSData *)chunkedTransferSizeLineForLength:(unsigned int)length
+- (NSData *)chunkedTransferSizeLineForLength:(uint)length
 {
 	return [[NSString stringWithFormat:@"%x\r\n", length] dataUsingEncoding:NSUTF8StringEncoding];
 }
@@ -988,11 +988,11 @@ static NSMutableArray *recentNonces;
  * We keep track of this information in order to keep our memory footprint low while
  * working with asynchronous HTTPResponse objects.
 **/
-- (unsigned int)writeQueueSize
+- (uint)writeQueueSize
 {
-	unsigned int result = 0;
+	uint result = 0;
 	
-	unsigned int i;
+	uint i;
 	for(i = 0; i < [responseDataSizes count]; i++)
 	{
 		result += [[responseDataSizes objectAtIndex:i] unsignedIntValue];
@@ -1023,11 +1023,11 @@ static NSMutableArray *recentNonces;
 	// This provides an easy way for the HTTPResponse object to throttle its data allocation in step with the rate
 	// at which the socket is able to send it.
 	
-	unsigned int writeQueueSize = [self writeQueueSize];
+	uint writeQueueSize = [self writeQueueSize];
 	
 	if(writeQueueSize >= READ_CHUNKSIZE) return;
 	
-	unsigned int available = READ_CHUNKSIZE - writeQueueSize;
+	uint available = READ_CHUNKSIZE - writeQueueSize;
 	NSData *data = [httpResponse readDataOfLength:available];
 	
 	if([data length] > 0)
@@ -1089,7 +1089,7 @@ static NSMutableArray *recentNonces;
 	// This provides an easy way for the HTTPResponse object to throttle its data allocation in step with the rate
 	// at which the socket is able to send it.
 	
-	unsigned int writeQueueSize = [self writeQueueSize];
+	uint writeQueueSize = [self writeQueueSize];
 	
 	if(writeQueueSize >= READ_CHUNKSIZE) return;
 	
@@ -1101,8 +1101,8 @@ static NSMutableArray *recentNonces;
 	
 	if(bytesLeft > 0)
 	{
-		unsigned int available = READ_CHUNKSIZE - writeQueueSize;
-		unsigned int bytesToRead = bytesLeft < available ? bytesLeft : available;
+		uint available = READ_CHUNKSIZE - writeQueueSize;
+		uint bytesToRead = bytesLeft < available ? (uint)bytesLeft : available;
 		
 		NSData *data = [httpResponse readDataOfLength:bytesToRead];
 		
@@ -1138,7 +1138,7 @@ static NSMutableArray *recentNonces;
 	// This provides an easy way for the HTTPResponse object to throttle its data allocation in step with the rate
 	// at which the socket is able to send it.
 	
-	unsigned int writeQueueSize = [self writeQueueSize];
+	uint writeQueueSize = [self writeQueueSize];
 	
 	if(writeQueueSize >= READ_CHUNKSIZE) return;
 	
@@ -1150,8 +1150,8 @@ static NSMutableArray *recentNonces;
 	
 	if(bytesLeft > 0)
 	{
-		unsigned int available = READ_CHUNKSIZE - writeQueueSize;
-		unsigned int bytesToRead = bytesLeft < available ? bytesLeft : available;
+		uint available = READ_CHUNKSIZE - writeQueueSize;
+		uint bytesToRead = bytesLeft < available ? (uint)bytesLeft : available;
 		
 		NSData *data = [httpResponse readDataOfLength:bytesToRead];
 		
@@ -1175,8 +1175,8 @@ static NSMutableArray *recentNonces;
 			
 			[httpResponse setOffset:range.location];
 			
-			unsigned int available = READ_CHUNKSIZE - writeQueueSize;
-			unsigned int bytesToRead = range.length < available ? range.length : available;
+			uint available = READ_CHUNKSIZE - writeQueueSize;
+			uint bytesToRead = range.length < available ? (uint)range.length : available;
 			
 			NSData *data = [httpResponse readDataOfLength:bytesToRead];
 			
@@ -1479,7 +1479,7 @@ static NSMutableArray *recentNonces;
 		NSEnumerator *keyEnumerator = [responseHeaders keyEnumerator];
 		NSString *key;
 		
-		while(key = [keyEnumerator nextObject])
+		while((key = [keyEnumerator nextObject]))
 		{
 			NSString *value = [responseHeaders objectForKey:key];
 			
@@ -1512,7 +1512,7 @@ static NSMutableArray *recentNonces;
 	//     
 	//     CFHTTPMessageSetBody(response, (CFDataRef)msgData);
 	//     
-	//     NSString *contentLengthStr = [NSString stringWithFormat:@"%u", (unsigned)[msgData length]];
+	//     NSString *contentLengthStr = [NSString stringWithFormat:@"%u", (uint)[msgData length]];
 	//     CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), (CFStringRef)contentLengthStr);
 	// }
 	
@@ -1531,7 +1531,7 @@ static NSMutableArray *recentNonces;
 		NSEnumerator *keyEnumerator = [responseHeaders keyEnumerator];
 		NSString *key;
 		
-		while(key = [keyEnumerator nextObject])
+		while((key = [keyEnumerator nextObject]))
 		{
 			NSString *value = [responseHeaders objectForKey:key];
 			
@@ -1709,7 +1709,7 @@ static NSMutableArray *recentNonces;
 				[self prepareForBodyWithSize:requestContentLength];
 				
 				// Start reading the request body
-				uint bytesToRead = requestContentLength < POST_CHUNKSIZE ? requestContentLength : POST_CHUNKSIZE;
+				uint bytesToRead = requestContentLength < POST_CHUNKSIZE ? (uint)requestContentLength : POST_CHUNKSIZE;
 				
 				[asyncSocket readDataToLength:bytesToRead withTimeout:READ_TIMEOUT tag:HTTP_REQUEST_BODY];
 			}
@@ -1732,7 +1732,7 @@ static NSMutableArray *recentNonces;
 			// We're not done reading the post body yet...
 			UInt64 bytesLeft = requestContentLength - requestContentLengthReceived;
 			
-			uint bytesToRead = bytesLeft < POST_CHUNKSIZE ? bytesLeft : POST_CHUNKSIZE;
+			uint bytesToRead = bytesLeft < POST_CHUNKSIZE ? (uint)bytesLeft : POST_CHUNKSIZE;
 			
 			[asyncSocket readDataToLength:bytesToRead withTimeout:READ_TIMEOUT tag:HTTP_REQUEST_BODY];
 		}
