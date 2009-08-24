@@ -211,6 +211,11 @@ typedef enum AsyncSocketError AsyncSocketError;
 // 
 // After the read and write streams have been setup for the newly accepted socket,
 // the onSocket:didConnectToHost:port: method will be called on the proper run loop.
+// 
+// Multithreading Note: If you're going to be moving the newly accepted socket to another run
+// loop by implementing onSocket:wantsRunLoopForNewSocket:, then you should wait until the
+// onSocket:didConnectToHost:port: method before calling read, write, or startTLS methods.
+// Otherwise read/write events are scheduled on the incorrect runloop, and chaos may ensue.
 
 /**
  * Tells the socket to begin listening and accepting connections on the given port.

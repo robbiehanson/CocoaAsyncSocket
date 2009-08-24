@@ -41,13 +41,14 @@ enum AsyncSocketFlags
 	kDidPassConnectMethod    = 1 <<  1,  // If set, disconnection results in delegate call
 	kDidCompleteOpenForRead  = 1 <<  2,  // If set, open callback has been called for read stream
 	kDidCompleteOpenForWrite = 1 <<  3,  // If set, open callback has been called for write stream
-	kStartingTLS             = 1 <<  4,  // If set, we're waiting for TLS negotiation to complete
-	kForbidReadsWrites       = 1 <<  5,  // If set, no new reads or writes are allowed
-	kDisconnectAfterReads    = 1 <<  6,  // If set, disconnect after no more reads are queued
-	kDisconnectAfterWrites   = 1 <<  7,  // If set, disconnect after no more writes are queued
-	kClosingWithError        = 1 <<  8,  // If set, the socket is being closed due to an error
-	kDequeueReadScheduled    = 1 <<  9,  // If set, a maybeDequeueRead operation is already scheduled
-	kDequeueWriteScheduled   = 1 << 10,  // If set, a maybeDequeueWrite operation is already scheduled
+	kStartingReadTLS         = 1 <<  4,  // If set, we're waiting for TLS negotiation to complete
+	kStartingWriteTLS        = 1 <<  5,  // If set, we're waiting for TLS negotiation to complete
+	kForbidReadsWrites       = 1 <<  6,  // If set, no new reads or writes are allowed
+	kDisconnectAfterReads    = 1 <<  7,  // If set, disconnect after no more reads are queued
+	kDisconnectAfterWrites   = 1 <<  8,  // If set, disconnect after no more writes are queued
+	kClosingWithError        = 1 <<  9,  // If set, the socket is being closed due to an error
+	kDequeueReadScheduled    = 1 << 10,  // If set, a maybeDequeueRead operation is already scheduled
+	kDequeueWriteScheduled   = 1 << 11,  // If set, a maybeDequeueWrite operation is already scheduled
 };
 
 @interface AsyncSocket (Private)
@@ -2342,7 +2343,8 @@ Failed:
 			if([theCurrentRead isKindOfClass:[AsyncSpecialPacket class]])
 			{
 				// Attempt to start TLS
-				// This method won't do anything unless both theCurrentRead and theCurrentWrite are start TLS packets
+				// This method won't do anything unless both kStartingReadTLS and kStartingWriteTLS are both set
+				theFlags |= kStartingReadTLS;
 				[self maybeStartTLS];
 			}
 			else
@@ -2420,8 +2422,10 @@ Failed:
 {
 	// If data is available on the stream, but there is no read request, then we don't need to process the data yet.
 	// Also, if there is a read request, but no read stream setup yet, we can't process any data yet.
-	if(theCurrentRead != nil && theReadStream != NULL)
+	if((theCurrentRead != nil) && (theReadStream != NULL))
 	{
+		// Note: This method is not called if theCurrentRead is an AsyncSpecialPacket (startTLS packet)
+
 		CFIndex totalBytesRead = 0;
 		
 		BOOL done = NO;
@@ -2672,7 +2676,8 @@ Failed:
 			if([theCurrentWrite isKindOfClass:[AsyncSpecialPacket class]])
 			{
 				// Attempt to start TLS
-				// This method won't do anything unless both theCurrentWrite and theCurrentRead are start TLS packets
+				// This method won't do anything unless both kStartingReadTLS and kStartingWriteTLS are both set
+                theFlags |= kStartingWriteTLS;
 				[self maybeStartTLS];
 			}
 			else
@@ -2713,6 +2718,8 @@ Failed:
 {
 	if((theCurrentWrite != nil) && (theWriteStream != NULL))
 	{
+		// Note: This method is not called if theCurrentWrite is an AsyncSpecialPacket (startTLS packet)
+		
 		BOOL done = NO, error = NO;
 		while (!done && !error && CFWriteStreamCanAcceptBytes(theWriteStream))
 		{
@@ -2826,21 +2833,14 @@ Failed:
 
 - (void)maybeStartTLS
 {
-	NSAssert((theFlags & kStartingTLS) == 0, @"Trying to start TLS after TLS has already been started");
-	
 	// We can't start TLS until:
 	// - All queued reads prior to the user calling StartTLS are complete
 	// - All queued writes prior to the user calling StartTLS are complete
 	// 
-	// We'll know these conditions are met when both theCurrentRead and theCurrentWrite variables
-	// are of type AsyncSpecialPacket.
+	// We'll know these conditions are met when both kStartingReadTLS and kStartingWriteTLS are set
 	
-	Class SpecialPacketClass = [AsyncSpecialPacket class];
-	
-	if([theCurrentRead isKindOfClass:SpecialPacketClass] && [theCurrentWrite isKindOfClass:SpecialPacketClass])
+	if((theFlags & kStartingReadTLS) && (theFlags & kStartingWriteTLS))
 	{
-		theFlags |= kStartingTLS;
-		
 		AsyncSpecialPacket *tlsPacket = (AsyncSpecialPacket *)theCurrentRead;
 		
 		BOOL didSecureReadStream = CFReadStreamSetProperty(theReadStream, kCFStreamPropertySSLSettings,
@@ -2857,18 +2857,22 @@ Failed:
 
 - (void)onTLSStarted:(BOOL)flag
 {
-	theFlags &= ~kStartingTLS;
-	
-	if([theDelegate respondsToSelector:@selector(onSocket:didSecure:)])
+	if((theFlags & kStartingReadTLS) && (theFlags & kStartingWriteTLS))
 	{
-		[theDelegate onSocket:self didSecure:flag];
+		theFlags &= ~kStartingReadTLS;
+		theFlags &= ~kStartingWriteTLS;
+		
+		if([theDelegate respondsToSelector:@selector(onSocket:didSecure:)])
+		{
+			[theDelegate onSocket:self didSecure:flag];
+		}
+		
+		[self endCurrentRead];
+		[self endCurrentWrite];
+		
+		[self scheduleDequeueRead];
+		[self scheduleDequeueWrite];
 	}
-	
-	[self endCurrentRead];
-	[self endCurrentWrite];
-	
-	[self scheduleDequeueRead];
-	[self scheduleDequeueWrite];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2912,7 +2916,7 @@ Failed:
 			[self doStreamOpen];
 			break;
 		case kCFStreamEventHasBytesAvailable:
-			if(theFlags & kStartingTLS)
+			if(theFlags & kStartingReadTLS)
 				[self onTLSStarted:YES];
 			else
 				[self doBytesAvailable];
@@ -2939,7 +2943,7 @@ Failed:
 			[self doStreamOpen];
 			break;
 		case kCFStreamEventCanAcceptBytes:
-			if(theFlags & kStartingTLS)
+			if(theFlags & kStartingWriteTLS)
 				[self onTLSStarted:YES];
 			else
 				[self doSendBytes];
