@@ -61,9 +61,9 @@
 	// Release all instance variables
 	[documentRoot release];
 	[netService release];
-    [domain release];
-    [name release];
-    [type release];
+	[domain release];
+	[name release];
+	[type release];
 	[txtRecordDictionary release];
 	[asyncSocket release];
 	[connections release];
@@ -211,9 +211,9 @@
 #pragma mark Server Control:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-- (BOOL)start:(NSError **)error
+- (BOOL)start:(NSError **)errPtr
 {
-	BOOL success = [asyncSocket acceptOnPort:port error:error];
+	BOOL success = [asyncSocket acceptOnPort:port error:errPtr];
 	
 	if(success)
 	{
@@ -244,7 +244,7 @@
 	}
 	else
 	{
-		NSLog(@"Failed to start HTTP Server: %@", *error);
+		if(errPtr) NSLog(@"Failed to start HTTP Server: %@", *errPtr);
 	}
 	
 	return success;

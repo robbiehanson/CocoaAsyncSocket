@@ -51,7 +51,7 @@
 - (NSDictionary *)TXTRecordDictionary;
 - (void)setTXTRecordDictionary:(NSDictionary *)dict;
 
-- (BOOL)start:(NSError **)error;
+- (BOOL)start:(NSError **)errPtr;
 - (BOOL)stop;
 
 - (uint)numberOfHTTPConnections;
