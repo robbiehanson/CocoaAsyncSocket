@@ -75,7 +75,11 @@
     // Create a new string from the data in the memory buffer
     char * base64Pointer;
     long base64Length = BIO_get_mem_data(mem, &base64Pointer);
-    NSString * base64String = [NSString stringWithCString:base64Pointer length:base64Length];
+    // we use an NSData here since the base64pointer is not null terminated
+    // the byte array the NSData return should be
+    // so making an NSString from that will be okay
+    NSData * base64data = [NSData dataWithBytes:base64Pointer length:base64Length];
+    NSString * base64String = [NSString stringWithUTF8String:[base64data bytes]];
 
     // Clean up and go home
     BIO_free_all(mem);
@@ -413,7 +417,7 @@
 **/
 - (NSString *)clearTextAsString
 {
-    return [[[NSString alloc] initWithData:[self clearTextAsData] encoding:[NSString defaultCStringEncoding]] autorelease];
+    return [[[NSString alloc] initWithData:[self clearTextAsData] encoding:NSUTF8StringEncoding] autorelease];
 }
 
 /**
@@ -436,7 +440,19 @@
 - (void)setClearTextWithString:(NSString *)c
 {
 	[clearText release];
-	clearText = [[NSData alloc] initWithBytes:[c UTF8String] length:[c length]];
+    
+	// BUG FIX : PLL (2009/02/21)
+	//
+	// [c length] : Returns the number of Unicode characters in the receiver.
+	// For example "‚àö¬©‚àö‚Ä†‚àö√ü test" in UTF8 is 11 bytes (c3 a9 c3 a0 c3 a7 20 74 65 73 74)
+	// but only 8 Unicode characters.
+	// So this will truncate the text and result in one error.
+	//
+	// clearText = [[NSData alloc] initWithBytes:[c UTF8String] length:[c length]];
+	
+	// The number of bytes required to store the receiver in the encoding enc in a non-external representation. The length does not include space for a terminating NULL character.
+	unsigned int length = [c lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+	clearText = [[NSData alloc] initWithBytes:[c UTF8String] length:length];
 }
 
 /**
@@ -454,7 +470,7 @@
 **/
 - (NSString *)cipherTextAsString
 {
-    return [[[NSString alloc] initWithData:[self cipherTextAsData] encoding:[NSString defaultCStringEncoding]] autorelease];
+    return [[[NSString alloc] initWithData:[self cipherTextAsData] encoding:NSUTF8StringEncoding] autorelease];
 }
 
 /**
@@ -542,37 +558,63 @@
                 return nil;
             }
         }
+		
+		// Sometimes OpenSSL encrypted data contains an 8 byte salt.
+		// This is indicated by the "Salted__" prefix in the encrypted data.
+		
+		NSData *salt = nil;
+		
+		if([cipherText length] > 8+8)
+		{
+			if(strncmp((const char *)[cipherText bytes], "Salted__", 8) == 0)
+			{
+				salt = [cipherText subdataWithRange:NSMakeRange(8, 8)];
+				
+				input += 16;
+				inlen -= 16;
+			}
+		}
         
-        EVP_BytesToKey(cipher, EVP_md5(), NULL,
-                       [[self symmetricKey] bytes], [[self symmetricKey] length], 1, evp_key, iv);
+        EVP_BytesToKey(cipher, EVP_md5(), [salt bytes],
+					   [symmetricKey bytes], [symmetricKey length], 1, evp_key, iv);
+		
         EVP_CIPHER_CTX_init(&cCtx);
 
-        if (!EVP_DecryptInit(&cCtx, cipher, evp_key, iv)) {
+        if (!EVP_DecryptInit(&cCtx, cipher, evp_key, iv))
+		{
             NSLog(@"EVP_DecryptInit() failed!");
             EVP_CIPHER_CTX_cleanup(&cCtx);
             return nil;
         }
         EVP_CIPHER_CTX_set_key_length(&cCtx, EVP_MAX_KEY_LENGTH);
-
-        // add a couple extra blocks to the outbuf to be safe
-        outbuf = (unsigned char *)calloc(inlen+32, sizeof(unsigned char));
+		
+        // The data buffer passed to EVP_DecryptUpdate() should have sufficient room for
+		// (input_length + cipher_block_size) bytes unless the cipher block size is 1 in which
+		// case input_length bytes is sufficient.
+		
+		if(EVP_CIPHER_CTX_block_size(&cCtx) > 1)
+			outbuf = (unsigned char *)calloc(inlen + EVP_CIPHER_CTX_block_size(&cCtx), sizeof(unsigned char));
+		else
+			outbuf = (unsigned char *)calloc(inlen, sizeof(unsigned char));
+			
         NSAssert(outbuf, @"Cannot allocate memory for buffer!");
         
-        if (!EVP_DecryptUpdate(&cCtx, outbuf, &outlen, input, inlen)){
-            NSLog(@"EVP_DecryptUpdate() failed!");
-            EVP_CIPHER_CTX_cleanup(&cCtx);
-            return nil;
+        if (!EVP_DecryptUpdate(&cCtx, outbuf, &outlen, input, inlen))
+		{
+			NSLog(@"EVP_DecryptUpdate() failed!");
+			EVP_CIPHER_CTX_cleanup(&cCtx);
+			return nil;
         }
         
-        if (!EVP_DecryptFinal(&cCtx, outbuf + outlen, &templen)){
-            NSLog(@"EVP_DecryptFinal() failed!");
-            EVP_CIPHER_CTX_cleanup(&cCtx);
-            return nil;
+        if (!EVP_DecryptFinal(&cCtx, outbuf + outlen, &templen))
+		{
+			NSLog(@"EVP_DecryptFinal() failed!");
+			EVP_CIPHER_CTX_cleanup(&cCtx);
+			return nil;
         }
         
         outlen += templen;
         EVP_CIPHER_CTX_cleanup(&cCtx);
-        
     }
 	else
 	{
@@ -796,20 +838,24 @@
             return nil;
         }
         EVP_CIPHER_CTX_set_key_length(&cCtx, EVP_MAX_KEY_LENGTH);
-
-        // add a couple extra blocks to the outbuf to be safe
-        outbuf = (unsigned char *)calloc(inlen + EVP_CIPHER_CTX_block_size(&cCtx), sizeof(unsigned char));
+		
+		// The data buffer passed to EVP_EncryptUpdate() should have sufficient room for
+		// (input_length + cipher_block_size - 1)
+		
+        outbuf = (unsigned char *)calloc(inlen + EVP_CIPHER_CTX_block_size(&cCtx) - 1, sizeof(unsigned char));
         NSAssert(outbuf, @"Cannot allocate memory for buffer!");
         
-        if (!EVP_EncryptUpdate(&cCtx, outbuf, &outlen, input, inlen)){
-            NSLog(@"EVP_EncryptUpdate() failed!");
-            EVP_CIPHER_CTX_cleanup(&cCtx);
-            return nil;
+        if (!EVP_EncryptUpdate(&cCtx, outbuf, &outlen, input, inlen))
+		{
+			NSLog(@"EVP_EncryptUpdate() failed!");
+			EVP_CIPHER_CTX_cleanup(&cCtx);
+			return nil;
         }
-        if (!EVP_EncryptFinal(&cCtx, outbuf + outlen, &templen)){
-            NSLog(@"EVP_EncryptFinal() failed!");
-            EVP_CIPHER_CTX_cleanup(&cCtx);
-            return nil;
+        if (!EVP_EncryptFinal(&cCtx, outbuf + outlen, &templen))
+		{
+			NSLog(@"EVP_EncryptFinal() failed!");
+			EVP_CIPHER_CTX_cleanup(&cCtx);
+			return nil;
         }
         outlen += templen;
         EVP_CIPHER_CTX_cleanup(&cCtx);
@@ -1110,6 +1156,31 @@
     free(buffer);
     
     return randData;
+}
+
+// PBKDF2 support functions
+// Thanks to Chris Benedict (chrisbdaemon@gmail.com) for the code
++ (NSData *)getKeyDataWithLength:(int)length fromPassword:(NSString *)pass withSalt:(NSString *)salt
+{
+	return [SSCrypto getKeyDataWithLength:length fromPassword:pass withSalt:salt withIterations:1000];
+}
+
++ (NSData *)getKeyDataWithLength:(int)length fromPassword:(NSString *)pass withSalt:(NSString *)salt withIterations:(int)count
+{
+	NSData *key = nil;
+	unsigned char *buffer = (unsigned char *)calloc(length, sizeof(unsigned char));
+    NSAssert((buffer != NULL), @"Cannot calloc memory for buffer.");
+	const char *password = [pass UTF8String];
+    const char *saltVal = [salt UTF8String];
+
+	if(!PKCS5_PBKDF2_HMAC_SHA1(password, [pass length], (unsigned char *)saltVal, [salt length], count, length, buffer)) {
+		return nil;
+	}
+
+	key = [NSData dataWithBytes:buffer length:length];
+	free(buffer);
+	
+	return key;
 }
 
 + (NSData *)getSHA1ForData:(NSData *)d
