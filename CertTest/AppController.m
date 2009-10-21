@@ -19,7 +19,7 @@
 	NSLog(@"Ready");
 	
 	NSError *err = nil;
-	if(![asyncSocket connectToHost:@"paypal.com" onPort:443 error:&err])
+	if(![asyncSocket connectToHost:@"www.paypal.com" onPort:443 error:&err])
 	{
 		NSLog(@"Error: %@", err);
 	}
