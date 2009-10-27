@@ -75,15 +75,15 @@
     // Create a new string from the data in the memory buffer
     char * base64Pointer;
     long base64Length = BIO_get_mem_data(mem, &base64Pointer);
-    // we use an NSData here since the base64pointer is not null terminated
-    // the byte array the NSData return should be
-    // so making an NSString from that will be okay
-    NSData * base64data = [NSData dataWithBytes:base64Pointer length:base64Length];
-    NSString * base64String = [NSString stringWithUTF8String:[base64data bytes]];
+	
+	// The base64pointer is NOT null terminated.
+	
+	NSData * base64data = [NSData dataWithBytesNoCopy:base64Pointer length:base64Length freeWhenDone:NO];
+	NSString * base64String = [[NSString alloc] initWithData:base64data encoding:NSUTF8StringEncoding];
 
     // Clean up and go home
-    BIO_free_all(mem);
-    return base64String;
+	BIO_free_all(mem);
+	return [base64String autorelease];
 }
 
 - (NSData *)decodeBase64
