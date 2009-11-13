@@ -2818,7 +2818,18 @@ Failed:
 
 - (void)startTLS:(NSDictionary *)tlsSettings
 {
-	if([tlsSettings count] == 0) return;
+	if(tlsSettings == nil)
+    {
+        // Passing nil/NULL to CFReadStreamSetProperty will appear to work the same as passing an empty dictionary,
+        // but causes problems if we later try to fetch the remote host's certificate.
+        // 
+        // To be exact, it causes the following to return NULL instead of the normal result:
+        // CFReadStreamCopyProperty(readStream, kCFStreamPropertySSLPeerCertificates)
+        // 
+        // So we use an empty dictionary instead, which works perfectly.
+        
+        tlsSettings = [NSDictionary dictionary];
+    }
 	
 	AsyncSpecialPacket *packet = [[AsyncSpecialPacket alloc] initWithTLSSettings:tlsSettings];
 	

@@ -32,12 +32,19 @@
 	// Configure SSL/TLS settings
 	NSMutableDictionary *settings = [NSMutableDictionary dictionaryWithCapacity:3];
 	
-	/* For your regular security checks, use only this setting */
-	
+    // If you simply want to ensure that the remote host's certificate is valid,
+    // then you can use an empty dictionary.
+    
+    // If you know the name of the remote host, then you should specify the name here.
+    // 
+    // NOTE:
+    // You should understand the security implications if you do not specify the peer name.
+    // Please see the documentation for the startTLS method in AsyncSocket.h for a full discussion.
+    
 	[settings setObject:@"www.paypal.com"
 				 forKey:(NSString *)kCFStreamSSLPeerName];
 	
-	/* To connect to a test server, with a self-signed certificate, use settings similar to this */
+	// To connect to a test server, with a self-signed certificate, use settings similar to this:
 	
 //	// Allow expired certificates
 //	[settings setObject:[NSNumber numberWithBool:YES]
@@ -52,6 +59,10 @@
 //				 forKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
 	
 	[sock startTLS:settings];
+    
+    // You can also pass nil to the startTLS method, which is the same as passing an empty dictionary.
+    // Again, you should understand the security implications of doing so.
+    // Please see the documentation for the startTLS method in AsyncSocket.h for a full discussion.
 }
 
 - (void)onSocket:(AsyncSocket *)sock didSecure:(BOOL)flag
