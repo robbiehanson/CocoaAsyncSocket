@@ -130,10 +130,13 @@ typedef enum AsyncSocketError AsyncSocketError;
 				 bytesDone:(CFIndex)length;
 
 /**
- * Called after the socket has completed SSL/TLS negotiation.
+ * Called after the socket has successfully completed SSL/TLS negotiation.
  * This method is not called unless you use the provided startTLS method.
+ * 
+ * If a SSL/TLS negotiation fails (invalid certificate, etc) then the socket will immediately close,
+ * and the onSocket:willDisconnectWithError: delegate method will be called with the specific SSL error code.
 **/
-- (void)onSocket:(AsyncSocket *)sock didSecure:(BOOL)flag;
+- (void)onSocketDidSecure:(AsyncSocket *)sock;
 
 @end
 
@@ -433,7 +436,7 @@ typedef enum AsyncSocketError AsyncSocketError;
  * The default pre-buffering state is controlled by the DEFAULT_PREBUFFERING definition.
  * It is highly recommended one leave this set to YES.
  * 
- * This method exists in case pre-buffering needs to be disabled by default for some reason.
+ * This method exists in case pre-buffering needs to be disabled by default for some unforeseen reason.
  * In that case, this method exists to allow one to easily enable pre-buffering when ready.
 **/
 - (void)enablePreBuffering;

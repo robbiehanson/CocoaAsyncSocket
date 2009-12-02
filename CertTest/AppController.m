@@ -65,12 +65,9 @@
     // Please see the documentation for the startTLS method in AsyncSocket.h for a full discussion.
 }
 
-- (void)onSocket:(AsyncSocket *)sock didSecure:(BOOL)flag
+- (void)onSocketDidSecure:(AsyncSocket *)sock
 {
-	if(flag)
-		NSLog(@"onSocket:%p didSecure:YES", sock);
-	else
-		NSLog(@"onSocket:%p didSecure:NO", sock);
+	NSLog(@"onSocketDidSecure:%p", sock);
 }
 
 - (void)onSocket:(AsyncSocket *)sock willDisconnectWithError:(NSError *)err
