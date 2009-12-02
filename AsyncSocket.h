@@ -42,6 +42,9 @@ typedef enum AsyncSocketError AsyncSocketError;
 /**
  * Called when a socket disconnects with or without error.  If you want to release a socket after it disconnects,
  * do so here. It is not safe to do that during "onSocket:willDisconnectWithError:".
+ * 
+ * If you call the disconnect method, and the socket wasn't already disconnected,
+ * this delegate method will be called before the disconnect method returns.
 **/
 - (void)onSocketDidDisconnect:(AsyncSocket *)sock;
 
@@ -95,10 +98,45 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (void)onSocket:(AsyncSocket *)sock didWriteDataWithTag:(long)tag;
 
 /**
- * Called after the socket has completed SSL/TLS negotiation.
- * This method is not called unless you use the provided startTLS method.
+ * Called if a read operation has reached its timeout without completing.
+ * This method allows you to optionally extend the timeout.
+ * If you return a positive time interval (> 0) the read's timeout will be extended by the given amount.
+ * If you don't implement this method, or return a non-positive time interval (<= 0) the read will timeout as usual.
+ * 
+ * The elapsed parameter is the sum of the original timeout, plus any additions previously added via this method.
+ * The length parameter is the number of bytes that have been read so far for the read operation.
+ * 
+ * Note that this method may be called multiple times for a single read if you return positive numbers.
 **/
-- (void)onSocket:(AsyncSocket *)sock didSecure:(BOOL)flag;
+- (NSTimeInterval)onSocket:(AsyncSocket *)sock
+  shouldTimeoutReadWithTag:(long)tag
+				   elapsed:(NSTimeInterval)elapsed
+				 bytesDone:(CFIndex)length;
+
+/**
+ * Called if a write operation has reached its timeout without completing.
+ * This method allows you to optionally extend the timeout.
+ * If you return a positive time interval (> 0) the write's timeout will be extended by the given amount.
+ * If you don't implement this method, or return a non-positive time interval (<= 0) the write will timeout as usual.
+ * 
+ * The elapsed parameter is the sum of the original timeout, plus any additions previously added via this method.
+ * The length parameter is the number of bytes that have been written so far for the write operation.
+ * 
+ * Note that this method may be called multiple times for a single write if you return positive numbers.
+**/
+- (NSTimeInterval)onSocket:(AsyncSocket *)sock
+ shouldTimeoutWriteWithTag:(long)tag
+				   elapsed:(NSTimeInterval)elapsed
+				 bytesDone:(CFIndex)length;
+
+/**
+ * Called after the socket has successfully completed SSL/TLS negotiation.
+ * This method is not called unless you use the provided startTLS method.
+ * 
+ * If a SSL/TLS negotiation fails (invalid certificate, etc) then the socket will immediately close,
+ * and the onSocket:willDisconnectWithError: delegate method will be called with the specific SSL error code.
+**/
+- (void)onSocketDidSecure:(AsyncSocket *)sock;
 
 @end
 
@@ -176,6 +214,11 @@ typedef enum AsyncSocketError AsyncSocketError;
 // 
 // After the read and write streams have been setup for the newly accepted socket,
 // the onSocket:didConnectToHost:port: method will be called on the proper run loop.
+// 
+// Multithreading Note: If you're going to be moving the newly accepted socket to another run
+// loop by implementing onSocket:wantsRunLoopForNewSocket:, then you should wait until the
+// onSocket:didConnectToHost:port: method before calling read, write, or startTLS methods.
+// Otherwise read/write events are scheduled on the incorrect runloop, and chaos may ensue.
 
 /**
  * Tells the socket to begin listening and accepting connections on the given port.
@@ -229,6 +272,13 @@ typedef enum AsyncSocketError AsyncSocketError;
 
 /**
  * Disconnects immediately. Any pending reads or writes are dropped.
+ * If the socket is not already disconnected, the onSocketDidDisconnect delegate method
+ * will be called immediately, before this method returns.
+ * 
+ * Please note the recommended way of releasing an AsyncSocket instance (e.g. in a dealloc method)
+ * [asyncSocket setDelegate:nil];
+ * [asyncSocket disconnect];
+ * [asyncSocket release];
 **/
 - (void)disconnect;
 
@@ -268,14 +318,21 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (BOOL)isIPv4;
 - (BOOL)isIPv6;
 
-// The readData and writeData methods won't block. To not time out, use a negative time interval.
-// If they time out, "onSocket:disconnectWithError:" is called. The tag is for your convenience.
+// The readData and writeData methods won't block.
+// 
+// You may optionally set a timeout for any read/write operation. (To not timeout, use a negative time interval.)
+// If a read/write opertion times out, the corresponding "onSocket:shouldTimeout..." delegate method
+// is called to optionally allow you to extend the timeout.
+// Upon a timeout, the "onSocket:willDisconnectWithError:" method is called, followed by "onSocketDidDisconnect".
+// 
+// The tag is for your convenience.
 // You can use it as an array index, step number, state id, pointer, etc., just like the socket's user data.
 
 /**
  * This will read a certain number of bytes into memory, and call the delegate method when those bytes have been read.
- * If there is an error, partially read data is lost.
+ * 
  * If the length is 0, this method does nothing and the delegate is not called.
+ * If the timeout value is negative, the read operation will not use a timeout.
 **/
 - (void)readDataToLength:(CFIndex)length withTimeout:(NSTimeInterval)timeout tag:(long)tag;
 
@@ -285,6 +342,7 @@ typedef enum AsyncSocketError AsyncSocketError;
  * 
  * If you pass nil or zero-length data as the "data" parameter,
  * the method will do nothing, and the delegate will not be called.
+ * If the timeout value is negative, the read operation will not use a timeout.
  * 
  * To read a line from the socket, use the line separator (e.g. CRLF for HTTP, see below) as the "data" parameter.
  * Note that this method is not character-set aware, so if a separator can occur naturally as part of the encoding for
@@ -307,6 +365,8 @@ typedef enum AsyncSocketError AsyncSocketError;
 
 /**
  * Reads the first available bytes that become available on the socket.
+ * 
+ * If the timeout value is negative, the read operation will not use a timeout.
 **/
 - (void)readDataWithTimeout:(NSTimeInterval)timeout tag:(long)tag;
 
@@ -314,6 +374,7 @@ typedef enum AsyncSocketError AsyncSocketError;
  * Writes data to the socket, and calls the delegate when finished.
  * 
  * If you pass in nil or zero-length data, this method does nothing and the delegate will not be called.
+ * If the timeout value is negative, the write operation will not use a timeout.
 **/
 - (void)writeData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag;
 
@@ -345,7 +406,23 @@ typedef enum AsyncSocketError AsyncSocketError;
  * 
  * Please refer to Apple's documentation for associated values, as well as other possible keys.
  * 
- * If you pass in nil or an empty dictionary, this method does nothing and the delegate will not be called.
+ * If you pass in nil or an empty dictionary, the default settings will be used.
+ * 
+ * The default settings will check to make sure the remote party's certificate is signed by a
+ * trusted 3rd party certificate agency (e.g. verisign) and that the certificate is not expired.
+ * However it will not verify the name on the certificate unless you
+ * give it a name to verify against via the kCFStreamSSLPeerName key.
+ * The security implications of this are important to understand.
+ * Imagine you are attempting to create a secure connection to MySecureServer.com,
+ * but your socket gets directed to MaliciousServer.com because of a hacked DNS server.
+ * If you simply use the default settings, and MaliciousServer.com has a valid certificate,
+ * the default settings will not detect any problems since the certificate is valid.
+ * To properly secure your connection in this particular scenario you
+ * should set the kCFStreamSSLPeerName property to "MySecureServer.com".
+ * If you do not know the peer name of the remote host in advance (for example, you're not sure
+ * if it will be "domain.com" or "www.domain.com"), then you can use the default settings to validate the
+ * certificate, and then use the X509Certificate class to verify the issuer after the socket has been secured.
+ * The X509Certificate class is part of the CocoaAsyncSocket open source project.
 **/
 - (void)startTLS:(NSDictionary *)tlsSettings;
 
@@ -359,7 +436,7 @@ typedef enum AsyncSocketError AsyncSocketError;
  * The default pre-buffering state is controlled by the DEFAULT_PREBUFFERING definition.
  * It is highly recommended one leave this set to YES.
  * 
- * This method exists in case pre-buffering needs to be disabled by default for some reason.
+ * This method exists in case pre-buffering needs to be disabled by default for some unforeseen reason.
  * In that case, this method exists to allow one to easily enable pre-buffering when ready.
 **/
 - (void)enablePreBuffering;
