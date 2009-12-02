@@ -1550,14 +1550,19 @@ Failed:
 // Prepare partially read data for recovery.
 - (void)recoverUnreadData
 {
-	if((theCurrentRead != nil) && (theCurrentRead->bytesDone > 0))
+	if(theCurrentRead != nil)
 	{
 		// We never finished the current read.
-		// We need to move its data into the front of the partial read buffer.
+		// Check to see if it's a normal read packet (not AsyncSpecialPacket) and if it had read anything yet.
 		
-		[partialReadBuffer replaceBytesInRange:NSMakeRange(0, 0)
-									 withBytes:[theCurrentRead->buffer bytes]
-										length:theCurrentRead->bytesDone];
+		if(([theCurrentRead isKindOfClass:[AsyncReadPacket class]]) && (theCurrentRead->bytesDone > 0))
+		{
+			// We need to move its data into the front of the partial read buffer.
+			
+			[partialReadBuffer replaceBytesInRange:NSMakeRange(0, 0)
+										 withBytes:[theCurrentRead->buffer bytes]
+											length:theCurrentRead->bytesDone];
+		}
 	}
 	
 	[self emptyQueues];
