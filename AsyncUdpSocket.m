@@ -770,17 +770,17 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	if(theFlags & kDidClose)
 	{
 		NSString *message = @"The socket is closed.";
-		[NSException raise:AsyncUdpSocketException format:message];
+		[NSException raise:AsyncUdpSocketException format:@"%@", message];
 	}
 	if(theFlags & kDidBind)
 	{
 		NSString *message = @"Cannot bind a socket more than once.";
-		[NSException raise:AsyncUdpSocketException format:message];
+		[NSException raise:AsyncUdpSocketException format:@"%@", message];
 	}
 	if(theFlags & kDidConnect)
 	{
 		NSString *message = @"Cannot bind after connecting. If needed, bind first, then connect.";
-		[NSException raise:AsyncUdpSocketException format:message];
+		[NSException raise:AsyncUdpSocketException format:@"%@", message];
 	}
 	
 	// Convert the given host/port into native address structures for CFSocketSetAddress
@@ -876,12 +876,12 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	if(theFlags & kDidClose)
 	{
 		NSString *message = @"The socket is closed.";
-		[NSException raise:AsyncUdpSocketException format:message];
+		[NSException raise:AsyncUdpSocketException format:@"%@", message];
 	}
 	if(theFlags & kDidConnect)
 	{
 		NSString *message = @"Cannot connect a socket more than once.";
-		[NSException raise:AsyncUdpSocketException format:message];
+		[NSException raise:AsyncUdpSocketException format:@"%@", message];
 	}
 	
 	// Convert the given host/port into native address structures for CFSocketSetAddress
@@ -976,12 +976,12 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	if(theFlags & kDidClose)
 	{
 		NSString *message = @"The socket is closed.";
-		[NSException raise:AsyncUdpSocketException format:message];
+		[NSException raise:AsyncUdpSocketException format:@"%@", message];
 	}
 	if(theFlags & kDidConnect)
 	{
 		NSString *message = @"Cannot connect a socket more than once.";
-		[NSException raise:AsyncUdpSocketException format:message];
+		[NSException raise:AsyncUdpSocketException format:@"%@", message];
 	}
 	
 	// Is remoteAddr an IPv4 address?
@@ -1063,17 +1063,17 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	if(theFlags & kDidClose)
 	{
 		NSString *message = @"The socket is closed.";
-		[NSException raise:AsyncUdpSocketException format:message];
+		[NSException raise:AsyncUdpSocketException format:@"%@", message];
 	}
 	if(!(theFlags & kDidBind))
 	{
 		NSString *message = @"Must bind a socket before joining a multicast group.";
-		[NSException raise:AsyncUdpSocketException format:message];
+		[NSException raise:AsyncUdpSocketException format:@"%@", message];
 	}
 	if(theFlags & kDidConnect)
 	{
 		NSString *message = @"Cannot join a multicast group if connected.";
-		[NSException raise:AsyncUdpSocketException format:message];
+		[NSException raise:AsyncUdpSocketException format:@"%@", message];
 	}
 	
 	// Get local interface address
@@ -1638,7 +1638,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 
 - (BOOL)isClosed
 {
-	return (theFlags & kDidClose);
+	return (theFlags & kDidClose) ? YES : NO;
 }
 
 - (BOOL)isIPv4
