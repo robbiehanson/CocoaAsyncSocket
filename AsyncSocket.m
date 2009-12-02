@@ -31,9 +31,11 @@
 NSString *const AsyncSocketException = @"AsyncSocketException";
 NSString *const AsyncSocketErrorDomain = @"AsyncSocketErrorDomain";
 
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
 // Mutex lock used by all instances of AsyncSocket, to protect getaddrinfo.
-// The man page says it is not thread-safe. (As of Mac OS X 10.4.7, and possibly earlier)
+// Prior to Mac OS X 10.5 this method was not thread-safe.
 static NSString *getaddrinfoLock = @"lock";
+#endif
 
 enum AsyncSocketFlags
 {
@@ -829,8 +831,10 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 	else
 	{
 		NSString *portStr = [NSString stringWithFormat:@"%hu", port];
-		
+
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
 		@synchronized (getaddrinfoLock)
+#endif
 		{
 			struct addrinfo hints, *res, *res0;
 			
