@@ -193,7 +193,7 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (long)userData;
 - (void)setUserData:(long)userData;
 
-/* Don't use these to read or write. And don't close them, either! */
+/* Don't use these to read or write. And don't close them either! */
 - (CFSocketRef)getCFSocket;
 - (CFReadStreamRef)getCFReadStream;
 - (CFWriteStreamRef)getCFWriteStream;
@@ -237,7 +237,7 @@ typedef enum AsyncSocketError AsyncSocketError;
  * 
  * To accept connections on any interface pass nil, or simply use the acceptOnPort:error: method.
 **/
-- (BOOL)acceptOnAddress:(NSString *)hostaddr port:(UInt16)port error:(NSError **)errPtr;
+- (BOOL)acceptOnInterface:(NSString *)interface port:(UInt16)port error:(NSError **)errPtr;
 
 /**
  * Connects to the given host and port.
@@ -315,6 +315,19 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (NSString *)localHost;
 - (UInt16)localPort;
 
+/**
+ * Returns the local or remote address to which this socket is connected,
+ * specified as a sockaddr structure wrapped in a NSData object.
+ * 
+ * See also the connectedHost, connectedPort, localHost and localPort methods.
+**/
+- (NSData *)connectedAddress;
+- (NSData *)localAddress;
+
+/**
+ * Returns whether the socket is IPv4 or IPv6.
+ * An accepting socket may be both.
+**/
 - (BOOL)isIPv4;
 - (BOOL)isIPv6;
 

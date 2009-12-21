@@ -763,15 +763,15 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 
 - (BOOL)acceptOnPort:(UInt16)port error:(NSError **)errPtr
 {
-	return [self acceptOnAddress:nil port:port error:errPtr];
+	return [self acceptOnInterface:nil port:port error:errPtr];
 }
 	
 /**
- * To accept on a certain address, pass the address to accept on.
- * To accept on any address, pass nil or an empty string.
+ * To accept on a certain interface, pass the address to accept on.
+ * To accept on any interface, pass nil or an empty string.
  * To accept only connections from localhost pass "localhost" or "loopback".
 **/
-- (BOOL)acceptOnAddress:(NSString *)hostaddr port:(UInt16)port error:(NSError **)errPtr
+- (BOOL)acceptOnInterface:(NSString *)interface port:(UInt16)port error:(NSError **)errPtr
 {
 	if (theDelegate == NULL)
     {
@@ -788,7 +788,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 	// Set up the listen sockaddr structs if needed.
 	
 	NSData *address4 = nil, *address6 = nil;
-	if(hostaddr == nil || ([hostaddr length] == 0))
+	if(interface == nil || ([interface length] == 0))
 	{
 		// Accept on ANY address
 		struct sockaddr_in nativeAddr4;
@@ -810,7 +810,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 		address4 = [NSData dataWithBytes:&nativeAddr4 length:sizeof(nativeAddr4)];
 		address6 = [NSData dataWithBytes:&nativeAddr6 length:sizeof(nativeAddr6)];
 	}
-	else if([hostaddr isEqualToString:@"localhost"] || [hostaddr isEqualToString:@"loopback"])
+	else if([interface isEqualToString:@"localhost"] || [interface isEqualToString:@"loopback"])
 	{
 		// Accept only on LOOPBACK address
 		struct sockaddr_in nativeAddr4;
@@ -848,7 +848,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 			hints.ai_protocol = IPPROTO_TCP;
 			hints.ai_flags    = AI_PASSIVE;
 			
-			int error = getaddrinfo([hostaddr UTF8String], [portStr UTF8String], &hints, &res0);
+			int error = getaddrinfo([interface UTF8String], [portStr UTF8String], &hints, &res0);
 			
 			if(error)
 			{
@@ -2063,46 +2063,13 @@ Failed:
 	return selfport;
 }
 
-- (BOOL)isSocketConnected
-{
-	if(theSocket4 != NULL)
-		return CFSocketIsValid(theSocket4);
-	else if(theSocket6 != NULL)
-		return CFSocketIsValid(theSocket6);
-	else
-		return NO;
-}
-
-- (BOOL)areStreamsConnected
-{
-	CFStreamStatus s;
-
-	if (theReadStream != NULL)
-	{
-		s = CFReadStreamGetStatus (theReadStream);
-		if ( !(s == kCFStreamStatusOpen || s == kCFStreamStatusReading || s == kCFStreamStatusError) )
-			return NO;
-	}
-	else return NO;
-
-	if (theWriteStream != NULL)
-	{
-		s = CFWriteStreamGetStatus (theWriteStream);
-		if ( !(s == kCFStreamStatusOpen || s == kCFStreamStatusWriting || s == kCFStreamStatusError) )
-			return NO;
-	}
-	else return NO;
-
-	return YES;
-}
-
 - (NSString *)addressHost:(CFDataRef)cfaddr
 {
 	if (cfaddr == NULL) return nil;
 	
 	char addrBuf[ MAX(INET_ADDRSTRLEN, INET6_ADDRSTRLEN) ];
 	struct sockaddr *pSockAddr = (struct sockaddr *) CFDataGetBytePtr (cfaddr);
-	struct sockaddr_in  *pSockAddrV4 = (struct sockaddr_in *) pSockAddr;
+	struct sockaddr_in  *pSockAddrV4 = (struct sockaddr_in  *)pSockAddr;
 	struct sockaddr_in6 *pSockAddrV6 = (struct sockaddr_in6 *)pSockAddr;
 
 	const void *pAddr = (pSockAddr->sa_family == AF_INET) ?
@@ -2119,8 +2086,57 @@ Failed:
 - (UInt16)addressPort:(CFDataRef)cfaddr
 {
 	if (cfaddr == NULL) return 0;
+    
 	struct sockaddr_in *pAddr = (struct sockaddr_in *) CFDataGetBytePtr (cfaddr);
 	return ntohs (pAddr->sin_port);
+}
+
+- (NSData *)connectedAddress
+{
+    CFSocketRef theSocket;
+    
+    if (theSocket4)
+        theSocket = theSocket4;
+    else
+        theSocket = theSocket6;
+    
+    if (theSocket == NULL) return nil;
+	
+	CFDataRef peeraddr = CFSocketCopyPeerAddress(theSocket);
+    
+    if (peeraddr == NULL) return nil;
+    
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
+    NSData *result = [NSData dataWithBytes:CFDataGetBytePtr(peeraddr) length:CFDataGetLength(peeraddr)];
+    CFRelease(peeraddr);
+    return result;
+#else
+    return [(NSData *)NSMakeCollectable(peeraddr) autorelease];
+#endif
+}
+
+- (NSData *)localAddress
+{
+    CFSocketRef theSocket;
+    
+    if (theSocket4)
+        theSocket = theSocket4;
+    else
+        theSocket = theSocket6;
+    
+    if (theSocket == NULL) return nil;
+    
+    CFDataRef selfaddr = CFSocketCopyAddress(theSocket);
+    
+    if (selfaddr == NULL) return nil;
+    
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
+    NSData *result = [NSData dataWithBytes:CFDataGetBytePtr(selfaddr) length:CFDataGetLength(selfaddr)];
+    CFRelease(selfaddr);
+    return result;
+#else
+    return [(NSData *)NSMakeCollectable(selfaddr) autorelease];
+#endif
 }
 
 - (BOOL)isIPv4
@@ -2131,6 +2147,39 @@ Failed:
 - (BOOL)isIPv6
 {
 	return (theSocket6 != NULL);
+}
+
+- (BOOL)isSocketConnected
+{
+	if(theSocket4 != NULL)
+		return CFSocketIsValid(theSocket4);
+	else if(theSocket6 != NULL)
+		return CFSocketIsValid(theSocket6);
+	else
+		return NO;
+}
+
+- (BOOL)areStreamsConnected
+{
+	CFStreamStatus s;
+    
+	if (theReadStream != NULL)
+	{
+		s = CFReadStreamGetStatus (theReadStream);
+		if ( !(s == kCFStreamStatusOpen || s == kCFStreamStatusReading || s == kCFStreamStatusError) )
+			return NO;
+	}
+	else return NO;
+    
+	if (theWriteStream != NULL)
+	{
+		s = CFWriteStreamGetStatus (theWriteStream);
+		if ( !(s == kCFStreamStatusOpen || s == kCFStreamStatusWriting || s == kCFStreamStatusError) )
+			return NO;
+	}
+	else return NO;
+    
+	return YES;
 }
 
 - (NSString *)description
