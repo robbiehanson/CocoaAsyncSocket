@@ -506,8 +506,9 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 
 - (float)progressOfReadReturningTag:(long *)tag bytesDone:(CFIndex *)done total:(CFIndex *)total
 {
-	// Check to make sure we're actually reading something right now
-	if (!theCurrentRead) return NAN;
+	// Check to make sure we're actually reading something right now,
+	// and that the read packet isn't an AsyncSpecialPacket (upgrade to TLS).
+	if (!theCurrentRead || ![theCurrentRead isKindOfClass:[AsyncReadPacket class]]) return NAN;
 	
 	// It's only possible to know the progress of our read if we're reading to a certain length
 	// If we're reading to data, we of course have no idea when the data will arrive
@@ -525,7 +526,10 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 
 - (float)progressOfWriteReturningTag:(long *)tag bytesDone:(CFIndex *)done total:(CFIndex *)total
 {
-	if (!theCurrentWrite) return NAN;
+	// Check to make sure we're actually writing something right now,
+	// and that the write packet isn't an AsyncSpecialPacket (upgrade to TLS).
+	if (!theCurrentWrite || ![theCurrentWrite isKindOfClass:[AsyncWritePacket class]]) return NAN;
+	
 	CFIndex d = theCurrentWrite->bytesDone;
 	CFIndex t = [theCurrentWrite->buffer length];
 	if (tag != NULL)   *tag = theCurrentWrite->tag;
@@ -2358,8 +2362,9 @@ Failed:
 			if([theCurrentRead isKindOfClass:[AsyncSpecialPacket class]])
 			{
 				// Attempt to start TLS
-				// This method won't do anything unless both kStartingReadTLS and kStartingWriteTLS are both set
 				theFlags |= kStartingReadTLS;
+				
+				// This method won't do anything unless both kStartingReadTLS and kStartingWriteTLS are both set
 				[self maybeStartTLS];
 			}
 			else
@@ -2691,8 +2696,9 @@ Failed:
 			if([theCurrentWrite isKindOfClass:[AsyncSpecialPacket class]])
 			{
 				// Attempt to start TLS
+				theFlags |= kStartingWriteTLS;
+				
 				// This method won't do anything unless both kStartingReadTLS and kStartingWriteTLS are both set
-                theFlags |= kStartingWriteTLS;
 				[self maybeStartTLS];
 			}
 			else
