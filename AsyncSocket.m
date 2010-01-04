@@ -51,6 +51,8 @@ enum AsyncSocketFlags
 	kClosingWithError        = 1 <<  9,  // If set, the socket is being closed due to an error
 	kDequeueReadScheduled    = 1 << 10,  // If set, a maybeDequeueRead operation is already scheduled
 	kDequeueWriteScheduled   = 1 << 11,  // If set, a maybeDequeueWrite operation is already scheduled
+	kSocketCanAcceptBytes    = 1 << 12,  // If set, we know socket can accept bytes. If unset, it's unknown.
+	kSocketHasBytesAvailable = 1 << 13,  // If set, we know socket has bytes available. If unset, it's unknown.
 };
 
 @interface AsyncSocket (Private)
@@ -2452,11 +2454,18 @@ Failed:
 
 /**
  * Call this method in doBytesAvailable instead of CFReadStreamHasBytesAvailable().
- * This method supports pre-buffering properly.
+ * This method supports pre-buffering properly as well as the kSocketHasBytesAvailable flag.
 **/
 - (BOOL)hasBytesAvailable
 {
-	return ([partialReadBuffer length] > 0) || CFReadStreamHasBytesAvailable(theReadStream);
+	if ((theFlags & kSocketHasBytesAvailable) || ([partialReadBuffer length] > 0))
+	{
+		return YES;
+	}
+	else
+	{
+		return CFReadStreamHasBytesAvailable(theReadStream);
+	}
 }
 
 /**
@@ -2480,6 +2489,9 @@ Failed:
 	}
 	else
 	{
+		// Unset the "has-bytes-available" flag
+		theFlags &= ~kSocketHasBytesAvailable;
+		
 		return CFReadStreamRead(theReadStream, buffer, length);
 	}
 }
@@ -2505,9 +2517,16 @@ Failed:
 		{
 			BOOL didPreBuffer = NO;
 			
-			// If reading all available data, make sure there's room in the packet buffer.
+			// There are 3 types of read packets:
+			// 
+			// 1) Read a specific length of data.
+			// 2) Read all available data.
+			// 3) Read up to a particular terminator.
+			
 			if(theCurrentRead->readAllAvailableData == YES)
 			{
+				// We're reading all available data.
+				// 
 				// Make sure there is at least READALL_CHUNKSIZE bytes available.
 				// We don't want to increase the buffer any more than this or we'll waste space.
 				// With prebuffering it's possible to read in a small chunk on the first read.
@@ -2515,12 +2534,14 @@ Failed:
 				unsigned buffInc = READALL_CHUNKSIZE - ([theCurrentRead->buffer length] - theCurrentRead->bytesDone);
 				[theCurrentRead->buffer increaseLengthBy:buffInc];
 			}
-
-			// If reading until data, we may only want to read a few bytes.
-			// Just enough to ensure we don't go past our term or over our max limit.
-			// Unless pre-buffering is enabled, in which case we may want to read in a larger chunk.
-			if(theCurrentRead->term != nil)
+			else if(theCurrentRead->term != nil)
 			{
+				// We're reading up to a terminator.
+				// 
+				// We may only want to read a few bytes.
+				// Just enough to ensure we don't go past our term or over our max limit.
+				// Unless pre-buffering is enabled, in which case we may want to read in a larger chunk.
+				
 				// If we already have data pre-buffered, we obviously don't want to pre-buffer it again.
 				// So in this case we'll just read as usual.
 				
@@ -2556,7 +2577,7 @@ Failed:
 			}
 			else
 			{
-				// Update total amound read for the current read
+				// Update total amount read for the current read
 				theCurrentRead->bytesDone += bytesRead;
 				
 				// Update total amount read in this method invocation
@@ -2616,14 +2637,17 @@ Failed:
 		}
 		
 		if(theCurrentRead->readAllAvailableData && theCurrentRead->bytesDone > 0)
-			done = YES;	// Ran out of bytes, so the "read-all-data" type packet is done
+		{
+			// Ran out of bytes, so the "read-all-available-data" type packet is done
+			done = YES;
+		}
 
 		if(done)
 		{
 			[self completeCurrentRead];
 			if (!socketError) [self scheduleDequeueRead];
 		}
-		else if(theCurrentRead->bytesDone > 0)
+		else if(totalBytesRead > 0)
 		{
 			// We're not done with the readToLength or readToData yet, but we have read in some bytes
 			if ([theDelegate respondsToSelector:@selector(onSocket:didReadPartialDataOfLength:tag:)])
@@ -2649,7 +2673,7 @@ Failed:
 // Ends current read and calls delegate.
 - (void)completeCurrentRead
 {
-	NSAssert (theCurrentRead, @"Trying to complete current read when there is no current read.");
+	NSAssert(theCurrentRead, @"Trying to complete current read when there is no current read.");
 	
 	[theCurrentRead->buffer setLength:theCurrentRead->bytesDone];
 	if([theDelegate respondsToSelector:@selector(onSocket:didReadData:withTag:)])
@@ -2663,7 +2687,7 @@ Failed:
 // Ends current read.
 - (void)endCurrentRead
 {
-	NSAssert (theCurrentRead, @"Trying to end current read when there is no current read.");
+	NSAssert(theCurrentRead, @"Trying to end current read when there is no current read.");
 	
 	[theReadTimer invalidate];
 	theReadTimer = nil;
@@ -2696,7 +2720,9 @@ Failed:
 	}
 	else
 	{
-		[self endCurrentRead];
+		// Do not call endCurrentRead here.
+		// We must allow the delegate access to any partial read in the unreadData method.
+		
 		[self closeWithError:[self getReadTimeoutError]];
 	}
 }
@@ -2727,7 +2753,15 @@ Failed:
 	}
 }
 
-// Start a new write.
+/**
+ * Conditionally starts a new write.
+ * 
+ * IF there is not another write in process
+ * AND there is a write queued
+ * AND we have a write stream available
+ * 
+ * This method also handles auto-disconnect post read/write completion.
+**/
 - (void)maybeDequeueWrite
 {
 	// Unset the flag indicating a call to this method is scheduled
@@ -2784,14 +2818,34 @@ Failed:
 	}
 }
 
+/**
+ * Call this method in doSendBytes instead of CFWriteStreamCanAcceptBytes().
+ * This method supports the kSocketCanAcceptBytes flag.
+**/
+- (BOOL)canAcceptBytes
+{
+	if (theFlags & kSocketCanAcceptBytes)
+	{
+		return YES;
+	}
+	else
+	{
+		return CFWriteStreamCanAcceptBytes(theWriteStream);
+	}
+}
+
 - (void)doSendBytes
 {
 	if((theCurrentWrite != nil) && (theWriteStream != NULL))
 	{
 		// Note: This method is not called if theCurrentWrite is an AsyncSpecialPacket (startTLS packet)
 		
-		BOOL done = NO, error = NO;
-		while (!done && !error && CFWriteStreamCanAcceptBytes(theWriteStream))
+		CFIndex totalBytesWritten = 0;
+		
+		BOOL done = NO;
+		BOOL error = NO;
+		
+		while (!done && !error && [self canAcceptBytes])
 		{
 			// Figure out what to write.
 			CFIndex bytesRemaining = [theCurrentWrite->buffer length] - theCurrentWrite->bytesDone;
@@ -2799,31 +2853,47 @@ Failed:
 			UInt8 *writestart = (UInt8 *)([theCurrentWrite->buffer bytes] + theCurrentWrite->bytesDone);
 
 			// Write.
-			CFIndex bytesWritten = CFWriteStreamWrite (theWriteStream, writestart, bytesToWrite);
+			CFIndex bytesWritten = CFWriteStreamWrite(theWriteStream, writestart, bytesToWrite);
 
-			// Check results.
+			// Unset the "can accept bytes" flag
+			theFlags &= ~kSocketCanAcceptBytes;
+			
+			// Check results
 			if (bytesWritten < 0)
 			{
-				bytesWritten = 0;
 				error = YES;
 			}
-			
-			// Is packet done?
-			theCurrentWrite->bytesDone += bytesWritten;
-			done = ([theCurrentWrite->buffer length] == theCurrentWrite->bytesDone);
+			else
+			{
+				// Update total amount read for the current write
+				theCurrentWrite->bytesDone += bytesWritten;
+				
+				// Update total amount written in this method invocation
+				totalBytesWritten += bytesWritten;
+				
+				// Is packet done?
+				done = ([theCurrentWrite->buffer length] == theCurrentWrite->bytesDone);
+			}
 		}
 
 		if(done)
 		{
 			[self completeCurrentWrite];
-			if (!error) [self scheduleDequeueWrite];
+			[self scheduleDequeueWrite];
 		}
-
-		if(error)
+		else if(error)
 		{
 			CFStreamError err = CFWriteStreamGetError(theWriteStream);
 			[self closeWithError:[self errorFromCFStreamError:err]];
 			return;
+		}
+		else
+		{
+			// We're not done with the entire write, but we have written some bytes
+			if ([theDelegate respondsToSelector:@selector(onSocket:didWritePartialDataOfLength:tag:)])
+			{
+				[theDelegate onSocket:self didWritePartialDataOfLength:totalBytesWritten tag:theCurrentWrite->tag];
+			}
 		}
 	}
 }
@@ -2831,7 +2901,7 @@ Failed:
 // Ends current write and calls delegate.
 - (void)completeCurrentWrite
 {
-	NSAssert (theCurrentWrite, @"Trying to complete current write when there is no current write.");
+	NSAssert(theCurrentWrite, @"Trying to complete current write when there is no current write.");
 	
 	if ([theDelegate respondsToSelector:@selector(onSocket:didWriteDataWithTag:)])
 	{
@@ -2844,7 +2914,7 @@ Failed:
 // Ends current write.
 - (void)endCurrentWrite
 {
-	NSAssert (theCurrentWrite, @"Trying to complete current write when there is no current write.");
+	NSAssert(theCurrentWrite, @"Trying to complete current write when there is no current write.");
 	
 	[theWriteTimer invalidate];
 	theWriteTimer = nil;
@@ -2877,7 +2947,6 @@ Failed:
 	}
 	else
 	{
-		[self endCurrentWrite];
 		[self closeWithError:[self getWriteTimeoutError]];
 	}
 }
@@ -2997,10 +3066,13 @@ Failed:
 			[self doStreamOpen];
 			break;
 		case kCFStreamEventHasBytesAvailable:
-			if(theFlags & kStartingReadTLS)
+			if(theFlags & kStartingReadTLS) {
 				[self onTLSHandshakeSuccessful];
-			else
+			}
+			else {
+				theFlags |= kSocketHasBytesAvailable;
 				[self doBytesAvailable];
+			}
 			break;
 		case kCFStreamEventErrorOccurred:
 		case kCFStreamEventEndEncountered:
@@ -3024,10 +3096,13 @@ Failed:
 			[self doStreamOpen];
 			break;
 		case kCFStreamEventCanAcceptBytes:
-			if(theFlags & kStartingWriteTLS)
+			if(theFlags & kStartingWriteTLS) {
 				[self onTLSHandshakeSuccessful];
-			else
+			}
+			else {
+				theFlags |= kSocketCanAcceptBytes;
 				[self doSendBytes];
+			}
 			break;
 		case kCFStreamEventErrorOccurred:
 		case kCFStreamEventEndEncountered:

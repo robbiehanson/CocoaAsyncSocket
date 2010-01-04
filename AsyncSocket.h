@@ -98,6 +98,12 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (void)onSocket:(AsyncSocket *)sock didWriteDataWithTag:(long)tag;
 
 /**
+ * Called when a socket has written some data, but has not yet completed the entire write.
+ * It may be used to for things such as updating progress bars.
+**/
+- (void)onSocket:(AsyncSocket *)sock didWritePartialDataOfLength:(CFIndex)partialLength tag:(long)tag;
+
+/**
  * Called if a read operation has reached its timeout without completing.
  * This method allows you to optionally extend the timeout.
  * If you return a positive time interval (> 0) the read's timeout will be extended by the given amount.
