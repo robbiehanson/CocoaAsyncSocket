@@ -4,7 +4,7 @@
 @protocol HTTPResponse
 
 // Returns the length of the data in bytes.
-// If you don't know the length in advance, implement the iChunked method and have it return YES.
+// If you don't know the length in advance, implement the isChunked method and have it return YES.
 - (UInt64)contentLength;
 
 - (UInt64)offset;
@@ -30,7 +30,7 @@
 // Important: You should read the discussion at the bottom of this header.
 - (BOOL)isAsynchronous;
 
-// This method is called from the HTTPConnection when the connection is closed,
+// This method is called from the HTTPConnection class when the connection is closed,
 // or when the connection is finished with the response.
 // If your response is asynchronous, you should implement this method so you can be sure not to
 // invoke HTTPConnection's responseHasAvailableData method after this method is called.

@@ -61,8 +61,8 @@
 // tag of your own invention.
 
 @interface HTTPConnection (PrivateAPI)
-- (CFHTTPMessageRef)prepareUniRangeResponse:(UInt64)contentLength;
-- (CFHTTPMessageRef)prepareMultiRangeResponse:(UInt64)contentLength;
+- (CFHTTPMessageRef)newUniRangeResponse:(UInt64)contentLength;
+- (CFHTTPMessageRef)newMultiRangeResponse:(UInt64)contentLength;
 - (NSData *)chunkedTransferSizeLineForLength:(uint)length;
 - (NSData *)chunkedTransferFooter;
 @end
@@ -509,6 +509,69 @@ static NSMutableArray *recentNonces;
 #pragma mark Core
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/** 
+ * Parses the query variables in the request URI. 
+ * 
+ * For example, if the request URI was "search?q=John%20Mayer%20Trio&num=50" 
+ * then this method would return the following dictionary: 
+ * { 
+ *   q = "John Mayer Trio" 
+ *   num = "50" 
+ * } 
+**/ 
+- (NSDictionary *)parseRequestQuery 
+{
+	if(request == NULL) return nil;
+	if(!CFHTTPMessageIsHeaderComplete(request)) return nil;
+	
+	CFURLRef url = CFHTTPMessageCopyRequestURL(request);
+	if(url == NULL) return nil;
+	
+	NSString *query = [NSMakeCollectable(CFURLCopyQueryString(url, NULL)) autorelease];
+	
+	NSArray *components = [query componentsSeparatedByString:@"&"];
+	NSMutableDictionary *result = [NSMutableDictionary dictionaryWithCapacity:[components count]];
+	
+	NSUInteger i;
+	for(i = 0; i < [components count]; i++)
+	{ 
+		NSString *component = [components objectAtIndex:i];
+		if([component length] > 0)
+		{
+			NSRange range = [component rangeOfString:@"="];
+			if(range.location != NSNotFound)
+			{ 
+				NSString *escapedKey = [component substringToIndex:(range.location + 0)]; 
+				NSString *escapedValue = [component substringFromIndex:(range.location + 1)];
+				
+				if([escapedKey length] > 0)
+				{
+					CFStringRef k, v;
+					
+					k = CFURLCreateStringByReplacingPercentEscapes(NULL, (CFStringRef)escapedKey, CFSTR(""));
+					v = CFURLCreateStringByReplacingPercentEscapes(NULL, (CFStringRef)escapedValue, CFSTR(""));
+					
+					NSString *key, *value;
+					
+					key   = [NSMakeCollectable(k) autorelease];
+					value = [NSMakeCollectable(v) autorelease];
+					
+					if(key)
+					{
+						if(value)
+							[result setObject:value forKey:key]; 
+						else 
+							[result setObject:[NSNull null] forKey:key]; 
+					}
+				}
+			}
+		}
+	}
+	
+	CFRelease(url); 
+	return result; 
+}
+
 /**
  * Attempts to parse the given range header into a series of sequential non-overlapping ranges.
  * If successfull, the variables 'ranges' and 'rangeIndex' will be updated, and YES will be returned.
@@ -753,11 +816,11 @@ static NSMutableArray *recentNonces;
 	{
 		if([ranges count] == 1)
 		{
-			response = [self prepareUniRangeResponse:contentLength];
+			response = [self newUniRangeResponse:contentLength];
 		}
 		else
 		{
-			response = [self prepareMultiRangeResponse:contentLength];
+			response = [self newMultiRangeResponse:contentLength];
 		}
 	}
 	
@@ -871,7 +934,7 @@ static NSMutableArray *recentNonces;
  * 
  * Note: The returned CFHTTPMessageRef is owned by the sender, who is responsible for releasing it.
 **/
-- (CFHTTPMessageRef)prepareUniRangeResponse:(UInt64)contentLength
+- (CFHTTPMessageRef)newUniRangeResponse:(UInt64)contentLength
 {
 	// Status Code 206 - Partial Content
 	CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 206, NULL, kCFHTTPVersion1_1);
@@ -893,7 +956,7 @@ static NSMutableArray *recentNonces;
  * 
  * Note: The returned CFHTTPMessageRef is owned by the sender, who is responsible for releasing it.
 **/
-- (CFHTTPMessageRef)prepareMultiRangeResponse:(UInt64)contentLength
+- (CFHTTPMessageRef)newMultiRangeResponse:(UInt64)contentLength
 {
 	// Status Code 206 - Partial Content
 	CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 206, NULL, kCFHTTPVersion1_1);
