@@ -175,9 +175,9 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 		terminator:(NSData *)e
 	  	 maxLength:(CFIndex)m;
 
-- (unsigned)readLengthForTerm;
+- (NSUInteger)readLengthForTerm;
 
-- (unsigned)prebufferReadLengthForTerm;
+- (NSUInteger)prebufferReadLengthForTerm;
 - (CFIndex)searchForTermAfterPreBuffering:(CFIndex)numBytes;
 @end
 
@@ -209,7 +209,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
  * 
  * It is assumed the terminator has not already been read.
 **/
-- (unsigned)readLengthForTerm
+- (NSUInteger)readLengthForTerm
 {
 	NSAssert(term != nil, @"Searching for term in data when there is no term.");
 	
@@ -218,7 +218,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 	// and we can only read that amount.
 	// Otherwise, we're safe to read the entire length of the term.
 	
-	unsigned result = [term length];
+	NSUInteger result = [term length];
 	
 	// Shortcut when term is a single byte
 	if(result == 1) return result;
@@ -256,7 +256,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
  * Assuming pre-buffering is enabled, returns the amount of data that can be read
  * without going over the maxLength.
 **/
-- (unsigned)prebufferReadLengthForTerm
+- (NSUInteger)prebufferReadLengthForTerm
 {
 	if(maxLength > 0)
 		return MIN(READALL_CHUNKSIZE, (maxLength - bytesDone));
@@ -546,7 +546,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 
 - (void)runLoopAddSource:(CFRunLoopSourceRef)source
 {
-	unsigned i, count = [theRunLoopModes count];
+	NSUInteger i, count = [theRunLoopModes count];
 	for(i = 0; i < count; i++)
 	{
 		CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
@@ -556,7 +556,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 
 - (void)runLoopRemoveSource:(CFRunLoopSourceRef)source
 {
-	unsigned i, count = [theRunLoopModes count];
+	NSUInteger i, count = [theRunLoopModes count];
 	for(i = 0; i < count; i++)
 	{
 		CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
@@ -566,7 +566,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 
 - (void)runLoopAddTimer:(NSTimer *)timer
 {
-	unsigned i, count = [theRunLoopModes count];
+	NSUInteger i, count = [theRunLoopModes count];
 	for(i = 0; i < count; i++)
 	{
 		CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
@@ -576,7 +576,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 
 - (void)runLoopRemoveTimer:(NSTimer *)timer
 {
-	unsigned i, count = [theRunLoopModes count];
+	NSUInteger i, count = [theRunLoopModes count];
 	for(i = 0; i < count; i++)		
 	{
 		CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
@@ -586,7 +586,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 
 - (void)runLoopUnscheduleReadStream
 {
-	unsigned i, count = [theRunLoopModes count];
+	NSUInteger i, count = [theRunLoopModes count];
 	for(i = 0; i < count; i++)
 	{
 		CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
@@ -597,7 +597,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 
 - (void)runLoopUnscheduleWriteStream
 {
-	unsigned i, count = [theRunLoopModes count];
+	NSUInteger i, count = [theRunLoopModes count];
 	for(i = 0; i < count; i++)
 	{
 		CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
@@ -1408,7 +1408,7 @@ Failed:
 	
 	// Add read and write streams to run loop
 	
-	unsigned i, count = [theRunLoopModes count];
+	NSUInteger i, count = [theRunLoopModes count];
 	for(i = 0; i < count; i++)
 	{
 		CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
@@ -2078,7 +2078,7 @@ Failed:
 							(void *)(&(pSockAddrV4->sin_addr)) :
 							(void *)(&(pSockAddrV6->sin6_addr));
 
-	const char *pStr = inet_ntop (pSockAddr->sa_family, pAddr, addrBuf, sizeof(addrBuf));
+	const char *pStr = inet_ntop(pSockAddr->sa_family, pAddr, addrBuf, (socklen_t)sizeof(addrBuf));
 	if (pStr == NULL) [NSException raise: NSInternalInconsistencyException
 								  format: @"Cannot convert address to string."];
 
@@ -2531,7 +2531,7 @@ Failed:
 				// We don't want to increase the buffer any more than this or we'll waste space.
 				// With prebuffering it's possible to read in a small chunk on the first read.
 				
-				unsigned buffInc = READALL_CHUNKSIZE - ([theCurrentRead->buffer length] - theCurrentRead->bytesDone);
+				NSUInteger buffInc = READALL_CHUNKSIZE - ([theCurrentRead->buffer length] - theCurrentRead->bytesDone);
 				[theCurrentRead->buffer increaseLengthBy:buffInc];
 			}
 			else if(theCurrentRead->term != nil)
@@ -2547,17 +2547,17 @@ Failed:
 				
 				if(([partialReadBuffer length] > 0) || !(theFlags & kEnablePreBuffering))
 				{
-					unsigned maxToRead = [theCurrentRead readLengthForTerm];
+					NSUInteger maxToRead = [theCurrentRead readLengthForTerm];
 					
-					unsigned bufInc = maxToRead - ([theCurrentRead->buffer length] - theCurrentRead->bytesDone);
+					NSUInteger bufInc = maxToRead - ([theCurrentRead->buffer length] - theCurrentRead->bytesDone);
 					[theCurrentRead->buffer increaseLengthBy:bufInc];
 				}
 				else
 				{
 					didPreBuffer = YES;
-					unsigned maxToRead = [theCurrentRead prebufferReadLengthForTerm];
+					NSUInteger maxToRead = [theCurrentRead prebufferReadLengthForTerm];
 					
-					unsigned buffInc = maxToRead - ([theCurrentRead->buffer length] - theCurrentRead->bytesDone);
+					NSUInteger buffInc = maxToRead - ([theCurrentRead->buffer length] - theCurrentRead->bytesDone);
 					[theCurrentRead->buffer increaseLengthBy:buffInc];
 
 				}
@@ -2612,7 +2612,7 @@ Failed:
 					else
 					{
 						// Search for the terminating sequence at the end of the buffer
-						int termlen = [theCurrentRead->term length];
+						NSUInteger termlen = [theCurrentRead->term length];
 						if(theCurrentRead->bytesDone >= termlen)
 						{
 							const void *buf = [theCurrentRead->buffer bytes] + (theCurrentRead->bytesDone - termlen);
