@@ -280,9 +280,9 @@
 /**
  * Returns the number of clients that are currently connected to the server.
 **/
-- (uint)numberOfHTTPConnections
+- (NSUInteger)numberOfHTTPConnections
 {
-	uint result = 0;
+	NSUInteger result = 0;
 	
 	@synchronized(connections)
 	{

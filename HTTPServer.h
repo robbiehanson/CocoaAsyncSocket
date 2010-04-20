@@ -2,8 +2,14 @@
 
 @class AsyncSocket;
 
+#if MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_5
+  #define IMPLEMENTED_PROTOCOLS 
+#else
+  #define IMPLEMENTED_PROTOCOLS <NSNetServiceDelegate>
+#endif
 
-@interface HTTPServer : NSObject
+
+@interface HTTPServer : NSObject IMPLEMENTED_PROTOCOLS
 {
 	// Underlying asynchronous TCP/IP socket
 	AsyncSocket *asyncSocket;
@@ -54,6 +60,6 @@
 - (BOOL)start:(NSError **)errPtr;
 - (BOOL)stop;
 
-- (uint)numberOfHTTPConnections;
+- (NSUInteger)numberOfHTTPConnections;
 
 @end

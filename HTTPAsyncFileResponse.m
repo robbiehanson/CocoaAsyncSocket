@@ -55,7 +55,7 @@ static NSOperationQueue *operationQueue;
 			return nil;
 		}
 		
-		NSDictionary *fileAttributes = [[NSFileManager defaultManager] fileAttributesAtPath:filePath traverseLink:NO];
+		NSDictionary *fileAttributes = [[NSFileManager defaultManager] attributesOfItemAtPath:filePath error:nil];
 		NSNumber *fileSize = [fileAttributes objectForKey:NSFileSize];
 		fileLength = (UInt64)[fileSize unsignedLongLongValue];
 		
@@ -102,7 +102,7 @@ static NSOperationQueue *operationQueue;
 	// It will request data, and won't move forward from that point until it has received the data.
 }
 
-- (NSData *)readDataOfLength:(unsigned int)length
+- (NSData *)readDataOfLength:(NSUInteger)length
 {
 	if(data == nil)
 	{
@@ -111,7 +111,7 @@ static NSOperationQueue *operationQueue;
 			NSInvocationOperation *operation;
 			operation = [[NSInvocationOperation alloc] initWithTarget:self
 															 selector:@selector(readDataInBackground:)
-															   object:[NSNumber numberWithUnsignedInt:length]];
+															   object:[NSNumber numberWithUnsignedInteger:length]];
 			
 			[operationQueue addOperation:operation];
 			[operation release];
@@ -153,7 +153,7 @@ static NSOperationQueue *operationQueue;
 
 - (void)readDataInBackground:(NSNumber *)lengthNumber
 {
-	unsigned int length = [lengthNumber unsignedIntValue];
+	NSUInteger length = [lengthNumber unsignedIntegerValue];
 	
 	NSData *readData = [fileHandle readDataOfLength:length];
 	

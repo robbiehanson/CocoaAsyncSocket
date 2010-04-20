@@ -146,8 +146,8 @@
 		return nil;
 	}
 	
-	int postStartRangeLocation = startRange.location + startRange.length;
-	int postStartRangeLength = [header length] - postStartRangeLocation;
+	NSUInteger postStartRangeLocation = startRange.location + startRange.length;
+	NSUInteger postStartRangeLength = [header length] - postStartRangeLocation;
 	NSRange postStartRange = NSMakeRange(postStartRangeLocation, postStartRangeLength);
 	
 	NSRange endRange = [header rangeOfString:@"\"" options:0 range:postStartRange];
@@ -178,8 +178,8 @@
 		return nil;
 	}
 	
-	int postStartRangeLocation = startRange.location + startRange.length;
-	int postStartRangeLength = [header length] - postStartRangeLocation;
+	NSUInteger postStartRangeLocation = startRange.location + startRange.length;
+	NSUInteger postStartRangeLength = [header length] - postStartRangeLocation;
 	NSRange postStartRange = NSMakeRange(postStartRangeLocation, postStartRangeLength);
 	
 	NSRange endRange = [header rangeOfString:@"," options:0 range:postStartRange];

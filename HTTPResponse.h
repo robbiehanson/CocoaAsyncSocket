@@ -10,7 +10,7 @@
 - (UInt64)offset;
 - (void)setOffset:(UInt64)offset;
 
-- (NSData *)readDataOfLength:(unsigned int)length;
+- (NSData *)readDataOfLength:(NSUInteger)length;
 
 // Should only return YES after the HTTPConnection has read all available data.
 - (BOOL)isDone;
@@ -69,7 +69,7 @@
 
 @interface HTTPDataResponse : NSObject <HTTPResponse>
 {
-	unsigned offset;
+	NSUInteger offset;
 	NSData *data;
 }
 
