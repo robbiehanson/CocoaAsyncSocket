@@ -728,6 +728,14 @@ static NSMutableArray *recentNonces;
 **/
 - (void)replyToHTTPRequest
 {
+//	NSData *tempData = (NSData *)CFHTTPMessageCopySerializedMessage(request);
+//	NSString *tempStr = [[NSString alloc] initWithData:tempData encoding:NSUTF8StringEncoding];
+//	
+//	NSLog(@"HTTPConnection:%p replyToHTTPRequest:\n%@", self, tempStr);
+//	
+//	[tempStr release];
+//	[tempData release];
+	
 	// Check the HTTP version - if it's anything but HTTP version 1.1, we don't support it
 	NSString *version = [NSMakeCollectable(CFHTTPMessageCopyVersion(request)) autorelease];
 	if(!version || ![version isEqualToString:(NSString *)kCFHTTPVersion1_1])
@@ -1885,17 +1893,24 @@ static NSMutableArray *recentNonces;
 			ranges_headers = nil;
 			ranges_boundry = nil;
 			
-			// Release the old request, and create a new one
-			if(request) CFRelease(request);
-			request = CFHTTPMessageCreateEmpty(kCFAllocatorDefault, YES);
-			
-			numHeaderLines = 0;
-			
-			// And start listening for more requests
-			[asyncSocket readDataToData:[AsyncSocket CRLFData]
-							withTimeout:READ_TIMEOUT
-							  maxLength:LIMIT_MAX_HEADER_LINE_LENGTH
-									tag:HTTP_REQUEST_HEADER];
+			if([self shouldDie])
+			{
+				[self die];
+			}
+			else
+			{
+				// Release the old request, and create a new one
+				if(request) CFRelease(request);
+				request = CFHTTPMessageCreateEmpty(kCFAllocatorDefault, YES);
+				
+				numHeaderLines = 0;
+				
+				// And start listening for more requests
+				[asyncSocket readDataToData:[AsyncSocket CRLFData]
+								withTimeout:READ_TIMEOUT
+								  maxLength:LIMIT_MAX_HEADER_LINE_LENGTH
+										tag:HTTP_REQUEST_HEADER];
+			}
 		}
 	}
 }
@@ -1947,6 +1962,13 @@ static NSMutableArray *recentNonces;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Closing
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+- (BOOL)shouldDie
+{
+	// Override me if you want to force close the connection after the response has been fully sent.
+	
+	return NO;
+}
 
 - (void)die
 {

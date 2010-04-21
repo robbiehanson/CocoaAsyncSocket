@@ -65,6 +65,7 @@
 - (NSData *)preprocessResponse:(CFHTTPMessageRef)response;
 - (NSData *)preprocessErrorResponse:(CFHTTPMessageRef)response;
 
+- (BOOL)shouldDie;
 - (void)die;
 
 @end

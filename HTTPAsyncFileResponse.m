@@ -153,15 +153,19 @@ static NSOperationQueue *operationQueue;
 
 - (void)readDataInBackground:(NSNumber *)lengthNumber
 {
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	
 	NSUInteger length = [lengthNumber unsignedIntegerValue];
 	
 	NSData *readData = [fileHandle readDataOfLength:length];
 	
 	[self performSelector:@selector(fileHandleDidReadData:)
-				 onThread:connectionThread
-			   withObject:readData
-			waitUntilDone:NO
-					modes:connectionRunLoopModes];
+	             onThread:connectionThread
+	           withObject:readData
+	        waitUntilDone:NO
+	                modes:connectionRunLoopModes];
+	
+	[pool release];
 }
 
 - (void)fileHandleDidReadData:(NSData *)readData

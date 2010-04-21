@@ -120,3 +120,4 @@
 // If you don't know the content-length in advanced, you should also implement the isChunked method.
 // This means the response will not include a Content-Length header, and will instead use "Transfer-Encoding: chunked".
 // There's a good chance that if your response is asynchronous, it's also chunked.
+// If your response is chunked, you don't need to worry about range requests.
