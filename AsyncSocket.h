@@ -341,7 +341,10 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (BOOL)isIPv4;
 - (BOOL)isIPv6;
 
-// The readData and writeData methods won't block.
+// The readData and writeData methods won't block (they are asynchronous).
+// 
+// When a read is complete the onSocket:didReadData:withTag: delegate method is called.
+// When a write is complete the onSocket:didWriteDataWithTag: delegate method is called.
 // 
 // You may optionally set a timeout for any read/write operation. (To not timeout, use a negative time interval.)
 // If a read/write opertion times out, the corresponding "onSocket:shouldTimeout..." delegate method
@@ -349,23 +352,96 @@ typedef enum AsyncSocketError AsyncSocketError;
 // Upon a timeout, the "onSocket:willDisconnectWithError:" method is called, followed by "onSocketDidDisconnect".
 // 
 // The tag is for your convenience.
-// You can use it as an array index, step number, state id, pointer, etc., just like the socket's user data.
+// You can use it as an array index, step number, state id, pointer, etc.
 
 /**
- * This will read a certain number of bytes into memory, and call the delegate method when those bytes have been read.
+ * Reads the first available bytes that become available on the socket.
+ * 
+ * If the timeout value is negative, the read operation will not use a timeout.
+**/
+- (void)readDataWithTimeout:(NSTimeInterval)timeout tag:(long)tag;
+
+/**
+ * Reads the first available bytes that become available on the socket.
+ * The bytes will be appended to the given byte buffer starting at the given offset.
+ * The given buffer will automatically be increased in size if needed.
+ * 
+ * If the timeout value is negative, the read operation will not use a timeout.
+ * If the buffer if nil, the socket will create a buffer for you.
+ * 
+ * If the bufferOffset is greater than the length of the given buffer,
+ * the method will do nothing, and the delegate will not be called.
+ * 
+ * If you pass a buffer, you must not alter it in any way while AsyncSocket is using it.
+ * After completion, the data returned in onSocket:didReadData:withTag: will be a subset of the given buffer.
+ * That is, it will reference the bytes that were appended to the given buffer.
+**/
+- (void)readDataWithTimeout:(NSTimeInterval)timeout
+					 buffer:(NSMutableData *)buffer
+			   bufferOffset:(NSUInteger)offset
+						tag:(long)tag;
+
+/**
+ * Reads the first available bytes that become available on the socket.
+ * The bytes will be appended to the given byte buffer starting at the given offset.
+ * The given buffer will automatically be increased in size if needed.
+ * A maximum of length bytes will be read.
+ * 
+ * If the timeout value is negative, the read operation will not use a timeout.
+ * If the buffer if nil, a buffer will automatically be created for you.
+ * If maxLength is negative, no length restriction is enforced.
+ * 
+ * If the bufferOffset is greater than the length of the given buffer,
+ * the method will do nothing, and the delegate will not be called.
+ * 
+ * If you pass a buffer, you must not alter it in any way while AsyncSocket is using it.
+ * After completion, the data returned in onSocket:didReadData:withTag: will be a subset of the given buffer.
+ * That is, it will reference the bytes that were appended to the given buffer.
+**/
+- (void)readDataWithTimeout:(NSTimeInterval)timeout
+                     buffer:(NSMutableData *)buffer
+               bufferOffset:(NSUInteger)offset
+                  maxLength:(CFIndex)length
+                        tag:(long)tag;
+
+/**
+ * Reads the given number of bytes.
+ * 
+ * If the timeout value is negative, the read operation will not use a timeout.
  * 
  * If the length is 0, this method does nothing and the delegate is not called.
- * If the timeout value is negative, the read operation will not use a timeout.
 **/
 - (void)readDataToLength:(CFIndex)length withTimeout:(NSTimeInterval)timeout tag:(long)tag;
 
 /**
- * This reads bytes until (and including) the passed "data" parameter, which acts as a separator.
- * The bytes and the separator are returned by the delegate method.
+ * Reads the given number of bytes.
+ * The bytes will be appended to the given byte buffer starting at the given offset.
+ * The given buffer will automatically be increased in size if needed.
+ * 
+ * If the timeout value is negative, the read operation will not use a timeout.
+ * If the buffer if nil, a buffer will automatically be created for you.
+ * 
+ * If the length is 0, this method does nothing and the delegate is not called.
+ * If the bufferOffset is greater than the length of the given buffer,
+ * the method will do nothing, and the delegate will not be called.
+ * 
+ * If you pass a buffer, you must not alter it in any way while AsyncSocket is using it.
+ * After completion, the data returned in onSocket:didReadData:withTag: will be a subset of the given buffer.
+ * That is, it will reference the bytes that were appended to the given buffer.
+**/
+- (void)readDataToLength:(CFIndex)length
+             withTimeout:(NSTimeInterval)timeout
+                  buffer:(NSMutableData *)buffer
+            bufferOffset:(NSUInteger)offset
+                     tag:(long)tag;
+
+/**
+ * Reads bytes until (and including) the passed "data" parameter, which acts as a separator.
+ * 
+ * If the timeout value is negative, the read operation will not use a timeout.
  * 
  * If you pass nil or zero-length data as the "data" parameter,
  * the method will do nothing, and the delegate will not be called.
- * If the timeout value is negative, the read operation will not use a timeout.
  * 
  * To read a line from the socket, use the line separator (e.g. CRLF for HTTP, see below) as the "data" parameter.
  * Note that this method is not character-set aware, so if a separator can occur naturally as part of the encoding for
@@ -374,24 +450,80 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (void)readDataToData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag;
 
 /**
- * Same as readDataToData:withTimeout:tag, with the additional restriction that the amount of data read
- * may not surpass the given maxLength (specified in bytes).
+ * Reads bytes until (and including) the passed "data" parameter, which acts as a separator.
+ * The bytes will be appended to the given byte buffer starting at the given offset.
+ * The given buffer will automatically be increased in size if needed.
  * 
- * If you pass a maxLength parameter that is less than the length of the data parameter,
+ * If the timeout value is negative, the read operation will not use a timeout.
+ * If the buffer if nil, a buffer will automatically be created for you.
+ * 
+ * If the bufferOffset is greater than the length of the given buffer,
  * the method will do nothing, and the delegate will not be called.
+ * 
+ * If you pass a buffer, you must not alter it in any way while AsyncSocket is using it.
+ * After completion, the data returned in onSocket:didReadData:withTag: will be a subset of the given buffer.
+ * That is, it will reference the bytes that were appended to the given buffer.
+ * 
+ * To read a line from the socket, use the line separator (e.g. CRLF for HTTP, see below) as the "data" parameter.
+ * Note that this method is not character-set aware, so if a separator can occur naturally as part of the encoding for
+ * a character, the read will prematurely end.
+**/
+- (void)readDataToData:(NSData *)data
+           withTimeout:(NSTimeInterval)timeout
+                buffer:(NSMutableData *)buffer
+          bufferOffset:(NSUInteger)offset
+                   tag:(long)tag;
+
+/**
+ * Reads bytes until (and including) the passed "data" parameter, which acts as a separator.
+ * 
+ * If the timeout value is negative, the read operation will not use a timeout.
+ * If maxLength is negative, no length restriction is enforced.
  * 
  * If the max length is surpassed, it is treated the same as a timeout - the socket is closed.
  * 
- * Pass -1 as maxLength if no length restriction is desired, or simply use the readDataToData:withTimeout:tag method.
+ * If you pass nil or zero-length data as the "data" parameter,
+ * the method will do nothing, and the delegate will not be called.
+ * If you pass a maxLength parameter that is less than the length of the data parameter,
+ * the method will do nothing, and the delegate will not be called.
+ * 
+ * To read a line from the socket, use the line separator (e.g. CRLF for HTTP, see below) as the "data" parameter.
+ * Note that this method is not character-set aware, so if a separator can occur naturally as part of the encoding for
+ * a character, the read will prematurely end.
 **/
 - (void)readDataToData:(NSData *)data withTimeout:(NSTimeInterval)timeout maxLength:(CFIndex)length tag:(long)tag;
 
 /**
- * Reads the first available bytes that become available on the socket.
+ * Reads bytes until (and including) the passed "data" parameter, which acts as a separator.
+ * The bytes will be appended to the given byte buffer starting at the given offset.
+ * The given buffer will automatically be increased in size if needed.
+ * A maximum of length bytes will be read.
  * 
  * If the timeout value is negative, the read operation will not use a timeout.
+ * If the buffer if nil, a buffer will automatically be created for you.
+ * If maxLength is negative, no length restriction is enforced.
+ * 
+ * If the max length is surpassed, it is treated the same as a timeout - the socket is closed.
+ * 
+ * If you pass a maxLength parameter that is less than the length of the data parameter,
+ * the method will do nothing, and the delegate will not be called.
+ * If the bufferOffset is greater than the length of the given buffer,
+ * the method will do nothing, and the delegate will not be called.
+ * 
+ * If you pass a buffer, you must not alter it in any way while AsyncSocket is using it.
+ * After completion, the data returned in onSocket:didReadData:withTag: will be a subset of the given buffer.
+ * That is, it will reference the bytes that were appended to the given buffer.
+ * 
+ * To read a line from the socket, use the line separator (e.g. CRLF for HTTP, see below) as the "data" parameter.
+ * Note that this method is not character-set aware, so if a separator can occur naturally as part of the encoding for
+ * a character, the read will prematurely end.
 **/
-- (void)readDataWithTimeout:(NSTimeInterval)timeout tag:(long)tag;
+- (void)readDataToData:(NSData *)data
+           withTimeout:(NSTimeInterval)timeout
+                buffer:(NSMutableData *)buffer
+          bufferOffset:(NSUInteger)offset
+             maxLength:(CFIndex)length
+                   tag:(long)tag;
 
 /**
  * Writes data to the socket, and calls the delegate when finished.
