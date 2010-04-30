@@ -3,6 +3,10 @@
 
 @class HTTPConnection;
 
+/**
+ * This is an asynchronous version of HTTPFileResponse.
+ * It reads data from the given file in a background thread via an NSOperationQueue.
+**/
 
 @interface HTTPAsyncFileResponse : NSObject <HTTPResponse>
 {

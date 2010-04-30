@@ -108,6 +108,8 @@ static NSOperationQueue *operationQueue;
 	{
 		if (!asyncReadInProgress)
 		{
+			asyncReadInProgress = YES;
+			
 			NSInvocationOperation *operation;
 			operation = [[NSInvocationOperation alloc] initWithTarget:self
 															 selector:@selector(readDataInBackground:)

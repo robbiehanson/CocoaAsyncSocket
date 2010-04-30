@@ -49,6 +49,8 @@
 - (NSString *)realm;
 - (NSString *)passwordForUser:(NSString *)username;
 
+- (NSString *)requestURI;
+
 - (NSString *)filePathForURI:(NSString *)path;
 
 - (NSObject<HTTPResponse> *)httpResponseForMethod:(NSString *)method URI:(NSString *)path;

@@ -38,15 +38,18 @@
 #define LIMIT_MAX_HEADER_LINES         100
 
 // Define the various tags we'll use to differentiate what it is we're currently doing
-#define HTTP_REQUEST_HEADER                15
-#define HTTP_REQUEST_BODY                  16
-#define HTTP_PARTIAL_RESPONSE              24
-#define HTTP_PARTIAL_RESPONSE_HEADER       25
-#define HTTP_PARTIAL_RESPONSE_BODY         26
-#define HTTP_PARTIAL_RANGE_RESPONSE_BODY   28
-#define HTTP_PARTIAL_RANGES_RESPONSE_BODY  29
-#define HTTP_RESPONSE                      30
-#define HTTP_FINAL_RESPONSE                45
+#define HTTP_REQUEST_HEADER                10
+#define HTTP_REQUEST_BODY                  11
+#define HTTP_PARTIAL_RESPONSE              20
+#define HTTP_PARTIAL_RESPONSE_HEADER       21
+#define HTTP_PARTIAL_RESPONSE_BODY         22
+#define HTTP_CHUNKED_RESPONSE_HEADER       30
+#define HTTP_CHUNKED_RESPONSE_BODY         31
+#define HTTP_CHUNKED_RESPONSE_FOOTER       32
+#define HTTP_PARTIAL_RANGE_RESPONSE_BODY   40
+#define HTTP_PARTIAL_RANGES_RESPONSE_BODY  50
+#define HTTP_RESPONSE                      90
+#define HTTP_FINAL_RESPONSE                91
 
 // A quick note about the tags:
 // 
@@ -722,6 +725,15 @@ static NSMutableArray *recentNonces;
 	return YES;
 }
 
+- (NSString *)requestURI
+{
+	if (request == NULL) return nil;
+	
+	NSURL *uri = [NSMakeCollectable(CFHTTPMessageCopyRequestURL(request)) autorelease];
+	
+	return [uri relativeString];
+}
+
 /**
  * This method is called after a full HTTP request has been received.
  * The current request is in the CFHTTPMessage request variable.
@@ -750,18 +762,18 @@ static NSMutableArray *recentNonces;
 	// Note: We already checked to ensure the method was supported in onSocket:didReadData:withTag:
 	
 	// Extract requested URI
-	NSURL *uri = [NSMakeCollectable(CFHTTPMessageCopyRequestURL(request)) autorelease];
+	NSString *uri = [self requestURI];
 	
 	// Check Authentication (if needed)
 	// If not properly authenticated for resource, issue Unauthorized response
-	if([self isPasswordProtected:[uri relativeString]] && ![self isAuthenticated])
+	if([self isPasswordProtected:uri] && ![self isAuthenticated])
 	{
 		[self handleAuthenticationFailed];
 		return;
 	}
 	
 	// Respond properly to HTTP 'GET' and 'HEAD' commands
-	httpResponse = [[self httpResponseForMethod:method URI:[uri relativeString]] retain];
+	httpResponse = [[self httpResponseForMethod:method URI:uri] retain];
 	
 	if(httpResponse == nil)
 	{
@@ -861,9 +873,9 @@ static NSMutableArray *recentNonces;
 				if(isChunked)
 				{
 					NSData *chunkSize = [self chunkedTransferSizeLineForLength:[data length]];
-					[asyncSocket writeData:chunkSize withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_HEADER];
+					[asyncSocket writeData:chunkSize withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_CHUNKED_RESPONSE_HEADER];
 					
-					[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_BODY];
+					[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_CHUNKED_RESPONSE_BODY];
 					
 					if([httpResponse isDone])
 					{
@@ -873,7 +885,7 @@ static NSMutableArray *recentNonces;
 					else
 					{
 						NSData *footer = [AsyncSocket CRLFData];
-						[asyncSocket writeData:footer withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_HEADER];
+						[asyncSocket writeData:footer withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_CHUNKED_RESPONSE_FOOTER];
 					}
 				}
 				else
@@ -1115,9 +1127,9 @@ static NSMutableArray *recentNonces;
 		if(isChunked)
 		{
 			NSData *chunkSize = [self chunkedTransferSizeLineForLength:[data length]];
-			[asyncSocket writeData:chunkSize withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_HEADER];
+			[asyncSocket writeData:chunkSize withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_CHUNKED_RESPONSE_HEADER];
 			
-			[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_BODY];
+			[asyncSocket writeData:data withTimeout:WRITE_BODY_TIMEOUT tag:HTTP_CHUNKED_RESPONSE_BODY];
 			
 			if([httpResponse isDone])
 			{
@@ -1127,7 +1139,7 @@ static NSMutableArray *recentNonces;
 			else
 			{
 				NSData *footer = [AsyncSocket CRLFData];
-				[asyncSocket writeData:footer withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_PARTIAL_RESPONSE_HEADER];
+				[asyncSocket writeData:footer withTimeout:WRITE_HEAD_TIMEOUT tag:HTTP_CHUNKED_RESPONSE_FOOTER];
 			}
 		}
 		else
@@ -1386,7 +1398,7 @@ static NSMutableArray *recentNonces;
 	// If you simply want to add a few extra header fields, see the preprocessErrorResponse: method.
 	// You can also use preprocessErrorResponse: to add an optional HTML body.
 	
-	NSLog(@"HTTP Server: Error 505 - Version Not Supported: %@", version);
+	NSLog(@"HTTP Server: Error 505 - Version Not Supported: %@ (%@)", version, [self requestURI]);
 	
 	CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 505, NULL, kCFHTTPVersion1_1);
 	CFHTTPMessageSetHeaderFieldValue(response, CFSTR("Content-Length"), CFSTR("0"));
@@ -1406,7 +1418,7 @@ static NSMutableArray *recentNonces;
 	// If you simply want to add a few extra header fields, see the preprocessErrorResponse: method.
 	// You can also use preprocessErrorResponse: to add an optional HTML body.
 	
-	NSLog(@"HTTP Server: Error 401 - Unauthorized");
+	NSLog(@"HTTP Server: Error 401 - Unauthorized (%@)", [self requestURI]);
 		
 	// Status Code 401 - Unauthorized
 	CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 401, NULL, kCFHTTPVersion1_1);
@@ -1438,7 +1450,7 @@ static NSMutableArray *recentNonces;
 	// If you simply want to add a few extra header fields, see the preprocessErrorResponse: method.
 	// You can also use preprocessErrorResponse: to add an optional HTML body.
 	
-	NSLog(@"HTTP Server: Error 400 - Bad Request");
+	NSLog(@"HTTP Server: Error 400 - Bad Request (%@)", [self requestURI]);
 	
 	// Status Code 400 - Bad Request
 	CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 400, NULL, kCFHTTPVersion1_1);
@@ -1467,7 +1479,7 @@ static NSMutableArray *recentNonces;
 	// 
 	// See also: supportsMethod:atPath:
 	
-	NSLog(@"HTTP Server: Error 405 - Method Not Allowed: %@", method);
+	NSLog(@"HTTP Server: Error 405 - Method Not Allowed: %@ (%@)", method, [self requestURI]);
 	
 	// Status code 405 - Method Not Allowed
     CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 405, NULL, kCFHTTPVersion1_1);
@@ -1493,7 +1505,7 @@ static NSMutableArray *recentNonces;
 	// If you simply want to add a few extra header fields, see the preprocessErrorResponse: method.
 	// You can also use preprocessErrorResponse: to add an optional HTML body.
 	
-	NSLog(@"HTTP Server: Error 404 - Not Found");
+	NSLog(@"HTTP Server: Error 404 - Not Found (%@)", [self requestURI]);
 	
 	// Status Code 404 - Not Found
 	CFHTTPMessageRef response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 404, NULL, kCFHTTPVersion1_1);
@@ -1711,7 +1723,7 @@ static NSMutableArray *recentNonces;
 			NSString *method = [NSMakeCollectable(CFHTTPMessageCopyRequestMethod(request)) autorelease];
 			
 			// Extract the uri (such as "/index.html")
-			NSURL *uri = [NSMakeCollectable(CFHTTPMessageCopyRequestURL(request)) autorelease];
+			NSString *uri = [self requestURI];
 			
 			// Check for a Content-Length field
 			NSString *contentLength =
@@ -1719,7 +1731,7 @@ static NSMutableArray *recentNonces;
 			
 			// Content-Length MUST be present for upload methods (such as POST or PUT)
 			// and MUST NOT be present for other methods.
-			BOOL expectsUpload = [self expectsRequestBodyFromMethod:method atPath:[uri relativeString]];
+			BOOL expectsUpload = [self expectsRequestBodyFromMethod:method atPath:uri];
 			
 			if(expectsUpload)
 			{
@@ -1763,7 +1775,7 @@ static NSMutableArray *recentNonces;
 			}
 			
 			// Check to make sure the given method is supported
-			if(![self supportsMethod:method atPath:[uri relativeString]])
+			if(![self supportsMethod:method atPath:uri])
 			{
 				// The method is unsupported - either in general, or for this specific request
 				// Send a 405 - Method not allowed response
@@ -1832,6 +1844,20 @@ static NSMutableArray *recentNonces;
 		[responseDataSizes removeObjectAtIndex:0];
 		
 		// We only wrote a part of the response - there may be more
+		[self continueSendingStandardResponseBody];
+	}
+	else if(tag == HTTP_CHUNKED_RESPONSE_BODY)
+	{
+		// Update the amount of data we have in asyncSocket's write queue.
+		// This will allow asynchronous responses to continue sending more data.
+		[responseDataSizes removeObjectAtIndex:0];
+		
+		// Don't continue sending the response yet.
+		// The chunked footer that was sent after the body will tell us if we have more data to send.
+	}
+	else if(tag == HTTP_CHUNKED_RESPONSE_FOOTER)
+	{
+		// Normal chunked footer indicating we have more data to send (non final footer).
 		[self continueSendingStandardResponseBody];
 	}
 	else if(tag == HTTP_PARTIAL_RANGE_RESPONSE_BODY)

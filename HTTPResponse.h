@@ -7,9 +7,13 @@
 // If you don't know the length in advance, implement the isChunked method and have it return YES.
 - (UInt64)contentLength;
 
+// The HTTP server supports range requests in order to allow things like
+// file download resumption and optimized streaming on mobile devices.
 - (UInt64)offset;
 - (void)setOffset:(UInt64)offset;
 
+// Returns the data for the response.
+// To support asynchronous responses, read the discussion at the bottom of this header.
 - (NSData *)readDataOfLength:(NSUInteger)length;
 
 // Should only return YES after the HTTPConnection has read all available data.
@@ -22,13 +26,6 @@
 // If you want to add any extra HTTP headers to the response,
 // simply return them in a dictionary in this method.
 - (NSDictionary *)httpHeaders;
-
-// If you want to generate your response asynchronously (e.g. in a background thread),
-// implement this method in your custom response class and return YES.
-// As you generate the data, call HTTPConnection's responseHasAvailableData method.
-// 
-// Important: You should read the discussion at the bottom of this header.
-- (BOOL)isAsynchronous;
 
 // This method is called from the HTTPConnection class when the connection is closed,
 // or when the connection is finished with the response.
@@ -119,5 +116,5 @@
 // 
 // If you don't know the content-length in advanced, you should also implement the isChunked method.
 // This means the response will not include a Content-Length header, and will instead use "Transfer-Encoding: chunked".
-// There's a good chance that if your response is asynchronous, it's also chunked.
+// There's a good chance that if your response is asynchronous and dynamic, it's also chunked.
 // If your response is chunked, you don't need to worry about range requests.
