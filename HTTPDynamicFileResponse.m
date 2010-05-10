@@ -284,6 +284,8 @@ static NSOperationQueue *operationQueue;
 					}
 				}
 				
+				[key release];
+				
 				found1 = found2 = NO;
 			}
 		}
