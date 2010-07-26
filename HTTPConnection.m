@@ -184,13 +184,14 @@ static NSMutableArray *recentNonces;
  * Returns whether or not the server will accept messages of a given method
  * at a particular URI.
 **/
-- (BOOL)supportsMethod:(NSString *)method atPath:(NSString *)relativePath
+- (BOOL)supportsMethod:(NSString *)method atPath:(NSString *)path
 {
 	// Override me to support methods such as POST.
 	// 
 	// Things you may want to consider:
 	// - Does the given path represent a resource that is designed to accept this method?
 	// - If accepting an upload, is the size of the data being uploaded too big?
+	//   To do this you can check the requestContentLength variable.
 	// 
 	// For more information, you can always access the CFHTTPMessageRef request variable.
 	
@@ -209,7 +210,7 @@ static NSMutableArray *recentNonces;
  * This would be true in the case of a POST, where the client is sending data,
  * or for something like PUT where the client is supposed to be uploading a file.
 **/
-- (BOOL)expectsRequestBodyFromMethod:(NSString *)method atPath:(NSString *)relativePath
+- (BOOL)expectsRequestBodyFromMethod:(NSString *)method atPath:(NSString *)path
 {
 	// Override me to add support for other methods that expect the client
 	// to send a body along with the request header.
@@ -844,8 +845,15 @@ static NSMutableArray *recentNonces;
 	
 	if(!isRangeRequest)
 	{
-		// Status Code 200 - OK
-		response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, 200, NULL, kCFHTTPVersion1_1);
+		// Create response
+		// Default status code: 200 - OK
+		NSInteger status = 200;
+		
+		if ([httpResponse respondsToSelector:@selector(status)])
+		{
+			status = [httpResponse status];
+		}
+		response = CFHTTPMessageCreateResponse(kCFAllocatorDefault, status, NULL, kCFHTTPVersion1_1);
 		
 		if(isChunked)
 		{
@@ -1944,7 +1952,7 @@ static NSMutableArray *recentNonces;
 			ranges_headers = nil;
 			ranges_boundry = nil;
 			
-			if([self shouldDie])
+			if ([self shouldDie])
 			{
 				[self die];
 			}
@@ -2014,9 +2022,15 @@ static NSMutableArray *recentNonces;
 #pragma mark Closing
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/**
+ * This method is called after each response has been fully sent.
+ * Since a single connection may handle multiple request/responses, this method may be called multiple times.
+ * That is, it will be called after completion of each response.
+**/
 - (BOOL)shouldDie
 {
-	// Override me if you want to force close the connection after the response has been fully sent.
+	// Override me if you want to perform any custom actions after a response has been fully sent.
+	// You may also force close the connection by returning YES.
 	
 	return NO;
 }
