@@ -49,10 +49,12 @@
 - (NSString *)realm;
 - (NSString *)passwordForUser:(NSString *)username;
 
+- (NSDictionary *)parseParams:(NSString *)query;
+- (NSDictionary *)parseGetParams;
+
 - (NSString *)requestURI;
 
 - (NSString *)filePathForURI:(NSString *)path;
-
 - (NSObject<HTTPResponse> *)httpResponseForMethod:(NSString *)method URI:(NSString *)path;
 
 - (void)prepareForBodyWithSize:(UInt64)contentLength;

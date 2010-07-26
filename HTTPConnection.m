@@ -512,26 +512,18 @@ static NSMutableArray *recentNonces;
 #pragma mark Core
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/** 
- * Parses the query variables in the request URI. 
+/**
+ * Parses the given query string.
  * 
- * For example, if the request URI was "search?q=John%20Mayer%20Trio&num=50" 
- * then this method would return the following dictionary: 
+ * For example, if the query is "q=John%20Mayer%20Trio&num=50"
+ * then this method would return the following dictionary:
  * { 
  *   q = "John Mayer Trio" 
  *   num = "50" 
- * } 
-**/ 
-- (NSDictionary *)parseRequestQuery 
+ * }
+**/
+- (NSDictionary *)parseParams:(NSString *)query
 {
-	if(request == NULL) return nil;
-	if(!CFHTTPMessageIsHeaderComplete(request)) return nil;
-	
-	CFURLRef url = CFHTTPMessageCopyRequestURL(request);
-	if(url == NULL) return nil;
-	
-	NSString *query = [NSMakeCollectable(CFURLCopyQueryString(url, NULL)) autorelease];
-	
 	NSArray *components = [query componentsSeparatedByString:@"&"];
 	NSMutableDictionary *result = [NSMutableDictionary dictionaryWithCapacity:[components count]];
 	
@@ -571,7 +563,40 @@ static NSMutableArray *recentNonces;
 		}
 	}
 	
-	CFRelease(url); 
+	return result;
+}
+
+/** 
+ * Parses the query variables in the request URI. 
+ * 
+ * For example, if the request URI was "/search.html?q=John%20Mayer%20Trio&num=50" 
+ * then this method would return the following dictionary: 
+ * { 
+ *   q = "John Mayer Trio" 
+ *   num = "50" 
+ * } 
+**/ 
+- (NSDictionary *)parseGetParams 
+{
+	if(request == NULL) return nil;
+	if(!CFHTTPMessageIsHeaderComplete(request)) return nil;
+	
+	NSDictionary *result = nil;
+	
+	CFURLRef url = CFHTTPMessageCopyRequestURL(request);
+	if(url)
+	{
+		CFStringRef query = CFURLCopyQueryString(url, NULL);
+		if (query)
+		{
+			result = [self parseParams:(NSString *)query];
+			
+			CFRelease(query);
+		}
+		
+		CFRelease(url);
+	}
+	
 	return result; 
 }
 

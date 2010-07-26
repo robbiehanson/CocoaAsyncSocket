@@ -282,9 +282,9 @@ static NSOperationQueue *operationQueue;
 						NSInteger diff = (NSInteger)[v length] - (NSInteger)fullRange.length;
 						i += diff;
 					}
+					
+					[key release];
 				}
-				
-				[key release];
 				
 				found1 = found2 = NO;
 			}
