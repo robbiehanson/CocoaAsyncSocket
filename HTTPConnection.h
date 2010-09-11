@@ -7,6 +7,7 @@
 
 @class AsyncSocket;
 @class HTTPServer;
+@class WebSocket;
 @protocol HTTPResponse;
 
 
@@ -56,6 +57,7 @@
 
 - (NSString *)filePathForURI:(NSString *)path;
 - (NSObject<HTTPResponse> *)httpResponseForMethod:(NSString *)method URI:(NSString *)path;
+- (WebSocket *)webSocketForURI:(NSString *)path;
 
 - (void)prepareForBodyWithSize:(UInt64)contentLength;
 - (void)processDataChunk:(NSData *)postDataChunk;

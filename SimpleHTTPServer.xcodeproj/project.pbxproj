@@ -21,6 +21,7 @@
 		DC41D6E30C178DE500F8D00D /* HTTPServer.m in Sources */ = {isa = PBXBuildFile; fileRef = DC41D6E10C178DE500F8D00D /* HTTPServer.m */; };
 		DC7A904A0EB8D297000BA995 /* SSCrypto.m in Sources */ = {isa = PBXBuildFile; fileRef = DC7A90490EB8D297000BA995 /* SSCrypto.m */; };
 		DC7A90540EB8D2EB000BA995 /* libcrypto.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = DC7A90530EB8D2EB000BA995 /* libcrypto.dylib */; };
+		DCA3F634123C210E005C88BB /* WebSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = DCA3F633123C210E005C88BB /* WebSocket.m */; };
 		DCA9EB8D0FA2579900FB1AC7 /* HTTPAsyncFileResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = DCA9EB8C0FA2579900FB1AC7 /* HTTPAsyncFileResponse.m */; };
 		DCF61A820E609737009BFEE4 /* DDNumber.m in Sources */ = {isa = PBXBuildFile; fileRef = DCF61A810E609737009BFEE4 /* DDNumber.m */; };
 		DCF61D540E632D0F009BFEE4 /* DDRange.m in Sources */ = {isa = PBXBuildFile; fileRef = DCF61D530E632D0F009BFEE4 /* DDRange.m */; };
@@ -69,6 +70,8 @@
 		DC7A90480EB8D297000BA995 /* SSCrypto.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SSCrypto.h; sourceTree = "<group>"; };
 		DC7A90490EB8D297000BA995 /* SSCrypto.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SSCrypto.m; sourceTree = "<group>"; };
 		DC7A90530EB8D2EB000BA995 /* libcrypto.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcrypto.dylib; path = /usr/lib/libcrypto.dylib; sourceTree = "<absolute>"; };
+		DCA3F632123C210E005C88BB /* WebSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebSocket.h; sourceTree = "<group>"; };
+		DCA3F633123C210E005C88BB /* WebSocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = WebSocket.m; sourceTree = "<group>"; };
 		DCA9EB8B0FA2579900FB1AC7 /* HTTPAsyncFileResponse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HTTPAsyncFileResponse.h; sourceTree = "<group>"; };
 		DCA9EB8C0FA2579900FB1AC7 /* HTTPAsyncFileResponse.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HTTPAsyncFileResponse.m; sourceTree = "<group>"; };
 		DCF61A800E609737009BFEE4 /* DDNumber.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DDNumber.h; sourceTree = "<group>"; };
@@ -190,6 +193,8 @@
 				DC2EA2300E91B40B00BB17BF /* HTTPConnection.m */,
 				DC2EA2490E91B76A00BB17BF /* HTTPResponse.h */,
 				DC2EA24A0E91B76A00BB17BF /* HTTPResponse.m */,
+				DCA3F632123C210E005C88BB /* WebSocket.h */,
+				DCA3F633123C210E005C88BB /* WebSocket.m */,
 				DCA9EB8E0FA257A600FB1AC7 /* Advanced */,
 			);
 			name = HTTP;
@@ -257,7 +262,14 @@
 			isa = PBXProject;
 			buildConfigurationList = C01FCF4E08A954540054247B /* Build configuration list for PBXProject "SimpleHTTPServer" */;
 			compatibilityVersion = "Xcode 2.4";
+			developmentRegion = English;
 			hasScannedForEncodings = 1;
+			knownRegions = (
+				English,
+				Japanese,
+				French,
+				German,
+			);
 			mainGroup = 29B97314FDCFA39411CA2CEA /* SimpleHTTPServer */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -297,6 +309,7 @@
 				DC7A904A0EB8D297000BA995 /* SSCrypto.m in Sources */,
 				DCA9EB8D0FA2579900FB1AC7 /* HTTPAsyncFileResponse.m in Sources */,
 				DC2E01BD118ABEC500A56579 /* HTTPDynamicFileResponse.m in Sources */,
+				DCA3F634123C210E005C88BB /* WebSocket.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

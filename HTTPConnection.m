@@ -7,6 +7,7 @@
 #import "DDRange.h"
 #import "DDData.h"
 #import "HTTPAsyncFileResponse.h"
+#import "WebSocket.h"
 
 
 // Define chunk size used to read in data for responses
@@ -782,13 +783,35 @@ static NSMutableArray *recentNonces;
 		return;
 	}
 	
+	// Extract requested URI
+	NSString *uri = [self requestURI];
+	
+	// Check for WebSocket request
+	if ([WebSocket isWebSocketRequest:request])
+	{
+		WebSocket *ws = [self webSocketForURI:uri];
+		
+		if (ws == nil)
+		{
+			[self handleResourceNotFound];
+		}
+		else
+		{
+			[server addWebSocket:ws];
+			
+			[asyncSocket release];
+			asyncSocket = nil;
+			
+			[self die];
+		}
+		
+		return;
+	}
+	
 	// Extract the method
 	NSString *method = [NSMakeCollectable(CFHTTPMessageCopyRequestMethod(request)) autorelease];
 	
 	// Note: We already checked to ensure the method was supported in onSocket:didReadData:withTag:
-	
-	// Extract requested URI
-	NSString *uri = [self requestURI];
 	
 	// Check Authentication (if needed)
 	// If not properly authenticated for resource, issue Unauthorized response
@@ -1386,6 +1409,24 @@ static NSMutableArray *recentNonces;
 	//											  forConnection:self
 	//											   runLoopModes:[asyncSocket runLoopModes]] autorelease];
 	}
+	
+	return nil;
+}
+
+- (WebSocket *)webSocketForURI:(NSString *)path
+{
+	// Override me to provide custom WebSocket responses.
+	// To do so, simply override the base WebSocket implementation, and add your custom functionality.
+	// Then return an instance of your custom WebSocket here.
+	// 
+	// For example:
+	// 
+	// if ([path isEqualToString:@"/myAwesomeWebSocketStream"])
+	// {
+	//     return [[[MyWebSocket alloc] initWithRequest:request socket:asyncSocket] autorelease];
+	// }
+	// 
+	// return [super webSocketForURI:path];
 	
 	return nil;
 }
