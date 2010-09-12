@@ -55,6 +55,7 @@
 
 - (NSString *)requestURI;
 
+- (NSArray *)directoryIndexFileNames;
 - (NSString *)filePathForURI:(NSString *)path;
 - (NSObject<HTTPResponse> *)httpResponseForMethod:(NSString *)method URI:(NSString *)path;
 - (WebSocket *)webSocketForURI:(NSString *)path;

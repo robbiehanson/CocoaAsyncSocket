@@ -515,6 +515,17 @@ static NSMutableArray *recentNonces;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Starts reading an HTTP request.
+**/
+- (void)startReadingRequest
+{
+	[asyncSocket readDataToData:[AsyncSocket CRLFData]
+	                withTimeout:READ_TIMEOUT
+	                  maxLength:LIMIT_MAX_HEADER_LINE_LENGTH
+	                        tag:HTTP_REQUEST_HEADER];
+}
+
+/**
  * Parses the given query string.
  * 
  * For example, if the query is "q=John%20Mayer%20Trio&num=50"
@@ -1342,6 +1353,17 @@ static NSMutableArray *recentNonces;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Returns an array of possible index pages.
+ * For example: {"index.html", "index.htm"}
+**/
+- (NSArray *)directoryIndexFileNames
+{
+	// Override me to support other index pages.
+	
+	return [NSArray arrayWithObjects:@"index.html", @"index.htm", nil];
+}
+
+/**
  * Converts relative URI path into full file-system path.
 **/
 - (NSString *)filePathForURI:(NSString *)path
@@ -1349,41 +1371,73 @@ static NSMutableArray *recentNonces;
 	// Override me to perform custom path mapping.
 	// For example you may want to use a default file other than index.html, or perhaps support multiple types.
 	
-	// If there is no configured documentRoot, then it makes no sense to try to return anything
-	if(![server documentRoot]) return nil;
+	NSURL *documentRoot = [server documentRoot];
 	
-	// Convert path to a relative path.
-	// This essentially means trimming beginning '/' characters.
-	// Beware of a bug in the Cocoa framework:
-	// 
-	// [NSURL URLWithString:@"/foo" relativeToURL:baseURL]       == @"/baseURL/foo"
-	// [NSURL URLWithString:@"/foo%20bar" relativeToURL:baseURL] == @"/foo bar"
-	// [NSURL URLWithString:@"/foo" relativeToURL:baseURL]       == @"/foo"
-	
-	NSString *relativePath = path;
-	
-	while([relativePath hasPrefix:@"/"] && [relativePath length] > 1)
+	// If there is no configured documentRoot,
+	// then it makes no sense to try to return anything.
+	if (![server documentRoot])
 	{
-		relativePath = [relativePath substringFromIndex:1];
+		return nil;
 	}
 	
-	NSURL *url;
+	// Part 1: Strip parameters from the url
+	// 
+	// E.g.: /page.html?q=22&var=abc -> /page.html
 	
-	if([relativePath hasSuffix:@"/"])
+	NSString *relativePath = [[NSURL URLWithString:path relativeToURL:documentRoot] relativePath];
+	
+	// Part 2: Append relative path to document root (base path)
+	// 
+	// E.g.: relativePath="/images/icon.png"
+	//       documentRoot="/Users/robbie/Sites"
+	//           fullPath="/Users/robbie/Sites/images/icon.png"
+	// 
+	// We also standardize the path.
+	// 
+	// E.g.: "Users/robbie/Sites/images/../index.html" -> "/Users/robbie/Sites/index.html"
+	
+	NSString *basePath = [documentRoot path];
+	
+	NSString *fullPath = [[basePath stringByAppendingPathComponent:relativePath] stringByStandardizingPath];
+	
+	// Part 3: Prevent serving files outside the document root.
+	// 
+	// Sneaky requests may include ".." in the path.
+	// 
+	// E.g.: relativePath="../Documents/TopSecret.doc"
+	//       documentRoot="/Users/robbie/Sites"
+	//           fullPath="/Users/robbie/Documents/TopSecret.doc"
+	
+	if (![fullPath hasPrefix:basePath])
 	{
-		NSString *completedRelativePath = [relativePath stringByAppendingString:@"index.html"];
-		url = [NSURL URLWithString:completedRelativePath relativeToURL:[server documentRoot]];
+		return nil;
+	}
+	
+	// Part 4: Search for index page if path is pointing to a directory
+	
+	BOOL isDir = NO;
+	
+	if ([[NSFileManager defaultManager] fileExistsAtPath:fullPath isDirectory:&isDir] && isDir)
+	{
+		NSArray *indexFileNames = [self directoryIndexFileNames];
+		
+		for (NSString *indexFileName in indexFileNames)
+		{
+			NSString *indexFilePath = [fullPath stringByAppendingPathComponent:indexFileName];
+			
+			if ([[NSFileManager defaultManager] fileExistsAtPath:indexFilePath isDirectory:&isDir] && !isDir)
+			{
+				return indexFilePath;
+			}
+		}
+		
+		// No matching index files found in directory
+		return nil;
 	}
 	else
 	{
-		url = [NSURL URLWithString:relativePath relativeToURL:[server documentRoot]];
+		return fullPath;
 	}
-	
-	// Watch out for sneaky requests with ".." in the path
-	// For example, the following request: "../Documents/TopSecret.doc"
-	if(![[url path] hasPrefix:[[server documentRoot] path]]) return nil;
-	
-	return [[url path] stringByStandardizingPath];
 }
 
 /**
@@ -1399,7 +1453,9 @@ static NSMutableArray *recentNonces;
 	
 	NSString *filePath = [self filePathForURI:path];
 	
-	if([[NSFileManager defaultManager] fileExistsAtPath:filePath])
+	BOOL isDir = NO;
+	
+	if (filePath && [[NSFileManager defaultManager] fileExistsAtPath:filePath isDirectory:&isDir] && !isDir)
 	{
 		return [[[HTTPFileResponse alloc] initWithFilePath:filePath] autorelease];
 	
@@ -1747,10 +1803,7 @@ static NSMutableArray *recentNonces;
 {
 	// The socket is up and ready, and this method is called on the socket's corresponding thread.
 	// We can now start reading the HTTP requests...
-	[asyncSocket readDataToData:[AsyncSocket CRLFData]
-					withTimeout:READ_TIMEOUT
-					  maxLength:LIMIT_MAX_HEADER_LINE_LENGTH
-							tag:HTTP_REQUEST_HEADER];
+	[self startReadingRequest];
 }
 
 /**
@@ -2006,10 +2059,7 @@ static NSMutableArray *recentNonces;
 				numHeaderLines = 0;
 				
 				// And start listening for more requests
-				[asyncSocket readDataToData:[AsyncSocket CRLFData]
-								withTimeout:READ_TIMEOUT
-								  maxLength:LIMIT_MAX_HEADER_LINE_LENGTH
-										tag:HTTP_REQUEST_HEADER];
+				[self startReadingRequest];
 			}
 		}
 	}
