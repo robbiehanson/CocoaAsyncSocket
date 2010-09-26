@@ -707,6 +707,16 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 	}
 }
 
+- (void)runLoopAddSource:(CFRunLoopSourceRef)source mode:(NSString *)runLoopMode
+{
+	CFRunLoopAddSource(theRunLoop, source, (CFStringRef)runLoopMode);
+}
+
+- (void)runLoopRemoveSource:(CFRunLoopSourceRef)source mode:(NSString *)runLoopMode
+{
+	CFRunLoopRemoveSource(theRunLoop, source, (CFStringRef)runLoopMode);
+}
+
 - (void)runLoopAddTimer:(NSTimer *)timer
 {
 	NSUInteger i, count = [theRunLoopModes count];
@@ -725,6 +735,16 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 		CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
 		CFRunLoopRemoveTimer(theRunLoop, (CFRunLoopTimerRef)timer, runLoopMode);
 	}
+}
+
+- (void)runLoopAddTimer:(NSTimer *)timer mode:(NSString *)runLoopMode
+{
+	CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)timer, (CFStringRef)runLoopMode);
+}
+
+- (void)runLoopRemoveTimer:(NSTimer *)timer mode:(NSString *)runLoopMode
+{
+	CFRunLoopRemoveTimer(theRunLoop, (CFRunLoopTimerRef)timer, (CFStringRef)runLoopMode);
 }
 
 - (void)runLoopUnscheduleReadStream
@@ -888,6 +908,95 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 		{
 			return NO;
 		}
+	}
+	
+	[self performSelector:@selector(maybeDequeueRead) withObject:nil afterDelay:0 inModes:theRunLoopModes];
+	[self performSelector:@selector(maybeDequeueWrite) withObject:nil afterDelay:0 inModes:theRunLoopModes];
+	[self performSelector:@selector(maybeScheduleDisconnect) withObject:nil afterDelay:0 inModes:theRunLoopModes];
+	
+	return YES;
+}
+
+- (BOOL)addRunLoopMode:(NSString *)runLoopMode
+{
+	NSAssert((theRunLoop == NULL) || (theRunLoop == CFRunLoopGetCurrent()),
+			 @"addRunLoopMode must be called from within the current RunLoop!");
+	
+	if(runLoopMode == nil)
+	{
+		return NO;
+	}
+	if([theRunLoopModes containsObject:runLoopMode])
+	{
+		return YES;
+	}
+	
+	[NSObject cancelPreviousPerformRequestsWithTarget:self];
+	theFlags &= ~kDequeueReadScheduled;
+	theFlags &= ~kDequeueWriteScheduled;
+    
+	NSArray *newRunLoopModes = [theRunLoopModes arrayByAddingObject:runLoopMode];
+	[theRunLoopModes release];
+	theRunLoopModes = [newRunLoopModes retain];
+	
+	if(theReadTimer)  [self runLoopAddTimer:theReadTimer  mode:runLoopMode];
+	if(theWriteTimer) [self runLoopAddTimer:theWriteTimer mode:runLoopMode];
+	
+	if(theSource4) [self runLoopAddSource:theSource4 mode:runLoopMode];
+	if(theSource6) [self runLoopAddSource:theSource6 mode:runLoopMode];
+    
+	if(theReadStream && theWriteStream)
+	{
+		CFReadStreamScheduleWithRunLoop(theReadStream, CFRunLoopGetCurrent(), (CFStringRef)runLoopMode);
+		CFWriteStreamScheduleWithRunLoop(theWriteStream, CFRunLoopGetCurrent(), (CFStringRef)runLoopMode);
+	}
+	
+	[self performSelector:@selector(maybeDequeueRead) withObject:nil afterDelay:0 inModes:theRunLoopModes];
+	[self performSelector:@selector(maybeDequeueWrite) withObject:nil afterDelay:0 inModes:theRunLoopModes];
+	[self performSelector:@selector(maybeScheduleDisconnect) withObject:nil afterDelay:0 inModes:theRunLoopModes];
+	
+	return YES;
+}
+
+- (BOOL)removeRunLoopMode:(NSString *)runLoopMode
+{
+	NSAssert((theRunLoop == NULL) || (theRunLoop == CFRunLoopGetCurrent()),
+			 @"addRunLoopMode must be called from within the current RunLoop!");
+	
+	if(runLoopMode == nil)
+	{
+		return NO;
+	}
+	if(![theRunLoopModes containsObject:runLoopMode])
+	{
+		return YES;
+	}
+	
+	NSMutableArray *newRunLoopModes = [[theRunLoopModes mutableCopy] autorelease];
+	[newRunLoopModes removeObject:runLoopMode];
+	
+	if([newRunLoopModes count] == 0)
+	{
+		return NO;
+	}
+	
+	[NSObject cancelPreviousPerformRequestsWithTarget:self];
+	theFlags &= ~kDequeueReadScheduled;
+	theFlags &= ~kDequeueWriteScheduled;
+	
+	[theRunLoopModes release];
+	theRunLoopModes = [newRunLoopModes copy];
+	
+	if(theReadTimer)  [self runLoopRemoveTimer:theReadTimer  mode:runLoopMode];
+	if(theWriteTimer) [self runLoopRemoveTimer:theWriteTimer mode:runLoopMode];
+	
+	if(theSource4) [self runLoopRemoveSource:theSource4 mode:runLoopMode];
+	if(theSource6) [self runLoopRemoveSource:theSource6 mode:runLoopMode];
+    
+	if(theReadStream && theWriteStream)
+	{
+		CFReadStreamScheduleWithRunLoop(theReadStream, CFRunLoopGetCurrent(), (CFStringRef)runLoopMode);
+		CFWriteStreamScheduleWithRunLoop(theWriteStream, CFRunLoopGetCurrent(), (CFStringRef)runLoopMode);
 	}
 	
 	[self performSelector:@selector(maybeDequeueRead) withObject:nil afterDelay:0 inModes:theRunLoopModes];
@@ -3706,7 +3815,7 @@ Failed:
 			[self doAcceptFromSocket:sock withNewNativeSocket:*((CFSocketNativeHandle *)pData)];
 			break;
 		default:
-			NSLog (@"AsyncSocket %p received unexpected CFSocketCallBackType %d.", self, type);
+			NSLog(@"AsyncSocket %p received unexpected CFSocketCallBackType %i", self, (int)type);
 			break;
 	}
 }
@@ -3737,7 +3846,7 @@ Failed:
 			[self closeWithError: [self errorFromCFStreamError:err]];
 			break;
 		default:
-			NSLog (@"AsyncSocket %p received unexpected CFReadStream callback, CFStreamEventType %d.", self, type);
+			NSLog(@"AsyncSocket %p received unexpected CFReadStream callback, CFStreamEventType %i", self, (int)type);
 	}
 }
 
@@ -3767,7 +3876,7 @@ Failed:
 			[self closeWithError: [self errorFromCFStreamError:err]];
 			break;
 		default:
-			NSLog (@"AsyncSocket %p received unexpected CFWriteStream callback, CFStreamEventType %d.", self, type);
+			NSLog(@"AsyncSocket %p received unexpected CFWriteStream callback, CFStreamEventType %i", self, (int)type);
 	}
 }
 
