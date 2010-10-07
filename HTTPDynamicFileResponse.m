@@ -207,7 +207,7 @@ static NSOperationQueue *operationQueue;
 	// We're going to start looking for the separator where we left off last time,
 	// and stop when we get to the point where the separator would no longer fit in the buffer.
 	
-	NSUInteger i = available;
+	NSUInteger offset = available;
 	NSUInteger stopOffset = (bufLen > sepLen) ? bufLen - sepLen + 1 : 0;
 	
 	// In order to do the replacement, we need to find the starting and ending separator.
@@ -223,9 +223,9 @@ static NSOperationQueue *operationQueue;
 	NSUInteger s1 = 0;
 	NSUInteger s2 = 0;
 	
-	while (i < stopOffset)
+	while (offset < stopOffset)
 	{
-		const void *subBuffer = [bufferedData mutableBytes] + i;
+		const void *subBuffer = [bufferedData mutableBytes] + offset;
 		
 		if (memcmp(subBuffer, [separator bytes], sepLen) == 0)
 		{
@@ -234,16 +234,16 @@ static NSOperationQueue *operationQueue;
 				// Found the first separator
 				
 				found1 = YES;
-				s1 = i;
-				i += sepLen;
+				s1 = offset;
+				offset += sepLen;
 			}
 			else
 			{
 				// Found the second separator
 				
 				found2 = YES;
-				s2 = i;
-				i += sepLen;
+				s2 = offset;
+				offset += sepLen;
 			}
 			
 			if (found1 && found2)
@@ -277,10 +277,12 @@ static NSOperationQueue *operationQueue;
 						[bufferedData replaceBytesInRange:fullRange withBytes:[v bytes] length:[v length]];
 						
 						// The replacement was probably not the same size as what it replaced.
-						// So we need to adjust our index accordingly.
+						// So we need to adjust our offsets accordingly.
 						
 						NSInteger diff = (NSInteger)[v length] - (NSInteger)fullRange.length;
-						i += diff;
+						
+						offset     += diff;
+						stopOffset += diff; 
 					}
 					
 					[key release];
@@ -291,7 +293,7 @@ static NSOperationQueue *operationQueue;
 		}
 		else
 		{
-			i++;
+			offset++;
 		}
 	}
 	
