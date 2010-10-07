@@ -1860,16 +1860,16 @@ static NSMutableArray *recentNonces;
 			// and MUST NOT be present for other methods.
 			BOOL expectsUpload = [self expectsRequestBodyFromMethod:method atPath:uri];
 			
-			if(expectsUpload)
+			if (expectsUpload)
 			{
-				if(contentLength == nil)
+				if (contentLength == nil)
 				{
 					// Method expects request body, but request had no specified Content-Length
 					[self handleInvalidRequest:nil];
 					return;
 				}
 				
-				if(![NSNumber parseString:(NSString *)contentLength intoUInt64:&requestContentLength])
+				if (![NSNumber parseString:(NSString *)contentLength intoUInt64:&requestContentLength])
 				{
 					// Unable to parse Content-Length header into a valid number
 					[self handleInvalidRequest:nil];
@@ -1878,19 +1878,19 @@ static NSMutableArray *recentNonces;
 			}
 			else
 			{
-				if(contentLength != nil)
+				if (contentLength != nil)
 				{
 					// Received Content-Length header for method not expecting an upload.
 					// This better be zero...
 					
-					if(![NSNumber parseString:(NSString *)contentLength intoUInt64:&requestContentLength])
+					if (![NSNumber parseString:(NSString *)contentLength intoUInt64:&requestContentLength])
 					{
 						// Unable to parse Content-Length header into a valid number
 						[self handleInvalidRequest:nil];
 						return;
 					}
 					
-					if(requestContentLength > 0)
+					if (requestContentLength > 0)
 					{
 						[self handleInvalidRequest:nil];
 						return;
@@ -1902,7 +1902,7 @@ static NSMutableArray *recentNonces;
 			}
 			
 			// Check to make sure the given method is supported
-			if(![self supportsMethod:method atPath:uri])
+			if (![self supportsMethod:method atPath:uri])
 			{
 				// The method is unsupported - either in general, or for this specific request
 				// Send a 405 - Method not allowed response
@@ -1910,7 +1910,7 @@ static NSMutableArray *recentNonces;
 				return;
 			}
 			
-			if(expectsUpload)
+			if (expectsUpload)
 			{
 				// Reset the total amount of data received for the upload
 				requestContentLengthReceived = 0;
@@ -1918,14 +1918,22 @@ static NSMutableArray *recentNonces;
 				// Prepare for the upload
 				[self prepareForBodyWithSize:requestContentLength];
 				
-				// Start reading the request body
-				NSUInteger bytesToRead;
-				if(requestContentLength < POST_CHUNKSIZE)
-					bytesToRead = (NSUInteger)requestContentLength;
+				if (requestContentLength > 0)
+				{
+					// Start reading the request body
+					NSUInteger bytesToRead;
+					if(requestContentLength < POST_CHUNKSIZE)
+						bytesToRead = (NSUInteger)requestContentLength;
+					else
+						bytesToRead = POST_CHUNKSIZE;
+					
+					[asyncSocket readDataToLength:bytesToRead withTimeout:READ_TIMEOUT tag:HTTP_REQUEST_BODY];
+				}
 				else
-					bytesToRead = POST_CHUNKSIZE;
-				
-				[asyncSocket readDataToLength:bytesToRead withTimeout:READ_TIMEOUT tag:HTTP_REQUEST_BODY];
+				{
+					// Empty upload
+					[self replyToHTTPRequest];
+				}
 			}
 			else
 			{
