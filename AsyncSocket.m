@@ -64,6 +64,7 @@ enum AsyncSocketFlags
 // Socket Implementation
 - (CFSocketRef)newAcceptSocketForAddress:(NSData *)addr error:(NSError **)errPtr;
 - (BOOL)createSocketForAddress:(NSData *)remoteAddr error:(NSError **)errPtr;
+- (BOOL)bindSocketToAddress:(NSData *)interfaceAddr error:(NSError **)errPtr;
 - (BOOL)attachSocketsToRunLoop:(NSRunLoop *)runLoop error:(NSError **)errPtr;
 - (BOOL)configureSocketAndReturnError:(NSError **)errPtr;
 - (BOOL)connectSocketToAddress:(NSData *)remoteAddr error:(NSError **)errPtr;
@@ -1265,7 +1266,7 @@ Failed:
 
 - (BOOL)connectToAddress:(NSData *)remoteAddr error:(NSError **)errPtr
 {
-	return [self connectToAddress:remoteAddr withTimeout:-1 error:errPtr];
+	return [self connectToAddress:remoteAddr viaInterfaceAddress:nil withTimeout:-1 error:errPtr];
 }
 
 /**
@@ -1284,6 +1285,18 @@ Failed:
 **/
 - (BOOL)connectToAddress:(NSData *)remoteAddr withTimeout:(NSTimeInterval)timeout error:(NSError **)errPtr
 {
+	return [self connectToAddress:remoteAddr viaInterfaceAddress:nil withTimeout:timeout error:errPtr];
+}
+
+/**
+ * This method is similar to the one above, but allows you to specify which socket interface
+ * the connection should run over. E.g. ethernet, wifi, bluetooth, etc.
+**/
+- (BOOL)connectToAddress:(NSData *)remoteAddr
+     viaInterfaceAddress:(NSData *)interfaceAddr
+             withTimeout:(NSTimeInterval)timeout
+                   error:(NSError **)errPtr
+{
 	if (theDelegate == NULL)
 	{
 		[NSException raise:AsyncSocketException
@@ -1297,6 +1310,7 @@ Failed:
 	}
 	
 	if(![self createSocketForAddress:remoteAddr error:errPtr])   goto Failed;
+	if(![self bindSocketToAddress:interfaceAddr error:errPtr])   goto Failed;
 	if(![self attachSocketsToRunLoop:nil error:errPtr])          goto Failed;
 	if(![self configureSocketAndReturnError:errPtr])             goto Failed;
 	if(![self connectSocketToAddress:remoteAddr error:errPtr])   goto Failed;
@@ -1404,7 +1418,48 @@ Failed:
 	}
 	else
 	{
-		if (errPtr) *errPtr = [self getSocketError];
+		if (errPtr)
+		{
+			NSString *errMsg = @"Remote address is not IPv4 or IPv6";
+			NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+			
+			*errPtr = [NSError errorWithDomain:AsyncSocketErrorDomain code:AsyncSocketCFSocketError userInfo:info];
+		}
+		return NO;
+	}
+	
+	return YES;
+}
+
+- (BOOL)bindSocketToAddress:(NSData *)interfaceAddr error:(NSError **)errPtr
+{
+	if (interfaceAddr == nil) return YES;
+	
+	struct sockaddr *pSockAddr = (struct sockaddr *)[interfaceAddr bytes];
+	
+	CFSocketRef theSocket = (theSocket4 != NULL) ? theSocket4 : theSocket6;
+	NSAssert((theSocket != NULL), @"bindSocketToAddress called without valid socket");
+	
+	CFSocketNativeHandle nativeSocket = CFSocketGetNative(theSocket);
+	
+	if (pSockAddr->sa_family == AF_INET || pSockAddr->sa_family == AF_INET6)
+	{
+		int result = bind(nativeSocket, pSockAddr, [interfaceAddr length]);
+		if (result != 0)
+		{
+			if (errPtr) *errPtr = [self getErrnoError];
+			return NO;
+		}
+	}
+	else
+	{
+		if (errPtr)
+		{
+			NSString *errMsg = @"Interface address is not IPv4 or IPv6";
+			NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+			
+			*errPtr = [NSError errorWithDomain:AsyncSocketErrorDomain code:AsyncSocketCFSocketError userInfo:info];
+		}
 		return NO;
 	}
 	

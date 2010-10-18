@@ -280,6 +280,11 @@ typedef enum AsyncSocketError AsyncSocketError;
 **/
 - (BOOL)connectToAddress:(NSData *)remoteAddr withTimeout:(NSTimeInterval)timeout error:(NSError **)errPtr;
 
+- (BOOL)connectToAddress:(NSData *)remoteAddr
+     viaInterfaceAddress:(NSData *)interfaceAddr
+             withTimeout:(NSTimeInterval)timeout
+                   error:(NSError **)errPtr;
+
 /**
  * Disconnects immediately. Any pending reads or writes are dropped.
  * If the socket is not already disconnected, the onSocketDidDisconnect delegate method
