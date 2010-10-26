@@ -129,7 +129,7 @@
 		[listenSocket disconnect];
 			
 		// Stop any client connections
-		int i;
+		NSUInteger i;
 		for(i = 0; i < [connectedSockets count]; i++)
 		{
 			// Call disconnect on the socket,
@@ -197,7 +197,7 @@
 - (NSTimeInterval)onSocket:(AsyncSocket *)sock
   shouldTimeoutReadWithTag:(long)tag
 				   elapsed:(NSTimeInterval)elapsed
-				 bytesDone:(CFIndex)length
+				 bytesDone:(NSUInteger)length
 {
 	if(elapsed <= READ_TIMEOUT)
 	{

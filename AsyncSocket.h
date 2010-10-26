@@ -90,7 +90,7 @@ typedef enum AsyncSocketError AsyncSocketError;
  * This would occur if using readToData: or readToLength: methods.
  * It may be used to for things such as updating progress bars.
 **/
-- (void)onSocket:(AsyncSocket *)sock didReadPartialDataOfLength:(CFIndex)partialLength tag:(long)tag;
+- (void)onSocket:(AsyncSocket *)sock didReadPartialDataOfLength:(NSUInteger)partialLength tag:(long)tag;
 
 /**
  * Called when a socket has completed writing the requested data. Not called if there is an error.
@@ -101,7 +101,7 @@ typedef enum AsyncSocketError AsyncSocketError;
  * Called when a socket has written some data, but has not yet completed the entire write.
  * It may be used to for things such as updating progress bars.
 **/
-- (void)onSocket:(AsyncSocket *)sock didWritePartialDataOfLength:(CFIndex)partialLength tag:(long)tag;
+- (void)onSocket:(AsyncSocket *)sock didWritePartialDataOfLength:(NSUInteger)partialLength tag:(long)tag;
 
 /**
  * Called if a read operation has reached its timeout without completing.
@@ -116,8 +116,8 @@ typedef enum AsyncSocketError AsyncSocketError;
 **/
 - (NSTimeInterval)onSocket:(AsyncSocket *)sock
   shouldTimeoutReadWithTag:(long)tag
-				   elapsed:(NSTimeInterval)elapsed
-				 bytesDone:(CFIndex)length;
+                   elapsed:(NSTimeInterval)elapsed
+                 bytesDone:(NSUInteger)length;
 
 /**
  * Called if a write operation has reached its timeout without completing.
@@ -132,8 +132,8 @@ typedef enum AsyncSocketError AsyncSocketError;
 **/
 - (NSTimeInterval)onSocket:(AsyncSocket *)sock
  shouldTimeoutWriteWithTag:(long)tag
-				   elapsed:(NSTimeInterval)elapsed
-				 bytesDone:(CFIndex)length;
+                   elapsed:(NSTimeInterval)elapsed
+                 bytesDone:(NSUInteger)length;
 
 /**
  * Called after the socket has successfully completed SSL/TLS negotiation.
@@ -394,7 +394,7 @@ typedef enum AsyncSocketError AsyncSocketError;
  * 
  * If the timeout value is negative, the read operation will not use a timeout.
  * If the buffer if nil, a buffer will automatically be created for you.
- * If maxLength is negative, no length restriction is enforced.
+ * If maxLength is zero, no length restriction is enforced.
  * 
  * If the bufferOffset is greater than the length of the given buffer,
  * the method will do nothing, and the delegate will not be called.
@@ -406,7 +406,7 @@ typedef enum AsyncSocketError AsyncSocketError;
 - (void)readDataWithTimeout:(NSTimeInterval)timeout
                      buffer:(NSMutableData *)buffer
                bufferOffset:(NSUInteger)offset
-                  maxLength:(CFIndex)length
+                  maxLength:(NSUInteger)length
                         tag:(long)tag;
 
 /**
@@ -416,7 +416,7 @@ typedef enum AsyncSocketError AsyncSocketError;
  * 
  * If the length is 0, this method does nothing and the delegate is not called.
 **/
-- (void)readDataToLength:(CFIndex)length withTimeout:(NSTimeInterval)timeout tag:(long)tag;
+- (void)readDataToLength:(NSUInteger)length withTimeout:(NSTimeInterval)timeout tag:(long)tag;
 
 /**
  * Reads the given number of bytes.
@@ -434,7 +434,7 @@ typedef enum AsyncSocketError AsyncSocketError;
  * After completion, the data returned in onSocket:didReadData:withTag: will be a subset of the given buffer.
  * That is, it will reference the bytes that were appended to the given buffer.
 **/
-- (void)readDataToLength:(CFIndex)length
+- (void)readDataToLength:(NSUInteger)length
              withTimeout:(NSTimeInterval)timeout
                   buffer:(NSMutableData *)buffer
             bufferOffset:(NSUInteger)offset
@@ -483,9 +483,11 @@ typedef enum AsyncSocketError AsyncSocketError;
  * Reads bytes until (and including) the passed "data" parameter, which acts as a separator.
  * 
  * If the timeout value is negative, the read operation will not use a timeout.
- * If maxLength is negative, no length restriction is enforced.
  * 
- * If the max length is surpassed, it is treated the same as a timeout - the socket is closed.
+ * If maxLength is zero, no length restriction is enforced.
+ * Otherwise if maxLength bytes are read without completing the read,
+ * it is treated similarly to a timeout - the socket is closed with a AsyncSocketReadMaxedOutError.
+ * The read will complete successfully if exactly maxLength bytes are read and the given data is found at the end.
  * 
  * If you pass nil or zero-length data as the "data" parameter,
  * the method will do nothing, and the delegate will not be called.
@@ -496,7 +498,7 @@ typedef enum AsyncSocketError AsyncSocketError;
  * Note that this method is not character-set aware, so if a separator can occur naturally as part of the encoding for
  * a character, the read will prematurely end.
 **/
-- (void)readDataToData:(NSData *)data withTimeout:(NSTimeInterval)timeout maxLength:(CFIndex)length tag:(long)tag;
+- (void)readDataToData:(NSData *)data withTimeout:(NSTimeInterval)timeout maxLength:(NSUInteger)length tag:(long)tag;
 
 /**
  * Reads bytes until (and including) the passed "data" parameter, which acts as a separator.
@@ -506,9 +508,11 @@ typedef enum AsyncSocketError AsyncSocketError;
  * 
  * If the timeout value is negative, the read operation will not use a timeout.
  * If the buffer if nil, a buffer will automatically be created for you.
- * If maxLength is negative, no length restriction is enforced.
  * 
- * If the max length is surpassed, it is treated the same as a timeout - the socket is closed.
+ * If maxLength is zero, no length restriction is enforced.
+ * Otherwise if maxLength bytes are read without completing the read,
+ * it is treated similarly to a timeout - the socket is closed with a AsyncSocketReadMaxedOutError.
+ * The read will complete successfully if exactly maxLength bytes are read and the given data is found at the end.
  * 
  * If you pass a maxLength parameter that is less than the length of the data parameter,
  * the method will do nothing, and the delegate will not be called.
@@ -527,7 +531,7 @@ typedef enum AsyncSocketError AsyncSocketError;
            withTimeout:(NSTimeInterval)timeout
                 buffer:(NSMutableData *)buffer
           bufferOffset:(NSUInteger)offset
-             maxLength:(CFIndex)length
+             maxLength:(NSUInteger)length
                    tag:(long)tag;
 
 /**
@@ -542,8 +546,8 @@ typedef enum AsyncSocketError AsyncSocketError;
  * Returns progress of current read or write, from 0.0 to 1.0, or NaN if no read/write (use isnan() to check).
  * "tag", "done" and "total" will be filled in if they aren't NULL.
 **/
-- (float)progressOfReadReturningTag:(long *)tag bytesDone:(CFIndex *)done total:(CFIndex *)total;
-- (float)progressOfWriteReturningTag:(long *)tag bytesDone:(CFIndex *)done total:(CFIndex *)total;
+- (float)progressOfReadReturningTag:(long *)tag bytesDone:(NSUInteger *)done total:(NSUInteger *)total;
+- (float)progressOfWriteReturningTag:(long *)tag bytesDone:(NSUInteger *)done total:(NSUInteger *)total;
 
 /**
  * Secures the connection using SSL/TLS.

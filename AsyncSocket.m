@@ -177,21 +177,21 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 {
   @public
 	NSMutableData *buffer;
-	CFIndex startOffset;
-	CFIndex bytesDone;
-	CFIndex maxLength;
+	NSUInteger startOffset;
+	NSUInteger bytesDone;
+	NSUInteger maxLength;
 	NSTimeInterval timeout;
-	CFIndex readLength;
+	NSUInteger readLength;
 	NSData *term;
 	BOOL bufferOwner;
 	NSUInteger originalBufferLength;
 	long tag;
 }
 - (id)initWithData:(NSMutableData *)d
-       startOffset:(CFIndex)s
-         maxLength:(CFIndex)m
+       startOffset:(NSUInteger)s
+         maxLength:(NSUInteger)m
            timeout:(NSTimeInterval)t
-        readLength:(CFIndex)l
+        readLength:(NSUInteger)l
         terminator:(NSData *)e
                tag:(long)i;
 
@@ -199,16 +199,16 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 - (NSUInteger)readLengthForTerm;
 
 - (NSUInteger)prebufferReadLengthForTerm;
-- (CFIndex)searchForTermAfterPreBuffering:(CFIndex)numBytes;
+- (NSInteger)searchForTermAfterPreBuffering:(NSUInteger)numBytes;
 @end
 
 @implementation AsyncReadPacket
 
 - (id)initWithData:(NSMutableData *)d
-       startOffset:(CFIndex)s
-         maxLength:(CFIndex)m
+       startOffset:(NSUInteger)s
+         maxLength:(NSUInteger)m
            timeout:(NSTimeInterval)t
-        readLength:(CFIndex)l
+        readLength:(NSUInteger)l
         terminator:(NSData *)e
                tag:(long)i
 {
@@ -308,27 +308,39 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 	// and we can only read that amount.
 	// Otherwise, we're safe to read the entire length of the term.
 	
-	NSUInteger result = [term length];
+	NSUInteger termLength = [term length];
 	
-	// Shortcut when term is a single byte
-	if(result == 1) return result;
+	// Shortcuts
+	if (bytesDone == 0) return termLength;
+	if (termLength == 1) return termLength;
 	
 	// i = index within buffer at which to check data
 	// j = length of term to check against
 	
-	// Note: Beware of implicit casting rules
-	// This could give you -1: MAX(0, (0 - [term length] + 1));
-	
-	CFIndex i = MAX(0, (CFIndex)(bytesDone - [term length] + 1));
-	CFIndex j = MIN([term length] - 1, bytesDone);
-	
-	while(i < bytesDone)
+	NSUInteger i, j;
+	if (bytesDone >= termLength)
 	{
-		void *subBuffer = [buffer mutableBytes] + startOffset + i;
+		i = bytesDone - termLength + 1;
+		j = termLength - 1;
+	}
+	else
+	{
+		i = 0;
+		j = bytesDone;
+	}
+	
+	NSUInteger result = termLength;
+	
+	void *buf = [buffer mutableBytes];
+	const void *termBuf = [term bytes];
+	
+	while (i < bytesDone)
+	{
+		void *subbuf = buf + startOffset + i;
 		
-		if(memcmp(subBuffer, [term bytes], j) == 0)
+		if (memcmp(subbuf, termBuf, j) == 0)
 		{
-			result = [term length] - j;
+			result = termLength - j;
 			break;
 		}
 		
@@ -407,25 +419,34 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
  * 
  * Note: A return value of zero means the term was found at the very end.
 **/
-- (CFIndex)searchForTermAfterPreBuffering:(CFIndex)numBytes
+- (NSInteger)searchForTermAfterPreBuffering:(NSUInteger)numBytes
 {
 	NSAssert(term != nil, @"This method does not apply to non-term reads");
+	NSAssert(bytesDone >= numBytes, @"Invoked with invalid numBytes!");
 	
 	// We try to start the search such that the first new byte read matches up with the last byte of the term.
 	// We continue searching forward after this until the term no longer fits into the buffer.
 	
-	// Note: Beware of implicit casting rules
-	// This could give you -1: MAX(0, 1 - 1 - [term length] + 1);
+	NSUInteger termLength = [term length];
+	const void *termBuffer = [term bytes];
 	
-	CFIndex i = MAX(0, (CFIndex)(bytesDone - numBytes - [term length] + 1));
+	// Remember: This method is called after the bytesDone variable has been updated.
 	
-	while(i + [term length] <= bytesDone)
+	NSUInteger prevBytesDone = bytesDone - numBytes;
+	
+	NSUInteger i;
+	if (prevBytesDone >= termLength)
+		i = prevBytesDone - termLength + 1;
+	else
+		i = 0;
+	
+	while ((i + termLength) <= bytesDone)
 	{
 		void *subBuffer = [buffer mutableBytes] + startOffset + i;
 		
-		if(memcmp(subBuffer, [term bytes], [term length]) == 0)
+		if(memcmp(subBuffer, termBuffer, termLength) == 0)
 		{
-			return bytesDone - (i + [term length]);
+			return bytesDone - (i + termLength);
 		}
 		
 		i++;
@@ -454,7 +475,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 {
   @public
 	NSData *buffer;
-	CFIndex bytesDone;
+	NSUInteger bytesDone;
 	long tag;
 	NSTimeInterval timeout;
 }
@@ -645,18 +666,25 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 #pragma mark Progress
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-- (float)progressOfReadReturningTag:(long *)tag bytesDone:(CFIndex *)done total:(CFIndex *)total
+- (float)progressOfReadReturningTag:(long *)tag bytesDone:(NSUInteger *)done total:(NSUInteger *)total
 {
 	// Check to make sure we're actually reading something right now,
 	// and that the read packet isn't an AsyncSpecialPacket (upgrade to TLS).
-	if (!theCurrentRead || ![theCurrentRead isKindOfClass:[AsyncReadPacket class]]) return NAN;
+	if (!theCurrentRead || ![theCurrentRead isKindOfClass:[AsyncReadPacket class]])
+	{
+		if (tag != NULL)   *tag = 0;
+		if (done != NULL)  *done = 0;
+		if (total != NULL) *total = 0;
+		
+		return NAN;
+	}
 	
 	// It's only possible to know the progress of our read if we're reading to a certain length.
 	// If we're reading to data, we of course have no idea when the data will arrive.
 	// If we're reading to timeout, then we have no idea when the next chunk of data will arrive.
 	
-	CFIndex d = theCurrentRead->bytesDone;
-	CFIndex t = theCurrentRead->readLength;
+	NSUInteger d = theCurrentRead->bytesDone;
+	NSUInteger t = theCurrentRead->readLength;
 	
 	if (tag != NULL)   *tag = theCurrentRead->tag;
 	if (done != NULL)  *done = d;
@@ -668,14 +696,21 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 		return 1.0F;
 }
 
-- (float)progressOfWriteReturningTag:(long *)tag bytesDone:(CFIndex *)done total:(CFIndex *)total
+- (float)progressOfWriteReturningTag:(long *)tag bytesDone:(NSUInteger *)done total:(NSUInteger *)total
 {
 	// Check to make sure we're actually writing something right now,
 	// and that the write packet isn't an AsyncSpecialPacket (upgrade to TLS).
-	if (!theCurrentWrite || ![theCurrentWrite isKindOfClass:[AsyncWritePacket class]]) return NAN;
+	if (!theCurrentWrite || ![theCurrentWrite isKindOfClass:[AsyncWritePacket class]])
+	{
+		if (tag != NULL)   *tag = 0;
+		if (done != NULL)  *done = 0;
+		if (total != NULL) *total = 0;
+		
+		return NAN;
+	}
 	
-	CFIndex d = theCurrentWrite->bytesDone;
-	CFIndex t = [theCurrentWrite->buffer length];
+	NSUInteger d = theCurrentWrite->bytesDone;
+	NSUInteger t = [theCurrentWrite->buffer length];
 	
 	if (tag != NULL)   *tag = theCurrentWrite->tag;
 	if (done != NULL)  *done = d;
@@ -1444,7 +1479,7 @@ Failed:
 	
 	if (pSockAddr->sa_family == AF_INET || pSockAddr->sa_family == AF_INET6)
 	{
-		int result = bind(nativeSocket, pSockAddr, [interfaceAddr length]);
+		int result = bind(nativeSocket, pSockAddr, (socklen_t)[interfaceAddr length]);
 		if (result != 0)
 		{
 			if (errPtr) *errPtr = [self getErrnoError];
@@ -1838,7 +1873,10 @@ Failed:
 		return NO;
 	}
 	
-	CFIndex len = MIN(CFDataGetLength(nativeProp), sizeof(native));
+	CFIndex nativePropLen = CFDataGetLength(nativeProp);
+	CFIndex nativeLen = (CFIndex)sizeof(native);
+	
+	CFIndex len = MIN(nativePropLen, nativeLen);
 	
 	CFDataGetBytes(nativeProp, CFRangeMake(0, len), (UInt8 *)&native);
 	CFRelease(nativeProp);
@@ -2127,30 +2165,37 @@ Failed:
 - (NSData *)unreadData
 {
 	// Ensure this method will only return data in the event of an error
-	if(!(theFlags & kClosingWithError)) return nil;
+	if (!(theFlags & kClosingWithError)) return nil;
 	
-	if(theReadStream == NULL) return nil;
+	if (theReadStream == NULL) return nil;
 	
-	CFIndex totalBytesRead = [partialReadBuffer length];
+	NSUInteger totalBytesRead = [partialReadBuffer length];
+	
 	BOOL error = NO;
-	while(!error && CFReadStreamHasBytesAvailable(theReadStream))
+	while (!error && CFReadStreamHasBytesAvailable(theReadStream))
 	{
-		[partialReadBuffer increaseLengthBy:READALL_CHUNKSIZE];
+		if (totalBytesRead == [partialReadBuffer length])
+		{
+			[partialReadBuffer increaseLengthBy:READALL_CHUNKSIZE];
+		}
 		
 		// Number of bytes to read is space left in packet buffer.
-		CFIndex bytesToRead = [partialReadBuffer length] - totalBytesRead;
+		NSUInteger bytesToRead = [partialReadBuffer length] - totalBytesRead;
 		
 		// Read data into packet buffer
 		UInt8 *packetbuf = (UInt8 *)( [partialReadBuffer mutableBytes] + totalBytesRead );
-		CFIndex bytesRead = CFReadStreamRead(theReadStream, packetbuf, bytesToRead);
+		
+		CFIndex result = CFReadStreamRead(theReadStream, packetbuf, bytesToRead);
 		
 		// Check results
-		if(bytesRead < 0)
+		if (result < 0)
 		{
 			error = YES;
 		}
 		else
 		{
+			CFIndex bytesRead = result;
+			
 			totalBytesRead += bytesRead;
 		}
 	}
@@ -3013,7 +3058,7 @@ Failed:
 
 - (void)readDataWithTimeout:(NSTimeInterval)timeout tag:(long)tag
 {
-	[self readDataWithTimeout:timeout buffer:nil bufferOffset:0 maxLength:-1 tag:tag];
+	[self readDataWithTimeout:timeout buffer:nil bufferOffset:0 maxLength:0 tag:tag];
 }
 
 - (void)readDataWithTimeout:(NSTimeInterval)timeout
@@ -3021,13 +3066,13 @@ Failed:
                bufferOffset:(NSUInteger)offset
                         tag:(long)tag
 {
-	[self readDataWithTimeout:timeout buffer:buffer bufferOffset:offset maxLength:-1 tag:tag];
+	[self readDataWithTimeout:timeout buffer:buffer bufferOffset:offset maxLength:0 tag:tag];
 }
 
 - (void)readDataWithTimeout:(NSTimeInterval)timeout
                      buffer:(NSMutableData *)buffer
                bufferOffset:(NSUInteger)offset
-                  maxLength:(CFIndex)length
+                  maxLength:(NSUInteger)length
                         tag:(long)tag
 {
 	if (offset > [buffer length]) return;
@@ -3046,12 +3091,12 @@ Failed:
 	[packet release];
 }
 
-- (void)readDataToLength:(CFIndex)length withTimeout:(NSTimeInterval)timeout tag:(long)tag
+- (void)readDataToLength:(NSUInteger)length withTimeout:(NSTimeInterval)timeout tag:(long)tag
 {
 	[self readDataToLength:length withTimeout:timeout buffer:nil bufferOffset:0 tag:tag];
 }
 
-- (void)readDataToLength:(CFIndex)length
+- (void)readDataToLength:(NSUInteger)length
              withTimeout:(NSTimeInterval)timeout
                   buffer:(NSMutableData *)buffer
             bufferOffset:(NSUInteger)offset
@@ -3063,7 +3108,7 @@ Failed:
 	
 	AsyncReadPacket *packet = [[AsyncReadPacket alloc] initWithData:buffer
 	                                                    startOffset:offset
-	                                                      maxLength:-1
+	                                                      maxLength:0
 	                                                        timeout:timeout
 	                                                     readLength:length
 	                                                     terminator:nil
@@ -3076,7 +3121,7 @@ Failed:
 
 - (void)readDataToData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag
 {
-	[self readDataToData:data withTimeout:timeout buffer:nil bufferOffset:0 maxLength:-1 tag:tag];
+	[self readDataToData:data withTimeout:timeout buffer:nil bufferOffset:0 maxLength:0 tag:tag];
 }
 
 - (void)readDataToData:(NSData *)data
@@ -3085,10 +3130,10 @@ Failed:
           bufferOffset:(NSUInteger)offset
                    tag:(long)tag
 {
-	[self readDataToData:data withTimeout:timeout buffer:buffer bufferOffset:offset maxLength:-1 tag:tag];
+	[self readDataToData:data withTimeout:timeout buffer:buffer bufferOffset:offset maxLength:0 tag:tag];
 }
 
-- (void)readDataToData:(NSData *)data withTimeout:(NSTimeInterval)timeout maxLength:(CFIndex)length tag:(long)tag
+- (void)readDataToData:(NSData *)data withTimeout:(NSTimeInterval)timeout maxLength:(NSUInteger)length tag:(long)tag
 {
 	[self readDataToData:data withTimeout:timeout buffer:nil bufferOffset:0 maxLength:length tag:tag];
 }
@@ -3097,12 +3142,12 @@ Failed:
            withTimeout:(NSTimeInterval)timeout
                 buffer:(NSMutableData *)buffer
           bufferOffset:(NSUInteger)offset
-             maxLength:(CFIndex)length
+             maxLength:(NSUInteger)length
                    tag:(long)tag
 {
 	if (data == nil || [data length] == 0) return;
 	if (offset > [buffer length]) return;
-	if (length >= 0 && length < [data length]) return;
+	if (length > 0 && length < [data length]) return;
 	if (theFlags & kForbidReadsWrites) return;
 	
 	AsyncReadPacket *packet = [[AsyncReadPacket alloc] initWithData:buffer
@@ -3212,20 +3257,20 @@ Failed:
  * Call this method in doBytesAvailable instead of CFReadStreamRead().
  * This method support pre-buffering properly.
 **/
-- (CFIndex)readIntoBuffer:(void *)buffer maxLength:(CFIndex)length
+- (CFIndex)readIntoBuffer:(void *)buffer maxLength:(NSUInteger)length
 {
 	if([partialReadBuffer length] > 0)
 	{
 		// Determine the maximum amount of data to read
-		CFIndex bytesToRead = MIN(length, [partialReadBuffer length]);
+		NSUInteger bytesToRead = MIN(length, [partialReadBuffer length]);
 		
 		// Copy the bytes from the partial read buffer
-		memcpy(buffer, [partialReadBuffer bytes], bytesToRead);
+		memcpy(buffer, [partialReadBuffer bytes], (size_t)bytesToRead);
 		
 		// Remove the copied bytes from the partial read buffer
 		[partialReadBuffer replaceBytesInRange:NSMakeRange(0, bytesToRead) withBytes:NULL length:0];
 		
-		return bytesToRead;
+		return (CFIndex)bytesToRead;
 	}
 	else
 	{
@@ -3250,7 +3295,7 @@ Failed:
 	
 	// Note: This method is not called if theCurrentRead is an AsyncSpecialPacket (startTLS packet)
 	
-	CFIndex totalBytesRead = 0;
+	NSUInteger totalBytesRead = 0;
 	
 	BOOL done = NO;
 	BOOL socketError = NO;
@@ -3266,7 +3311,7 @@ Failed:
 		// 2) Read a specific length of data.
 		// 3) Read up to a particular terminator.
 		
-		CFIndex bytesToRead;
+		NSUInteger bytesToRead;
 		
 		if (theCurrentRead->term != nil)
 		{
@@ -3313,15 +3358,17 @@ Failed:
 		void *buffer = [theCurrentRead->buffer mutableBytes] + theCurrentRead->startOffset;
 		void *subBuffer = buffer + theCurrentRead->bytesDone;
 		
-		CFIndex bytesRead = [self readIntoBuffer:subBuffer maxLength:bytesToRead];
+		CFIndex result = [self readIntoBuffer:subBuffer maxLength:bytesToRead];
 		
 		// Check results
-		if(bytesRead < 0)
+		if (result < 0)
 		{
 			socketError = YES;
 		}
 		else
 		{
+			CFIndex bytesRead = result;
+			
 			// Update total amount read for the current read
 			theCurrentRead->bytesDone += bytesRead;
 			
@@ -3344,9 +3391,9 @@ Failed:
 			{
 				// Search for the terminating sequence within the big chunk we just read.
 				
-				CFIndex overflow = [theCurrentRead searchForTermAfterPreBuffering:bytesRead];
+				NSInteger overflow = [theCurrentRead searchForTermAfterPreBuffering:result];
 				
-				if(overflow > 0)
+				if (overflow > 0)
 				{
 					// Copy excess data into partialReadBuffer
 					void *overflowBuffer = buffer + theCurrentRead->bytesDone - overflow;
@@ -3377,7 +3424,7 @@ Failed:
 				}
 			}
 			
-			if(!done && theCurrentRead->maxLength >= 0)
+			if(!done && theCurrentRead->maxLength > 0)
 			{
 				// We're not done and there's a set maxLength.
 				// Have we reached that maxLength yet?
@@ -3396,7 +3443,7 @@ Failed:
 			// - we reach maxLength (if there is a max)
 			// - all readable is read (see below)
 			
-			if (theCurrentRead->maxLength >= 0)
+			if (theCurrentRead->maxLength > 0)
 			{
 				done = (theCurrentRead->bytesDone >= theCurrentRead->maxLength);
 			}
@@ -3451,8 +3498,6 @@ Failed:
 	
 	if (theCurrentRead->bufferOwner)
 	{
-		NSAssert((theCurrentRead->startOffset == 0), @"Invalid startOffset for socket owned buffer");
-		
 		// We created the buffer on behalf of the user.
 		// Trim our buffer to be the proper size.
 		[theCurrentRead->buffer setLength:theCurrentRead->bytesDone];
@@ -3642,17 +3687,6 @@ Failed:
 	}
 }
 
-/**
- * Returns the maximum bytes to write.
- * This value is dependent on the size of theCurrentWrite as well as the WRITE_CHUNKSIZE.
-**/
-- (CFIndex)maxBytesToWrite
-{
-	CFIndex bytesRemaining = [theCurrentWrite->buffer length] - theCurrentWrite->bytesDone;
-	
-	return (bytesRemaining < WRITE_CHUNKSIZE) ? bytesRemaining : WRITE_CHUNKSIZE;
-}
-
 - (void)doSendBytes
 {
 	if ((theCurrentWrite == nil) || (theWriteStream == NULL))
@@ -3662,31 +3696,34 @@ Failed:
 	
 	// Note: This method is not called if theCurrentWrite is an AsyncSpecialPacket (startTLS packet)
 	
-	CFIndex totalBytesWritten = 0;
+	NSUInteger totalBytesWritten = 0;
 	
 	BOOL done = NO;
 	BOOL error = NO;
 	
 	while (!done && !error && [self canAcceptBytes])
 	{
-		// Figure out what to write.
-		CFIndex bytesRemaining = [theCurrentWrite->buffer length] - theCurrentWrite->bytesDone;
-		CFIndex bytesToWrite = (bytesRemaining < WRITE_CHUNKSIZE) ? bytesRemaining : WRITE_CHUNKSIZE;
+		// Figure out what to write
+		NSUInteger bytesRemaining = [theCurrentWrite->buffer length] - theCurrentWrite->bytesDone;
+		NSUInteger bytesToWrite = (bytesRemaining < WRITE_CHUNKSIZE) ? bytesRemaining : WRITE_CHUNKSIZE;
+		
 		UInt8 *writestart = (UInt8 *)([theCurrentWrite->buffer bytes] + theCurrentWrite->bytesDone);
 		
-		// Write.
-		CFIndex bytesWritten = CFWriteStreamWrite(theWriteStream, writestart, bytesToWrite);
+		// Write
+		CFIndex result = CFWriteStreamWrite(theWriteStream, writestart, bytesToWrite);
 		
 		// Unset the "can accept bytes" flag
 		theFlags &= ~kSocketCanAcceptBytes;
 		
 		// Check results
-		if (bytesWritten < 0)
+		if (result < 0)
 		{
 			error = YES;
 		}
 		else
 		{
+			CFIndex bytesWritten = result;
+			
 			// Update total amount read for the current write
 			theCurrentWrite->bytesDone += bytesWritten;
 			
@@ -3709,7 +3746,7 @@ Failed:
 		[self closeWithError:[self errorFromCFStreamError:err]];
 		return;
 	}
-	else
+	else if (totalBytesWritten > 0)
 	{
 		// We're not done with the entire write, but we have written some bytes
 		if ([theDelegate respondsToSelector:@selector(onSocket:didWritePartialDataOfLength:tag:)])
