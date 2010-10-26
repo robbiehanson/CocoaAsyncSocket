@@ -197,6 +197,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 
 - (NSUInteger)readLengthForNonTerm;
 - (NSUInteger)readLengthForTerm;
+- (NSUInteger)readLengthForTermWithPreBuffer:(NSData *)preBuffer found:(BOOL *)foundPtr;
 
 - (NSUInteger)prebufferReadLengthForTerm;
 - (NSInteger)searchForTermAfterPreBuffering:(NSUInteger)numBytes;
@@ -371,6 +372,131 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 		}
 	}
 	
+	return result;
+}
+
+/**
+ * For read packets with a set terminator,
+ * returns the safe length of data that can be read from the given preBuffer,
+ * without going over a terminator or the maxLength.
+ * 
+ * It is assumed the terminator has not already been read.
+**/
+- (NSUInteger)readLengthForTermWithPreBuffer:(NSData *)preBuffer found:(BOOL *)foundPtr
+{
+	NSAssert(term != nil, @"This method does not apply to non-term reads");
+	NSAssert([preBuffer length] > 0, @"Invoked with empty pre buffer!");
+	
+	// We know that the terminator, as a whole, doesn't exist in our own buffer.
+	// But it is possible that a portion of it exists in our buffer.
+	// So we're going to look for the terminator starting with a portion of our own buffer.
+	// 
+	// Example:
+	// 
+	// term length      = 3 bytes
+	// bytesDone        = 5 bytes
+	// preBuffer length = 5 bytes
+	// 
+	// If we append the preBuffer to our buffer,
+	// it would look like this:
+	// 
+	// ---------------------
+	// |B|B|B|B|B|P|P|P|P|P|
+	// ---------------------
+	// 
+	// So we start our search here:
+	// 
+	// ---------------------
+	// |B|B|B|B|B|P|P|P|P|P|
+	// -------^-^-^---------
+	// 
+	// And move forwards...
+	// 
+	// ---------------------
+	// |B|B|B|B|B|P|P|P|P|P|
+	// ---------^-^-^-------
+	// 
+	// Until we find the terminator or reach the end.
+	// 
+	// ---------------------
+	// |B|B|B|B|B|P|P|P|P|P|
+	// ---------------^-^-^-
+	
+	BOOL found = NO;
+	
+	NSUInteger termLength = [term length];
+	NSUInteger preBufferLength = [preBuffer length];
+	
+	if ((bytesDone + preBufferLength) < termLength)
+	{
+		// Not enough data for a full term sequence yet
+		return preBufferLength;
+	}
+	
+	NSUInteger maxPreBufferLength;
+	if (maxLength > 0) {
+		maxPreBufferLength = MIN(preBufferLength, (maxLength - bytesDone));
+		
+		// Note: maxLength >= termLength
+	}
+	else {
+		maxPreBufferLength = preBufferLength;
+	}
+	
+	Byte seq[termLength];
+	const void *termBuf = [term bytes];
+	
+	NSUInteger bufLen = MIN(bytesDone, (termLength - 1));
+	void *buf = [buffer mutableBytes] + startOffset + bytesDone - bufLen;
+	
+	NSUInteger preLen = termLength - bufLen;
+	void *pre = (void *)[preBuffer bytes];
+	
+	NSUInteger loopCount = bufLen + maxPreBufferLength - termLength + 1; // Plus one. See example above.
+	
+	NSUInteger result = 0;
+	
+	NSUInteger i;
+	for (i = 0; i < loopCount; i++)
+	{
+		if (bufLen > 0)
+		{
+			// Combining bytes from buffer and preBuffer
+			
+			memcpy(seq, buf, bufLen);
+			memcpy(seq + bufLen, pre, preLen);
+			
+			if (memcmp(seq, termBuf, termLength) == 0)
+			{
+				result = preLen;
+				found = YES;
+				break;
+			}
+			
+			buf++;
+			bufLen--;
+			preLen++;
+		}
+		else
+		{
+			// Comparing directly from preBuffer
+			
+			if (memcmp(pre, termBuf, termLength) == 0)
+			{
+				NSUInteger preOffset = pre - [preBuffer bytes]; // pointer arithmetic
+				
+				result = preOffset + termLength;
+				found = YES;
+				break;
+			}
+			
+			pre++;
+		}
+	}
+	
+	// There is no need to avoid resizing the buffer in this particular situation.
+	
+	if (foundPtr) *foundPtr = found;
 	return result;
 }
 
@@ -3304,6 +3430,7 @@ Failed:
 	while(!done && !socketError && !maxoutError && [self hasBytesAvailable])
 	{
 		BOOL didPreBuffer = NO;
+		BOOL didReadFromPreBuffer = NO;
 		
 		// There are 3 types of read packets:
 		// 
@@ -3317,21 +3444,30 @@ Failed:
 		{
 			// Read type #3 - read up to a terminator
 			// 
-			// We may only want to read a few bytes.
+			// If pre-buffering is enabled we'll read a chunk and search for the terminator.
+			// If the terminator is found, overflow data will be placed in the partialReadBuffer for the next read.
+			// 
+			// If pre-buffering is disabled we'll be forced to read only a few bytes.
 			// Just enough to ensure we don't go past our term or over our max limit.
-			// Unless pre-buffering is enabled, in which case we may want to read in a larger chunk.
+			// 
+			// If we already have data pre-buffered, we can read directly from it.
 			
-			// If we already have data pre-buffered, we obviously don't want to pre-buffer it again.
-			// So in this case we'll just read as usual.
-			
-			if (([partialReadBuffer length] > 0) || !(theFlags & kEnablePreBuffering))
+			if ([partialReadBuffer length] > 0)
 			{
-				bytesToRead = [theCurrentRead readLengthForTerm];
+				didReadFromPreBuffer = YES;
+				bytesToRead = [theCurrentRead readLengthForTermWithPreBuffer:partialReadBuffer found:&done];
 			}
 			else
 			{
-				didPreBuffer = YES;
-				bytesToRead = [theCurrentRead prebufferReadLengthForTerm];
+				if (theFlags & kEnablePreBuffering)
+				{
+					didPreBuffer = YES;
+					bytesToRead = [theCurrentRead prebufferReadLengthForTerm];
+				}
+				else
+				{
+					bytesToRead = [theCurrentRead readLengthForTerm];
+				}
 			}
 		}
 		else
@@ -3387,7 +3523,7 @@ Failed:
 		{
 			// Read type #3 - read up to a terminator
 			
-			if(didPreBuffer)
+			if (didPreBuffer)
 			{
 				// Search for the terminating sequence within the big chunk we just read.
 				
@@ -3407,6 +3543,10 @@ Failed:
 				}
 				
 				done = (overflow >= 0);
+			}
+			else if (didReadFromPreBuffer)
+			{
+				// Our 'done' variable was updated via the readLengthForTermWithPreBuffer:found: method
 			}
 			else
 			{
