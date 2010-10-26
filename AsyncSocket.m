@@ -454,7 +454,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 	
 	NSUInteger loopCount = bufLen + maxPreBufferLength - termLength + 1; // Plus one. See example above.
 	
-	NSUInteger result = 0;
+	NSUInteger result = preBufferLength;
 	
 	NSUInteger i;
 	for (i = 0; i < loopCount; i++)
