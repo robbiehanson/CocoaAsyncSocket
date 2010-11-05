@@ -3510,82 +3510,83 @@ Failed:
 			
 			// Update total amount read in this method invocation
 			totalBytesRead += bytesRead;
-		}
 		
-		// Is packet done?
-		if (theCurrentRead->readLength > 0)
-		{
-			// Read type #2 - read a specific length of data
-			
-			done = (theCurrentRead->bytesDone == theCurrentRead->readLength);
-		}
-		else if (theCurrentRead->term != nil)
-		{
-			// Read type #3 - read up to a terminator
-			
-			if (didPreBuffer)
+		
+			// Is packet done?
+			if (theCurrentRead->readLength > 0)
 			{
-				// Search for the terminating sequence within the big chunk we just read.
+				// Read type #2 - read a specific length of data
 				
-				NSInteger overflow = [theCurrentRead searchForTermAfterPreBuffering:result];
+				done = (theCurrentRead->bytesDone == theCurrentRead->readLength);
+			}
+			else if (theCurrentRead->term != nil)
+			{
+				// Read type #3 - read up to a terminator
 				
-				if (overflow > 0)
+				if (didPreBuffer)
 				{
-					// Copy excess data into partialReadBuffer
-					void *overflowBuffer = buffer + theCurrentRead->bytesDone - overflow;
+					// Search for the terminating sequence within the big chunk we just read.
 					
-					[partialReadBuffer appendBytes:overflowBuffer length:overflow];
+					NSInteger overflow = [theCurrentRead searchForTermAfterPreBuffering:result];
 					
-					// Update the bytesDone variable.
-					theCurrentRead->bytesDone -= overflow;
+					if (overflow > 0)
+					{
+						// Copy excess data into partialReadBuffer
+						void *overflowBuffer = buffer + theCurrentRead->bytesDone - overflow;
+						
+						[partialReadBuffer appendBytes:overflowBuffer length:overflow];
+						
+						// Update the bytesDone variable.
+						theCurrentRead->bytesDone -= overflow;
+						
+						// Note: The completeCurrentRead method will trim the buffer for us.
+					}
 					
-					// Note: The completeCurrentRead method will trim the buffer for us.
+					done = (overflow >= 0);
+				}
+				else if (didReadFromPreBuffer)
+				{
+					// Our 'done' variable was updated via the readLengthForTermWithPreBuffer:found: method
+				}
+				else
+				{
+					// Search for the terminating sequence at the end of the buffer
+					
+					NSUInteger termlen = [theCurrentRead->term length];
+					
+					if(theCurrentRead->bytesDone >= termlen)
+					{
+						void *bufferEnd = buffer + (theCurrentRead->bytesDone - termlen);
+						
+						const void *seq = [theCurrentRead->term bytes];
+						
+						done = (memcmp (bufferEnd, seq, termlen) == 0);
+					}
 				}
 				
-				done = (overflow >= 0);
-			}
-			else if (didReadFromPreBuffer)
-			{
-				// Our 'done' variable was updated via the readLengthForTermWithPreBuffer:found: method
+				if(!done && theCurrentRead->maxLength > 0)
+				{
+					// We're not done and there's a set maxLength.
+					// Have we reached that maxLength yet?
+					
+					if(theCurrentRead->bytesDone >= theCurrentRead->maxLength)
+					{
+						maxoutError = YES;
+					}
+				}
 			}
 			else
 			{
-				// Search for the terminating sequence at the end of the buffer
+				// Read type #1 - read all available data
+				// 
+				// We're done when:
+				// - we reach maxLength (if there is a max)
+				// - all readable is read (see below)
 				
-				NSUInteger termlen = [theCurrentRead->term length];
-				
-				if(theCurrentRead->bytesDone >= termlen)
+				if (theCurrentRead->maxLength > 0)
 				{
-					void *bufferEnd = buffer + (theCurrentRead->bytesDone - termlen);
-					
-					const void *seq = [theCurrentRead->term bytes];
-					
-					done = (memcmp (bufferEnd, seq, termlen) == 0);
+					done = (theCurrentRead->bytesDone >= theCurrentRead->maxLength);
 				}
-			}
-			
-			if(!done && theCurrentRead->maxLength > 0)
-			{
-				// We're not done and there's a set maxLength.
-				// Have we reached that maxLength yet?
-				
-				if(theCurrentRead->bytesDone >= theCurrentRead->maxLength)
-				{
-					maxoutError = YES;
-				}
-			}
-		}
-		else
-		{
-			// Read type #1 - read all available data
-			// 
-			// We're done when:
-			// - we reach maxLength (if there is a max)
-			// - all readable is read (see below)
-			
-			if (theCurrentRead->maxLength > 0)
-			{
-				done = (theCurrentRead->bytesDone >= theCurrentRead->maxLength);
 			}
 		}
 	}
