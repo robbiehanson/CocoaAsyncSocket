@@ -14,6 +14,7 @@
 		DC74B1220EE237ED004A1F31 /* libcrypto.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = DC74B1210EE237ED004A1F31 /* libcrypto.dylib */; };
 		DC74B1320EE2387F004A1F31 /* ThreadPoolServer.m in Sources */ = {isa = PBXBuildFile; fileRef = DC74B1310EE2387F004A1F31 /* ThreadPoolServer.m */; };
 		DC74B18A0EE240F5004A1F31 /* ThreadPerConnectionServer.m in Sources */ = {isa = PBXBuildFile; fileRef = DC74B1890EE240F5004A1F31 /* ThreadPerConnectionServer.m */; };
+		DC9A09A2128A528C006AD900 /* HTTPMessage.m in Sources */ = {isa = PBXBuildFile; fileRef = DC9A09A1128A528C006AD900 /* HTTPMessage.m */; };
 		DCAF3D580E56208700FAFF89 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = DCAF3D570E56208700FAFF89 /* AppDelegate.m */; };
 		DCD06676123C96EC006BC411 /* SSCrypto.m in Sources */ = {isa = PBXBuildFile; fileRef = DCD06675123C96EC006BC411 /* SSCrypto.m */; };
 		DCD0667D123C96FE006BC411 /* DDData.m in Sources */ = {isa = PBXBuildFile; fileRef = DCD06678123C96FE006BC411 /* DDData.m */; };
@@ -58,6 +59,8 @@
 		DC74B1310EE2387F004A1F31 /* ThreadPoolServer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ThreadPoolServer.m; sourceTree = "<group>"; };
 		DC74B1880EE240F5004A1F31 /* ThreadPerConnectionServer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ThreadPerConnectionServer.h; sourceTree = "<group>"; };
 		DC74B1890EE240F5004A1F31 /* ThreadPerConnectionServer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ThreadPerConnectionServer.m; sourceTree = "<group>"; };
+		DC9A09A0128A528C006AD900 /* HTTPMessage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = HTTPMessage.h; path = ../../HTTPMessage.h; sourceTree = SOURCE_ROOT; };
+		DC9A09A1128A528C006AD900 /* HTTPMessage.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = HTTPMessage.m; path = ../../HTTPMessage.m; sourceTree = SOURCE_ROOT; };
 		DCAF3D560E56208700FAFF89 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		DCAF3D570E56208700FAFF89 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		DCD06674123C96EC006BC411 /* SSCrypto.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SSCrypto.h; path = ../../SSCrypto.h; sourceTree = SOURCE_ROOT; };
@@ -223,6 +226,8 @@
 				DCD0668E123C9729006BC411 /* HTTPServer.m */,
 				DCD06687123C9729006BC411 /* HTTPConnection.h */,
 				DCD06688123C9729006BC411 /* HTTPConnection.m */,
+				DC9A09A0128A528C006AD900 /* HTTPMessage.h */,
+				DC9A09A1128A528C006AD900 /* HTTPMessage.m */,
 				DCD0668B123C9729006BC411 /* HTTPResponse.h */,
 				DCD0668C123C9729006BC411 /* HTTPResponse.m */,
 				DCD06696123C9761006BC411 /* WebSocket.h */,
@@ -322,6 +327,7 @@
 				DCD06693123C9729006BC411 /* HTTPResponse.m in Sources */,
 				DCD06694123C9729006BC411 /* HTTPServer.m in Sources */,
 				DCD06698123C9761006BC411 /* WebSocket.m in Sources */,
+				DC9A09A2128A528C006AD900 /* HTTPMessage.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -390,11 +396,12 @@
 		C01FCF4F08A954540054247B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(NATIVE_ARCH_ACTUAL)";
+				ARCHS = "$(ONLY_ACTIVE_ARCH_PRE_XCODE_3_1)";
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				ONLY_ACTIVE_ARCH_PRE_XCODE_3_1 = "$(NATIVE_ARCH_ACTUAL)";
 				PREBINDING = NO;
-				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.5.sdk";
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.6.sdk";
 			};
 			name = Debug;
 		};
@@ -406,7 +413,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				PREBINDING = NO;
-				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.5.sdk";
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.6.sdk";
 			};
 			name = Release;
 		};

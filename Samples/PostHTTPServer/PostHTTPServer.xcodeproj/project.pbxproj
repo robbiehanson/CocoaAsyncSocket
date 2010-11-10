@@ -15,6 +15,7 @@
 		DC11285C0ED611E700FA818C /* libcrypto.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = DC11285B0ED611E700FA818C /* libcrypto.dylib */; };
 		DC1128750ED6127E00FA818C /* MyHTTPConnection.m in Sources */ = {isa = PBXBuildFile; fileRef = DC1128740ED6127E00FA818C /* MyHTTPConnection.m */; };
 		DC1128CA0ED61D2B00FA818C /* Web in CopyFiles */ = {isa = PBXBuildFile; fileRef = DC1128C50ED61C4600FA818C /* Web */; };
+		DC9A0A7A128A85B2006AD900 /* HTTPMessage.m in Sources */ = {isa = PBXBuildFile; fileRef = DC9A0A79128A85B2006AD900 /* HTTPMessage.m */; };
 		DCD0662A123C8FB9006BC411 /* SSCrypto.m in Sources */ = {isa = PBXBuildFile; fileRef = DCD06629123C8FB9006BC411 /* SSCrypto.m */; };
 		DCD06631123C8FD0006BC411 /* DDData.m in Sources */ = {isa = PBXBuildFile; fileRef = DCD0662C123C8FD0006BC411 /* DDData.m */; };
 		DCD06632123C8FD0006BC411 /* DDNumber.m in Sources */ = {isa = PBXBuildFile; fileRef = DCD0662E123C8FD0006BC411 /* DDNumber.m */; };
@@ -60,6 +61,8 @@
 		DC1128730ED6127E00FA818C /* MyHTTPConnection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MyHTTPConnection.h; sourceTree = "<group>"; };
 		DC1128740ED6127E00FA818C /* MyHTTPConnection.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MyHTTPConnection.m; sourceTree = "<group>"; };
 		DC1128C50ED61C4600FA818C /* Web */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Web; sourceTree = "<group>"; };
+		DC9A0A78128A85B2006AD900 /* HTTPMessage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = HTTPMessage.h; path = ../../HTTPMessage.h; sourceTree = SOURCE_ROOT; };
+		DC9A0A79128A85B2006AD900 /* HTTPMessage.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = HTTPMessage.m; path = ../../HTTPMessage.m; sourceTree = SOURCE_ROOT; };
 		DCD06628123C8FB9006BC411 /* SSCrypto.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SSCrypto.h; path = ../../SSCrypto.h; sourceTree = SOURCE_ROOT; };
 		DCD06629123C8FB9006BC411 /* SSCrypto.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = SSCrypto.m; path = ../../SSCrypto.m; sourceTree = SOURCE_ROOT; };
 		DCD0662B123C8FD0006BC411 /* DDData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDData.h; path = ../../DDData.h; sourceTree = SOURCE_ROOT; };
@@ -191,6 +194,8 @@
 				DCD06642123C9000006BC411 /* HTTPServer.m */,
 				DCD0663B123C9000006BC411 /* HTTPConnection.h */,
 				DCD0663C123C9000006BC411 /* HTTPConnection.m */,
+				DC9A0A78128A85B2006AD900 /* HTTPMessage.h */,
+				DC9A0A79128A85B2006AD900 /* HTTPMessage.m */,
 				DCD0663F123C9000006BC411 /* HTTPResponse.h */,
 				DCD06640123C9000006BC411 /* HTTPResponse.m */,
 				DCD0664A123C903A006BC411 /* WebSocket.h */,
@@ -320,6 +325,7 @@
 				DCD06647123C9000006BC411 /* HTTPResponse.m in Sources */,
 				DCD06648123C9000006BC411 /* HTTPServer.m in Sources */,
 				DCD0664C123C903A006BC411 /* WebSocket.m in Sources */,
+				DC9A0A7A128A85B2006AD900 /* HTTPMessage.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -379,26 +385,26 @@
 		C01FCF4F08A954540054247B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PREBINDING = NO;
-				SDKROOT = macosx10.5;
+				SDKROOT = macosx10.6;
 			};
 			name = Debug;
 		};
 		C01FCF5008A954540054247B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				PREBINDING = NO;
-				SDKROOT = macosx10.5;
+				SDKROOT = macosx10.6;
 			};
 			name = Release;
 		};

@@ -48,7 +48,7 @@ static NSOperationQueue *operationQueue;
              separator:(NSString *)separatorStr
  replacementDictionary:(NSDictionary *)dict
 {
-	if((self = [super init]))
+	if ((self = [super init]))
 	{
 		connection = parent; // Parents retain children, children do NOT retain parents
 		
@@ -58,7 +58,7 @@ static NSOperationQueue *operationQueue;
 		filePath = [fpath copy];
 		fileHandle = [[NSFileHandle fileHandleForReadingAtPath:filePath] retain];
 		
-		if(fileHandle == nil)
+		if (fileHandle == nil)
 		{
 			[self release];
 			return nil;
@@ -126,7 +126,7 @@ static NSOperationQueue *operationQueue;
 
 - (NSData *)readDataOfLength:(NSUInteger)length
 {
-	if(available == 0)
+	if (available == 0)
 	{
 		if (!asyncReadInProgress)
 		{

@@ -25,6 +25,7 @@
 		DC41D6D90C178D5700F8D00D /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = DC41D6D70C178D5700F8D00D /* AppDelegate.m */; };
 		DC7A904A0EB8D297000BA995 /* SSCrypto.m in Sources */ = {isa = PBXBuildFile; fileRef = DC7A90490EB8D297000BA995 /* SSCrypto.m */; };
 		DC7A90540EB8D2EB000BA995 /* libcrypto.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = DC7A90530EB8D2EB000BA995 /* libcrypto.dylib */; };
+		DC9A0996128A5275006AD900 /* HTTPMessage.m in Sources */ = {isa = PBXBuildFile; fileRef = DC9A0995128A5275006AD900 /* HTTPMessage.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -78,6 +79,8 @@
 		DC7A90480EB8D297000BA995 /* SSCrypto.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SSCrypto.h; path = ../../SSCrypto.h; sourceTree = "<group>"; };
 		DC7A90490EB8D297000BA995 /* SSCrypto.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = SSCrypto.m; path = ../../SSCrypto.m; sourceTree = "<group>"; };
 		DC7A90530EB8D2EB000BA995 /* libcrypto.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcrypto.dylib; path = /usr/lib/libcrypto.dylib; sourceTree = "<absolute>"; };
+		DC9A0994128A5275006AD900 /* HTTPMessage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = HTTPMessage.h; path = ../../HTTPMessage.h; sourceTree = SOURCE_ROOT; };
+		DC9A0995128A5275006AD900 /* HTTPMessage.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = HTTPMessage.m; path = ../../HTTPMessage.m; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -191,6 +194,8 @@
 				DC278B511276714F00EAFA9F /* HTTPServer.m */,
 				DC278B4A1276714F00EAFA9F /* HTTPConnection.h */,
 				DC278B4B1276714F00EAFA9F /* HTTPConnection.m */,
+				DC9A0994128A5275006AD900 /* HTTPMessage.h */,
+				DC9A0995128A5275006AD900 /* HTTPMessage.m */,
 				DC278B4E1276714F00EAFA9F /* HTTPResponse.h */,
 				DC278B4F1276714F00EAFA9F /* HTTPResponse.m */,
 				DC278B581276717D00EAFA9F /* WebSocket.h */,
@@ -310,6 +315,7 @@
 				DC278B561276714F00EAFA9F /* HTTPResponse.m in Sources */,
 				DC278B571276714F00EAFA9F /* HTTPServer.m in Sources */,
 				DC278B5A1276717D00EAFA9F /* WebSocket.m in Sources */,
+				DC9A0996128A5275006AD900 /* HTTPMessage.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -359,10 +365,6 @@
 		C01FCF4C08A954540054247B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = (
-					ppc,
-					i386,
-				);
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_1)",
@@ -380,15 +382,16 @@
 		C01FCF4F08A954540054247B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(NATIVE_ARCH)";
+				ARCHS = "$(ONLY_ACTIVE_ARCH_PRE_XCODE_3_1)";
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_MISSING_PARENTHESES = YES;
 				GCC_WARN_SHADOW = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				ONLY_ACTIVE_ARCH_PRE_XCODE_3_1 = "$(NATIVE_ARCH_ACTUAL)";
 				PREBINDING = NO;
-				SDKROOT = /Developer/SDKs/MacOSX10.5.sdk;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.6.sdk";
 			};
 			name = Debug;
 		};
@@ -396,7 +399,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_32_64_BIT_PRE_XCODE_3_1)";
-				ARCHS_STANDARD_32_64_BIT_PRE_XCODE_3_1 = "ppc i386 ppc64 x86_64";
+				ARCHS_STANDARD_32_64_BIT_PRE_XCODE_3_1 = "x86_64 i386 ppc";
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
@@ -404,7 +407,7 @@
 				GCC_WARN_SHADOW = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				PREBINDING = NO;
-				SDKROOT = /Developer/SDKs/MacOSX10.5.sdk;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.6.sdk";
 			};
 			name = Release;
 		};

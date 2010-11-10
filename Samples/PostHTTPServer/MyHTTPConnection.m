@@ -1,4 +1,5 @@
 #import "MyHTTPConnection.h"
+#import "HTTPMessage.h"
 #import "HTTPResponse.h"
 #import "DDNumber.h"
 
@@ -37,17 +38,16 @@
 
 - (NSObject<HTTPResponse> *)httpResponseForMethod:(NSString *)method URI:(NSString *)path
 {
-	if([method isEqualToString:@"POST"] && [path isEqualToString:@"/post.html"])
+	if ([method isEqualToString:@"POST"] && [path isEqualToString:@"/post.html"])
 	{
 		NSLog(@"postContentLength: %qu", requestContentLength);
 		
 		NSString *postStr = nil;
 		
-		CFDataRef postData = CFHTTPMessageCopyBody(request);
-		if(postData)
+		NSData *postData = [request body];
+		if (postData)
 		{
-			postStr = [[[NSString alloc] initWithData:(NSData *)postData encoding:NSUTF8StringEncoding] autorelease];
-			CFRelease(postData);
+			postStr = [[[NSString alloc] initWithData:postData encoding:NSUTF8StringEncoding] autorelease];
 		}
 		
 		NSLog(@"postStr: %@", postStr);
@@ -85,9 +85,8 @@
 	// The size of the chunks are limited by the POST_CHUNKSIZE definition.
 	// Therefore, this method may be called multiple times for the same POST request.
 	
-	BOOL result = CFHTTPMessageAppendBytes(request, [postDataChunk bytes], [postDataChunk length]);
-	
-	if(!result)
+	BOOL result = [request appendData:postDataChunk];
+	if (!result)
 	{
 		NSLog(@"Couldn't append bytes!");
 	}

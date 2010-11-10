@@ -6,6 +6,7 @@
 #endif
 
 @class AsyncSocket;
+@class HTTPMessage;
 @class HTTPServer;
 @class WebSocket;
 @protocol HTTPResponse;
@@ -18,7 +19,7 @@
 	AsyncSocket *asyncSocket;
 	HTTPServer *server;
 	
-	CFHTTPMessageRef request;
+	HTTPMessage *request;
 	int numHeaderLines;
 	
 	NSString *nonce;
@@ -69,8 +70,8 @@
 - (void)handleInvalidRequest:(NSData *)data;
 - (void)handleUnknownMethod:(NSString *)method;
 
-- (NSData *)preprocessResponse:(CFHTTPMessageRef)response;
-- (NSData *)preprocessErrorResponse:(CFHTTPMessageRef)response;
+- (NSData *)preprocessResponse:(HTTPMessage *)response;
+- (NSData *)preprocessErrorResponse:(HTTPMessage *)response;
 
 - (BOOL)shouldDie;
 - (void)die;

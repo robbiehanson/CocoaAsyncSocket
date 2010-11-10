@@ -1,4 +1,5 @@
 #import "MyHTTPConnection.h"
+#import "HTTPMessage.h"
 #import "HTTPResponse.h"
 #import "HTTPDynamicFileResponse.h"
 #import "AsyncSocket.h"
@@ -22,7 +23,7 @@
 		
 		NSString *wsLocation;
 		
-		NSString *wsHost = NSMakeCollectable(CFHTTPMessageCopyHeaderFieldValue(request, CFSTR("Host")));
+		NSString *wsHost = [request headerField:@"Host"];
 		if (wsHost == nil)
 		{
 			NSString *port = [NSString stringWithFormat:@"%hu", [asyncSocket localPort]];
@@ -32,7 +33,6 @@
 		{
 			wsLocation = [NSString stringWithFormat:@"ws://%@/service", wsHost];
 		}
-		[wsHost release];
 		
 		NSDictionary *replacementDict = [NSDictionary dictionaryWithObject:wsLocation forKey:@"WEBSOCKET_URL"];
 		

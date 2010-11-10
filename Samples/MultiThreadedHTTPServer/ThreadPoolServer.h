@@ -10,12 +10,20 @@
 #import "HTTPConnection.h"
 
 // Define number of connection threads to run
-#define THREAD_POOL_SIZE  10
+#define THREAD_POOL_SIZE  4
+
+// Attempt primitive load balancing of thread pool
+#define THREAD_POOL_LOAD_BALANCE 0
 
 @interface ThreadPoolServer : HTTPServer
 {
 	NSMutableArray *runLoops;
+	
+#if THREAD_POOL_LOAD_BALANCE
 	NSMutableArray *runLoopsLoad;
+#else
+	int nextRunLoopIndex;
+#endif	
 }
 
 @end

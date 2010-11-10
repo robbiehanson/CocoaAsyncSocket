@@ -16,16 +16,21 @@
 		// Initialize an array to reference all the threads
 		runLoops = [[NSMutableArray alloc] initWithCapacity:THREAD_POOL_SIZE];
 		
-		// Initialize an array to hold the number of connections being processed for each thread
-		runLoopsLoad = [[NSMutableArray alloc] initWithCapacity:THREAD_POOL_SIZE];
+		#if THREAD_POOL_LOAD_BALANCE
+			// Initialize an array to hold the number of connections being processed for each thread
+			runLoopsLoad = [[NSMutableArray alloc] initWithCapacity:THREAD_POOL_SIZE];
+		#else
+			// Initialize run loop index
+			nextRunLoopIndex = 0;
+		#endif
 		
 		// Start threads
-		uint i;
+		NSUInteger i;
 		for(i = 0; i < THREAD_POOL_SIZE; i++)
 		{
 			[NSThread detachNewThreadSelector:@selector(connectionThread:)
 			                         toTarget:self
-			                       withObject:[NSNumber numberWithUnsignedInt:i]];
+			                       withObject:[NSNumber numberWithUnsignedInteger:i]];
 		}
 	}
 	return self;
@@ -39,7 +44,10 @@
 	@synchronized(runLoops)
 	{
 		[runLoops addObject:[NSRunLoop currentRunLoop]];
-		[runLoopsLoad addObject:[NSNumber numberWithUnsignedInt:0]];
+		
+		#if THREAD_POOL_LOAD_BALANCE
+			[runLoopsLoad addObject:[NSNumber numberWithUnsignedInteger:0]];
+		#endif
 	}
 	
 	NSLog(@"Starting thread %@", threadNum);
@@ -61,37 +69,51 @@
 - (NSRunLoop *)onSocket:(AsyncSocket *)sock wantsRunLoopForNewSocket:(AsyncSocket *)newSocket
 {
 	// Figure out what thread/runloop to run the new connection on.
+	
+	#if THREAD_POOL_LOAD_BALANCE
+	
 	// We choose the thread/runloop with the lowest number of connections.
 	
-	uint m = 0;
 	NSRunLoop *mLoop = nil;
-	uint mLoad = 0;
+	NSUInteger m = 0;
+	NSUInteger mLoad = 0;
 	
 	@synchronized(runLoops)
 	{
 		mLoop = [runLoops objectAtIndex:0];
-		mLoad = [[runLoopsLoad objectAtIndex:0] unsignedIntValue];
+		mLoad = [[runLoopsLoad objectAtIndex:0] unsignedIntegerValue];
 		
-		uint i;
+		NSUInteger i;
 		for(i = 1; i < THREAD_POOL_SIZE; i++)
 		{
-			uint iLoad = [[runLoopsLoad objectAtIndex:i] unsignedIntValue];
+			NSUInteger iLoad = [[runLoopsLoad objectAtIndex:i] unsignedIntegerValue];
 			
-			if(iLoad < mLoad)
+			if (iLoad < mLoad)
 			{
-				m = i;
 				mLoop = [runLoops objectAtIndex:i];
+				m = i;
 				mLoad = iLoad;
 			}
 		}
 		
-		[runLoopsLoad replaceObjectAtIndex:m withObject:[NSNumber numberWithUnsignedInt:(mLoad + 1)]];
+		[runLoopsLoad replaceObjectAtIndex:m withObject:[NSNumber numberWithUnsignedInteger:(mLoad + 1)]];
 	}
 	
-	NSLog(@"Choosing run loop %u with load %u", m, mLoad);
+//	NSLog(@"Choosing run loop %u with load %u", m, mLoad);
 	
-	// And finally, return the proper run loop
 	return mLoop;
+	
+	#else
+	
+	NSRunLoop *runLoop = [runLoops objectAtIndex:nextRunLoopIndex];
+	
+	nextRunLoopIndex++;
+	if (nextRunLoopIndex >= THREAD_POOL_SIZE)
+		nextRunLoopIndex = 0;
+	
+	return runLoop;
+	
+	#endif
 }
 
 /**
@@ -102,21 +124,25 @@
 {
 	// Note: This method is called on the thread/runloop that posted the notification
 	
+	#if THREAD_POOL_LOAD_BALANCE
+	
 	@synchronized(runLoops)
 	{
-		unsigned int runLoopIndex = [runLoops indexOfObject:[NSRunLoop currentRunLoop]];
+		NSUInteger runLoopIndex = [runLoops indexOfObject:[NSRunLoop currentRunLoop]];
 		
-		if(runLoopIndex < [runLoops count])
+		if (runLoopIndex < [runLoops count])
 		{
-			unsigned int runLoopLoad = [[runLoopsLoad objectAtIndex:runLoopIndex] unsignedIntValue];
+			NSUInteger runLoopLoad = [[runLoopsLoad objectAtIndex:runLoopIndex] unsignedIntegerValue];
 			
-			NSNumber *newLoad = [NSNumber numberWithUnsignedInt:(runLoopLoad - 1)];
+			NSNumber *newLoad = [NSNumber numberWithUnsignedInteger:(runLoopLoad - 1)];
 			
 			[runLoopsLoad replaceObjectAtIndex:runLoopIndex withObject:newLoad];
 			
-			NSLog(@"Updating run loop %u with load %@", runLoopIndex, newLoad);
+		//	NSLog(@"Updating run loop %u with load %@", runLoopIndex, newLoad);
 		}
 	}
+	
+	#endif
 	
 	// Don't forget to call super, or the connection won't get proper deallocated!
 	[super connectionDidDie:notification];

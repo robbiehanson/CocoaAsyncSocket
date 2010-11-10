@@ -25,6 +25,7 @@
 		DC753F29117E85960072A9C4 /* HTTPServer.m in Sources */ = {isa = PBXBuildFile; fileRef = DC753F24117E85960072A9C4 /* HTTPServer.m */; };
 		DC753F2D117E85F90072A9C4 /* MyHTTPConnection.m in Sources */ = {isa = PBXBuildFile; fileRef = DC753F2C117E85F90072A9C4 /* MyHTTPConnection.m */; };
 		DC753F40117E8EC30072A9C4 /* MyWebSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = DC753F3F117E8EC30072A9C4 /* MyWebSocket.m */; };
+		DC9A0ACF128A88E7006AD900 /* HTTPMessage.m in Sources */ = {isa = PBXBuildFile; fileRef = DC9A0ACE128A88E7006AD900 /* HTTPMessage.m */; };
 		DCA3F5DA123C18E4005C88BB /* WebSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = DCA3F5D9123C18E4005C88BB /* WebSocket.m */; };
 		DCA3F605123C1C8B005C88BB /* HTTPDynamicFileResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = DCA3F604123C1C8B005C88BB /* HTTPDynamicFileResponse.m */; };
 		DCE8083B1180AB500020037F /* Web in Resources */ = {isa = PBXBuildFile; fileRef = DCE808361180AB500020037F /* Web */; };
@@ -68,6 +69,8 @@
 		DC753F2C117E85F90072A9C4 /* MyHTTPConnection.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MyHTTPConnection.m; sourceTree = "<group>"; };
 		DC753F3E117E8EC30072A9C4 /* MyWebSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MyWebSocket.h; sourceTree = "<group>"; };
 		DC753F3F117E8EC30072A9C4 /* MyWebSocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MyWebSocket.m; sourceTree = "<group>"; };
+		DC9A0ACD128A88E7006AD900 /* HTTPMessage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = HTTPMessage.h; path = ../../HTTPMessage.h; sourceTree = SOURCE_ROOT; };
+		DC9A0ACE128A88E7006AD900 /* HTTPMessage.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = HTTPMessage.m; path = ../../HTTPMessage.m; sourceTree = SOURCE_ROOT; };
 		DCA3F5CE123C186E005C88BB /* WebSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = WebSocket.h; path = ../../WebSocket.h; sourceTree = SOURCE_ROOT; };
 		DCA3F5D9123C18E4005C88BB /* WebSocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = WebSocket.m; path = ../../WebSocket.m; sourceTree = SOURCE_ROOT; };
 		DCA3F603123C1C8B005C88BB /* HTTPDynamicFileResponse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = HTTPDynamicFileResponse.h; path = ../../HTTPDynamicFileResponse.h; sourceTree = SOURCE_ROOT; };
@@ -182,6 +185,8 @@
 				DC753F24117E85960072A9C4 /* HTTPServer.m */,
 				DC753F1F117E85960072A9C4 /* HTTPConnection.h */,
 				DC753F20117E85960072A9C4 /* HTTPConnection.m */,
+				DC9A0ACD128A88E7006AD900 /* HTTPMessage.h */,
+				DC9A0ACE128A88E7006AD900 /* HTTPMessage.m */,
 				DC753F21117E85960072A9C4 /* HTTPResponse.h */,
 				DC753F22117E85960072A9C4 /* HTTPResponse.m */,
 				DCA3F5CE123C186E005C88BB /* WebSocket.h */,
@@ -312,6 +317,7 @@
 				DC753F40117E8EC30072A9C4 /* MyWebSocket.m in Sources */,
 				DCA3F5DA123C18E4005C88BB /* WebSocket.m in Sources */,
 				DCA3F605123C1C8B005C88BB /* HTTPDynamicFileResponse.m in Sources */,
+				DC9A0ACF128A88E7006AD900 /* HTTPMessage.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

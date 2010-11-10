@@ -24,6 +24,7 @@
 		DC5BD6450FC333AE00DA9B03 /* libcrypto.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = DC5BD6440FC333AE00DA9B03 /* libcrypto.dylib */; };
 		DC5BD6520FC333F400DA9B03 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = DC5BD6510FC333F400DA9B03 /* AppDelegate.m */; };
 		DC5BD6550FC3345600DA9B03 /* MyHTTPConnection.m in Sources */ = {isa = PBXBuildFile; fileRef = DC5BD6540FC3345600DA9B03 /* MyHTTPConnection.m */; };
+		DC9A0A5E128A852E006AD900 /* HTTPMessage.m in Sources */ = {isa = PBXBuildFile; fileRef = DC9A0A5D128A852E006AD900 /* HTTPMessage.m */; };
 		DCA3F649123C2330005C88BB /* WebSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = DCA3F648123C2330005C88BB /* WebSocket.m */; };
 		DCA3F64C123C249D005C88BB /* HTTPDynamicFileResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = DCA3F64B123C249D005C88BB /* HTTPDynamicFileResponse.m */; };
 /* End PBXBuildFile section */
@@ -64,6 +65,8 @@
 		DC5BD6510FC333F400DA9B03 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		DC5BD6530FC3345600DA9B03 /* MyHTTPConnection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MyHTTPConnection.h; sourceTree = "<group>"; };
 		DC5BD6540FC3345600DA9B03 /* MyHTTPConnection.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MyHTTPConnection.m; sourceTree = "<group>"; };
+		DC9A0A5C128A852E006AD900 /* HTTPMessage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = HTTPMessage.h; path = ../../HTTPMessage.h; sourceTree = SOURCE_ROOT; };
+		DC9A0A5D128A852E006AD900 /* HTTPMessage.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = HTTPMessage.m; path = ../../HTTPMessage.m; sourceTree = SOURCE_ROOT; };
 		DCA3F647123C2330005C88BB /* WebSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = WebSocket.h; path = ../../WebSocket.h; sourceTree = SOURCE_ROOT; };
 		DCA3F648123C2330005C88BB /* WebSocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = WebSocket.m; path = ../../WebSocket.m; sourceTree = SOURCE_ROOT; };
 		DCA3F64A123C249D005C88BB /* HTTPDynamicFileResponse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = HTTPDynamicFileResponse.h; path = ../../HTTPDynamicFileResponse.h; sourceTree = SOURCE_ROOT; };
@@ -205,6 +208,8 @@
 				DC5BD63D0FC3337500DA9B03 /* HTTPServer.m */,
 				DC5BD6380FC3337500DA9B03 /* HTTPConnection.h */,
 				DC5BD6390FC3337500DA9B03 /* HTTPConnection.m */,
+				DC9A0A5C128A852E006AD900 /* HTTPMessage.h */,
+				DC9A0A5D128A852E006AD900 /* HTTPMessage.m */,
 				DC5BD63A0FC3337500DA9B03 /* HTTPResponse.h */,
 				DC5BD63B0FC3337500DA9B03 /* HTTPResponse.m */,
 				DCA3F647123C2330005C88BB /* WebSocket.h */,
@@ -302,6 +307,7 @@
 				DC5BD6550FC3345600DA9B03 /* MyHTTPConnection.m in Sources */,
 				DCA3F649123C2330005C88BB /* WebSocket.m in Sources */,
 				DCA3F64C123C249D005C88BB /* HTTPDynamicFileResponse.m in Sources */,
+				DC9A0A5E128A852E006AD900 /* HTTPMessage.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -361,26 +367,26 @@
 		C01FCF4F08A954540054247B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PREBINDING = NO;
-				SDKROOT = macosx10.5;
+				SDKROOT = macosx10.6;
 			};
 			name = Debug;
 		};
 		C01FCF5008A954540054247B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				PREBINDING = NO;
-				SDKROOT = macosx10.5;
+				SDKROOT = macosx10.6;
 			};
 			name = Release;
 		};

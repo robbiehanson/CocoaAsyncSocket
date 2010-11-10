@@ -1,11 +1,11 @@
 #import <Cocoa/Cocoa.h>
 
-@class MyHTTPServer;
+@class HTTPServer;
 
 
 @interface SimpleWebSocketServerAppDelegate : NSObject <NSApplicationDelegate>
 {
-	MyHTTPServer *httpServer;
+	HTTPServer *httpServer;
 	NSWindow *window;
 }
 

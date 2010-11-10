@@ -355,10 +355,10 @@
 	NSLog(@"outItems: %@", (NSArray *)outItems);
 	
 	// Don't forget to delete the temporary files
-	[[NSFileManager defaultManager] removeFileAtPath:privateKeyPath handler:nil];
-	[[NSFileManager defaultManager] removeFileAtPath:reqConfPath handler:nil];
-	[[NSFileManager defaultManager] removeFileAtPath:certificatePath handler:nil];
-	[[NSFileManager defaultManager] removeFileAtPath:certWrapperPath handler:nil];
+	[[NSFileManager defaultManager] removeItemAtPath:privateKeyPath  error:nil];
+	[[NSFileManager defaultManager] removeItemAtPath:reqConfPath     error:nil];
+	[[NSFileManager defaultManager] removeItemAtPath:certificatePath error:nil];
+	[[NSFileManager defaultManager] removeItemAtPath:certWrapperPath error:nil];
 	
 	// Don't forget to release anything we may have created
 	if(keychain)   CFRelease(keychain);
@@ -500,7 +500,7 @@
 	NSFileManager *fileManager = [NSFileManager defaultManager];
 	if([fileManager fileExistsAtPath:appTempDir] == NO)
 	{
-		[fileManager createDirectoryAtPath:appTempDir attributes:nil];
+		[fileManager createDirectoryAtPath:appTempDir withIntermediateDirectories:YES attributes:nil error:nil];
 	}
 	
 	return appTempDir;

@@ -39,7 +39,7 @@ static NSOperationQueue *operationQueue;
 
 - (id)initWithFilePath:(NSString *)fpath forConnection:(HTTPConnection *)parent runLoopModes:(NSArray *)modes
 {
-	if((self = [super init]))
+	if ((self = [super init]))
 	{
 		connection = parent; // Parents retain children, children do NOT retain parents
 		
@@ -49,7 +49,7 @@ static NSOperationQueue *operationQueue;
 		filePath = [fpath copy];
 		fileHandle = [[NSFileHandle fileHandleForReadingAtPath:filePath] retain];
 		
-		if(fileHandle == nil)
+		if (fileHandle == nil)
 		{
 			[self release];
 			return nil;
@@ -104,7 +104,7 @@ static NSOperationQueue *operationQueue;
 
 - (NSData *)readDataOfLength:(NSUInteger)length
 {
-	if(data == nil)
+	if (data == nil)
 	{
 		if (!asyncReadInProgress)
 		{

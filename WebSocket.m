@@ -1,4 +1,5 @@
 #import "WebSocket.h"
+#import "HTTPMessage.h"
 #import "AsyncSocket.h"
 #import "DDNumber.h"
 #import "DDData.h"
@@ -29,7 +30,7 @@
 
 @implementation WebSocket
 
-+ (BOOL)isWebSocketRequest:(CFHTTPMessageRef)request
++ (BOOL)isWebSocketRequest:(HTTPMessage *)request
 {
 	// Request (Draft 75):
 	// 
@@ -58,11 +59,8 @@
 	// If we find them, and they have the proper value,
 	// we can safely assume this is a websocket request.
 	
-	CFStringRef uhv = CFHTTPMessageCopyHeaderFieldValue(request, CFSTR("Upgrade"));
-	CFStringRef chv = CFHTTPMessageCopyHeaderFieldValue(request, CFSTR("Connection"));
-	
-	NSString *upgradeHeaderValue = NSMakeCollectable(uhv);
-	NSString *connectionHeaderValue = NSMakeCollectable(chv);
+	NSString *upgradeHeaderValue = [request headerField:@"Upgrade"];
+	NSString *connectionHeaderValue = [request headerField:@"Connection"];
 	
 	BOOL isWebSocket = YES;
 	
@@ -76,19 +74,13 @@
 		isWebSocket = NO;
 	}
 	
-	[upgradeHeaderValue release];
-	[connectionHeaderValue release];
-	
 	return isWebSocket;
 }
 
-+ (BOOL)isVersion76Request:(CFHTTPMessageRef)request
++ (BOOL)isVersion76Request:(HTTPMessage *)request
 {
-	CFStringRef k1 = CFHTTPMessageCopyHeaderFieldValue(request, CFSTR("Sec-WebSocket-Key1"));
-	CFStringRef k2 = CFHTTPMessageCopyHeaderFieldValue(request, CFSTR("Sec-WebSocket-Key2"));
-	
-	NSString *key1 = NSMakeCollectable(k1);
-	NSString *key2 = NSMakeCollectable(k2);
+	NSString *key1 = [request headerField:@"Sec-WebSocket-Key1"];
+	NSString *key2 = [request headerField:@"Sec-WebSocket-Key2"];
 	
 	BOOL isVersion76;
 	
@@ -99,9 +91,6 @@
 		isVersion76 = YES;
 	}
 	
-	[key1 release];
-	[key2 release];
-	
 	return isVersion76;
 }
 
@@ -109,18 +98,17 @@
 #pragma mark Setup and Teardown
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-- (id)initWithRequest:(CFHTTPMessageRef)aRequest socket:(AsyncSocket *)socket
+- (id)initWithRequest:(HTTPMessage *)aRequest socket:(AsyncSocket *)socket
 {
-	if (aRequest == NULL)
+	if (aRequest == nil)
 	{
 		[self release];
 		return nil;
 	}
 	
-	if((self = [super init]))
+	if ((self = [super init]))
 	{
-		request = aRequest;
-		CFRetain(request);
+		request = [aRequest retain];
 		
 		asyncSocket = [socket retain];
 		[asyncSocket setDelegate:self];
@@ -145,7 +133,7 @@
 
 - (void)dealloc
 {
-	CFRelease(request);
+	[request release];
 	
 	[asyncSocket setDelegate:nil];
 	[asyncSocket release];
@@ -166,7 +154,7 @@
 
 - (NSString *)originResponseHeaderValue
 {
-	NSString *origin = NSMakeCollectable(CFHTTPMessageCopyHeaderFieldValue(request, CFSTR("Origin")));
+	NSString *origin = [request headerField:@"Origin"];
 	
 	if (origin == nil)
 	{
@@ -176,17 +164,16 @@
 	}
 	else
 	{
-		return [origin autorelease];
+		return origin;
 	}
 }
 
 - (NSString *)locationResponseHeaderValue
 {
 	NSString *location;
-	NSString *host = NSMakeCollectable(CFHTTPMessageCopyHeaderFieldValue(request, CFSTR("Host")));
+	NSString *host = [request headerField:@"Host"];
 	
-	NSURL *uri = NSMakeCollectable(CFHTTPMessageCopyRequestURL(request));
-	NSString *requestUri = [uri relativeString];
+	NSString *requestUri = [[request url] relativeString];
 	
 	if (host == nil)
 	{
@@ -198,9 +185,6 @@
 	{
 		location = [NSString stringWithFormat:@"ws://%@%@", host, requestUri];
 	}
-	
-	[uri release];
-	[host release];
 	
 	return location;
 }
@@ -253,12 +237,12 @@
 	// 8jKS'y:G*Co,Wxa-
 
 	
-	CFHTTPMessageRef wsResponse = CFHTTPMessageCreateResponse(kCFAllocatorDefault,
-															  101, CFSTR("Web Socket Protocol Handshake"),
-															  kCFHTTPVersion1_1);
+	HTTPMessage *wsResponse = [[HTTPMessage alloc] initResponseWithStatusCode:101
+	                                                              description:@"Web Socket Protocol Handshake"
+	                                                                  version:HTTPVersion1_1];
 	
-	CFHTTPMessageSetHeaderFieldValue(wsResponse, CFSTR("Upgrade"), CFSTR("WebSocket"));
-	CFHTTPMessageSetHeaderFieldValue(wsResponse, CFSTR("Connection"), CFSTR("Upgrade"));
+	[wsResponse setHeaderField:@"Upgrade" value:@"WebSocket"];
+	[wsResponse setHeaderField:@"Connection" value:@"Upgrade"];
 	
 	// Note: It appears that WebSocket-Origin and WebSocket-Location
 	// are required for Google's Chrome implementation to work properly.
@@ -275,13 +259,13 @@
 	NSString *originField = isVersion76 ? @"Sec-WebSocket-Origin" : @"WebSocket-Origin";
 	NSString *locationField = isVersion76 ? @"Sec-WebSocket-Location" : @"WebSocket-Location";
 	
-	CFHTTPMessageSetHeaderFieldValue(wsResponse, (CFStringRef)originField, (CFStringRef)originValue);
-	CFHTTPMessageSetHeaderFieldValue(wsResponse, (CFStringRef)locationField, (CFStringRef)locationValue);
+	[wsResponse setHeaderField:originField value:originValue];
+	[wsResponse setHeaderField:locationField value:locationValue];
 	
 	// Do not invoke super.
 	// These are the only headers required for a WebSocket.
 	
-	NSData *responseHeaders = NSMakeCollectable(CFHTTPMessageCopySerializedMessage(wsResponse));
+	NSData *responseHeaders = [wsResponse messageData];
 	
 #if DEBUG
 	
@@ -292,8 +276,6 @@
 #endif
 	
 	[asyncSocket writeData:responseHeaders withTimeout:TIMEOUT_NONE tag:TAG_HTTP_RESPONSE_HEADERS];
-	
-	[responseHeaders release];
 }
 
 - (NSData *)processKey:(NSString *)key
@@ -337,14 +319,10 @@
 	
 #endif
 	
-	// Convert result to big-endian (network byte order)
-	
-	long resultNetworkNum = htonl(resultHostNum);
-	
-	// Convert result to 4 byte integer,
+	// Convert result to 4 byte big-endian (network byte order)
 	// and then convert to raw data.
 	
-	SInt32 result = (SInt32)resultNetworkNum;
+	UInt32 result = EndianU32_LtoN((UInt32)resultHostNum);
 	
 	return [NSData dataWithBytes:&result length:4];
 }
@@ -354,11 +332,8 @@
 	NSAssert(isVersion76, @"WebSocket version 75 doesn't contain a response body");
 	NSAssert([d3 length] == 8, @"Invalid requestBody length");
 	
-	CFStringRef k1 = CFHTTPMessageCopyHeaderFieldValue(request, CFSTR("Sec-WebSocket-Key1"));
-	CFStringRef k2 = CFHTTPMessageCopyHeaderFieldValue(request, CFSTR("Sec-WebSocket-Key2"));
-	
-	NSString *key1 = NSMakeCollectable(k1);
-	NSString *key2 = NSMakeCollectable(k2);
+	NSString *key1 = [request headerField:@"Sec-WebSocket-Key1"];
+	NSString *key2 = [request headerField:@"Sec-WebSocket-Key2"];
 	
 	NSData *d1 = [self processKey:key1];
 	NSData *d2 = [self processKey:key2];
@@ -401,9 +376,6 @@
 	[sH release];
 	
 #endif
-	
-	[key1 release];
-	[key2 release];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

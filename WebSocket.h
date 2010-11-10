@@ -1,5 +1,6 @@
 #import <Foundation/Foundation.h>
 
+@class HTTPMessage;
 @class AsyncSocket;
 
 
@@ -7,7 +8,7 @@
 
 @interface WebSocket : NSObject
 {
-	CFHTTPMessageRef request;
+	HTTPMessage *request;
 	AsyncSocket *asyncSocket;
 	
 	NSData *term;
@@ -16,9 +17,9 @@
 	BOOL isVersion76;
 }
 
-+ (BOOL)isWebSocketRequest:(CFHTTPMessageRef)request;
++ (BOOL)isWebSocketRequest:(HTTPMessage *)request;
 
-- (id)initWithRequest:(CFHTTPMessageRef)request socket:(AsyncSocket *)socket;
+- (id)initWithRequest:(HTTPMessage *)request socket:(AsyncSocket *)socket;
 
 - (void)didOpen;
 

@@ -15,6 +15,7 @@
 		DC5BD6C20FC3410300DA9B03 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = DC5BD6C10FC3410300DA9B03 /* AppDelegate.m */; };
 		DC5BD6DE0FC3418200DA9B03 /* MyHTTPConnection.m in Sources */ = {isa = PBXBuildFile; fileRef = DC5BD6DD0FC3418200DA9B03 /* MyHTTPConnection.m */; };
 		DC5BD70C0FC3443900DA9B03 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC5BD70B0FC3443900DA9B03 /* Security.framework */; };
+		DC9A0AA7128A8704006AD900 /* HTTPMessage.m in Sources */ = {isa = PBXBuildFile; fileRef = DC9A0AA6128A8704006AD900 /* HTTPMessage.m */; };
 		DCD065DB123C831D006BC411 /* DDData.m in Sources */ = {isa = PBXBuildFile; fileRef = DCD065D6123C831D006BC411 /* DDData.m */; };
 		DCD065DC123C831D006BC411 /* DDNumber.m in Sources */ = {isa = PBXBuildFile; fileRef = DCD065D8123C831D006BC411 /* DDNumber.m */; };
 		DCD065DD123C831D006BC411 /* DDRange.m in Sources */ = {isa = PBXBuildFile; fileRef = DCD065DA123C831D006BC411 /* DDRange.m */; };
@@ -47,6 +48,8 @@
 		DC5BD6DC0FC3418200DA9B03 /* MyHTTPConnection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MyHTTPConnection.h; sourceTree = "<group>"; };
 		DC5BD6DD0FC3418200DA9B03 /* MyHTTPConnection.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MyHTTPConnection.m; sourceTree = "<group>"; };
 		DC5BD70B0FC3443900DA9B03 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = /System/Library/Frameworks/Security.framework; sourceTree = "<absolute>"; };
+		DC9A0AA5128A8704006AD900 /* HTTPMessage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = HTTPMessage.h; path = ../../HTTPMessage.h; sourceTree = SOURCE_ROOT; };
+		DC9A0AA6128A8704006AD900 /* HTTPMessage.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = HTTPMessage.m; path = ../../HTTPMessage.m; sourceTree = SOURCE_ROOT; };
 		DCD065D5123C831D006BC411 /* DDData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDData.h; path = ../../DDData.h; sourceTree = SOURCE_ROOT; };
 		DCD065D6123C831D006BC411 /* DDData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDData.m; path = ../../DDData.m; sourceTree = SOURCE_ROOT; };
 		DCD065D7123C831D006BC411 /* DDNumber.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDNumber.h; path = ../../DDNumber.h; sourceTree = SOURCE_ROOT; };
@@ -213,6 +216,8 @@
 				DCD065F0123C8363006BC411 /* HTTPServer.m */,
 				DCD065E9123C8363006BC411 /* HTTPConnection.h */,
 				DCD065EA123C8363006BC411 /* HTTPConnection.m */,
+				DC9A0AA5128A8704006AD900 /* HTTPMessage.h */,
+				DC9A0AA6128A8704006AD900 /* HTTPMessage.m */,
 				DCD065ED123C8363006BC411 /* HTTPResponse.h */,
 				DCD065EE123C8363006BC411 /* HTTPResponse.m */,
 				DCD065FC123C842F006BC411 /* WebSocket.h */,
@@ -320,6 +325,7 @@
 				DCD065F6123C8363006BC411 /* HTTPServer.m in Sources */,
 				DCD065F9123C83C8006BC411 /* DDKeychain.m in Sources */,
 				DCD065FE123C842F006BC411 /* WebSocket.m in Sources */,
+				DC9A0AA7128A8704006AD900 /* HTTPMessage.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -379,26 +385,26 @@
 		C01FCF4F08A954540054247B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PREBINDING = NO;
-				SDKROOT = macosx10.5;
+				SDKROOT = macosx10.6;
 			};
 			name = Debug;
 		};
 		C01FCF5008A954540054247B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				PREBINDING = NO;
-				SDKROOT = macosx10.5;
+				SDKROOT = macosx10.6;
 			};
 			name = Release;
 		};
