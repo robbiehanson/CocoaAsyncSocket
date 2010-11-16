@@ -317,7 +317,8 @@ typedef enum AsyncUdpSocketError AsyncUdpSocketError;
 #pragma mark -
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-@interface NSObject (AsyncUdpSocketDelegate)
+@protocol AsyncUdpSocketDelegate
+@optional
 
 /**
  * Called when the datagram with the given tag has been sent.

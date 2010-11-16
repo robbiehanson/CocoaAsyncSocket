@@ -29,7 +29,8 @@ enum AsyncSocketError
 };
 typedef enum AsyncSocketError AsyncSocketError;
 
-@interface NSObject (AsyncSocketDelegate)
+@protocol AsyncSocketDelegate
+@optional
 
 /**
  * In the event of an error, the socket is closed.
