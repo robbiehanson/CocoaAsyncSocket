@@ -164,7 +164,7 @@
 			for (i = 0; i < [connectedSockets count]; i++)
 			{
 				// Call disconnect on the socket,
-				// which will invoke the onSocketDidDisconnect: method,
+				// which will invoke the socketDidDisconnect: method,
 				// which will remove the socket from the list.
 				[[connectedSockets objectAtIndex:i] disconnect];
 			}
@@ -178,7 +178,7 @@
 	}
 }
 
-- (void)onSocket:(GCDAsyncSocket *)sock didAcceptNewSocket:(GCDAsyncSocket *)newSocket
+- (void)socket:(GCDAsyncSocket *)sock didAcceptNewSocket:(GCDAsyncSocket *)newSocket
 {
 	// This method is executed on the socketQueue (not the main thread)
 	
@@ -206,7 +206,7 @@
 	[newSocket readDataToData:[GCDAsyncSocket CRLFData] withTimeout:READ_TIMEOUT tag:0];
 }
 
-- (void)onSocket:(GCDAsyncSocket *)sock didWriteDataWithTag:(long)tag
+- (void)socket:(GCDAsyncSocket *)sock didWriteDataWithTag:(long)tag
 {
 	if (tag == ECHO_MSG)
 	{
@@ -214,7 +214,7 @@
 	}
 }
 
-- (void)onSocket:(GCDAsyncSocket *)sock didReadData:(NSData *)data withTag:(long)tag
+- (void)socket:(GCDAsyncSocket *)sock didReadData:(NSData *)data withTag:(long)tag
 {
 	dispatch_async(dispatch_get_main_queue(), ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
@@ -242,9 +242,9 @@
  * It allows us to optionally extend the timeout.
  * We use this method to issue a warning to the user prior to disconnecting them.
 **/
-- (NSTimeInterval)onSocket:(GCDAsyncSocket *)sock shouldTimeoutReadWithTag:(long)tag
-                                                                   elapsed:(NSTimeInterval)elapsed
-                                                                 bytesDone:(NSUInteger)length
+- (NSTimeInterval)socket:(GCDAsyncSocket *)sock shouldTimeoutReadWithTag:(long)tag
+                                                                 elapsed:(NSTimeInterval)elapsed
+                                                               bytesDone:(NSUInteger)length
 {
 	if (elapsed <= READ_TIMEOUT)
 	{
@@ -259,7 +259,7 @@
 	return 0.0;
 }
 
-- (void)onSocketDidDisconnect:(GCDAsyncSocket *)sock withError:(NSError *)err
+- (void)socketDidDisconnect:(GCDAsyncSocket *)sock withError:(NSError *)err
 {
 	if (sock != listenSocket)
 	{
