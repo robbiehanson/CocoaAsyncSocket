@@ -548,6 +548,79 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  **/
 - (void)startTLS:(NSDictionary *)tlsSettings;
 
+#pragma mark Advanced
+
+/**
+ * It's not thread-safe to access certain variables from outside the socket's internal queue.
+ * 
+ * For example, the socket file descriptor.
+ * File descriptors are simply integers which reference an index in the per-process file table.
+ * However, when one requests a new file descriptor (by opening a file or socket),
+ * the file descriptor returned is guaranteed to be the lowest numbered unused descriptor.
+ * So if we're not careful, the following could be possible:
+ * 
+ * - Thread A invokes a method which returns the socket's file descriptor.
+ * - The socket is closed via the socket's internal queue on thread B.
+ * - Thread C opens a file, and subsequently receives the file descriptor that was previously the socket's FD.
+ * - Thread A is now accessing/altering the file instead of the socket.
+ * 
+ * In addition to this, other variables are not actually objects,
+ * and thus cannot be retained/released or even autoreleased.
+ * An example is the sslContext, of type SSLContextRef, which is actually a malloc'd struct.
+ * 
+ * Although there are internal variables that make it difficult to maintain thread-safety,
+ * it is important to provide access to these variables
+ * to ensure this class can be used in a wide array of environments.
+ * This method helps to accomplish this by invoking the current block on the socket's internal queue.
+ * The methods below can be invoked from within the block to access
+ * those generally thread-unsafe internal variables in a thread-safe manner.
+ * The given block will be invoked synchronously on the socket's internal queue.
+ * 
+ * If you save references to any protected variables and use them outside the block, you do so at your own peril.
+**/
+- (void)performBlock:(dispatch_block_t)block;
+
+/**
+ * These methods are only available from within the context of a performBlock: invocation.
+ * See the documentation for the performBlock: method above.
+ * 
+ * Provides access to the socket's file descriptor(s).
+ * If the socket is a server socket (is accepting incoming connections),
+ * it might actually have multiple internal socket file descriptors - one for IPv4 and one for IPv6.
+**/
+- (int)socketFD;
+- (int)socket4FD;
+- (int)socket6FD;
+
+#if TARGET_OS_IPHONE
+
+/**
+ * These methods are only available from within the context of a performBlock: invocation.
+ * See the documentation for the performBlock: method above.
+ * 
+ * Provides access to the socket's internal read/write streams, if SSL/TLS has been started on the socket.
+ * 
+ * Note: Apple has decided to keep the SecureTransport framework private is iOS.
+ * This means the only supplied way to do SSL/TLS is via CFStream or some other API layered on top of it.
+ * Thus, in order to provide SSL/TLS support on iOS we are forced to rely on CFStream,
+ * instead of the preferred and more powerful SecureTransport.
+ * Read/write streams are only created if startTLS has been invoked to start SSL/TLS.
+**/
+- (CFReadStreamRef)readStream;
+- (CFWriteStreamRef)writeStream;
+
+#else
+
+/**
+ * This method is only available from within the context of a performBlock: invocation.
+ * See the documentation for the performBlock: method above.
+ * 
+ * Provides access to the socket's SSLContext, if SSL/TLS has been started on the socket.
+**/
+- (SSLContextRef)sslContext;
+
+#endif
+
 #pragma mark Utilities
 
 /**

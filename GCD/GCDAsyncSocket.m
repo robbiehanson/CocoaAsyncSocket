@@ -5320,6 +5320,76 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark Advanced
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+- (void)performBlock:(dispatch_block_t)block
+{
+	dispatch_sync(socketQueue, block);
+}
+
+- (int)socketFD
+{
+	if (dispatch_get_current_queue() == socketQueue)
+	{
+		if (socket4FD != SOCKET_NULL)
+			return socket4FD;
+		else
+			return socket6FD;
+	}
+	else
+	{
+		return SOCKET_NULL;
+	}
+}
+
+- (int)socket4FD
+{
+	if (dispatch_get_current_queue() == socketQueue)
+		return socket4FD;
+	else
+		return SOCKET_NULL;
+}
+
+- (int)socket6FD
+{
+	if (dispatch_get_current_queue() == socketQueue)
+		return socket6FD;
+	else
+		return SOCKET_NULL;
+}
+
+#if TARGET_OS_IPHONE
+
+- (CFReadStreamRef)readStream
+{
+	if (dispatch_get_current_queue() == socketQueue)
+		return readStream;
+	else
+		return NULL;
+}
+
+- (CFWriteStreamRef)writeStream
+{
+	if (dispatch_get_current_queue() == socketQueue)
+		return writeStream;
+	else
+		return NULL;
+}
+
+#else
+
+- (SSLContextRef)sslContext
+{
+	if (dispatch_get_current_queue() == socketQueue)
+		return sslContext;
+	else
+		return NULL;
+}
+
+#endif
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Class Methods
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
