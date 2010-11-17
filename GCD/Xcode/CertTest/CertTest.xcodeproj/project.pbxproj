@@ -17,7 +17,7 @@
 		DC8464E312938A69001C71DF /* DDFileLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC8464DD12938A69001C71DF /* DDFileLogger.m */; };
 		DC8464E412938A69001C71DF /* DDLog.m in Sources */ = {isa = PBXBuildFile; fileRef = DC8464DF12938A69001C71DF /* DDLog.m */; };
 		DC8464E512938A69001C71DF /* DDTTYLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC8464E112938A69001C71DF /* DDTTYLogger.m */; };
-		DC8465551293A23C001C71DF /* X509Certificate.m in Sources */ = {isa = PBXBuildFile; fileRef = DC8465541293A23C001C71DF /* X509Certificate.m */; };
+		DC8465CA1293A51C001C71DF /* X509Certificate.m in Sources */ = {isa = PBXBuildFile; fileRef = DC8465C91293A51C001C71DF /* X509Certificate.m */; };
 		DC9A076C128399F3006AD900 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC9A076B128399F3006AD900 /* Security.framework */; };
 /* End PBXBuildFile section */
 
@@ -44,8 +44,8 @@
 		DC8464DF12938A69001C71DF /* DDLog.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDLog.m; path = ../../Vendor/CocoaLumberjack/DDLog.m; sourceTree = SOURCE_ROOT; };
 		DC8464E012938A69001C71DF /* DDTTYLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDTTYLogger.h; path = ../../Vendor/CocoaLumberjack/DDTTYLogger.h; sourceTree = SOURCE_ROOT; };
 		DC8464E112938A69001C71DF /* DDTTYLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDTTYLogger.m; path = ../../Vendor/CocoaLumberjack/DDTTYLogger.m; sourceTree = SOURCE_ROOT; };
-		DC8465531293A23C001C71DF /* X509Certificate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = X509Certificate.h; path = ../../X509Certificate.h; sourceTree = SOURCE_ROOT; };
-		DC8465541293A23C001C71DF /* X509Certificate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = X509Certificate.m; path = ../../X509Certificate.m; sourceTree = SOURCE_ROOT; };
+		DC8465C81293A51C001C71DF /* X509Certificate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = X509Certificate.h; sourceTree = "<group>"; };
+		DC8465C91293A51C001C71DF /* X509Certificate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = X509Certificate.m; sourceTree = "<group>"; };
 		DC9A076B128399F3006AD900 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -67,8 +67,8 @@
 			children = (
 				DC8464CF12938A02001C71DF /* GCDAsyncSocket.h */,
 				DC8464D012938A02001C71DF /* GCDAsyncSocket.m */,
-				DC8465531293A23C001C71DF /* X509Certificate.h */,
-				DC8465541293A23C001C71DF /* X509Certificate.m */,
+				DC8465C81293A51C001C71DF /* X509Certificate.h */,
+				DC8465C91293A51C001C71DF /* X509Certificate.m */,
 				256AC3D80F4B6AC300CF3369 /* CertTestAppDelegate.h */,
 				256AC3D90F4B6AC300CF3369 /* CertTestAppDelegate.m */,
 			);
@@ -227,7 +227,7 @@
 				DC8464E312938A69001C71DF /* DDFileLogger.m in Sources */,
 				DC8464E412938A69001C71DF /* DDLog.m in Sources */,
 				DC8464E512938A69001C71DF /* DDTTYLogger.m in Sources */,
-				DC8465551293A23C001C71DF /* X509Certificate.m in Sources */,
+				DC8465CA1293A51C001C71DF /* X509Certificate.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
