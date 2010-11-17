@@ -1,0 +1,7 @@
+//
+// Prefix header for all source files of the 'CertTest' target in the 'CertTest' project
+//
+
+#ifdef __OBJC__
+    #import <Cocoa/Cocoa.h>
+#endif
