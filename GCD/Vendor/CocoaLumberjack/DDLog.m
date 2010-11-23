@@ -173,9 +173,9 @@ typedef struct LoggerNode LoggerNode;
 		}
 		
 	#if TARGET_OS_IPHONE
-		NSString *notificationName = UIApplicationWillTerminateNotification;
+		NSString *notificationName = @"UIApplicationWillTerminateNotification";
 	#else
-		NSString *notificationName = NSApplicationWillTerminateNotification;
+		NSString *notificationName = @"NSApplicationWillTerminateNotification";
 	#endif
 		
 		[[NSNotificationCenter defaultCenter] addObserver:self
@@ -473,6 +473,7 @@ typedef struct LoggerNode LoggerNode;
 + (void)log:(BOOL)synchronous
       level:(int)level
        flag:(int)flag
+    context:(int)context
        file:(const char *)file
    function:(const char *)function
        line:(int)line
@@ -487,6 +488,7 @@ typedef struct LoggerNode LoggerNode;
 		DDLogMessage *logMessage = [[DDLogMessage alloc] initWithLogMsg:logMsg
 		                                                          level:level
 		                                                           flag:flag
+		                                                        context:context
 		                                                           file:file
 		                                                       function:function
 		                                                           line:line];
@@ -550,7 +552,7 @@ typedef struct LoggerNode LoggerNode;
 
 + (NSArray *)registeredClasses
 {
-	int numClasses;
+	int numClasses, i;
 	
 	// We're going to get the list of all registered classes.
 	// The Objective-C runtime library automatically registers all the classes defined in your source code.
@@ -576,7 +578,7 @@ typedef struct LoggerNode LoggerNode;
 	
 	NSMutableArray *result = [NSMutableArray arrayWithCapacity:numClasses];
 	
-	for (int i = 0; i < numClasses; i++)
+	for (i = 0; i < numClasses; i++)
 	{
 		Class class = classes[i];
 		
@@ -1090,17 +1092,19 @@ NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy)
 - (id)initWithLogMsg:(NSString *)msg
                level:(int)level
                 flag:(int)flag
+             context:(int)context
                 file:(const char *)aFile
             function:(const char *)aFunction
                 line:(int)line
 {
 	if((self = [super init]))
 	{
-		logMsg = [msg retain];
-		logLevel = level;
-		logFlag = flag;
-		file = aFile;
-		function = aFunction;
+		logMsg     = [msg retain];
+		logLevel   = level;
+		logFlag    = flag;
+		logContext = context;
+		file       = aFile;
+		function   = aFunction;
 		lineNumber = line;
 		
 		timestamp = [[NSDate alloc] init];

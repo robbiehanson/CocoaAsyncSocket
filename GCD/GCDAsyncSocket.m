@@ -38,34 +38,28 @@
 // It allows us to do a lot of logging without significantly slowing down the code.
 #import "DDLog.h"
 
-#define DDLogTrace()            ASYNC_LOG_OBJC_MAYBE(ddLogLevel, LOG_FLAG_VERBOSE, @"%@: %@", THIS_FILE, THIS_METHOD)
-#define DDLogTrace2(frmt, ...)  ASYNC_LOG_OBJC_MAYBE(ddLogLevel, LOG_FLAG_VERBOSE, frmt, ##__VA_ARGS__)
+#define LogError(frmt, ...)     DDLogError((@"%@: " frmt), THIS_FILE, ##__VA_ARGS__)
+#define LogWarn(frmt, ...)      DDLogWarn((@"%@: " frmt), THIS_FILE, ##__VA_ARGS__)
+#define LogInfo(frmt, ...)      DDLogInfo((@"%@: " frmt), THIS_FILE, ##__VA_ARGS__)
+#define LogVerbose(frmt, ...)   DDLogVerbose((@"%@: " frmt), THIS_FILE, ##__VA_ARGS__)
 
-#define DDLogCTrace()            ASYNC_LOG_C_MAYBE(ddLogLevel, LOG_FLAG_VERBOSE, @"%@: %@", THIS_FILE, __FUNCTION__)
-#define DDLogCTrace2(frmt, ...)  ASYNC_LOG_C_MAYBE(ddLogLevel, LOG_FLAG_VERBOSE, frmt, ##__VA_ARGS__)
+#define LogTrace()              DDLogVerbose(@"%@: %@", THIS_FILE, THIS_METHOD)
+#define LogTrace2(frmt, ...)    DDLogVerbose((@"%@: " frmt), THIS_FILE, ##__VA_ARGS__)
 
 // Log levels : off, error, warn, info, verbose
-static const int ddLogLevel = LOG_LEVEL_WARN;
+static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
 #else
 
 // Logging Disabled
 
-#define DDLogError(frmt, ...)     
-#define DDLogWarn(frmt, ...)     
-#define DDLogInfo(frmt, ...)     
-#define DDLogVerbose(frmt, ...)  
+#define LogError(frmt, ...)     
+#define LogWarn(frmt, ...)     
+#define LogInfo(frmt, ...)     
+#define LogVerbose(frmt, ...)  
 
-#define DDLogCError(frmt, ...)    
-#define DDLogCWarn(frmt, ...)    
-#define DDLogCInfo(frmt, ...)    
-#define DDLogCVerbose(frmt, ...) 
-
-#define DDLogTrace()            
-#define DDLogTrace2(frmt, ...)  
-
-#define DDLogCTrace()            
-#define DDLogCTrace2(frmt, ...)  
+#define LogTrace()            
+#define LogTrace2(frmt, ...)  
 
 #endif
 
@@ -758,7 +752,7 @@ enum GCDAsyncSocketConfig
 
 - (void)dealloc
 {
-	DDLogInfo(@"%@: %@ - %@", THIS_FILE, THIS_METHOD, self);
+	LogInfo(@"%@ - %@", THIS_METHOD, self);
 	
 	if (dispatch_get_current_queue() == socketQueue)
 	{
@@ -1104,7 +1098,7 @@ enum GCDAsyncSocketConfig
 
 - (BOOL)acceptOnInterface:(NSString *)interface port:(UInt16)port error:(NSError **)errPtr
 {
-	DDLogTrace();
+	LogTrace();
 	
 	__block BOOL result = YES;
 	__block NSError *err = nil;
@@ -1273,7 +1267,7 @@ enum GCDAsyncSocketConfig
 		
 		if (enableIPv4)
 		{
-			DDLogVerbose(@"%@: Creating IPv4 socket", THIS_FILE);
+			LogVerbose(@"Creating IPv4 socket");
 			socket4FD = createSocket(AF_INET, interface4);
 			
 			if (socket4FD == SOCKET_NULL)
@@ -1285,7 +1279,7 @@ enum GCDAsyncSocketConfig
 		
 		if (enableIPv6)
 		{
-			DDLogVerbose(@"%@: Creating IPv6 socket", THIS_FILE);
+			LogVerbose(@"Creating IPv6 socket");
 			
 			if (enableIPv4 && (port == 0))
 			{
@@ -1322,12 +1316,12 @@ enum GCDAsyncSocketConfig
 			dispatch_block_t event4Block = ^{
 				NSAutoreleasePool *eventPool = [[NSAutoreleasePool alloc] init];
 				
-				DDLogVerbose(@"%@: event4Block", THIS_FILE);
+				LogVerbose(@"event4Block");
 				
 				unsigned long i = 0;
 				unsigned long numPendingConnections = dispatch_source_get_data(acceptSource);
 				
-				DDLogVerbose(@"numPendingConnections: %lu", numPendingConnections);
+				LogVerbose(@"numPendingConnections: %lu", numPendingConnections);
 				
 				while ([self doAccept:socketFD] && (++i < numPendingConnections));
 				
@@ -1337,15 +1331,15 @@ enum GCDAsyncSocketConfig
 			
 			dispatch_block_t cancel4Block = ^{
 				
-				DDLogVerbose(@"%@: dispatch_release(accept4Source)", THIS_FILE);
+				LogVerbose(@"dispatch_release(accept4Source)");
 				dispatch_release(acceptSource);
 				
-				DDLogVerbose(@"%@: close(socket4FD)", THIS_FILE);
+				LogVerbose(@"close(socket4FD)");
 				close(socketFD);
 			};
 			dispatch_source_set_cancel_handler(accept4Source, cancel4Block);
 			
-			DDLogVerbose(@"%@: dispatch_resume(accept4Source)", THIS_FILE);
+			LogVerbose(@"dispatch_resume(accept4Source)");
 			dispatch_resume(accept4Source);
 		}
 		
@@ -1359,12 +1353,12 @@ enum GCDAsyncSocketConfig
 			dispatch_block_t event6Block = ^{
 				NSAutoreleasePool *eventPool = [[NSAutoreleasePool alloc] init];
 				
-				DDLogVerbose(@"%@: event6Block", THIS_FILE);
+				LogVerbose(@"event6Block");
 				
 				unsigned long i = 0;
 				unsigned long numPendingConnections = dispatch_source_get_data(acceptSource);
 				
-				DDLogVerbose(@"numPendingConnections: %lu", numPendingConnections);
+				LogVerbose(@"numPendingConnections: %lu", numPendingConnections);
 				
 				while ([self doAccept:socketFD] && (++i < numPendingConnections));
 				
@@ -1374,15 +1368,15 @@ enum GCDAsyncSocketConfig
 			
 			dispatch_block_t cancel6Block = ^{
 				
-				DDLogVerbose(@"%@: dispatch_release(accept6Source)", THIS_FILE);
+				LogVerbose(@"dispatch_release(accept6Source)");
 				dispatch_release(acceptSource);
 				
-				DDLogVerbose(@"%@: close(socket6FD)", THIS_FILE);
+				LogVerbose(@"close(socket6FD)");
 				close(socketFD);
 			};
 			dispatch_source_set_cancel_handler(accept6Source, cancel6Block);
 			
-			DDLogVerbose(@"%@: dispatch_resume(accept6Source)", THIS_FILE);
+			LogVerbose(@"dispatch_resume(accept6Source)");
 			dispatch_resume(accept6Source);
 		}
 		
@@ -1408,7 +1402,7 @@ enum GCDAsyncSocketConfig
 
 - (BOOL)doAccept:(int)parentSocketFD
 {
-	DDLogTrace();
+	LogTrace();
 	
 	BOOL isIPv4;
 	int childSocketFD;
@@ -1425,7 +1419,7 @@ enum GCDAsyncSocketConfig
 		
 		if (childSocketFD == -1)
 		{
-			DDLogWarn(@"%@: Accept failed with error: %@", THIS_FILE, [self errnoError]);
+			LogWarn(@"Accept failed with error: %@", [self errnoError]);
 			return NO;
 		}
 		
@@ -1442,7 +1436,7 @@ enum GCDAsyncSocketConfig
 		
 		if (childSocketFD == -1)
 		{
-			DDLogWarn(@"%@: Accept failed with error: %@", THIS_FILE, [self errnoError]);
+			LogWarn(@"Accept failed with error: %@", [self errnoError]);
 			return NO;
 		}
 		
@@ -1454,7 +1448,7 @@ enum GCDAsyncSocketConfig
 	int result = fcntl(childSocketFD, F_SETFL, O_NONBLOCK);
 	if (result == -1)
 	{
-		DDLogWarn(@"%@: Error enabling non-blocking IO on accepted socket (fcntl)", THIS_FILE);
+		LogWarn(@"Error enabling non-blocking IO on accepted socket (fcntl)");
 		return NO;
 	}
 	
@@ -1549,7 +1543,7 @@ enum GCDAsyncSocketConfig
           withTimeout:(NSTimeInterval)timeout
                 error:(NSError **)errPtr;
 {
-	DDLogTrace();
+	LogTrace();
 	
 	__block BOOL result = YES;
 	__block NSError *err = nil;
@@ -1653,7 +1647,7 @@ enum GCDAsyncSocketConfig
 		
 		flags |= kDidStartDelegate;
 		
-		DDLogVerbose(@"%@: Dispatching DNS lookup...", THIS_FILE);
+		LogVerbose(@"Dispatching DNS lookup...");
 		
 		// It's possible that the given host parameter is actually a NSMutableString.
 		// So we want to copy it now, within this block that will be executed synchronously.
@@ -1695,7 +1689,7 @@ enum GCDAsyncSocketConfig
 
 - (void)lookup:(int)aConnectIndex host:(NSString *)host port:(UInt16)port
 {
-	DDLogTrace();
+	LogTrace();
 	
 	// This method is executed on a global concurrent queue.
 	// It posts the results back to the socket queue.
@@ -1795,14 +1789,14 @@ enum GCDAsyncSocketConfig
 
 - (void)lookup:(int)aConnectIndex didSucceedWithAddress4:(NSData *)address4 address6:(NSData *)address6
 {
-	DDLogTrace();
+	LogTrace();
 	
 	NSAssert(dispatch_get_current_queue() == socketQueue, @"Exectued on wrong dispatch queue");
 	NSAssert(address4 || address6, @"Expected at least one valid address");
 	
 	if (aConnectIndex != connectIndex)
 	{
-		DDLogInfo(@"%@: Ignoring lookupDidSucceed, already disconnected", THIS_FILE);
+		LogInfo(@"Ignoring lookupDidSucceed, already disconnected");
 		
 		// The connect operation has been cancelled.
 		// That is, socket was disconnected, or connection has already timed out.
@@ -1844,7 +1838,7 @@ enum GCDAsyncSocketConfig
 	
 	if (useIPv6)
 	{
-		DDLogVerbose(@"%@: Creating IPv6 socket", THIS_FILE);
+		LogVerbose(@"Creating IPv6 socket");
 		
 		socket6FD = socket(AF_INET6, SOCK_STREAM, 0);
 		
@@ -1854,7 +1848,7 @@ enum GCDAsyncSocketConfig
 	}
 	else
 	{
-		DDLogVerbose(@"%@: Creating IPv4 socket", THIS_FILE);
+		LogVerbose(@"Creating IPv4 socket");
 		
 		socket4FD = socket(AF_INET, SOCK_STREAM, 0);
 		
@@ -1873,7 +1867,7 @@ enum GCDAsyncSocketConfig
 	
 	if (connectInterface)
 	{
-		DDLogVerbose(@"%@: Binding socket...", THIS_FILE);
+		LogVerbose(@"Binding socket...");
 		
 		struct sockaddr *interfaceAddr = (struct sockaddr *)[connectInterface bytes];
 		
@@ -1912,7 +1906,7 @@ enum GCDAsyncSocketConfig
 	};
 	dispatch_async(globalConcurrentQueue, connectBlock);
 	
-	DDLogVerbose(@"%@: Connecting...", THIS_FILE);
+	LogVerbose(@"Connecting...");
 }
 
 /**
@@ -1925,14 +1919,14 @@ enum GCDAsyncSocketConfig
 **/
 - (void)lookup:(int)aConnectIndex didFail:(NSError *)error
 {
-	DDLogTrace();
+	LogTrace();
 	
 	NSAssert(dispatch_get_current_queue() == socketQueue, @"Exectued on wrong dispatch queue");
 	
 	
 	if (aConnectIndex != connectIndex)
 	{
-		DDLogInfo(@"%@: Ignoring lookupDidFail, already disconnected", THIS_FILE);
+		LogInfo(@"Ignoring lookupDidFail, already disconnected");
 		
 		// The connect operation has been cancelled.
 		// That is, socket was disconnected, or connection has already timed out.
@@ -1945,14 +1939,14 @@ enum GCDAsyncSocketConfig
 
 - (void)didConnect:(int)aConnectIndex
 {
-	DDLogTrace();
+	LogTrace();
 	
 	NSAssert(dispatch_get_current_queue() == socketQueue, @"Must be dispatched on socketQueue");
 	
 	
 	if (aConnectIndex != connectIndex)
 	{
-		DDLogInfo(@"%@: Ignoring didConnect, already disconnected", THIS_FILE);
+		LogInfo(@"Ignoring didConnect, already disconnected");
 		
 		// The connect operation has been cancelled.
 		// That is, socket was disconnected, or connection has already timed out.
@@ -2011,14 +2005,14 @@ enum GCDAsyncSocketConfig
 
 - (void)didNotConnect:(int)aConnectIndex error:(NSError *)error
 {
-	DDLogTrace();
+	LogTrace();
 	
 	NSAssert(dispatch_get_current_queue() == socketQueue, @"Must be dispatched on socketQueue");
 	
 	
 	if (aConnectIndex != connectIndex)
 	{
-		DDLogInfo(@"%@: Ignoring didNotConnect, already disconnected", THIS_FILE);
+		LogInfo(@"Ignoring didNotConnect, already disconnected");
 		
 		// The connect operation has been cancelled.
 		// That is, socket was disconnected, or connection has already timed out.
@@ -2046,7 +2040,7 @@ enum GCDAsyncSocketConfig
 		
 		dispatch_source_t theConnectTimer = connectTimer;
 		dispatch_block_t timerCancelBlock = ^{
-			DDLogVerbose(@"%@: dispatch_release(connectTimer)", THIS_FILE);
+			LogVerbose(@"dispatch_release(connectTimer)");
 			dispatch_release(theConnectTimer);
 		};
 		dispatch_source_set_cancel_handler(connectTimer, timerCancelBlock);
@@ -2060,7 +2054,7 @@ enum GCDAsyncSocketConfig
 
 - (void)endConnectTimeout
 {
-	DDLogTrace();
+	LogTrace();
 	
 	if (connectTimer)
 	{
@@ -2090,7 +2084,7 @@ enum GCDAsyncSocketConfig
 
 - (void)doConnectTimeout
 {
-	DDLogTrace();
+	LogTrace();
 	
 	[self endConnectTimeout];
 	[self closeWithError:[self connectTimeoutError]];
@@ -2102,7 +2096,7 @@ enum GCDAsyncSocketConfig
 
 - (void)closeWithError:(NSError *)error
 {
-	DDLogTrace();
+	LogTrace();
 	
 	NSAssert(dispatch_get_current_queue() == socketQueue, @"Must be dispatched on socketQueue");
 	
@@ -2156,7 +2150,7 @@ enum GCDAsyncSocketConfig
 	
 	if (accept4Source)
 	{
-		DDLogVerbose(@"%@: dispatch_source_cancel(accept4Source)", THIS_FILE);
+		LogVerbose(@"dispatch_source_cancel(accept4Source)");
 		dispatch_source_cancel(accept4Source);
 		
 		// We never suspend accept4Source
@@ -2166,7 +2160,7 @@ enum GCDAsyncSocketConfig
 	
 	if (accept6Source)
 	{
-		DDLogVerbose(@"%@: dispatch_source_cancel(accept6Source)", THIS_FILE);
+		LogVerbose(@"dispatch_source_cancel(accept6Source)");
 		dispatch_source_cancel(accept6Source);
 		
 		// We never suspend accept6Source
@@ -2176,7 +2170,7 @@ enum GCDAsyncSocketConfig
 	
 	if (readSource)
 	{
-		DDLogVerbose(@"%@: dispatch_source_cancel(readSource)", THIS_FILE);
+		LogVerbose(@"dispatch_source_cancel(readSource)");
 		dispatch_source_cancel(readSource);
 		
 		[self resumeReadSource];
@@ -2186,7 +2180,7 @@ enum GCDAsyncSocketConfig
 	
 	if (writeSource)
 	{
-		DDLogVerbose(@"%@: dispatch_source_cancel(writeSource)", THIS_FILE);
+		LogVerbose(@"dispatch_source_cancel(writeSource)");
 		dispatch_source_cancel(writeSource);
 		
 		[self resumeWriteSource];
@@ -3003,7 +2997,7 @@ enum GCDAsyncSocketConfig
 	dispatch_block_t readEventBlock = ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		
-		DDLogVerbose(@"%@: readEventBlock", THIS_FILE);
+		LogVerbose(@"readEventBlock");
 		
 		socketFDBytesAvailable = dispatch_source_get_data(readSource);
 		if (socketFDBytesAvailable > 0)
@@ -3018,7 +3012,7 @@ enum GCDAsyncSocketConfig
 	dispatch_block_t writeEventBlock = ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		
-		DDLogVerbose(@"%@: writeEventBlock", THIS_FILE);
+		LogVerbose(@"writeEventBlock");
 		
 		flags |= kSocketCanAcceptBytes;
 		[self doWriteData];
@@ -3036,14 +3030,14 @@ enum GCDAsyncSocketConfig
 	
 	dispatch_block_t readCancelBlock = ^{
 		
-		DDLogVerbose(@"%@: readCancelBlock", THIS_FILE);
+		LogVerbose(@"readCancelBlock");
 		
-		DDLogVerbose(@"%@: dispatch_release(theReadSource)", THIS_FILE);
+		LogVerbose(@"dispatch_release(theReadSource)");
 		dispatch_release(theReadSource);
 		
 		if (--socketFDRefCount == 0)
 		{
-			DDLogVerbose(@"%@: close(socketFD)", THIS_FILE);
+			LogVerbose(@"close(socketFD)");
 			close(socketFD);
 		}
 	};
@@ -3051,14 +3045,14 @@ enum GCDAsyncSocketConfig
 	
 	dispatch_block_t writeCancelBlock = ^{
 		
-		DDLogVerbose(@"%@: writeCancelBlock", THIS_FILE);
+		LogVerbose(@"writeCancelBlock");
 		
-		DDLogVerbose(@"%@: dispatch_release(theWriteSource)", THIS_FILE);
+		LogVerbose(@"dispatch_release(theWriteSource)");
 		dispatch_release(theWriteSource);
 		
 		if (--socketFDRefCount == 0)
 		{
-			DDLogVerbose(@"%@: close(socketFD)", THIS_FILE);
+			LogVerbose(@"close(socketFD)");
 			close(socketFD);
 		}
 	};
@@ -3070,7 +3064,7 @@ enum GCDAsyncSocketConfig
 	socketFDBytesAvailable = 0;
 	flags &= ~kReadSourceSuspended;
 	
-	DDLogVerbose(@"%@: dispatch_resume(readSource)", THIS_FILE);
+	LogVerbose(@"dispatch_resume(readSource)");
 	dispatch_resume(readSource);
 	
 	flags |= kSocketCanAcceptBytes;
@@ -3081,7 +3075,7 @@ enum GCDAsyncSocketConfig
 {
 	if (!(flags & kReadSourceSuspended))
 	{
-		DDLogVerbose(@"%@: dispatch_suspend(readSource)", THIS_FILE);
+		LogVerbose(@"dispatch_suspend(readSource)");
 		
 		dispatch_suspend(readSource);
 		flags |= kReadSourceSuspended;
@@ -3092,7 +3086,7 @@ enum GCDAsyncSocketConfig
 {
 	if (flags & kReadSourceSuspended)
 	{
-		DDLogVerbose(@"%@: dispatch_resume(readSource)", THIS_FILE);
+		LogVerbose(@"dispatch_resume(readSource)");
 		
 		dispatch_resume(readSource);
 		flags &= ~kReadSourceSuspended;
@@ -3103,7 +3097,7 @@ enum GCDAsyncSocketConfig
 {
 	if (!(flags & kWriteSourceSuspended))
 	{
-		DDLogVerbose(@"%@: dispatch_suspend(writeSource)", THIS_FILE);
+		LogVerbose(@"dispatch_suspend(writeSource)");
 		
 		dispatch_suspend(writeSource);
 		flags |= kWriteSourceSuspended;
@@ -3114,7 +3108,7 @@ enum GCDAsyncSocketConfig
 {
 	if (flags & kWriteSourceSuspended)
 	{
-		DDLogVerbose(@"%@: dispatch_resume(writeSource)", THIS_FILE);
+		LogVerbose(@"dispatch_resume(writeSource)");
 		
 		dispatch_resume(writeSource);
 		flags &= ~kWriteSourceSuspended;
@@ -3277,7 +3271,7 @@ enum GCDAsyncSocketConfig
 **/
 - (void)maybeDequeueRead
 {
-	DDLogTrace();
+	LogTrace();
 	NSAssert(dispatch_get_current_queue() == socketQueue, @"Must be dispatched on socketQueue");
 	
 	// If we're not currently processing a read AND we have an available read stream
@@ -3326,6 +3320,8 @@ enum GCDAsyncSocketConfig
 
 - (void)doReadData
 {
+	LogTrace();
+	
 	// This method is called on the socketQueue.
 	// It might be called directly, or via the readSource when data is available to be read.
 	
@@ -3575,7 +3571,7 @@ enum GCDAsyncSocketConfig
 			#else
 				
 				OSStatus result = SSLRead(sslContext, buffer, (size_t)bytesToRead, &bytesRead);
-				DDLogVerbose(@"%@: read from secure socket = %u", THIS_FILE, (unsigned)bytesRead);
+				LogVerbose(@"read from secure socket = %u", (unsigned)bytesRead);
 				
 				if (result != noErr)
 				{
@@ -3595,7 +3591,7 @@ enum GCDAsyncSocketConfig
 		else
 		{
 			ssize_t result = read(socketFD, buffer, (size_t)bytesToRead);
-			DDLogVerbose(@"%@: read from socket = %i", THIS_FILE, (int)result);
+			LogVerbose(@"read from socket = %i", (int)result);
 			
 			if (result < 0)
 			{
@@ -3813,7 +3809,7 @@ enum GCDAsyncSocketConfig
 
 - (void)doReadEOF
 {
-	DDLogTrace();
+	LogTrace();
 	
 	BOOL shouldDisconnect;
 	NSError *error = nil;
@@ -3884,7 +3880,7 @@ enum GCDAsyncSocketConfig
 
 - (void)completeCurrentRead
 {
-	DDLogTrace();
+	LogTrace();
 	
 	NSAssert(currentRead, @"Trying to complete current read when there is no current read.");
 	
@@ -3964,7 +3960,7 @@ enum GCDAsyncSocketConfig
 		
 		dispatch_source_t theReadTimer = readTimer;
 		dispatch_block_t timerCancelBlock = ^{
-			DDLogVerbose(@"%@: dispatch_release(readTimer)", THIS_FILE);
+			LogVerbose(@"dispatch_release(readTimer)");
 			dispatch_release(theReadTimer);
 		};
 		dispatch_source_set_cancel_handler(readTimer, timerCancelBlock);
@@ -4047,7 +4043,7 @@ enum GCDAsyncSocketConfig
 {
 	if (data == nil || [data length] == 0) return;
 	
-	DDLogTrace();
+	LogTrace();
 	
 	AsyncWritePacket *packet = [[AsyncWritePacket alloc] initWithData:data timeout:timeout tag:tag];
 	
@@ -4080,7 +4076,7 @@ enum GCDAsyncSocketConfig
 **/
 - (void)maybeDequeueWrite
 {
-	DDLogTrace();
+	LogTrace();
 	NSAssert(dispatch_get_current_queue() == socketQueue, @"Must be dispatched on socketQueue");
 	
 	
@@ -4130,6 +4126,8 @@ enum GCDAsyncSocketConfig
 
 - (void)doWriteData
 {
+	LogTrace();
+	
 	// This method is called by the writeSource via the socketQueue
 	
 	if ((currentWrite == nil) || (flags & kWritesPaused))
@@ -4232,7 +4230,7 @@ enum GCDAsyncSocketConfig
 			#else
 			
 				OSStatus result = SSLWrite(sslContext, buffer, bytesToWrite, &bytesWritten);
-				DDLogVerbose(@"%@: wrote to secure socket = %u", THIS_FILE, (unsigned)bytesWritten);
+				LogVerbose(@"wrote to secure socket = %u", (unsigned)bytesWritten);
 				
 				if (result != noErr)
 				{
@@ -4247,7 +4245,7 @@ enum GCDAsyncSocketConfig
 		else
 		{
 			ssize_t result = write(socketFD, buffer, (size_t)bytesToWrite);
-			DDLogVerbose(@"%@: wrote to socket = %i", THIS_FILE, (int)result);
+			LogVerbose(@"wrote to socket = %i", (int)result);
 			
 			// Check results
 			if (result < 0)
@@ -4331,7 +4329,7 @@ enum GCDAsyncSocketConfig
 
 - (void)completeCurrentWrite
 {
-	DDLogTrace();
+	LogTrace();
 	
 	NSAssert(currentWrite, @"Trying to complete current write when there is no current write.");
 	
@@ -4380,7 +4378,7 @@ enum GCDAsyncSocketConfig
 		
 		dispatch_source_t theWriteTimer = writeTimer;
 		dispatch_block_t timerCancelBlock = ^{
-			DDLogVerbose(@"%@: dispatch_release(writeTimer)", THIS_FILE);
+			LogVerbose(@"dispatch_release(writeTimer)");
 			dispatch_release(theWriteTimer);
 		};
 		dispatch_source_set_cancel_handler(writeTimer, timerCancelBlock);
@@ -4461,7 +4459,7 @@ enum GCDAsyncSocketConfig
 
 - (void)startTLS:(NSDictionary *)tlsSettings
 {
-	DDLogTrace();
+	LogTrace();
 	
 	if (tlsSettings == nil)
     {
@@ -4501,11 +4499,11 @@ enum GCDAsyncSocketConfig
 
 - (OSStatus)sslReadWithBuffer:(void *)buffer length:(size_t *)bufferLength
 {
-	DDLogTrace2(@"%@: sslReadWithBuffer:%p length:%lu", THIS_FILE, buffer, (unsigned long)*bufferLength);
+	LogTrace2(@"sslReadWithBuffer:%p length:%lu", buffer, (unsigned long)*bufferLength);
 	
 	if ((socketFDBytesAvailable == 0) && ([sslReadBuffer length] == 0))
 	{
-		DDLogVerbose(@"%@: %@ - No data available to read...", THIS_FILE, THIS_METHOD);
+		LogVerbose(@"%@ - No data available to read...", THIS_METHOD);
 		
 		// No data available to read.
 		// 
@@ -4534,20 +4532,20 @@ enum GCDAsyncSocketConfig
 	{
 		size_t bytesToCopy = (size_t)((sslReadBufferLength > totalBytesLeft) ? totalBytesLeft : sslReadBufferLength);
 		
-		DDLogVerbose(@"%@: %@ - Copying %u bytes from sslReadBuffer", THIS_FILE, THIS_METHOD, (unsigned)bytesToCopy);
+		LogVerbose(@"Copying %u bytes from sslReadBuffer", (unsigned)bytesToCopy);
 		
 		memcpy(buffer, [sslReadBuffer mutableBytes], bytesToCopy);
 		
 		[sslReadBuffer replaceBytesInRange:NSMakeRange(0, bytesToCopy) withBytes:NULL length:0];
 		
-		DDLogVerbose(@"%@: sslReadBuffer.length = %lu", THIS_FILE, (unsigned long)[sslReadBuffer length]);
+		LogVerbose(@"sslReadBuffer.length = %lu", (unsigned long)[sslReadBuffer length]);
 		
 		totalBytesLeft -= bytesToCopy;
 		totalBytesRead += bytesToCopy;
 		
 		done = (totalBytesLeft == 0);
 		
-		if (done) DDLogVerbose(@"%@: SSLWrite complete", THIS_FILE);
+		if (done) LogVerbose(@"SSLRead complete");
 	}
 	
 	// 
@@ -4572,7 +4570,7 @@ enum GCDAsyncSocketConfig
 				[sslReadBuffer setLength:socketFDBytesAvailable];
 			}
 			
-			DDLogVerbose(@"%@: Reading into sslReadBuffer...", THIS_FILE);
+			LogVerbose(@"Reading into sslReadBuffer...");
 			
 			readIntoPreBuffer = YES;
 			bytesToRead = (size_t)socketFDBytesAvailable;
@@ -4588,11 +4586,11 @@ enum GCDAsyncSocketConfig
 		}
 		
 		ssize_t result = read(socketFD, buf, bytesToRead);
-		DDLogVerbose(@"%@: read from socket = %i", THIS_FILE, (int)result);
+		LogVerbose(@"read from socket = %i", (int)result);
 		
 		if (result < 0)
 		{
-			DDLogVerbose(@"%@: read errno = %i", THIS_FILE, errno);
+			LogVerbose(@"read errno = %i", errno);
 			
 			if (errno != EWOULDBLOCK)
 			{
@@ -4629,6 +4627,8 @@ enum GCDAsyncSocketConfig
 			{
 				size_t bytesToCopy = MIN(totalBytesLeft, bytesReadFromSocket);
 				
+				LogVerbose(@"Copying %u bytes from sslReadBuffer", (unsigned)bytesToCopy);
+				
 				memcpy(buffer + totalBytesRead, [sslReadBuffer bytes], bytesToCopy);
 				
 				[sslReadBuffer setLength:bytesReadFromSocket];
@@ -4637,7 +4637,7 @@ enum GCDAsyncSocketConfig
 				totalBytesLeft -= bytesToCopy;
 				totalBytesRead += bytesToCopy;
 				
-				DDLogVerbose(@"%@: sslReadBuffer.length = %lu", THIS_FILE, (unsigned long)[sslReadBuffer length]);
+				LogVerbose(@"sslReadBuffer.length = %lu", (unsigned long)[sslReadBuffer length]);
 			}
 			else
 			{
@@ -4647,7 +4647,7 @@ enum GCDAsyncSocketConfig
 			
 			done = (totalBytesLeft == 0);
 			
-			if (done) DDLogVerbose(@"%@: SSLWrite complete", THIS_FILE);
+			if (done) LogVerbose(@"SSLRead complete");
 		}
 	}
 	
@@ -4664,12 +4664,10 @@ enum GCDAsyncSocketConfig
 
 - (OSStatus)sslWriteWithBuffer:(const void *)buffer length:(size_t *)bufferLength
 {
-	DDLogTrace2(@"%@: sslWriteWithBuffer:length: %lu", THIS_FILE, (unsigned long)*bufferLength);
+	LogTrace2(@"sslWriteWithBuffer:length: %lu", (unsigned long)*bufferLength);
 	
 	if (!(flags & kSocketCanAcceptBytes))
 	{
-		DDLogVerbose(@"%@: %@ - No space available to write...", THIS_FILE, THIS_METHOD);
-		
 		// Unable to write.
 		// 
 		// Need to wait for writeSource to fire and notify us of
@@ -4690,7 +4688,7 @@ enum GCDAsyncSocketConfig
 	int socketFD = (socket4FD == SOCKET_NULL) ? socket6FD : socket4FD;
 	
 	ssize_t result = write(socketFD, buffer, bytesToWrite);
-	DDLogVerbose(@"%@: wrote to socket = %i", THIS_FILE, (int)result);
+	LogVerbose(@"wrote to socket = %i", (int)result);
 	
 	if (result < 0)
 	{
@@ -4710,7 +4708,7 @@ enum GCDAsyncSocketConfig
 		bytesWritten = result;
 		done = (bytesToWrite == bytesWritten);
 		
-		if (done) DDLogVerbose(@"%@: SSLWrite complete", THIS_FILE);
+		if (done) LogVerbose(@"SSLWrite complete");
 	}
 	
 	*bufferLength = bytesWritten;
@@ -4730,8 +4728,6 @@ OSStatus SSLReadFunction(SSLConnectionRef connection, void *data, size_t *dataLe
 	
 	NSCAssert(dispatch_get_current_queue() == asyncSocket->socketQueue, @"What the deuce?");
 	
-	DDLogCVerbose(@"%@: SSLReadFunction() - data(%p) dataLength:(%lu)", THIS_FILE, data, (unsigned long)*dataLength);
-	
 	return [asyncSocket sslReadWithBuffer:data length:dataLength];
 }
 
@@ -4746,7 +4742,7 @@ OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, size_t 
 
 - (void)maybeStartTLS
 {
-	DDLogTrace();
+	LogTrace();
 	
 	// We can't start TLS until:
 	// - All queued reads prior to the user calling startTLS are complete
@@ -4756,7 +4752,7 @@ OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, size_t 
 	
 	if ((flags & kStartingReadTLS) && (flags & kStartingWriteTLS))
 	{
-		DDLogVerbose(@"%@: Starting TLS...", THIS_FILE);
+		LogVerbose(@"Starting TLS...");
 		
 		OSStatus status;
 		
@@ -4962,7 +4958,7 @@ OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, size_t 
 
 - (void)continueSSLHandshake
 {
-	DDLogTrace();
+	LogTrace();
 	
 	// If the return value is noErr, the session is ready for normal secure communication.
 	// If the return value is errSSLWouldBlock, the SSLHandshake function must be called again.
@@ -4972,7 +4968,7 @@ OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, size_t 
 	
 	if (status == noErr)
 	{
-		// SSL Handshake is complete!
+		LogVerbose(@"SSLHandshake complete");
 		
 		flags &= ~kStartingReadTLS;
 		flags &= ~kStartingWriteTLS;
@@ -5000,7 +4996,7 @@ OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, size_t 
 	}
 	else if (status == errSSLWouldBlock)
 	{
-		DDLogVerbose(@"%@: SSLHandshake continues...", THIS_FILE);
+		LogVerbose(@"SSLHandshake continues...");
 		
 		// Handshake continues...
 		// 
@@ -5038,7 +5034,7 @@ OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, size_t 
 {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	
-	DDLogInfo(@"%@: SSLHandshakeThread: Started", THIS_FILE);
+	LogInfo(@"SSLHandshakeThread: Started");
 	
 	// We can't run the run loop unless it has an associated input source or a timer.
 	// So we'll just create a timer that will never fire - unless the server runs for 10,000 years.
@@ -5046,14 +5042,14 @@ OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, size_t 
 	
 	[[NSRunLoop currentRunLoop] run];
 	
-	DDLogInfo(@"%@: SSLHandshakeThread: Stopped", THIS_FILE);
+	LogInfo(@"SSLHandshakeThread: Stopped");
 	
 	[pool release];
 }
 
 + (void)addHandshakeListener:(GCDAsyncSocket *)asyncSocket
 {
-	DDLogTrace();
+	LogTrace();
 	
 	CFRunLoopRef runLoop = CFRunLoopGetCurrent();
 	
@@ -5066,7 +5062,7 @@ OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, size_t 
 
 + (void)removeHandshakeListener:(GCDAsyncSocket *)asyncSocket
 {
-	DDLogTrace();
+	LogTrace();
 	
 	CFRunLoopRef runLoop = CFRunLoopGetCurrent();
 	
@@ -5079,7 +5075,7 @@ OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, size_t 
 
 - (void)finishSSLHandshake
 {
-	DDLogTrace();
+	LogTrace();
 	
 	if ((flags & kStartingReadTLS) && (flags & kStartingWriteTLS))
 	{
@@ -5114,7 +5110,7 @@ OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, size_t 
 
 - (void)abortSSLHandshake:(NSError *)error
 {
-	DDLogTrace();
+	LogTrace();
 	
 	if ((flags & kStartingReadTLS) && (flags & kStartingWriteTLS))
 	{
@@ -5133,7 +5129,7 @@ static void CFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType type
 	{
 		case kCFStreamEventHasBytesAvailable:
 		{
-			DDLogCTrace2(@"%@: CFReadStreamCallback - HasBytesAvailable", THIS_FILE);
+			LogVerbose(@"CFReadStreamCallback - HasBytesAvailable");
 			
 			dispatch_block_t block = ^{
 				NSAutoreleasePool *blockPool = [[NSAutoreleasePool alloc] init];
@@ -5148,7 +5144,7 @@ static void CFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType type
 		}
 		default:
 		{
-			DDLogCTrace2(@"%@: CFReadStreamCallback - Other", THIS_FILE);
+			LogVerbose(@"CFReadStreamCallback - Other");
 			
 			NSError *error = NSMakeCollectable(CFReadStreamCopyError(stream));
 			
@@ -5185,7 +5181,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	{
 		case kCFStreamEventCanAcceptBytes:
 		{
-			DDLogCTrace2(@"%@: CFWriteStreamCallback - CanAcceptBytes", THIS_FILE);
+			LogVerbose(@"CFWriteStreamCallback - CanAcceptBytes");
 			
 			dispatch_block_t block = ^{
 				NSAutoreleasePool *blockPool = [[NSAutoreleasePool alloc] init];
@@ -5200,7 +5196,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 		}
 		default:
 		{
-			DDLogCTrace2(@"%@: CFWriteStreamCallback - Other", THIS_FILE);
+			LogVerbose(@"CFWriteStreamCallback - Other");
 			
 			NSError *error = NSMakeCollectable(CFWriteStreamCopyError(stream));
 			
@@ -5231,7 +5227,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 
 - (void)maybeStartTLS
 {
-	DDLogTrace();
+	LogTrace();
 	
 	// We can't start TLS until:
 	// - All queued reads prior to the user calling startTLS are complete
@@ -5241,7 +5237,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	
 	if ((flags & kStartingReadTLS) && (flags & kStartingWriteTLS))
 	{
-		DDLogVerbose(@"%@: Starting TLS...", THIS_FILE);
+		LogVerbose(@"Starting TLS...");
 		
 		if ([partialReadBuffer length] > 0)
 		{
@@ -5321,7 +5317,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 			[self closeWithError:[self otherError:@"Error in CFStreamOpen"]];
 		}
 		
-		DDLogVerbose(@"Waiting for SSL Handshake to complete...");
+		LogVerbose(@"Waiting for SSL Handshake to complete...");
 	}
 }
 
