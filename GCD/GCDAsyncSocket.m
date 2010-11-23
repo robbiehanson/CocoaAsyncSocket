@@ -3579,6 +3579,8 @@ enum GCDAsyncSocketConfig
 				
 				if (result != noErr)
 				{
+					bytesRead = 0;
+					
 					if (result == errSSLWouldBlock)
 						waiting = YES;
 					else
@@ -3641,6 +3643,12 @@ enum GCDAsyncSocketConfig
 				{
 					// We just read a big chunk of data into the partialReadBuffer.
 					// Search for the terminating sequence.
+					// 
+					// Note: We are depending upon [partialReadBuffer length] to tell us how much data is
+					// available in the partialReadBuffer. So we need to be sure this matches how many bytes
+					// have actually been read into said buffer.
+					
+					[partialReadBuffer setLength:bytesRead];
 					
 					bytesToRead = [currentRead readLengthForTermWithPreBuffer:partialReadBuffer found:&done];
 					
