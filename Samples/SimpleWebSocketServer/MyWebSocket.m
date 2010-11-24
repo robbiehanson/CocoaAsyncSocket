@@ -1,27 +1,32 @@
 #import "MyWebSocket.h"
+#import "HTTPLogging.h"
+
+// Log levels: off, error, warn, info, verbose
+// Other flags : trace
+static const int httpLogLevel = LOG_LEVEL_WARN | LOG_FLAG_TRACE;
 
 
 @implementation MyWebSocket
 
 - (void)didOpen
 {
-	NSLog(@"MyWebSocket: didOpen");
-	
-	[self sendMessage:@"Welcome to my WebSocket"];
+	HTTPLogTrace();
 	
 	[super didOpen];
+	
+	[self sendMessage:@"Welcome to my WebSocket"];
 }
 
 - (void)didReceiveMessage:(NSString *)msg
 {
-	NSLog(@"MyWebSocket: didReceiveMessage: %@", msg);
+	HTTPLogTrace2(@"%@[%p]: didReceiveMessage: %@", THIS_FILE, self, msg);
 	
 	[self sendMessage:[NSString stringWithFormat:@"%@", [NSDate date]]];
 }
 
 - (void)didClose
 {
-	NSLog(@"MyWebSocket: didClose");
+	HTTPLogTrace();
 	
 	[super didClose];
 }

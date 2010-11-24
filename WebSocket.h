@@ -1,15 +1,17 @@
 #import <Foundation/Foundation.h>
 
 @class HTTPMessage;
-@class AsyncSocket;
+@class GCDAsyncSocket;
 
 
 #define WebSocketDidDieNotification  @"WebSocketDidDie"
 
 @interface WebSocket : NSObject
 {
+	dispatch_queue_t websocketQueue;
+	
 	HTTPMessage *request;
-	AsyncSocket *asyncSocket;
+	GCDAsyncSocket *asyncSocket;
 	
 	NSData *term;
 	
@@ -19,7 +21,7 @@
 
 + (BOOL)isWebSocketRequest:(HTTPMessage *)request;
 
-- (id)initWithRequest:(HTTPMessage *)request socket:(AsyncSocket *)socket;
+- (id)initWithRequest:(HTTPMessage *)request socket:(GCDAsyncSocket *)socket;
 
 - (void)didOpen;
 

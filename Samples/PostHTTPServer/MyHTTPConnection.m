@@ -1,7 +1,13 @@
 #import "MyHTTPConnection.h"
 #import "HTTPMessage.h"
-#import "HTTPResponse.h"
+#import "HTTPDataResponse.h"
 #import "DDNumber.h"
+#import "HTTPLogging.h"
+
+// Log levels : off, error, warn, info, verbose
+// Other flags: trace
+static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
+
 
 /**
  * All we have to do is override appropriate methods in HTTPConnection.
@@ -11,6 +17,8 @@
 
 - (BOOL)supportsMethod:(NSString *)method atPath:(NSString *)path
 {
+	HTTPLogTrace();
+	
 	// Add support for POST
 	
 	if ([method isEqualToString:@"POST"])
@@ -28,6 +36,8 @@
 
 - (BOOL)expectsRequestBodyFromMethod:(NSString *)method atPath:(NSString *)path
 {
+	HTTPLogTrace();
+	
 	// Inform HTTP server that we expect a body to accompany a POST request
 	
 	if([method isEqualToString:@"POST"])
@@ -38,9 +48,11 @@
 
 - (NSObject<HTTPResponse> *)httpResponseForMethod:(NSString *)method URI:(NSString *)path
 {
+	HTTPLogTrace();
+	
 	if ([method isEqualToString:@"POST"] && [path isEqualToString:@"/post.html"])
 	{
-		NSLog(@"postContentLength: %qu", requestContentLength);
+		HTTPLogVerbose(@"%@[%p]: postContentLength: %qu", THIS_FILE, self, requestContentLength);
 		
 		NSString *postStr = nil;
 		
@@ -50,7 +62,7 @@
 			postStr = [[[NSString alloc] initWithData:postData encoding:NSUTF8StringEncoding] autorelease];
 		}
 		
-		NSLog(@"postStr: %@", postStr);
+		HTTPLogVerbose(@"%@[%p]: postStr: %@", THIS_FILE, self, postStr);
 		
 		// Result will be of the form "answer=..."
 		
@@ -74,12 +86,16 @@
 
 - (void)prepareForBodyWithSize:(UInt64)contentLength
 {
+	HTTPLogTrace();
+	
 	// If we supported large uploads,
 	// we might use this method to create/open files, allocate memory, etc.
 }
 
 - (void)processDataChunk:(NSData *)postDataChunk
 {
+	HTTPLogTrace();
+	
 	// Remember: In order to support LARGE POST uploads, the data is read in chunks.
 	// This prevents a 50 MB upload from being stored in RAM.
 	// The size of the chunks are limited by the POST_CHUNKSIZE definition.
@@ -88,7 +104,7 @@
 	BOOL result = [request appendData:postDataChunk];
 	if (!result)
 	{
-		NSLog(@"Couldn't append bytes!");
+		HTTPLogError(@"%@[%p]: %@ - Couldn't append bytes!", THIS_FILE, self, THIS_METHOD);
 	}
 }
 

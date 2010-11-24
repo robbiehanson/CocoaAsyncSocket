@@ -1,4 +1,9 @@
 #import "MyHTTPConnection.h"
+#import "HTTPLogging.h"
+
+// Log levels : off, error, warn, info, verbose
+// Other flags: trace
+static const int httpLogLevel = LOG_LEVEL_VERBOSE | LOG_FLAG_TRACE;
 
 
 @implementation MyHTTPConnection
@@ -7,11 +12,17 @@
 {
 	// We're only going to password protect the "secret" directory.
 	
-	return [path hasPrefix:@"/secret"];
+	BOOL result = [path hasPrefix:@"/secret"];
+	
+	HTTPLogTrace2(@"%@[%p]: isPasswordProtected(%@) - %@", THIS_FILE, self, path, (result ? @"YES" : @"NO"));
+	
+	return result;
 }
 
 - (BOOL)useDigestAccessAuthentication
 {
+	HTTPLogTrace();
+	
 	// Digest access authentication is the default setting.
 	// Notice in Safari that when you're prompted for your password,
 	// Safari tells you "Your login information will be sent securely."
@@ -26,6 +37,8 @@
 
 - (NSString *)passwordForUser:(NSString *)username
 {
+	HTTPLogTrace();
+	
 	// You can do all kinds of cool stuff here.
 	// For simplicity, we're not going to check the username, only the password.
 	

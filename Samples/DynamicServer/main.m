@@ -1,9 +1,9 @@
 //
 //  main.m
-//  MultiThreadedHTTPServer
+//  DynamicServer
 //
-//  Created by Robbie Hanson on 8/15/08.
-//  Copyright __MyCompanyName__ 2008. All rights reserved.
+//  Created by Robbie Hanson on 11/20/10.
+//  Copyright 2010 Voalte. All rights reserved.
 //
 
 #import <Cocoa/Cocoa.h>

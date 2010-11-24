@@ -5,7 +5,7 @@ This project provides you (the developer) with an embedded HTTP server.  It  was
 - Built in support for bonjour broadcasting
 - IPv4 and IPv6 support automatically
 - Asynchronous networking
-- Multithreading support
+- Automatic multithreading via grand central dispatch
 - Password protection using either digest access or basic authentication
 - TLS/SSL encryption support
 - Range request support for partial downloads and pause/resume

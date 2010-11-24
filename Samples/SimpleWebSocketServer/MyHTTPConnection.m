@@ -2,14 +2,21 @@
 #import "HTTPMessage.h"
 #import "HTTPResponse.h"
 #import "HTTPDynamicFileResponse.h"
-#import "AsyncSocket.h"
+#import "GCDAsyncSocket.h"
 #import "MyWebSocket.h"
+#import "HTTPLogging.h"
+
+// Log levels: off, error, warn, info, verbose
+// Other flags: trace
+static const int httpLogLevel = LOG_LEVEL_VERBOSE | LOG_FLAG_TRACE;
 
 
 @implementation MyHTTPConnection
 
 - (NSObject<HTTPResponse> *)httpResponseForMethod:(NSString *)method URI:(NSString *)path
 {
+	HTTPLogTrace();
+	
 	if ([path isEqualToString:@"/WebSocketTest2.js"])
 	{
 		// The socket.js file contains a URL template that needs to be completed:
@@ -38,7 +45,6 @@
 		
 		return [[[HTTPDynamicFileResponse alloc] initWithFilePath:[self filePathForURI:path]
 		                                            forConnection:self
-		                                             runLoopModes:[asyncSocket runLoopModes]
 		                                                separator:@"%%"
 		                                    replacementDictionary:replacementDict] autorelease];
 	}
@@ -48,11 +54,11 @@
 
 - (WebSocket *)webSocketForURI:(NSString *)path
 {
-	NSLog(@"MyHTTPConnection: webSocketForURI: %@", path);
+	HTTPLogTrace2(@"%@[%p]: webSocketForURI: %@", THIS_FILE, self, path);
 	
 	if([path isEqualToString:@"/service"])
 	{
-		NSLog(@"MyHTTPConnection: Creating MyWebSocket...");
+		HTTPLogInfo(@"MyHTTPConnection: Creating MyWebSocket...");
 		
 		return [[[MyWebSocket alloc] initWithRequest:request socket:asyncSocket] autorelease];		
 	}

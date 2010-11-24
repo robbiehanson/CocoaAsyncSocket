@@ -1,5 +1,10 @@
 #import "MyHTTPConnection.h"
+#import "HTTPLogging.h"
 #import "DDKeychain.h"
+
+// Log levels: off, error, warn, info, verbose
+// Other flags: trace
+static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 
 
 @implementation MyHTTPConnection
@@ -9,6 +14,8 @@
 **/
 - (BOOL)isSecureServer
 {
+	HTTPLogTrace();
+	
 	// Create an HTTPS server (all connections will be secured via SSL/TLS)
 	return YES;
 }
@@ -21,6 +28,8 @@
 **/
 - (NSArray *)sslIdentityAndCertificates
 {
+	HTTPLogTrace();
+	
 	NSArray *result = [DDKeychain SSLIdentityAndCertificates];
 	if([result count] == 0)
 	{
