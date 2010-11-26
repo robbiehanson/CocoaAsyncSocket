@@ -343,7 +343,7 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 	// Convert result to 4 byte big-endian (network byte order)
 	// and then convert to raw data.
 	
-	UInt32 result = EndianU32_NtoB((UInt32)resultHostNum);
+	UInt32 result = OSSwapHostToBigInt32((uint32_t)resultHostNum);
 	
 	return [NSData dataWithBytes:&result length:4];
 }

@@ -2,6 +2,9 @@
 #import "HTTPConnection.h"
 #import "HTTPLogging.h"
 
+#import <unistd.h>
+#import <fcntl.h>
+
 // Log levels : off, error, warn, info, verbose
 // Other flags: trace
 static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
