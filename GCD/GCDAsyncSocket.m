@@ -208,13 +208,13 @@ enum GCDAsyncSocketConfig
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * The AsyncReadPacket encompasses the instructions for any given read.
+ * The GCDAsyncReadPacket encompasses the instructions for any given read.
  * The content of a read packet allows the code to determine if we're:
  *  - reading to a certain length
  *  - reading to a certain separator
  *  - or simply reading the first chunk of available data
 **/
-@interface AsyncReadPacket : NSObject
+@interface GCDAsyncReadPacket : NSObject
 {
   @public
 	NSMutableData *buffer;
@@ -246,7 +246,7 @@ enum GCDAsyncSocketConfig
 
 @end
 
-@implementation AsyncReadPacket
+@implementation GCDAsyncReadPacket
 
 - (id)initWithData:(NSMutableData *)d
        startOffset:(NSUInteger)s
@@ -616,9 +616,9 @@ enum GCDAsyncSocketConfig
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * The AsyncWritePacket encompasses the instructions for any given write.
+ * The GCDAsyncWritePacket encompasses the instructions for any given write.
 **/
-@interface AsyncWritePacket : NSObject
+@interface GCDAsyncWritePacket : NSObject
 {
   @public
 	NSData *buffer;
@@ -629,7 +629,7 @@ enum GCDAsyncSocketConfig
 - (id)initWithData:(NSData *)d timeout:(NSTimeInterval)t tag:(long)i;
 @end
 
-@implementation AsyncWritePacket
+@implementation GCDAsyncWritePacket
 
 - (id)initWithData:(NSData *)d timeout:(NSTimeInterval)t tag:(long)i
 {
@@ -656,10 +656,10 @@ enum GCDAsyncSocketConfig
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * The AsyncSpecialPacket encompasses special instructions for interruptions in the read/write queues.
+ * The GCDAsyncSpecialPacket encompasses special instructions for interruptions in the read/write queues.
  * This class my be altered to support more than just TLS in the future.
 **/
-@interface AsyncSpecialPacket : NSObject
+@interface GCDAsyncSpecialPacket : NSObject
 {
   @public
 	NSDictionary *tlsSettings;
@@ -667,7 +667,7 @@ enum GCDAsyncSocketConfig
 - (id)initWithTLSSettings:(NSDictionary *)settings;
 @end
 
-@implementation AsyncSpecialPacket
+@implementation GCDAsyncSpecialPacket
 
 - (id)initWithTLSSettings:(NSDictionary *)settings
 {
@@ -3140,13 +3140,13 @@ enum GCDAsyncSocketConfig
 {
 	if (offset > [buffer length]) return;
 	
-	AsyncReadPacket *packet = [[AsyncReadPacket alloc] initWithData:buffer
-	                                                    startOffset:offset
-	                                                      maxLength:length
-	                                                        timeout:timeout
-	                                                     readLength:0
-	                                                     terminator:nil
-	                                                            tag:tag];
+	GCDAsyncReadPacket *packet = [[GCDAsyncReadPacket alloc] initWithData:buffer
+	                                                          startOffset:offset
+	                                                            maxLength:length
+	                                                              timeout:timeout
+	                                                           readLength:0
+	                                                           terminator:nil
+	                                                                  tag:tag];
 	
 	dispatch_async(socketQueue, ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
@@ -3179,13 +3179,13 @@ enum GCDAsyncSocketConfig
 	if (length == 0) return;
 	if (offset > [buffer length]) return;
 	
-	AsyncReadPacket *packet = [[AsyncReadPacket alloc] initWithData:buffer
-	                                                    startOffset:offset
-	                                                      maxLength:0
-	                                                        timeout:timeout
-	                                                     readLength:length
-	                                                     terminator:nil
-	                                                            tag:tag];
+	GCDAsyncReadPacket *packet = [[GCDAsyncReadPacket alloc] initWithData:buffer
+	                                                          startOffset:offset
+	                                                            maxLength:0
+	                                                              timeout:timeout
+	                                                           readLength:length
+	                                                           terminator:nil
+	                                                                  tag:tag];
 	
 	dispatch_async(socketQueue, ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
@@ -3234,13 +3234,13 @@ enum GCDAsyncSocketConfig
 	if (offset > [buffer length]) return;
 	if (length > 0 && length < [data length]) return;
 	
-	AsyncReadPacket *packet = [[AsyncReadPacket alloc] initWithData:buffer
-	                                                    startOffset:offset
-	                                                      maxLength:length
-	                                                        timeout:timeout
-	                                                     readLength:0
-	                                                     terminator:data
-	                                                            tag:tag];
+	GCDAsyncReadPacket *packet = [[GCDAsyncReadPacket alloc] initWithData:buffer
+	                                                          startOffset:offset
+	                                                            maxLength:length
+	                                                              timeout:timeout
+	                                                           readLength:0
+	                                                           terminator:data
+	                                                                  tag:tag];
 	
 	dispatch_async(socketQueue, ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
@@ -3284,7 +3284,7 @@ enum GCDAsyncSocketConfig
 			[readQueue removeObjectAtIndex:0];
 			
 			
-			if ([currentRead isKindOfClass:[AsyncSpecialPacket class]])
+			if ([currentRead isKindOfClass:[GCDAsyncSpecialPacket class]])
 			{
 				// Attempt to start TLS
 				flags |= kStartingReadTLS;
@@ -3776,7 +3776,7 @@ enum GCDAsyncSocketConfig
 		if (delegateQueue && [delegate respondsToSelector:@selector(socket:didReadPartialDataOfLength:tag:)])
 		{
 			id theDelegate = delegate;
-			AsyncReadPacket *theRead = currentRead;
+			GCDAsyncReadPacket *theRead = currentRead;
 			
 			dispatch_async(delegateQueue, ^{
 				NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
@@ -3919,7 +3919,7 @@ enum GCDAsyncSocketConfig
 	if (delegateQueue && [delegate respondsToSelector:@selector(socket:didReadData:withTag:)])
 	{
 		id theDelegate = delegate;
-		AsyncReadPacket *theRead = currentRead;
+		GCDAsyncReadPacket *theRead = currentRead;
 		
 		dispatch_async(delegateQueue, ^{
 			NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
@@ -3984,7 +3984,7 @@ enum GCDAsyncSocketConfig
 	if (delegateQueue && [delegate respondsToSelector:@selector(socket:shouldTimeoutReadWithTag:elapsed:bytesDone:)])
 	{
 		id theDelegate = delegate;
-		AsyncReadPacket *theRead = currentRead;
+		GCDAsyncReadPacket *theRead = currentRead;
 		
 		dispatch_async(delegateQueue, ^{
 			NSAutoreleasePool *delegatePool = [[NSAutoreleasePool alloc] init];
@@ -4045,7 +4045,7 @@ enum GCDAsyncSocketConfig
 	
 	LogTrace();
 	
-	AsyncWritePacket *packet = [[AsyncWritePacket alloc] initWithData:data timeout:timeout tag:tag];
+	GCDAsyncWritePacket *packet = [[GCDAsyncWritePacket alloc] initWithData:data timeout:timeout tag:tag];
 	
 	dispatch_async(socketQueue, ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
@@ -4090,7 +4090,7 @@ enum GCDAsyncSocketConfig
 			[writeQueue removeObjectAtIndex:0];
 			
 			
-			if ([currentWrite isKindOfClass:[AsyncSpecialPacket class]])
+			if ([currentWrite isKindOfClass:[GCDAsyncSpecialPacket class]])
 			{
 				// Attempt to start TLS
 				flags |= kStartingWriteTLS;
@@ -4182,7 +4182,7 @@ enum GCDAsyncSocketConfig
 		return;
 	}
 	
-	// Note: This method is not called if theCurrentWrite is an AsyncSpecialPacket (startTLS packet)
+	// Note: This method is not called if theCurrentWrite is an GCDAsyncSpecialPacket (startTLS packet)
 	
 	NSUInteger totalBytesWritten = 0;
 	
@@ -4301,7 +4301,7 @@ enum GCDAsyncSocketConfig
 		if (delegateQueue && [delegate respondsToSelector:@selector(socket:didWritePartialDataOfLength:tag:)])
 		{
 			id theDelegate = delegate;
-			AsyncWritePacket *theWrite = currentWrite;
+			GCDAsyncWritePacket *theWrite = currentWrite;
 			
 			dispatch_async(delegateQueue, ^{
 				NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
@@ -4337,7 +4337,7 @@ enum GCDAsyncSocketConfig
 	if (delegateQueue && [delegate respondsToSelector:@selector(socket:didWriteDataWithTag:)])
 	{
 		id theDelegate = delegate;
-		AsyncWritePacket *theWrite = currentWrite;
+		GCDAsyncWritePacket *theWrite = currentWrite;
 		
 		dispatch_async(delegateQueue, ^{
 			NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
@@ -4402,7 +4402,7 @@ enum GCDAsyncSocketConfig
 	if (delegateQueue && [delegate respondsToSelector:@selector(socket:shouldTimeoutWriteWithTag:elapsed:bytesDone:)])
 	{
 		id theDelegate = delegate;
-		AsyncWritePacket *theWrite = currentWrite;
+		GCDAsyncWritePacket *theWrite = currentWrite;
 		
 		dispatch_async(delegateQueue, ^{
 			NSAutoreleasePool *delegatePool = [[NSAutoreleasePool alloc] init];
@@ -4474,7 +4474,7 @@ enum GCDAsyncSocketConfig
         tlsSettings = [NSDictionary dictionary];
     }
 	
-	AsyncSpecialPacket *packet = [[AsyncSpecialPacket alloc] initWithTLSSettings:tlsSettings];
+	GCDAsyncSpecialPacket *packet = [[GCDAsyncSpecialPacket alloc] initWithTLSSettings:tlsSettings];
 	
 	dispatch_async(socketQueue, ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
@@ -4756,7 +4756,7 @@ OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, size_t 
 		
 		OSStatus status;
 		
-		AsyncSpecialPacket *tlsPacket = (AsyncSpecialPacket *)currentRead;
+		GCDAsyncSpecialPacket *tlsPacket = (GCDAsyncSpecialPacket *)currentRead;
 		NSDictionary *tlsSettings = tlsPacket->tlsSettings;
 		
 		// Create SSLContext, and setup IO callbacks and connection ref
@@ -5298,7 +5298,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 		                   withObject:self
 		                waitUntilDone:YES];
 		
-		AsyncSpecialPacket *tlsPacket = (AsyncSpecialPacket *)currentRead;
+		GCDAsyncSpecialPacket *tlsPacket = (GCDAsyncSpecialPacket *)currentRead;
 		NSDictionary *tlsSettings = tlsPacket->tlsSettings;
 		
 		BOOL r1 = CFReadStreamSetProperty(readStream, kCFStreamPropertySSLSettings, (CFDictionaryRef)tlsSettings);

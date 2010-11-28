@@ -12,8 +12,8 @@
 #import <Security/Security.h>
 #import <dispatch/dispatch.h>
 
-@class AsyncReadPacket;
-@class AsyncWritePacket;
+@class GCDAsyncReadPacket;
+@class GCDAsyncWritePacket;
 
 extern NSString *const GCDAsyncSocketException;
 extern NSString *const GCDAsyncSocketErrorDomain;
@@ -63,8 +63,8 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 	NSMutableArray *readQueue;
 	NSMutableArray *writeQueue;
 	
-	AsyncReadPacket *currentRead;
-	AsyncWritePacket *currentWrite;
+	GCDAsyncReadPacket *currentRead;
+	GCDAsyncWritePacket *currentWrite;
 	
 	unsigned long socketFDBytesAvailable;
 	
