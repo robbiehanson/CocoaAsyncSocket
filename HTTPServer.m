@@ -434,11 +434,19 @@ static const int httpLogLevel = LOG_LEVEL_INFO; // | LOG_FLAG_TRACE;
 		
 		// Now stop all HTTP connections the server owns
 		[connectionsLock lock];
+		for (HTTPConnection *connection in connections)
+		{
+			[connection stop];
+		}
 		[connections removeAllObjects];
 		[connectionsLock unlock];
 		
 		// Now stop all WebSocket connections the server owns
 		[webSocketsLock lock];
+		for (WebSocket *webSocket in webSockets)
+		{
+			[webSocket stop];
+		}
 		[webSockets removeAllObjects];
 		[webSocketsLock unlock];
 		

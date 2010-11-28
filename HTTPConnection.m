@@ -558,54 +558,65 @@ static NSMutableArray *recentNonces;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Starting point for the HTTP connection after it has been fully initialized.
+ * Starting point for the HTTP connection after it has been fully initialized (including subclasses).
  * This method is called by the HTTP server.
 **/
 - (void)start
 {
-	if (dispatch_get_current_queue() != connectionQueue)
-	{
-		dispatch_async(connectionQueue, ^{
-			NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-			[self start];
-			[pool release];
-		});
-		return;
-	}
-	
-	if (started) return;
-	started = YES;
-	
-	HTTPLogTrace();
-	
-	if ([self isSecureServer])
-	{
-		// We are configured to be an HTTPS server.
-		// That is, we secure via SSL/TLS the connection prior to any communication.
+	dispatch_async(connectionQueue, ^{
+		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		
-		NSArray *certificates = [self sslIdentityAndCertificates];
+		if (started) return;
+		started = YES;
 		
-		if ([certificates count] > 0)
+		HTTPLogTrace();
+		
+		if ([self isSecureServer])
 		{
-			// All connections are assumed to be secure. Only secure connections are allowed on this server.
-			NSMutableDictionary *settings = [NSMutableDictionary dictionaryWithCapacity:3];
+			// We are configured to be an HTTPS server.
+			// That is, we secure via SSL/TLS the connection prior to any communication.
 			
-			// Configure this connection as the server
-			[settings setObject:[NSNumber numberWithBool:YES]
-			             forKey:(NSString *)kCFStreamSSLIsServer];
+			NSArray *certificates = [self sslIdentityAndCertificates];
 			
-			[settings setObject:certificates
-			             forKey:(NSString *)kCFStreamSSLCertificates];
-			
-			// Configure this connection to use the highest possible SSL level
-			[settings setObject:(NSString *)kCFStreamSocketSecurityLevelNegotiatedSSL
-			             forKey:(NSString *)kCFStreamSSLLevel];
-			
-			[asyncSocket startTLS:settings];
+			if ([certificates count] > 0)
+			{
+				// All connections are assumed to be secure. Only secure connections are allowed on this server.
+				NSMutableDictionary *settings = [NSMutableDictionary dictionaryWithCapacity:3];
+				
+				// Configure this connection as the server
+				[settings setObject:[NSNumber numberWithBool:YES]
+							 forKey:(NSString *)kCFStreamSSLIsServer];
+				
+				[settings setObject:certificates
+							 forKey:(NSString *)kCFStreamSSLCertificates];
+				
+				// Configure this connection to use the highest possible SSL level
+				[settings setObject:(NSString *)kCFStreamSocketSecurityLevelNegotiatedSSL
+							 forKey:(NSString *)kCFStreamSSLLevel];
+				
+				[asyncSocket startTLS:settings];
+			}
 		}
-	}
-	
-	[self startReadingRequest];
+		
+		[self startReadingRequest];
+		
+		[pool release];
+	});
+}
+
+/**
+ * This method is called by the HTTPServer if it is asked to stop.
+ * The server, in turn, invokes stop on each HTTPConnection instance.
+**/
+- (void)stop
+{
+	dispatch_async(connectionQueue, ^{
+		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+		
+		[self die];
+		
+		[pool release];
+	});
 }
 
 /**
@@ -906,6 +917,8 @@ static NSMutableArray *recentNonces;
 		}
 		else
 		{
+			[ws start];
+			
 			[[config server] addWebSocket:ws];
 			
 			[asyncSocket release];

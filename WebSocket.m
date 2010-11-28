@@ -132,16 +132,6 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 		isVersion76 = [[self class] isVersion76Request:request];
 		
 		term = [[NSData alloc] initWithBytes:"\xFF" length:1];
-		
-		if (isVersion76)
-		{
-			[self readRequestBody];
-		}
-		else
-		{
-			[self sendResponseHeaders];
-			[self didOpen];
-		}
 	}
 	return self;
 }
@@ -158,6 +148,48 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 	[asyncSocket release];
 	
 	[super dealloc];
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark Start and Stop
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Starting point for the WebSocket after it has been fully initialized (including subclasses).
+ * This method is called by the HTTPConnection it is spawned from.
+**/
+- (void)start
+{
+	dispatch_async(websocketQueue, ^{
+		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+		
+		if (isVersion76)
+		{
+			[self readRequestBody];
+		}
+		else
+		{
+			[self sendResponseHeaders];
+			[self didOpen];
+		}
+		
+		[pool release];
+	});
+}
+
+/**
+ * This method is called by the HTTPServer if it is asked to stop.
+ * The server, in turn, invokes stop on each WebSocket instance.
+**/
+- (void)stop
+{
+	dispatch_async(websocketQueue, ^{
+		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+		
+		[asyncSocket disconnect];
+		
+		[pool release];
+	});
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

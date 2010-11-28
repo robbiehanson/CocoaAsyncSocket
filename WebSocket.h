@@ -23,6 +23,9 @@
 
 - (id)initWithRequest:(HTTPMessage *)request socket:(GCDAsyncSocket *)socket;
 
+- (void)start;
+- (void)stop;
+
 - (void)didOpen;
 
 - (void)sendMessage:(NSString *)msg;

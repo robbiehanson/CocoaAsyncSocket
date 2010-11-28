@@ -63,6 +63,7 @@
 - (id)initWithAsyncSocket:(GCDAsyncSocket *)newSocket configuration:(HTTPConfig *)aConfig;
 
 - (void)start;
+- (void)stop;
 
 - (BOOL)supportsMethod:(NSString *)method atPath:(NSString *)path;
 - (BOOL)expectsRequestBodyFromMethod:(NSString *)method atPath:(NSString *)path;
