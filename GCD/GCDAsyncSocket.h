@@ -190,7 +190,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * or programmatically via the getifaddrs() function.
  * 
  * To accept connections on any interface pass nil, or simply use the acceptOnPort:error: method.
- **/
+**/
 - (BOOL)acceptOnInterface:(NSString *)interface port:(UInt16)port error:(NSError **)errPtr;
 
 #pragma mark Connecting
@@ -198,7 +198,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 /**
  * Connects to the given host and port.
  * 
- * This method invokes connectToHost:onPort:viatInterface:withTimeout:error:
+ * This method invokes connectToHost:onPort:viaInterface:withTimeout:error:
  * and uses the default interface, and no timeout.
 **/
 - (BOOL)connectToHost:(NSString *)host onPort:(UInt16)port error:(NSError **)errPtr;
@@ -206,7 +206,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 /**
  * Connects to the given host and port with an optional timeout.
  * 
- * This method invokes connectToHost:onPort:viatInterface:withTimeout:error: and uses the default interface.
+ * This method invokes connectToHost:onPort:viaInterface:withTimeout:error: and uses the default interface.
 **/
 - (BOOL)connectToHost:(NSString *)host
                onPort:(UInt16)port
