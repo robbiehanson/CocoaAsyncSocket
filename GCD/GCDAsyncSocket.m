@@ -5301,6 +5301,9 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 		GCDAsyncSpecialPacket *tlsPacket = (GCDAsyncSpecialPacket *)currentRead;
 		NSDictionary *tlsSettings = tlsPacket->tlsSettings;
 		
+		// Getting an error concerning kCFStreamPropertySSLSettings ?
+		// You need to add the CFNetwork framework to your iOS application.
+		
 		BOOL r1 = CFReadStreamSetProperty(readStream, kCFStreamPropertySSLSettings, (CFDictionaryRef)tlsSettings);
 		BOOL r2 = CFWriteStreamSetProperty(writeStream, kCFStreamPropertySSLSettings, (CFDictionaryRef)tlsSettings);
 		
