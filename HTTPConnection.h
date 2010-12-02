@@ -65,6 +65,8 @@
 - (void)start;
 - (void)stop;
 
+- (void)startConnection;
+
 - (BOOL)supportsMethod:(NSString *)method atPath:(NSString *)path;
 - (BOOL)expectsRequestBodyFromMethod:(NSString *)method atPath:(NSString *)path;
 
