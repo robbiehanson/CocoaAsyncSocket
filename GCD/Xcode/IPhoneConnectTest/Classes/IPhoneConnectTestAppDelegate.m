@@ -52,8 +52,8 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 	
 	asyncSocket = [[GCDAsyncSocket alloc] initWithDelegate:self delegateQueue:mainQueue];
 	
-	[self normalConnect];
-//	[self secureConnect];
+//	[self normalConnect];
+	[self secureConnect];
 	
 	// Add the view controller's view to the window and display.
 	[window addSubview:viewController.view];
@@ -68,6 +68,13 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 	
 	if (port == 443)
 	{
+		[sock performBlock:^{
+			if ([sock enableBackgroundingOnSocketWithCaveat])
+				DDLogInfo(@"Enabled backgrounding on socket");
+			else
+				DDLogWarn(@"Enabling backgrounding failed!");
+		}];
+		
 		// Configure SSL/TLS settings
 		NSMutableDictionary *settings = [NSMutableDictionary dictionaryWithCapacity:3];
 		
@@ -110,6 +117,11 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 - (void)socketDidSecure:(GCDAsyncSocket *)sock
 {
 	DDLogInfo(@"socketDidSecure:%p", sock);
+}
+
+- (void)socketDidDisconnect:(GCDAsyncSocket *)sock withError:(NSError *)err
+{
+	DDLogInfo(@"socketDidDisconnect:%p withError: %@", sock, err);
 }
 
 - (void)dealloc

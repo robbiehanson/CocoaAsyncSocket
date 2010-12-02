@@ -95,7 +95,8 @@ enum GCDAsyncSocketFlags
 	kWriteSourceSuspended      = 1 <<  9,  // If set, the write source is suspended
 	kStartingReadTLS           = 1 << 10,  // If set, we're waiting for TLS negotiation to complete
 	kStartingWriteTLS          = 1 << 11,  // If set, we're waiting for TLS negotiation to complete
-	kSocketSecure              = 1 << 12,  // If set, socket is using secure communication via SSL/TLS
+	kAddedHandshakeListener    = 1 << 12,  // If set, read & write stream have been added to handshake listener thread
+	kSocketSecure              = 1 << 13,  // If set, socket is using secure communication via SSL/TLS
 };
 
 enum GCDAsyncSocketConfig
@@ -1738,10 +1739,7 @@ enum GCDAsyncSocketConfig
 		
 		if (gai_error)
 		{
-			NSString *errMsg = [NSString stringWithCString:gai_strerror(gai_error) encoding:NSASCIIStringEncoding];
-			NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
-				
-			error = [NSError errorWithDomain:@"kCFStreamErrorDomainNetDB" code:gai_error userInfo:info];
+			error = [self gaiError:gai_error];
 		}
 		else
 		{
@@ -2114,10 +2112,13 @@ enum GCDAsyncSocketConfig
 	#if TARGET_OS_IPHONE
 		if (readStream || writeStream)
 		{
-			[[self class] performSelector:@selector(removeHandshakeListener:)
-			                     onThread:sslHandshakeThread
-			                   withObject:self
+			if (flags & kAddedHandshakeListener)
+			{
+				[[self class] performSelector:@selector(removeHandshakeListener:)
+				                     onThread:sslHandshakeThread
+				                   withObject:self
 			                waitUntilDone:YES];
+			}
 			
 			if (readStream)
 			{
@@ -2418,7 +2419,13 @@ enum GCDAsyncSocketConfig
 
 - (NSError *)connectionClosedError
 {
-	return [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketClosedError userInfo:nil];
+	NSString *errMsg = NSLocalizedStringWithDefaultValue(@"GCDAsyncSocketClosedError",
+	                                                     @"GCDAsyncSocket", [NSBundle mainBundle],
+	                                                     @"Socket closed by remote peer", nil);
+	
+	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+	
+	return [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketClosedError userInfo:userInfo];
 }
 
 - (NSError *)otherError:(NSString *)errMsg
@@ -5129,33 +5136,27 @@ static void CFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType type
 	{
 		case kCFStreamEventHasBytesAvailable:
 		{
-			LogVerbose(@"CFReadStreamCallback - HasBytesAvailable");
-			
-			dispatch_block_t block = ^{
+			dispatch_async(asyncSocket->socketQueue, ^{
 				NSAutoreleasePool *blockPool = [[NSAutoreleasePool alloc] init];
 				
 				[asyncSocket finishSSLHandshake];
 				
 				[blockPool release];
-			};
-			dispatch_async(asyncSocket->socketQueue, block);
+			});
 			
 			break;
 		}
 		default:
 		{
-			LogVerbose(@"CFReadStreamCallback - Other");
-			
 			NSError *error = NSMakeCollectable(CFReadStreamCopyError(stream));
 			
-			dispatch_block_t block = ^{
+			dispatch_async(asyncSocket->socketQueue, ^{
 				NSAutoreleasePool *blockPool = [[NSAutoreleasePool alloc] init];
 				
 				[asyncSocket abortSSLHandshake:error];
 				
 				[blockPool release];
-			};
-			dispatch_async(asyncSocket->socketQueue, block);
+			});
 			
 			[error release];
 			break;
@@ -5181,33 +5182,27 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	{
 		case kCFStreamEventCanAcceptBytes:
 		{
-			LogVerbose(@"CFWriteStreamCallback - CanAcceptBytes");
-			
-			dispatch_block_t block = ^{
+			dispatch_async(asyncSocket->socketQueue, ^{
 				NSAutoreleasePool *blockPool = [[NSAutoreleasePool alloc] init];
 				
 				[asyncSocket finishSSLHandshake];
 				
 				[blockPool release];
-			};
-			dispatch_async(asyncSocket->socketQueue, block);
+			});
 			
 			break;
 		}
 		default:
 		{
-			LogVerbose(@"CFWriteStreamCallback - Other");
-			
 			NSError *error = NSMakeCollectable(CFWriteStreamCopyError(stream));
 			
-			dispatch_block_t block = ^{
+			dispatch_async(asyncSocket->socketQueue, ^{
 				NSAutoreleasePool *blockPool = [[NSAutoreleasePool alloc] init];
 				
 				[asyncSocket abortSSLHandshake:error];
 				
 				[blockPool release];
-			};
-			dispatch_async(asyncSocket->socketQueue, block);
+			});
 			
 			[error release];
 			break;
@@ -5223,6 +5218,52 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	CFWriteStreamSetClient(asyncSocket->writeStream, 0, NULL, NULL);
 	
 	[asyncSocket release];
+}
+
+- (BOOL)createReadAndWriteStream
+{
+	NSAssert((readStream == NULL && writeStream == NULL), @"Read/Write stream not null");
+	
+	int socketFD = (socket6FD == SOCKET_NULL) ? socket4FD : socket6FD;
+	
+	if (socketFD == SOCKET_NULL)
+	{
+		return NO;
+	}
+	
+	LogVerbose(@"Creating read and write stream...");
+	
+	CFStreamCreatePairWithSocket(NULL, (CFSocketNativeHandle)socketFD, &readStream, &writeStream);
+	
+	// The kCFStreamPropertyShouldCloseNativeSocket property should be false by default (for our case).
+	// But let's not take any chances.
+	
+	if (readStream)
+		CFReadStreamSetProperty(readStream, kCFStreamPropertyShouldCloseNativeSocket, kCFBooleanFalse);
+	if (writeStream)
+		CFWriteStreamSetProperty(writeStream, kCFStreamPropertyShouldCloseNativeSocket, kCFBooleanFalse);
+	
+	if ((readStream == NULL) || (writeStream == NULL))
+	{
+		LogWarn(@"Unable to create read and write stream...");
+		
+		if (readStream)
+		{
+			CFReadStreamClose(readStream);
+			CFRelease(readStream);
+			readStream = NULL;
+		}
+		if (writeStream)
+		{
+			CFWriteStreamClose(writeStream);
+			CFRelease(writeStream);
+			writeStream = NULL;
+		}
+		
+		return NO;
+	}
+	
+	return YES;
 }
 
 - (void)maybeStartTLS
@@ -5253,17 +5294,13 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 		socketFDBytesAvailable = 0;
 		flags &= ~kSocketCanAcceptBytes;
 		
-		int socketFD = (socket6FD == SOCKET_NULL) ? socket4FD : socket6FD;
-		
-		CFStreamCreatePairWithSocket(NULL, (CFSocketNativeHandle)socketFD, &readStream, &writeStream);
-		
-		CFReadStreamSetProperty(readStream, kCFStreamPropertyShouldCloseNativeSocket, kCFBooleanFalse);
-		CFWriteStreamSetProperty(writeStream, kCFStreamPropertyShouldCloseNativeSocket, kCFBooleanFalse);
-		
-		if ((readStream == NULL) || (writeStream == NULL))
+		if (readStream == NULL || writeStream == NULL)
 		{
-			[self closeWithError:[self otherError:@"Error in CFStreamCreatePairWithSocket"]];
-			return;
+			if (![self createReadAndWriteStream])
+			{
+				[self closeWithError:[self otherError:@"Error in CFStreamCreatePairWithSocket"]];
+				return;
+			}
 		}
 		
 		streamContext.version = 0;
@@ -5298,6 +5335,8 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 		                   withObject:self
 		                waitUntilDone:YES];
 		
+		flags |= kAddedHandshakeListener;
+		
 		GCDAsyncSpecialPacket *tlsPacket = (GCDAsyncSpecialPacket *)currentRead;
 		NSDictionary *tlsSettings = tlsPacket->tlsSettings;
 		
@@ -5310,14 +5349,21 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 		if (!r1 || !r2)
 		{
 			[self closeWithError:[self otherError:@"Error in CFStreamSetProperty"]];
+			return;
 		}
 		
-		r1 = CFReadStreamOpen(readStream);
-		r2 = CFWriteStreamOpen(writeStream);
+		CFStreamStatus readStatus = CFReadStreamGetStatus(readStream);
+		CFStreamStatus writeStatus = CFWriteStreamGetStatus(writeStream);
 		
-		if (!r1 || !r2)
+		if ((readStatus == kCFStreamStatusNotOpen) || (writeStatus == kCFStreamStatusNotOpen))
 		{
-			[self closeWithError:[self otherError:@"Error in CFStreamOpen"]];
+			r1 = CFReadStreamOpen(readStream);
+			r2 = CFWriteStreamOpen(writeStream);
+			
+			if (!r1 || !r2)
+			{
+				[self closeWithError:[self otherError:@"Error in CFStreamOpen"]];
+			}
 		}
 		
 		LogVerbose(@"Waiting for SSL Handshake to complete...");
@@ -5371,17 +5417,104 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 - (CFReadStreamRef)readStream
 {
 	if (dispatch_get_current_queue() == socketQueue)
+	{
+		if (readStream == NULL)
+			[self createReadAndWriteStream];
+		
 		return readStream;
+	}
 	else
+	{
 		return NULL;
+	}
 }
 
 - (CFWriteStreamRef)writeStream
 {
 	if (dispatch_get_current_queue() == socketQueue)
+	{
+		if (writeStream == NULL)
+			[self createReadAndWriteStream];
+		
 		return writeStream;
+	}
 	else
+	{
 		return NULL;
+	}
+}
+
+- (BOOL)enableBackgroundingOnSocketWithCaveat:(BOOL)caveat
+{
+	if (readStream == NULL || writeStream == NULL)
+	{
+		if (![self createReadAndWriteStream])
+		{
+			// Error occured creating streams (perhaps socket isn't open)
+			return NO;
+		}
+	}
+	
+	BOOL r1, r2;
+	
+	LogVerbose(@"Enabling backgrouding on socket");
+	
+	r1 = CFReadStreamSetProperty(readStream, kCFStreamNetworkServiceType, kCFStreamNetworkServiceTypeVoIP);
+	r2 = CFWriteStreamSetProperty(writeStream, kCFStreamNetworkServiceType, kCFStreamNetworkServiceTypeVoIP);
+	
+	if (!r1 || !r2)
+	{
+		LogError(@"Error setting voip type");
+		return NO;
+	}
+	
+	if (!caveat)
+	{
+		CFStreamStatus readStatus = CFReadStreamGetStatus(readStream);
+		CFStreamStatus writeStatus = CFWriteStreamGetStatus(writeStream);
+		
+		if ((readStatus == kCFStreamStatusNotOpen) || (writeStatus == kCFStreamStatusNotOpen))
+		{
+			r1 = CFReadStreamOpen(readStream);
+			r2 = CFWriteStreamOpen(writeStream);
+			
+			if (!r1 || !r2)
+			{
+				LogError(@"Error opening bg streams");
+				return NO;
+			}
+		}
+	}
+	
+	return YES;
+}
+
+- (BOOL)enableBackgroundingOnSocket
+{
+	LogTrace();
+	
+	if (dispatch_get_current_queue() == socketQueue)
+	{
+		return [self enableBackgroundingOnSocketWithCaveat:NO];
+	}
+	else
+	{
+		return NO;
+	}
+}
+
+- (BOOL)enableBackgroundingOnSocketWithCaveat
+{
+	LogTrace();
+	
+	if (dispatch_get_current_queue() == socketQueue)
+	{
+		return [self enableBackgroundingOnSocketWithCaveat:YES];
+	}
+	else
+	{
+		return NO;
+	}
 }
 
 #else

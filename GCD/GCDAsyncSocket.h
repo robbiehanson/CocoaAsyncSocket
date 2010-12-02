@@ -598,16 +598,79 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * These methods are only available from within the context of a performBlock: invocation.
  * See the documentation for the performBlock: method above.
  * 
- * Provides access to the socket's internal read/write streams, if SSL/TLS has been started on the socket.
+ * Provides access to the socket's internal read/write streams.
+ * These streams are normally only created if startTLS has been invoked to start SSL/TLS (see note below),
+ * but if these methods are invoked, the read/write streams will be created automatically so that you may use them.
+ * 
+ * See also: (BOOL)enableBackgroundingOnSocket
  * 
  * Note: Apple has decided to keep the SecureTransport framework private is iOS.
  * This means the only supplied way to do SSL/TLS is via CFStream or some other API layered on top of it.
  * Thus, in order to provide SSL/TLS support on iOS we are forced to rely on CFStream,
- * instead of the preferred and more powerful SecureTransport.
- * Read/write streams are only created if startTLS has been invoked to start SSL/TLS.
+ * instead of the preferred and faster and more powerful SecureTransport.
 **/
 - (CFReadStreamRef)readStream;
 - (CFWriteStreamRef)writeStream;
+
+/**
+ * This method is only available from within the context of a performBlock: invocation.
+ * See the documentation for the performBlock: method above.
+ * 
+ * Configures the socket to allow it to operate when the iOS application has been backgrounded.
+ * In other words, this method creates a read & write stream, and invokes:
+ * 
+ * CFReadStreamSetProperty(readStream, kCFStreamNetworkServiceType, kCFStreamNetworkServiceTypeVoIP);
+ * CFWriteStreamSetProperty(writeStream, kCFStreamNetworkServiceType, kCFStreamNetworkServiceTypeVoIP);
+ * 
+ * Returns YES if successful, NO otherwise.
+ * 
+ * Note: Apple does not officially support backgrounding server sockets.
+ * That is, if your socket is accepting incoming connections, Apple does not officially support
+ * allowing iOS applications to accept incoming connections while an app is backgrounded.
+ * 
+ * Example usage:
+ * 
+ * - (void)socket:(GCDAsyncSocket *)sock didConnectToHost:(NSString *)host port:(UInt16)port
+ * {
+ *     [asyncSocket performBlock:^{
+ *         [asyncSocket enableBackgroundingOnSocket];
+ *     }];
+ * }
+**/
+- (BOOL)enableBackgroundingOnSocket;
+
+/**
+ * This method is only available from within the context of a performBlock: invocation.
+ * See the documentation for the performBlock: method above.
+ * 
+ * This method should be used in place of the usual enableBackgroundingOnSocket method if
+ * you later plan on securing the socket with SSL/TLS via the startTLS method.
+ * 
+ * This is due to a bug in iOS. Description of the bug:
+ * 
+ * First of all, Apple has decided to keep the SecureTransport framework private in iOS.
+ * This removes the preferred, faster, and more powerful way of doing SSL/TLS.
+ * The only option they have given us on iOS is to use CFStream.
+ * 
+ * In addition to this, Apple does not allow us to enable SSL/TLS on a stream after it has been opened.
+ * This effectively breaks many newer protocols which negotiate upgrades to TLS in-band (such as XMPP).
+ * 
+ * And on top of that, if we flag a socket for backgrounding, that flag doesn't take effect until
+ * after we have opened the socket. And if we try to flag the socket for backgrounding after we've opened
+ * the socket, the flagging fails.
+ * 
+ * So the order of operations matters, and the ONLY order that works is this:
+ * 
+ * - Create read and write stream
+ * - Mark streams for backgrounding
+ * - Setup SSL on streams
+ * - Open streams
+ * 
+ * So the caveat is that this method will mark the socket for backgrounding,
+ * but it will not open the read and write streams. (Because if it did, later attempts to start TLS would fail.)
+ * Thus the socket will not actually support backgrounding until after the startTLS method has been called.
+**/
+- (BOOL)enableBackgroundingOnSocketWithCaveat;
 
 #else
 
