@@ -553,7 +553,7 @@ static const int httpLogLevel = LOG_LEVEL_INFO; // | LOG_FLAG_TRACE;
 	
 	if (type)
 	{
-		netService = [[NSNetService alloc] initWithDomain:domain type:type name:name port:port];
+		netService = [[NSNetService alloc] initWithDomain:domain type:type name:name port:[asyncSocket localPort]];
 		[netService setDelegate:self];
 		
 		NSNetService *theNetService = netService;
