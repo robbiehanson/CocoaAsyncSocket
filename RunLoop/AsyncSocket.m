@@ -1200,6 +1200,9 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 		[NSException raise:AsyncSocketException
 		            format:@"Attempting to accept while connected or accepting connections. Disconnect first."];
     }
+	
+	// Clear queues (spurious read/write requests post disconnect)
+	[self emptyQueues];
 
 	// Set up the listen sockaddr structs if needed.
 	
@@ -1410,6 +1413,9 @@ Failed:
 		            format:@"Attempting to connect while connected or accepting connections. Disconnect first."];
 	}
 	
+	// Clear queues (spurious read/write requests post disconnect)
+	[self emptyQueues];
+	
 	if(![self createStreamsToHost:hostname onPort:port error:errPtr]) goto Failed;
 	if(![self attachStreamsToRunLoop:nil error:errPtr])               goto Failed;
 	if(![self configureStreamsAndReturnError:errPtr])                 goto Failed;
@@ -1469,6 +1475,9 @@ Failed:
 		[NSException raise:AsyncSocketException
 		            format:@"Attempting to connect while connected or accepting connections. Disconnect first."];
 	}
+	
+	// Clear queues (spurious read/write requests post disconnect)
+	[self emptyQueues];
 	
 	if(![self createSocketForAddress:remoteAddr error:errPtr])   goto Failed;
 	if(![self bindSocketToAddress:interfaceAddr error:errPtr])   goto Failed;
