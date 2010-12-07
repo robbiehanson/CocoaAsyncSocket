@@ -36,8 +36,6 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 
 + (BOOL)isWebSocketRequest:(HTTPMessage *)request
 {
-	HTTPLogTrace();
-	
 	// Request (Draft 75):
 	// 
 	// GET /demo HTTP/1.1
@@ -80,15 +78,13 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 		isWebSocket = NO;
 	}
 	
-	HTTPLogVerbose(@"%@: %@ - %@", THIS_FILE, THIS_METHOD, (isWebSocket ? @"YES" : @"NO"));
+	HTTPLogTrace2(@"%@: %@ - %@", THIS_FILE, THIS_METHOD, (isWebSocket ? @"YES" : @"NO"));
 	
 	return isWebSocket;
 }
 
 + (BOOL)isVersion76Request:(HTTPMessage *)request
 {
-	HTTPLogTrace();
-	
 	NSString *key1 = [request headerField:@"Sec-WebSocket-Key1"];
 	NSString *key2 = [request headerField:@"Sec-WebSocket-Key2"];
 	
@@ -101,7 +97,7 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 		isVersion76 = YES;
 	}
 	
-	HTTPLogVerbose(@"%@: %@ - %@", THIS_FILE, THIS_METHOD, (isVersion76 ? @"YES" : @"NO"));
+	HTTPLogTrace2(@"%@: %@ - %@", THIS_FILE, THIS_METHOD, (isVersion76 ? @"YES" : @"NO"));
 	
 	return isVersion76;
 }
@@ -109,6 +105,9 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Setup and Teardown
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+@synthesize delegate;
+@synthesize websocketQueue;
 
 - (id)initWithRequest:(HTTPMessage *)aRequest socket:(GCDAsyncSocket *)socket
 {
@@ -122,6 +121,15 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 	
 	if ((self = [super init]))
 	{
+		if (HTTP_LOG_VERBOSE)
+		{
+			NSData *requestHeaders = [aRequest messageData];
+			
+			NSString *temp = [[NSString alloc] initWithData:requestHeaders encoding:NSUTF8StringEncoding];
+			HTTPLogVerbose(@"%@[%p] Request Headers:\n%@", THIS_FILE, self, temp);
+			[temp release];
+		}
+		
 		websocketQueue = dispatch_queue_create("WebSocket", NULL);
 		request = [aRequest retain];
 		
@@ -145,9 +153,28 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 	[request release];
 	
 	[asyncSocket setDelegate:nil delegateQueue:NULL];
+	[asyncSocket disconnect];
 	[asyncSocket release];
 	
 	[super dealloc];
+}
+
+- (id)delegate
+{
+	__block id result = nil;
+	
+	dispatch_sync(websocketQueue, ^{
+		result = delegate;
+	});
+	
+	return result;
+}
+
+- (void)setDelegate:(id)newDelegate
+{
+	dispatch_async(websocketQueue, ^{
+		delegate = newDelegate;
+	});
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -160,8 +187,14 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 **/
 - (void)start
 {
+	// This method is not exactly designed to be overriden.
+	// Subclasses are encouraged to override the didOpen method instead.
+	
 	dispatch_async(websocketQueue, ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+		
+		if (isStarted) return;
+		isStarted = YES;
 		
 		if (isVersion76)
 		{
@@ -183,6 +216,9 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 **/
 - (void)stop
 {
+	// This method is not exactly designed to be overriden.
+	// Subclasses are encouraged to override the didClose method instead.
+	
 	dispatch_async(websocketQueue, ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		
@@ -326,7 +362,7 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 	if (HTTP_LOG_VERBOSE)
 	{
 		NSString *temp = [[NSString alloc] initWithData:responseHeaders encoding:NSUTF8StringEncoding];
-		HTTPLogVerbose(@"WebSocket Response Headers:\n%@", temp);
+		HTTPLogVerbose(@"%@[%p] Response Headers:\n%@", THIS_FILE, self, temp);
 		[temp release];
 	}
 	
@@ -345,7 +381,7 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 	// and count the number of spaces.
 	
 	NSMutableString *numStr = [NSMutableString stringWithCapacity:10];
-	long numSpaces = 0;
+	long long numSpaces = 0;
 	
 	for (i = 0; i < length; i++)
 	{
@@ -361,16 +397,16 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 		}
 	}
 	
-	long num = strtol([numStr UTF8String], NULL, 10);
+	long long num = strtoll([numStr UTF8String], NULL, 10);
 	
-	long resultHostNum;
+	long long resultHostNum;
 	
 	if (numSpaces == 0)
 		resultHostNum = 0;
 	else
 		resultHostNum = num / numSpaces;
 	
-	HTTPLogVerbose(@"key(%@) -> %ld / %ld = %ld", key, num, numSpaces, resultHostNum);
+	HTTPLogVerbose(@"key(%@) -> %qi / %qi = %qi", key, num, numSpaces, resultHostNum);
 	
 	// Convert result to 4 byte big-endian (network byte order)
 	// and then convert to raw data.
@@ -416,13 +452,11 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 		
 		NSString *sH = [[NSString alloc] initWithData:responseBody encoding:NSASCIIStringEncoding];
 		
-		HTTPLogVerbose(@"key1 result : %@", s1);
-		HTTPLogVerbose(@"key2 result : %@", s2);
-		HTTPLogVerbose(@"key3 passed : %@", s3);
-		
-		HTTPLogVerbose(@"keys concat : %@", s0);
-		
-		HTTPLogVerbose(@"responseBody: %@", sH);
+		HTTPLogVerbose(@"key1 result : raw(%@) str(%@)", d1, s1);
+		HTTPLogVerbose(@"key2 result : raw(%@) str(%@)", d2, s2);
+		HTTPLogVerbose(@"key3 passed : raw(%@) str(%@)", d3, s3);
+		HTTPLogVerbose(@"key0 concat : raw(%@) str(%@)", d0, s0);
+		HTTPLogVerbose(@"responseBody: raw(%@) str(%@)", responseBody, sH);
 		
 		[s1 release];
 		[s2 release];
@@ -440,12 +474,19 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 {
 	HTTPLogTrace();
 	
-	// Override me to perform any custom actions once the WebSocket has been opened
+	// Override me to perform any custom actions once the WebSocket has been opened.
+	// This method is invoked on the websocketQueue.
 	// 
 	// Don't forget to invoke [super didOpen] in your method.
 	
 	// Start reading for messages
 	[asyncSocket readDataToLength:1 withTimeout:TIMEOUT_NONE tag:TAG_PREFIX];
+	
+	// Notify delegate
+	if ([delegate respondsToSelector:@selector(webSocketDidOpen:)])
+	{
+		[delegate webSocketDidOpen:self];
+	}
 }
 
 - (void)sendMessage:(NSString *)msg
@@ -460,6 +501,8 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 	[data appendData:msgData];
 	[data appendBytes:"\xFF" length:1];
 	
+	// Remember: GCDAsyncSocket is thread-safe
+	
 	[asyncSocket writeData:data withTimeout:TIMEOUT_NONE tag:0];
 }
 
@@ -467,7 +510,16 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 {
 	HTTPLogTrace();
 	
-	// Override me to process incoming messages
+	// Override me to process incoming messages.
+	// This method is invoked on the websocketQueue.
+	// 
+	// For completeness, you should invoke [super didReceiveMessage:msg] in your method.
+	
+	// Notify delegate
+	if ([delegate respondsToSelector:@selector(webSocket:didReceiveMessage:)])
+	{
+		[delegate webSocket:self didReceiveMessage:msg];
+	}
 }
 
 - (void)didClose
@@ -475,9 +527,17 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 	HTTPLogTrace();
 	
 	// Override me to perform any cleanup when the socket is closed
+	// This method is invoked on the websocketQueue.
 	// 
 	// Don't forget to invoke [super didClose] at the end of your method.
 	
+	// Notify delegate
+	if ([delegate respondsToSelector:@selector(webSocketDidClose:)])
+	{
+		[delegate webSocketDidClose:self];
+	}
+	
+	// Notify HTTPServer
 	[[NSNotificationCenter defaultCenter] postNotificationName:WebSocketDidDieNotification object:self];
 }
 
@@ -527,7 +587,7 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 
 - (void)socketDidDisconnect:(GCDAsyncSocket *)sock withError:(NSError *)error
 {
-	HTTPLogTrace();
+	HTTPLogTrace2(@"%@[%p]: socketDidDisconnect:withError: %@", THIS_FILE, self, error);
 	
 	[self didClose];
 }
