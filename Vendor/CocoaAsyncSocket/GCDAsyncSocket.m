@@ -1223,6 +1223,12 @@ enum GCDAsyncSocketConfig
 			return_from_block;
 		}
 		
+		// Clear queues (spurious read/write requests post disconnect)
+		[readQueue removeAllObjects];
+		[writeQueue removeAllObjects];
+		
+		// Resolve interface from description
+		
 		NSData *interface4 = nil;
 		NSData *interface6 = nil;
 		
@@ -1598,6 +1604,10 @@ enum GCDAsyncSocketConfig
 			[pool release];
 			return_from_block;
 		}
+		
+		// Clear queues (spurious read/write requests post disconnect)
+		[readQueue removeAllObjects];
+		[writeQueue removeAllObjects];
 		
 		if (interface)
 		{
