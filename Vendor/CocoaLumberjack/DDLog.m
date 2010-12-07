@@ -679,9 +679,13 @@ typedef struct LoggerNode LoggerNode;
 		
 		if ([logger respondsToSelector:@selector(loggerQueue)])
 		{
-			// Logger is providing its own queue
+			// Logger may be providing its own queue
 			
 			loggerNode->loggerQueue = [logger loggerQueue];
+		}
+		
+		if (loggerNode->loggerQueue)
+		{
 			dispatch_retain(loggerNode->loggerQueue);
 		}
 		else
@@ -1150,6 +1154,7 @@ NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy)
 	[timestamp release];
 	
 	[threadID release];
+	[fileName release];
 	[methodName release];
 	
 	[super dealloc];
