@@ -130,10 +130,10 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 				// But that method copies the bytes...
 				// So for performance reasons, we need to use the methods that don't copy the bytes.
 				
-				void *strBuffer = readBuffer + strRange.location;
-				NSData *strData = [NSData dataWithBytesNoCopy:strBuffer length:strRange.length freeWhenDone:NO];
+				void *strBuf = readBuffer + strRange.location;
+				NSUInteger strLen = strRange.length;
 				
-				NSString *key = [[NSString alloc] initWithData:strData encoding:NSUTF8StringEncoding];
+				NSString *key = [[NSString alloc] initWithBytes:strBuf length:strLen encoding:NSUTF8StringEncoding];
 				if (key)
 				{
 					// Is there a given replacement for this key?
@@ -168,10 +168,10 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 								
 								if (diff > (readBufferSize - bufLen))
 								{
-									NSUInteger inc = MIN(diff, 256);
+									NSUInteger inc = MAX(diff, 256);
 									
 									readBufferSize += inc;
-									readBuffer = realloc(readBuffer, readBufferSize);
+									readBuffer = reallocf(readBuffer, readBufferSize);
 								}
 							}
 							
