@@ -359,6 +359,8 @@ static const int httpLogLevel = LOG_LEVEL_WARN; // | LOG_FLAG_TRACE;
 	
 	NSData *responseHeaders = [wsResponse messageData];
 	
+	[wsResponse release];
+	
 	if (HTTP_LOG_VERBOSE)
 	{
 		NSString *temp = [[NSString alloc] initWithData:responseHeaders encoding:NSUTF8StringEncoding];
