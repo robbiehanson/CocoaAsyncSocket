@@ -44,6 +44,8 @@
 	HTTPMessage *request;
 	unsigned int numHeaderLines;
 	
+	BOOL sentResponseHeaders;
+	
 	NSString *nonce;
 	long lastNC;
 	

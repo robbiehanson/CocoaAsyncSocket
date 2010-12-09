@@ -1,5 +1,6 @@
 #import "MyHTTPConnection.h"
 #import "HTTPDynamicFileResponse.h"
+#import "HTTPResponseTest.h"
 #import "HTTPLogging.h"
 
 // Log levels: off, error, warn, info, verbose
@@ -72,6 +73,12 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 		                                            forConnection:self
 		                                                separator:@"%%"
 		                                    replacementDictionary:replacementDict] autorelease];
+	}
+	else if ([relativePath isEqualToString:@"/unittest.html"])
+	{
+		HTTPLogVerbose(@"%@[%p]: Serving up HTTPResponseTest (unit testing)", THIS_FILE, self);
+		
+		return [[[HTTPResponseTest alloc] initWithConnection:self] autorelease];
 	}
 	
 	return [super httpResponseForMethod:method URI:path];

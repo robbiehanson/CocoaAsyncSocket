@@ -33,6 +33,7 @@
 		DC2E2E7A1298C0F8009F096E /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC2E2E791298C0F8009F096E /* Security.framework */; };
 		DC2E2ED31298C540009F096E /* Web in Resources */ = {isa = PBXBuildFile; fileRef = DC2E2ED01298C540009F096E /* Web */; };
 		DC2E2EE21298C60A009F096E /* MyHTTPConnection.m in Sources */ = {isa = PBXBuildFile; fileRef = DC2E2EE11298C60A009F096E /* MyHTTPConnection.m */; };
+		DC3303BD12B0967000AEF314 /* HTTPResponseTest.m in Sources */ = {isa = PBXBuildFile; fileRef = DC3303BC12B0967000AEF314 /* HTTPResponseTest.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -90,6 +91,8 @@
 		DC2E2ED01298C540009F096E /* Web */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Web; sourceTree = "<group>"; };
 		DC2E2EE01298C60A009F096E /* MyHTTPConnection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MyHTTPConnection.h; sourceTree = "<group>"; };
 		DC2E2EE11298C60A009F096E /* MyHTTPConnection.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MyHTTPConnection.m; sourceTree = "<group>"; };
+		DC3303BB12B0967000AEF314 /* HTTPResponseTest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HTTPResponseTest.h; sourceTree = "<group>"; };
+		DC3303BC12B0967000AEF314 /* HTTPResponseTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HTTPResponseTest.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -112,6 +115,8 @@
 				256AC3D90F4B6AC300CF3369 /* DynamicServerAppDelegate.m */,
 				DC2E2EE01298C60A009F096E /* MyHTTPConnection.h */,
 				DC2E2EE11298C60A009F096E /* MyHTTPConnection.m */,
+				DC3303BB12B0967000AEF314 /* HTTPResponseTest.h */,
+				DC3303BC12B0967000AEF314 /* HTTPResponseTest.m */,
 			);
 			name = Classes;
 			sourceTree = "<group>";
@@ -214,18 +219,7 @@
 		DC2E2DED1298BE0A009F096E /* HTTP */ = {
 			isa = PBXGroup;
 			children = (
-				DC2E2E111298BE8B009F096E /* HTTPLogging.h */,
-				DC2E2E0B1298BE8B009F096E /* HTTPAuthenticationRequest.h */,
-				DC2E2E0C1298BE8B009F096E /* HTTPAuthenticationRequest.m */,
-				DC2E2E151298BE8B009F096E /* HTTPServer.h */,
-				DC2E2E161298BE8B009F096E /* HTTPServer.m */,
-				DC2E2E0D1298BE8B009F096E /* HTTPConnection.h */,
-				DC2E2E0E1298BE8B009F096E /* HTTPConnection.m */,
-				DC2E2E121298BE8B009F096E /* HTTPMessage.h */,
-				DC2E2E131298BE8B009F096E /* HTTPMessage.m */,
-				DC2E2E141298BE8B009F096E /* HTTPResponse.h */,
-				DC2E2E171298BE8B009F096E /* WebSocket.h */,
-				DC2E2E181298BE8B009F096E /* WebSocket.m */,
+				DC3303BA12B095E700AEF314 /* Core */,
 				DC2E2E241298BEA6009F096E /* Responses */,
 				DC2E2E231298BE96009F096E /* Categories */,
 			);
@@ -260,6 +254,25 @@
 				DC2E2E301298BF13009F096E /* HTTPDynamicFileResponse.m */,
 			);
 			name = Responses;
+			sourceTree = "<group>";
+		};
+		DC3303BA12B095E700AEF314 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				DC2E2E111298BE8B009F096E /* HTTPLogging.h */,
+				DC2E2E0B1298BE8B009F096E /* HTTPAuthenticationRequest.h */,
+				DC2E2E0C1298BE8B009F096E /* HTTPAuthenticationRequest.m */,
+				DC2E2E151298BE8B009F096E /* HTTPServer.h */,
+				DC2E2E161298BE8B009F096E /* HTTPServer.m */,
+				DC2E2E0D1298BE8B009F096E /* HTTPConnection.h */,
+				DC2E2E0E1298BE8B009F096E /* HTTPConnection.m */,
+				DC2E2E121298BE8B009F096E /* HTTPMessage.h */,
+				DC2E2E131298BE8B009F096E /* HTTPMessage.m */,
+				DC2E2E141298BE8B009F096E /* HTTPResponse.h */,
+				DC2E2E171298BE8B009F096E /* WebSocket.h */,
+				DC2E2E181298BE8B009F096E /* WebSocket.m */,
+			);
+			name = Core;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -346,6 +359,7 @@
 				DC2E2E371298BF13009F096E /* HTTPFileResponse.m in Sources */,
 				DC2E2E381298BF13009F096E /* HTTPRedirectResponse.m in Sources */,
 				DC2E2EE21298C60A009F096E /* MyHTTPConnection.m in Sources */,
+				DC3303BD12B0967000AEF314 /* HTTPResponseTest.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
