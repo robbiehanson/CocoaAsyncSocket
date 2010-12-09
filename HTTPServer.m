@@ -42,11 +42,14 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_INFO; // | HTTP_LOG_FLAG_TRACE;
 		connectionQueue = dispatch_queue_create("HTTPConnection", NULL);
 		connectionClass = [HTTPConnection self];
 		
-		// Configure default values for bonjour service
+		// By default bind on all available interfaces, en1, wifi etc
+		interface = nil;
 		
 		// Use a default port of 0
 		// This will allow the kernel to automatically pick an open port for us
 		port = 0;
+		
+		// Configure default values for bonjour service
 		
 		// Bonjour domain. Use the local domain by default
 		domain = @"local.";
@@ -104,6 +107,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_INFO; // | HTTP_LOG_FLAG_TRACE;
 	[asyncSocket release];
 	
 	[documentRoot release];
+	[interface release];
 	
 	[netService release];
 	[domain release];
@@ -187,6 +191,32 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_INFO; // | HTTP_LOG_FLAG_TRACE;
 	dispatch_async(serverQueue, ^{
 		connectionClass = value;
 	});
+}
+
+/**
+ * What interface to bind the listening socket to.
+**/
+- (NSString *)interface
+{
+	__block NSString *result;
+	
+	dispatch_sync(serverQueue, ^{
+		result = [interface retain];
+	});
+	
+	return [result autorelease];
+}
+
+- (void)setInterface:(NSString *)value
+{
+	NSString *valueCopy = [value copy];
+	
+	dispatch_async(serverQueue, ^{
+		[interface release];
+		interface = [valueCopy retain];
+	});
+	
+	[valueCopy release];
 }
 
 /**
@@ -393,7 +423,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_INFO; // | HTTP_LOG_FLAG_TRACE;
 	dispatch_sync(serverQueue, ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		
-		success = [asyncSocket acceptOnPort:port error:&err];
+		success = [asyncSocket acceptOnInterface:interface port:port error:&err];
 		if (success)
 		{
 			HTTPLogInfo(@"%@: Started HTTP server on port %hu", THIS_FILE, [asyncSocket localPort]);
