@@ -1183,7 +1183,7 @@ enum GCDAsyncSocketConfig
 			NSString *msg = @"Attempting to accept without a delegate. Set a delegate first.";
 			err = [[self badConfigError:msg] retain];
 			
-			[pool release];
+			[pool drain];
 			return_from_block;
 		}
 		
@@ -1194,7 +1194,7 @@ enum GCDAsyncSocketConfig
 			NSString *msg = @"Attempting to accept without a delegate queue. Set a delegate queue first.";
 			err = [[self badConfigError:msg] retain];
 			
-			[pool release];
+			[pool drain];
 			return_from_block;
 		}
 		
@@ -1208,7 +1208,7 @@ enum GCDAsyncSocketConfig
 			NSString *msg = @"Both IPv4 and IPv6 have been disabled. Must enable at least one protocol first.";
 			err = [[self badConfigError:msg] retain];
 			
-			[pool release];
+			[pool drain];
 			return_from_block;
 		}
 		
@@ -1219,7 +1219,7 @@ enum GCDAsyncSocketConfig
 			NSString *msg = @"Attempting to accept while connected or accepting connections. Disconnect first.";
 			err = [[self badConfigError:msg] retain];
 			
-			[pool release];
+			[pool drain];
 			return_from_block;
 		}
 		
@@ -1241,7 +1241,7 @@ enum GCDAsyncSocketConfig
 			NSString *msg = @"Unknown interface. Specify valid interface by name (e.g. \"en1\") or IP address.";
 			err = [[self badParamError:msg] retain];
 			
-			[pool release];
+			[pool drain];
 			return_from_block;
 		}
 		
@@ -1252,7 +1252,7 @@ enum GCDAsyncSocketConfig
 			NSString *msg = @"IPv4 has been disabled and specified interface doesn't support IPv6.";
 			err = [[self badParamError:msg] retain];
 			
-			[pool release];
+			[pool drain];
 			return_from_block;
 		}
 		
@@ -1263,7 +1263,7 @@ enum GCDAsyncSocketConfig
 			NSString *msg = @"IPv6 has been disabled and specified interface doesn't support IPv4.";
 			err = [[self badParamError:msg] retain];
 			
-			[pool release];
+			[pool drain];
 			return_from_block;
 		}
 		
@@ -1279,7 +1279,7 @@ enum GCDAsyncSocketConfig
 			
 			if (socket4FD == SOCKET_NULL)
 			{
-				[pool release];
+				[pool drain];
 				return_from_block;
 			}
 		}
@@ -1306,7 +1306,7 @@ enum GCDAsyncSocketConfig
 					close(socket4FD);
 				}
 				
-				[pool release];
+				[pool drain];
 				return_from_block;
 			}
 		}
@@ -1332,7 +1332,7 @@ enum GCDAsyncSocketConfig
 				
 				while ([self doAccept:socketFD] && (++i < numPendingConnections));
 				
-				[eventPool release];
+				[eventPool drain];
 			};
 			dispatch_source_set_event_handler(accept4Source, event4Block);
 			
@@ -1369,7 +1369,7 @@ enum GCDAsyncSocketConfig
 				
 				while ([self doAccept:socketFD] && (++i < numPendingConnections));
 				
-				[eventPool release];
+				[eventPool drain];
 			};
 			dispatch_source_set_event_handler(accept6Source, event6Block);
 			
@@ -1388,7 +1388,7 @@ enum GCDAsyncSocketConfig
 		}
 		
 		flags |= kDidStartDelegate;
-		[pool release];
+		[pool drain];
 	};
 	
 	if (dispatch_get_current_queue() == socketQueue)
@@ -1503,7 +1503,7 @@ enum GCDAsyncSocketConfig
 				
 				[acceptedSocket setupReadAndWriteSourcesForNewlyConnectedSocket:childSocketFD];
 				
-				[socketPool release];
+				[socketPool drain];
 			});
 			
 			// Notify delegate
@@ -1520,7 +1520,7 @@ enum GCDAsyncSocketConfig
 			// Release the accepted socket (it should have been retained by the delegate)
 			[acceptedSocket release];
 			
-			[delegatePool release];
+			[delegatePool drain];
 		});
 	}
 	
@@ -1565,7 +1565,7 @@ enum GCDAsyncSocketConfig
 			NSString *msg = @"Attempting to connect without a delegate. Set a delegate first.";
 			err = [[self badConfigError:msg] retain];
 			
-			[pool release];
+			[pool drain];
 			return_from_block;
 		}
 		
@@ -1576,7 +1576,7 @@ enum GCDAsyncSocketConfig
 			NSString *msg = @"Attempting to connect without a delegate queue. Set a delegate queue first.";
 			err = [[self badConfigError:msg] retain];
 			
-			[pool release];
+			[pool drain];
 			return_from_block;
 		}
 		
@@ -1590,7 +1590,7 @@ enum GCDAsyncSocketConfig
 			NSString *msg = @"Both IPv4 and IPv6 have been disabled. Must enable at least one protocol first.";
 			err = [[self badConfigError:msg] retain];
 			
-			[pool release];
+			[pool drain];
 			return_from_block;
 		}
 		
@@ -1601,7 +1601,7 @@ enum GCDAsyncSocketConfig
 			NSString *msg = @"Attempting to connect while connected or accepting connections. Disconnect first.";
 			err = [[self badConfigError:msg] retain];
 			
-			[pool release];
+			[pool drain];
 			return_from_block;
 		}
 		
@@ -1623,7 +1623,7 @@ enum GCDAsyncSocketConfig
 				NSString *msg = @"Unknown interface. Specify valid interface by name (e.g. \"en1\") or IP address.";
 				err = [[self badParamError:msg] retain];
 				
-				[pool release];
+				[pool drain];
 				return_from_block;
 			}
 			
@@ -1634,7 +1634,7 @@ enum GCDAsyncSocketConfig
 				NSString *msg = @"IPv4 has been disabled and specified interface doesn't support IPv6.";
 				err = [[self badParamError:msg] retain];
 				
-				[pool release];
+				[pool drain];
 				return_from_block;
 			}
 			
@@ -1645,7 +1645,7 @@ enum GCDAsyncSocketConfig
 				NSString *msg = @"IPv6 has been disabled and specified interface doesn't support IPv4.";
 				err = [[self badParamError:msg] retain];
 				
-				[pool release];
+				[pool drain];
 				return_from_block;
 			}
 			
@@ -1673,13 +1673,13 @@ enum GCDAsyncSocketConfig
 			
 			[self lookup:aConnectIndex host:hostCpy port:port];
 			
-			[lookupPool release];
+			[lookupPool drain];
 		};
 		dispatch_async(globalConcurrentQueue, lookupBlock);
 		
 		[self startConnectTimeout:timeout];
 		
-		[pool release];
+		[pool drain];
 	};
 	
 	if (dispatch_get_current_queue() == socketQueue)
@@ -1782,7 +1782,7 @@ enum GCDAsyncSocketConfig
 		dispatch_async(socketQueue, ^{
 			NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 			[self lookup:aConnectIndex didFail:error];
-			[pool release];
+			[pool drain];
 		});
 	}
 	else
@@ -1790,7 +1790,7 @@ enum GCDAsyncSocketConfig
 		dispatch_async(socketQueue, ^{
 			NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 			[self lookup:aConnectIndex didSucceedWithAddress4:address4 address6:address6];
-			[pool release];
+			[pool drain];
 		});
 	}
 }
@@ -1898,7 +1898,7 @@ enum GCDAsyncSocketConfig
 			dispatch_async(socketQueue, ^{
 				NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 				[self didConnect:aConnectIndex];
-				[pool release];
+				[pool drain];
 			});
 		}
 		else
@@ -1908,7 +1908,7 @@ enum GCDAsyncSocketConfig
 			dispatch_async(socketQueue, ^{
 				NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 				[self didNotConnect:aConnectIndex error:error];
-				[pool release];
+				[pool drain];
 			});
 		}
 	};
@@ -1977,7 +1977,7 @@ enum GCDAsyncSocketConfig
 			
 			[theDelegate socket:self didConnectToHost:host port:port];
 			
-			[pool release];
+			[pool drain];
 		});
 	}
 		
@@ -2042,7 +2042,7 @@ enum GCDAsyncSocketConfig
 			
 			[self doConnectTimeout];
 			
-			[pool release];
+			[pool drain];
 		};
 		dispatch_source_set_event_handler(connectTimer, timerEventBlock);
 		
@@ -2223,7 +2223,7 @@ enum GCDAsyncSocketConfig
 				
 				[theDelegate socketDidDisconnect:self withError:error];
 				
-				[pool release];
+				[pool drain];
 			});
 		}	
 	}
@@ -2234,7 +2234,7 @@ enum GCDAsyncSocketConfig
 	dispatch_block_t block = ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		[self closeWithError:nil];
-		[pool release];
+		[pool drain];
 	};
 	
 	// Synchronous disconnection, as documented in the header file
@@ -2253,7 +2253,7 @@ enum GCDAsyncSocketConfig
 		flags |= (kForbidReadsWrites | kDisconnectAfterReads);
 		[self maybeClose];
 		
-		[pool release];
+		[pool drain];
 	});
 }
 
@@ -2265,7 +2265,7 @@ enum GCDAsyncSocketConfig
 		flags |= (kForbidReadsWrites | kDisconnectAfterWrites);
 		[self maybeClose];
 		
-		[pool release];
+		[pool drain];
 	});
 }
 
@@ -2277,7 +2277,7 @@ enum GCDAsyncSocketConfig
 		flags |= (kForbidReadsWrites | kDisconnectAfterReads | kDisconnectAfterWrites);
 		[self maybeClose];
 		
-		[pool release];
+		[pool drain];
 	});
 }
 
@@ -2490,7 +2490,7 @@ enum GCDAsyncSocketConfig
 			else if (socket6FD != SOCKET_NULL)
 				result = [[self connectedHostFromSocket6:socket6FD] retain];
 			
-			[pool release];
+			[pool drain];
 		});
 		
 		return [result autorelease];
@@ -2548,7 +2548,7 @@ enum GCDAsyncSocketConfig
 			else if (socket6FD != SOCKET_NULL)
 				result = [[self localHostFromSocket6:socket6FD] retain];
 			
-			[pool release];
+			[pool drain];
 		});
 		
 		return [result autorelease];
@@ -3022,7 +3022,7 @@ enum GCDAsyncSocketConfig
 		else
 			[self doReadEOF];
 		
-		[pool release];
+		[pool drain];
 	};
 	dispatch_source_set_event_handler(readSource, readEventBlock);
 	
@@ -3034,7 +3034,7 @@ enum GCDAsyncSocketConfig
 		flags |= kSocketCanAcceptBytes;
 		[self doWriteData];
 		
-		[pool release];
+		[pool drain];
 	};
 	dispatch_source_set_event_handler(writeSource, writeEventBlock);
 	
@@ -3174,7 +3174,7 @@ enum GCDAsyncSocketConfig
 			[self maybeDequeueRead];
 		}
 		
-		[pool release];
+		[pool drain];
 	});
 	
 	// Do not rely on the block being run in order to release the packet,
@@ -3213,7 +3213,7 @@ enum GCDAsyncSocketConfig
 			[self maybeDequeueRead];
 		}
 		
-		[pool release];
+		[pool drain];
 	});
 	
 	// Do not rely on the block being run in order to release the packet,
@@ -3268,7 +3268,7 @@ enum GCDAsyncSocketConfig
 			[self maybeDequeueRead];
 		}
 		
-		[pool release];
+		[pool drain];
 	});
 	
 	// Do not rely on the block being run in order to release the packet,
@@ -3800,7 +3800,7 @@ enum GCDAsyncSocketConfig
 				
 				[theDelegate socket:self didReadPartialDataOfLength:totalBytesReadForCurrentRead tag:theRead->tag];
 				
-				[pool release];
+				[pool drain];
 			});
 		}
 	}
@@ -3885,7 +3885,7 @@ enum GCDAsyncSocketConfig
 				
 				[theDelegate socketDidCloseReadStream:self];
 				
-				[pool release];
+				[pool drain];
 			});
 		}
 		
@@ -3943,7 +3943,7 @@ enum GCDAsyncSocketConfig
 			
 			[theDelegate socket:self didReadData:result withTag:theRead->tag];
 			
-			[pool release];
+			[pool drain];
 		});
 	}
 	
@@ -3971,7 +3971,7 @@ enum GCDAsyncSocketConfig
 		dispatch_block_t timerEventBlock = ^{
 			NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 			[self doReadTimeout];
-			[pool release];
+			[pool drain];
 		};
 		dispatch_source_set_event_handler(readTimer, timerEventBlock);
 		
@@ -4017,10 +4017,10 @@ enum GCDAsyncSocketConfig
 				
 				[self doReadTimeoutWithExtension:timeoutExtension];
 				
-				[callbackPool release];
+				[callbackPool drain];
 			});
 			
-			[delegatePool release];
+			[delegatePool drain];
 		});
 	}
 	else
@@ -4073,7 +4073,7 @@ enum GCDAsyncSocketConfig
 			[self maybeDequeueWrite];
 		}
 		
-		[pool release];
+		[pool drain];
 	});
 	
 	// Do not rely on the block being run in order to release the packet,
@@ -4325,7 +4325,7 @@ enum GCDAsyncSocketConfig
 				
 				[theDelegate socket:self didWritePartialDataOfLength:totalBytesWritten tag:theWrite->tag];
 				
-				[pool release];
+				[pool drain];
 			});
 		}
 	}
@@ -4361,7 +4361,7 @@ enum GCDAsyncSocketConfig
 			
 			[theDelegate socket:self didWriteDataWithTag:theWrite->tag];
 			
-			[pool release];
+			[pool drain];
 		});
 	}
 	
@@ -4389,7 +4389,7 @@ enum GCDAsyncSocketConfig
 		dispatch_block_t timerEventBlock = ^{
 			NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 			[self doWriteTimeout];
-			[pool release];
+			[pool drain];
 		};
 		dispatch_source_set_event_handler(writeTimer, timerEventBlock);
 		
@@ -4435,10 +4435,10 @@ enum GCDAsyncSocketConfig
 				
 				[self doWriteTimeoutWithExtension:timeoutExtension];
 				
-				[callbackPool release];
+				[callbackPool drain];
 			});
 			
-			[delegatePool release];
+			[delegatePool drain];
 		});
 	}
 	else
@@ -4502,7 +4502,7 @@ enum GCDAsyncSocketConfig
 		[self maybeDequeueRead];
 		[self maybeDequeueWrite];
 		
-		[pool release];
+		[pool drain];
 	});
 	
 	[packet release];
@@ -5001,7 +5001,7 @@ OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, size_t 
 				
 				[theDelegate socketDidSecure:self];
 				
-				[pool release];
+				[pool drain];
 			});
 		}
 		
