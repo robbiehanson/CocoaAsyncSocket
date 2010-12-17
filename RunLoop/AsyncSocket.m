@@ -31,11 +31,6 @@
 NSString *const AsyncSocketException = @"AsyncSocketException";
 NSString *const AsyncSocketErrorDomain = @"AsyncSocketErrorDomain";
 
-#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
-// Mutex lock used by all instances of AsyncSocket, to protect getaddrinfo.
-// Prior to Mac OS X 10.5 this method was not thread-safe.
-static NSString *getaddrinfoLock = @"lock";
-#endif
 
 enum AsyncSocketFlags
 {
@@ -851,21 +846,17 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 
 - (void)runLoopAddSource:(CFRunLoopSourceRef)source
 {
-	NSUInteger i, count = [theRunLoopModes count];
-	for(i = 0; i < count; i++)
+	for (NSString *runLoopMode in theRunLoopModes)
 	{
-		CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-		CFRunLoopAddSource(theRunLoop, source, runLoopMode);
+		CFRunLoopAddSource(theRunLoop, source, (CFStringRef)runLoopMode);
 	}
 }
 
 - (void)runLoopRemoveSource:(CFRunLoopSourceRef)source
 {
-	NSUInteger i, count = [theRunLoopModes count];
-	for(i = 0; i < count; i++)
+	for (NSString *runLoopMode in theRunLoopModes)
 	{
-		CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-		CFRunLoopRemoveSource(theRunLoop, source, runLoopMode);
+		CFRunLoopRemoveSource(theRunLoop, source, (CFStringRef)runLoopMode);
 	}
 }
 
@@ -881,21 +872,17 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 
 - (void)runLoopAddTimer:(NSTimer *)timer
 {
-	NSUInteger i, count = [theRunLoopModes count];
-	for(i = 0; i < count; i++)
+	for (NSString *runLoopMode in theRunLoopModes)
 	{
-		CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-		CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)timer, runLoopMode);
+		CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)timer, (CFStringRef)runLoopMode);
 	}
 }
 
 - (void)runLoopRemoveTimer:(NSTimer *)timer
 {
-	NSUInteger i, count = [theRunLoopModes count];
-	for(i = 0; i < count; i++)		
+	for (NSString *runLoopMode in theRunLoopModes)		
 	{
-		CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-		CFRunLoopRemoveTimer(theRunLoop, (CFRunLoopTimerRef)timer, runLoopMode);
+		CFRunLoopRemoveTimer(theRunLoop, (CFRunLoopTimerRef)timer, (CFStringRef)runLoopMode);
 	}
 }
 
@@ -911,22 +898,18 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 
 - (void)runLoopUnscheduleReadStream
 {
-	NSUInteger i, count = [theRunLoopModes count];
-	for(i = 0; i < count; i++)
+	for (NSString *runLoopMode in theRunLoopModes)
 	{
-		CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-		CFReadStreamUnscheduleFromRunLoop(theReadStream, theRunLoop, runLoopMode);
+		CFReadStreamUnscheduleFromRunLoop(theReadStream, theRunLoop, (CFStringRef)runLoopMode);
 	}
 	CFReadStreamSetClient(theReadStream, kCFStreamEventNone, NULL, NULL);
 }
 
 - (void)runLoopUnscheduleWriteStream
 {
-	NSUInteger i, count = [theRunLoopModes count];
-	for(i = 0; i < count; i++)
+	for (NSString *runLoopMode in theRunLoopModes)
 	{
-		CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-		CFWriteStreamUnscheduleFromRunLoop(theWriteStream, theRunLoop, runLoopMode);
+		CFWriteStreamUnscheduleFromRunLoop(theWriteStream, theRunLoop, (CFStringRef)runLoopMode);
 	}
 	CFWriteStreamSetClient(theWriteStream, kCFStreamEventNone, NULL, NULL);
 }
@@ -1255,40 +1238,37 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 	{
 		NSString *portStr = [NSString stringWithFormat:@"%hu", port];
 
-#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
-		@synchronized (getaddrinfoLock)
-#endif
+		struct addrinfo hints, *res, *res0;
+		
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_family   = PF_UNSPEC;
+		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_protocol = IPPROTO_TCP;
+		hints.ai_flags    = AI_PASSIVE;
+		
+		int error = getaddrinfo([interface UTF8String], [portStr UTF8String], &hints, &res0);
+		
+		if (error)
 		{
-			struct addrinfo hints, *res, *res0;
-			
-			memset(&hints, 0, sizeof(hints));
-			hints.ai_family   = PF_UNSPEC;
-			hints.ai_socktype = SOCK_STREAM;
-			hints.ai_protocol = IPPROTO_TCP;
-			hints.ai_flags    = AI_PASSIVE;
-			
-			int error = getaddrinfo([interface UTF8String], [portStr UTF8String], &hints, &res0);
-			
-			if(error)
+			if (errPtr)
 			{
-				if(errPtr)
-				{
-					NSString *errMsg = [NSString stringWithCString:gai_strerror(error) encoding:NSASCIIStringEncoding];
-					NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
-					
-					*errPtr = [NSError errorWithDomain:@"kCFStreamErrorDomainNetDB" code:error userInfo:info];
-				}
+				NSString *errMsg = [NSString stringWithCString:gai_strerror(error) encoding:NSASCIIStringEncoding];
+				NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+				
+				*errPtr = [NSError errorWithDomain:@"kCFStreamErrorDomainNetDB" code:error userInfo:info];
 			}
-			
-			for(res = res0; res; res = res->ai_next)
+		}
+		else
+		{
+			for (res = res0; res; res = res->ai_next)
 			{
-				if(!address4 && (res->ai_family == AF_INET))
+				if (!address4 && (res->ai_family == AF_INET))
 				{
 					// Found IPv4 address
 					// Wrap the native address structures for CFSocketSetAddress.
 					address4 = [NSData dataWithBytes:res->ai_addr length:res->ai_addrlen];
 				}
-				else if(!address6 && (res->ai_family == AF_INET6))
+				else if (!address6 && (res->ai_family == AF_INET6))
 				{
 					// Found IPv6 address
 					// Wrap the native address structures for CFSocketSetAddress.
@@ -1910,12 +1890,10 @@ Failed:
 	
 	// Add read and write streams to run loop
 	
-	NSUInteger i, count = [theRunLoopModes count];
-	for(i = 0; i < count; i++)
+	for (NSString *runLoopMode in theRunLoopModes)
 	{
-		CFStringRef runLoopMode = (CFStringRef)[theRunLoopModes objectAtIndex:i];
-		CFReadStreamScheduleWithRunLoop(theReadStream, theRunLoop, runLoopMode);
-		CFWriteStreamScheduleWithRunLoop(theWriteStream, theRunLoop, runLoopMode);
+		CFReadStreamScheduleWithRunLoop(theReadStream, theRunLoop, (CFStringRef)runLoopMode);
+		CFWriteStreamScheduleWithRunLoop(theWriteStream, theRunLoop, (CFStringRef)runLoopMode);
 	}
 	
 	return YES;
@@ -2940,13 +2918,7 @@ Failed:
 		
 		if (peeraddr == NULL) return nil;
 		
-	#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
-		NSData *result = [NSData dataWithBytes:CFDataGetBytePtr(peeraddr) length:CFDataGetLength(peeraddr)];
-		CFRelease(peeraddr);
-		return result;
-	#else
 		return [(NSData *)NSMakeCollectable(peeraddr) autorelease];
-	#endif
 	}
 	
 	// Extract address from CFSocketNativeHandle
@@ -2997,13 +2969,7 @@ Failed:
 		
 		if (selfaddr == NULL) return nil;
 		
-	#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
-		NSData *result = [NSData dataWithBytes:CFDataGetBytePtr(selfaddr) length:CFDataGetLength(selfaddr)];
-		CFRelease(selfaddr);
-		return result;
-	#else
 		return [(NSData *)NSMakeCollectable(selfaddr) autorelease];
-	#endif
 	}
 	
 	// Extract address from CFSocketNativeHandle
