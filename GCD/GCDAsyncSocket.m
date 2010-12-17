@@ -53,13 +53,13 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
 // Logging Disabled
 
-#define LogError(frmt, ...)     
-#define LogWarn(frmt, ...)     
-#define LogInfo(frmt, ...)     
-#define LogVerbose(frmt, ...)  
+#define LogError(frmt, ...)     {}
+#define LogWarn(frmt, ...)      {}
+#define LogInfo(frmt, ...)      {}
+#define LogVerbose(frmt, ...)   {}
 
-#define LogTrace()            
-#define LogTrace2(frmt, ...)  
+#define LogTrace()              {}
+#define LogTrace2(frmt, ...)    {}
 
 #endif
 
