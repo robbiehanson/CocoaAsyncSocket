@@ -65,6 +65,7 @@ enum AsyncSocketFlags
 // Connecting
 - (void)startConnectTimeout:(NSTimeInterval)timeout;
 - (void)endConnectTimeout;
+- (void)doConnectTimeout:(NSTimer *)timer;
 
 // Socket Implementation
 - (CFSocketRef)newAcceptSocketForAddress:(NSData *)addr error:(NSError **)errPtr;
@@ -1582,6 +1583,8 @@ Failed:
 
 - (void)doConnectTimeout:(NSTimer *)timer
 {
+	#pragma unused(timer)
+	
 	[self endConnectTimeout];
 	[self closeWithError:[self getConnectTimeoutError]];
 }
@@ -1706,7 +1709,9 @@ Failed:
  * Adds the CFSocket's to the run-loop so that callbacks will work properly.
 **/
 - (BOOL)attachSocketsToRunLoop:(NSRunLoop *)runLoop error:(NSError **)errPtr
-{	
+{
+	#pragma unused(errPtr)
+	
 	// Get the CFRunLoop to which the socket should be attached.
 	theRunLoop = (runLoop == nil) ? CFRunLoopGetCurrent() : [runLoop getCFRunLoop];
 	
@@ -3829,6 +3834,8 @@ Failed:
 
 - (void)doReadTimeout:(NSTimer *)timer
 {
+	#pragma unused(timer)
+	
 	NSTimeInterval timeoutExtension = 0.0;
 	
 	if([theDelegate respondsToSelector:@selector(onSocket:shouldTimeoutReadWithTag:elapsed:bytesDone:)])
@@ -4065,6 +4072,8 @@ Failed:
 
 - (void)doWriteTimeout:(NSTimer *)timer
 {
+	#pragma unused(timer)
+	
 	NSTimeInterval timeoutExtension = 0.0;
 	
 	if([theDelegate respondsToSelector:@selector(onSocket:shouldTimeoutWriteWithTag:elapsed:bytesDone:)])
@@ -4178,6 +4187,8 @@ Failed:
 			   withAddress:(NSData *)address
 				  withData:(const void *)pData
 {
+	#pragma unused(address)
+	
 	NSParameterAssert ((sock == theSocket4) || (sock == theSocket6));
 	
 	switch (type)
@@ -4200,6 +4211,8 @@ Failed:
 
 - (void)doCFReadStreamCallback:(CFStreamEventType)type forStream:(CFReadStreamRef)stream
 {
+	#pragma unused(stream)
+	
 	NSParameterAssert(theReadStream != NULL);
 	
 	CFStreamError err;
@@ -4230,6 +4243,8 @@ Failed:
 
 - (void)doCFWriteStreamCallback:(CFStreamEventType)type forStream:(CFWriteStreamRef)stream
 {
+	#pragma unused(stream)
+	
 	NSParameterAssert(theWriteStream != NULL);
 	
 	CFStreamError err;
