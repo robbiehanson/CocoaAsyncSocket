@@ -3454,6 +3454,8 @@ enum GCDAsyncSocketConfig
 		[partialReadBuffer replaceBytesInRange:NSMakeRange(0, bytesToCopy) withBytes:NULL length:0];
 		partialReadBufferLength -= bytesToCopy;
 		
+		LogVerbose(@"copied(%lu) partialReadBufferLength(%lu)", bytesToCopy, partialReadBufferLength);
+		
 		// Update totals
 		
 		currentRead->bytesDone += bytesToCopy;
@@ -3632,6 +3634,11 @@ enum GCDAsyncSocketConfig
 					socketFDBytesAvailable = 0;
 				else
 					socketFDBytesAvailable -= bytesRead;
+				
+				if (socketFDBytesAvailable == 0)
+				{
+					waiting = YES;
+				}
 			}
 		}
 		
@@ -3807,18 +3814,18 @@ enum GCDAsyncSocketConfig
 	
 	// Check for errors
 	
-	if (waiting)
+	if (error)
 	{
-		// Monitor the socket for readability (if we're not already doing so)
-		[self resumeReadSource];
+		[self closeWithError:error];
 	}
 	else if (socketEOF)
 	{
 		[self doReadEOF];
 	}
-	else if (error)
+	else if (waiting)
 	{
-		[self closeWithError:error];
+		// Monitor the socket for readability (if we're not already doing so)
+		[self resumeReadSource];
 	}
 	
 	// Do not add any code here without first adding return statements in the error cases above.
