@@ -81,6 +81,11 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 NSString *const GCDAsyncSocketException = @"GCDAsyncSocketException";
 NSString *const GCDAsyncSocketErrorDomain = @"GCDAsyncSocketErrorDomain";
 
+#if !TARGET_OS_IPHONE
+NSString *const GCDAsyncSocketSSLCipherSuites = @"GCDAsyncSocketSSLCipherSuites";
+NSString *const GCDAsyncSocketSSLDiffieHellmanParameters = @"GCDAsyncSocketSSLDiffieHellmanParameters";
+#endif
+
 enum GCDAsyncSocketFlags
 {
 	kDidStartDelegate          = 1 <<  0,  // If set, disconnection results in delegate call
@@ -4818,6 +4823,8 @@ OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, size_t 
 		// 5. kCFStreamSSLAllowsExpiredCertificates
 		// 6. kCFStreamSSLCertificates
 		// 7. kCFStreamSSLLevel
+		// 8. GCDAsyncSocketSSLCipherSuites
+		// 9. GCDAsyncSocketSSLDiffieHellmanParameters
 		
 		id value;
 		
@@ -4957,6 +4964,44 @@ OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, size_t 
 				// Specifies that the highest level security protocol that can be negotiated be used.
 				
 				SSLSetProtocolVersionEnabled(sslContext, kSSLProtocolAll, YES);
+			}
+		}
+		
+		// 8. GCDAsyncSocketSSLCipherSuites
+		
+		value = [tlsSettings objectForKey:GCDAsyncSocketSSLCipherSuites];
+		if (value)
+		{
+			NSArray *cipherSuites = (NSArray *)value;
+			NSUInteger numberCiphers = [cipherSuites count];
+			SSLCipherSuite ciphers[numberCiphers];
+			
+			for (NSUInteger cipherIndex = 0; cipherIndex < numberCiphers; cipherIndex++)
+			{
+				NSNumber *cipherObject = [cipherSuites objectAtIndex:cipherIndex];
+				ciphers[cipherIndex] = [cipherObject shortValue];
+			}
+			
+			status = SSLSetEnabledCiphers(sslContext, ciphers, numberCiphers);
+			if (status != noErr)
+			{
+				[self closeWithError:[self otherError:@"Error in SSLSetEnabledCiphers"]];
+				return;
+			}
+		}
+		
+		// 9. GCDAsyncSocketSSLDiffieHellmanParameters
+		
+		value = [tlsSettings objectForKey:GCDAsyncSocketSSLDiffieHellmanParameters];
+		if (value)
+		{
+			NSData *diffieHellmanData = (NSData *)value;
+			
+			status = SSLSetDiffieHellmanParams(sslContext, [diffieHellmanData bytes], [diffieHellmanData length]);
+			if (status != noErr)
+			{
+				[self closeWithError:[self otherError:@"Error in SSLSetDiffieHellmanParams"]];
+				return;
 			}
 		}
 		

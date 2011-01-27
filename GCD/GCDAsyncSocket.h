@@ -18,6 +18,11 @@
 extern NSString *const GCDAsyncSocketException;
 extern NSString *const GCDAsyncSocketErrorDomain;
 
+#if !TARGET_OS_IPHONE
+extern NSString *const GCDAsyncSocketSSLCipherSuites;
+extern NSString *const GCDAsyncSocketSSLDiffieHellmanParameters;
+#endif
+
 enum GCDAsyncSocketError
 {
 	GCDAsyncSocketNoError = 0,           // Never used
