@@ -242,6 +242,53 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
           withTimeout:(NSTimeInterval)timeout
                 error:(NSError **)errPtr;
 
+/**
+ * Connects to the given address, specified as a sockaddr structure wrapped in a NSData object.
+ * For example, a NSData object returned from NSNetservice's addresses method.
+ * 
+ * If you have an existing struct sockaddr you can convert it to a NSData object like so:
+ * struct sockaddr sa  -> NSData *dsa = [NSData dataWithBytes:&remoteAddr length:remoteAddr.sa_len];
+ * struct sockaddr *sa -> NSData *dsa = [NSData dataWithBytes:remoteAddr length:remoteAddr->sa_len];
+ * 
+ * This method invokes connectToAdd
+**/
+- (BOOL)connectToAddress:(NSData *)remoteAddr error:(NSError **)errPtr;
+
+/**
+ * This method is the same as connectToAddress:error: with an additional timeout option.
+ * To not time out use a negative time interval, or simply use the connectToAddress:error: method.
+**/
+- (BOOL)connectToAddress:(NSData *)remoteAddr withTimeout:(NSTimeInterval)timeout error:(NSError **)errPtr;
+
+/**
+ * Connects to the given address, using the specified interface and timeout.
+ * 
+ * The address is specified as a sockaddr structure wrapped in a NSData object.
+ * For example, a NSData object returned from NSNetservice's addresses method.
+ * 
+ * If you have an existing struct sockaddr you can convert it to a NSData object like so:
+ * struct sockaddr sa  -> NSData *dsa = [NSData dataWithBytes:&remoteAddr length:remoteAddr.sa_len];
+ * struct sockaddr *sa -> NSData *dsa = [NSData dataWithBytes:remoteAddr length:remoteAddr->sa_len];
+ * 
+ * The interface may be a name (e.g. "en1" or "lo0") or the corresponding IP address (e.g. "192.168.4.35").
+ * 
+ * The timeout is optional. To not time out use a negative time interval.
+ * 
+ * This method will return NO if an error is detected, and set the error pointer (if one was given).
+ * Possible errors would be a nil host, invalid interface, or socket is already connected.
+ * 
+ * If no errors are detected, this method will start a background connect operation and immediately return YES.
+ * The delegate callbacks are used to notify you when the socket connects, or if the host was unreachable.
+ * 
+ * Since this class supports queued reads and writes, you can immediately start reading and/or writing.
+ * All read/write operations will be queued, and upon socket connection,
+ * the operations will be dequeued and processed in order.
+**/
+- (BOOL)connectToAddress:(NSData *)remoteAddr
+            viaInterface:(NSString *)interface
+             withTimeout:(NSTimeInterval)timeout
+                   error:(NSError **)errPtr;
+
 #pragma mark Disconnecting
 
 /**
@@ -279,11 +326,15 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 #pragma mark Diagnostics
 
 /**
- * Returns YES if the socket is disconnected.
+ * Returns whether the socket is disconnected or connected.
+ * 
  * A disconnected socket may be recycled.
  * That is, it can used again for connecting or listening.
+ * 
+ * If a socket is in the process of connecting, it may be neither disconnected nor connected.
 **/
 - (BOOL)isDisconnected;
+- (BOOL)isConnected;
 
 /**
  * Returns the local or remote host and port to which this socket is connected, or nil and 0 if not connected.

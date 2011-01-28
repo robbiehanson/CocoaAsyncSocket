@@ -88,7 +88,7 @@ NSString *const GCDAsyncSocketSSLDiffieHellmanParameters = @"GCDAsyncSocketSSLDi
 
 enum GCDAsyncSocketFlags
 {
-	kDidStartDelegate          = 1 <<  0,  // If set, disconnection results in delegate call
+	kSocketStarted             = 1 <<  0,  // If set, socket has been started (accepting/connecting)
 	kConnected                 = 1 <<  1,  // If set, the socket is connected
 	kForbidReadsWrites         = 1 <<  2,  // If set, no new reads or writes are allowed
 	kReadsPaused               = 1 <<  3,  // If set, reads are paused due to possible timeout
@@ -98,10 +98,11 @@ enum GCDAsyncSocketFlags
 	kSocketCanAcceptBytes      = 1 <<  7,  // If set, we know socket can accept bytes. If unset, it's unknown.
 	kReadSourceSuspended       = 1 <<  8,  // If set, the read source is suspended
 	kWriteSourceSuspended      = 1 <<  9,  // If set, the write source is suspended
-	kStartingReadTLS           = 1 << 10,  // If set, we're waiting for TLS negotiation to complete
-	kStartingWriteTLS          = 1 << 11,  // If set, we're waiting for TLS negotiation to complete
-	kAddedHandshakeListener    = 1 << 12,  // If set, read & write stream have been added to handshake listener thread
-	kSocketSecure              = 1 << 13,  // If set, socket is using secure communication via SSL/TLS
+	kQueuedTLS                 = 1 << 10,  // If set, we've queued an upgrade to TLS
+	kStartingReadTLS           = 1 << 11,  // If set, we're waiting for TLS negotiation to complete
+	kStartingWriteTLS          = 1 << 12,  // If set, we're waiting for TLS negotiation to complete
+	kAddedHandshakeListener    = 1 << 13,  // If set, read & write stream have been added to handshake listener thread
+	kSocketSecure              = 1 << 14,  // If set, socket is using secure communication via SSL/TLS
 };
 
 enum GCDAsyncSocketConfig
@@ -128,6 +129,7 @@ enum GCDAsyncSocketConfig
 - (void)lookup:(int)aConnectIndex host:(NSString *)host port:(UInt16)port;
 - (void)lookup:(int)aConnectIndex didSucceedWithAddress4:(NSData *)address4 address6:(NSData *)address6;
 - (void)lookup:(int)aConnectIndex didFail:(NSError *)error;
+- (BOOL)connectWithAddress4:(NSData *)address4 address6:(NSData *)address6 error:(NSError **)errPtr;
 - (void)didConnect:(int)aConnectIndex;
 - (void)didNotConnect:(int)aConnectIndex error:(NSError *)error;
 
@@ -1392,7 +1394,7 @@ enum GCDAsyncSocketConfig
 			dispatch_resume(accept6Source);
 		}
 		
-		flags |= kDidStartDelegate;
+		flags |= kSocketStarted;
 		[pool drain];
 	};
 	
@@ -1499,7 +1501,7 @@ enum GCDAsyncSocketConfig
 			else
 				acceptedSocket->socket6FD = childSocketFD;
 			
-			acceptedSocket->flags = (kDidStartDelegate | kConnected);
+			acceptedSocket->flags = (kSocketStarted | kConnected);
 			
 			// Setup read and write sources for accepted socket
 			
@@ -1536,6 +1538,106 @@ enum GCDAsyncSocketConfig
 #pragma mark Connecting
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/**
+ * This method runs through the various checks required prior to a connection attempt.
+ * It is shared between the connectToHost and connectToAddress methods.
+ * 
+**/
+- (BOOL)preConnectWithInterface:(NSString *)interface error:(NSError **)errPtr
+{
+	NSAssert(dispatch_get_current_queue() == socketQueue, @"Exectued on wrong dispatch queue");
+	
+	if (delegate == nil) // Must have delegate set
+	{
+		if (errPtr)
+		{
+			NSString *msg = @"Attempting to connect without a delegate. Set a delegate first.";
+			*errPtr = [self badConfigError:msg];
+		}
+		return NO;
+	}
+	
+	if (delegateQueue == NULL) // Must have delegate queue set
+	{
+		if (errPtr)
+		{
+			NSString *msg = @"Attempting to connect without a delegate queue. Set a delegate queue first.";
+			*errPtr = [self badConfigError:msg];
+		}
+		return NO;
+	}
+	
+	if (![self isDisconnected]) // Must be disconnected
+	{
+		if (errPtr)
+		{
+			NSString *msg = @"Attempting to connect while connected or accepting connections. Disconnect first.";
+			*errPtr = [self badConfigError:msg];
+		}
+		return NO;
+	}
+	
+	BOOL isIPv4Disabled = (config & kIPv4Disabled) ? YES : NO;
+	BOOL isIPv6Disabled = (config & kIPv6Disabled) ? YES : NO;
+	
+	if (isIPv4Disabled && isIPv6Disabled) // Must have IPv4 or IPv6 enabled
+	{
+		if (errPtr)
+		{
+			NSString *msg = @"Both IPv4 and IPv6 have been disabled. Must enable at least one protocol first.";
+			*errPtr = [self badConfigError:msg];
+		}
+		return NO;
+	}
+	
+	if (interface)
+	{
+		NSData *interface4 = nil;
+		NSData *interface6 = nil;
+		
+		[self getInterfaceAddress4:&interface4 address6:&interface6 fromDescription:interface port:0];
+		
+		if ((interface4 == nil) && (interface6 == nil))
+		{
+			if (errPtr)
+			{
+				NSString *msg = @"Unknown interface. Specify valid interface by name (e.g. \"en1\") or IP address.";
+				*errPtr = [self badParamError:msg];
+			}
+			return NO;
+		}
+		
+		if (isIPv4Disabled && (interface6 == nil))
+		{
+			if (errPtr)
+			{
+				NSString *msg = @"IPv4 has been disabled and specified interface doesn't support IPv6.";
+				*errPtr = [self badParamError:msg];
+			}
+			return NO;
+		}
+		
+		if (isIPv6Disabled && (interface4 == nil))
+		{
+			if (errPtr)
+			{
+				NSString *msg = @"IPv6 has been disabled and specified interface doesn't support IPv4.";
+				*errPtr = [self badParamError:msg];
+			}
+			return NO;
+		}
+		
+		connectInterface4 = [interface4 retain];
+		connectInterface6 = [interface6 retain];
+	}
+	
+	// Clear queues (spurious read/write requests post disconnect)
+	[readQueue removeAllObjects];
+	[writeQueue removeAllObjects];
+	
+	return YES;
+}
+
 - (BOOL)connectToHost:(NSString*)host onPort:(UInt16)port error:(NSError **)errPtr
 {
 	return [self connectToHost:host onPort:port withTimeout:-1 error:errPtr];
@@ -1563,105 +1665,18 @@ enum GCDAsyncSocketConfig
 	dispatch_block_t block = ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		
-		if (delegate == nil) // Must have delegate set
+		result = [self preConnectWithInterface:interface error:&err];
+		if (!result)
 		{
-			result = NO;
-			
-			NSString *msg = @"Attempting to connect without a delegate. Set a delegate first.";
-			err = [[self badConfigError:msg] retain];
-			
+			[err retain];
 			[pool drain];
 			return_from_block;
-		}
-		
-		if (delegateQueue == NULL) // Must have delegate queue set
-		{
-			result = NO;
-			
-			NSString *msg = @"Attempting to connect without a delegate queue. Set a delegate queue first.";
-			err = [[self badConfigError:msg] retain];
-			
-			[pool drain];
-			return_from_block;
-		}
-		
-		BOOL isIPv4Disabled = (config & kIPv4Disabled) ? YES : NO;
-		BOOL isIPv6Disabled = (config & kIPv6Disabled) ? YES : NO;
-		
-		if (isIPv4Disabled && isIPv6Disabled) // Must have IPv4 or IPv6 enabled
-		{
-			result = NO;
-			
-			NSString *msg = @"Both IPv4 and IPv6 have been disabled. Must enable at least one protocol first.";
-			err = [[self badConfigError:msg] retain];
-			
-			[pool drain];
-			return_from_block;
-		}
-		
-		if (![self isDisconnected]) // Must be disconnected
-		{
-			result = NO;
-			
-			NSString *msg = @"Attempting to connect while connected or accepting connections. Disconnect first.";
-			err = [[self badConfigError:msg] retain];
-			
-			[pool drain];
-			return_from_block;
-		}
-		
-		// Clear queues (spurious read/write requests post disconnect)
-		[readQueue removeAllObjects];
-		[writeQueue removeAllObjects];
-		
-		if (interface)
-		{
-			NSData *interface4 = nil;
-			NSData *interface6 = nil;
-			
-			[self getInterfaceAddress4:&interface4 address6:&interface6 fromDescription:interface port:0];
-			
-			if ((interface4 == nil) && (interface6 == nil))
-			{
-				result = NO;
-				
-				NSString *msg = @"Unknown interface. Specify valid interface by name (e.g. \"en1\") or IP address.";
-				err = [[self badParamError:msg] retain];
-				
-				[pool drain];
-				return_from_block;
-			}
-			
-			if (isIPv4Disabled && (interface6 == nil))
-			{
-				result = NO;
-				
-				NSString *msg = @"IPv4 has been disabled and specified interface doesn't support IPv6.";
-				err = [[self badParamError:msg] retain];
-				
-				[pool drain];
-				return_from_block;
-			}
-			
-			if (isIPv6Disabled && (interface4 == nil))
-			{
-				result = NO;
-				
-				NSString *msg = @"IPv6 has been disabled and specified interface doesn't support IPv4.";
-				err = [[self badParamError:msg] retain];
-				
-				[pool drain];
-				return_from_block;
-			}
-			
-			connectInterface4 = [interface4 retain];
-			connectInterface6 = [interface6 retain];
 		}
 		
 		// We've made it past all the checks.
 		// It's time to start the connection process.
 		
-		flags |= kDidStartDelegate;
+		flags |= kSocketStarted;
 		
 		LogVerbose(@"Dispatching DNS lookup...");
 		
@@ -1673,14 +1688,134 @@ enum GCDAsyncSocketConfig
 		NSString *hostCpy = [[host copy] autorelease];
 		
 		dispatch_queue_t globalConcurrentQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-		dispatch_block_t lookupBlock = ^{
+		dispatch_async(globalConcurrentQueue, ^{
 			NSAutoreleasePool *lookupPool = [[NSAutoreleasePool alloc] init];
 			
 			[self lookup:aConnectIndex host:hostCpy port:port];
 			
 			[lookupPool drain];
-		};
-		dispatch_async(globalConcurrentQueue, lookupBlock);
+		});
+		
+		[self startConnectTimeout:timeout];
+		
+		[pool drain];
+	};
+	
+	if (dispatch_get_current_queue() == socketQueue)
+		block();
+	else
+		dispatch_sync(socketQueue, block);
+	
+	if (result == NO)
+	{
+		if (errPtr)
+			*errPtr = [err autorelease];
+		else
+			[err release];
+	}
+	
+	return result;
+}
+
+- (BOOL)connectToAddress:(NSData *)remoteAddr error:(NSError **)errPtr
+{
+	return [self connectToAddress:remoteAddr viaInterface:nil withTimeout:-1 error:errPtr];
+}
+
+- (BOOL)connectToAddress:(NSData *)remoteAddr withTimeout:(NSTimeInterval)timeout error:(NSError **)errPtr
+{
+	return [self connectToAddress:remoteAddr viaInterface:nil withTimeout:timeout error:errPtr];
+}
+
+- (BOOL)connectToAddress:(NSData *)remoteAddr
+            viaInterface:(NSString *)interface
+             withTimeout:(NSTimeInterval)timeout
+                   error:(NSError **)errPtr
+{
+	LogTrace();
+	
+	__block BOOL result = YES;
+	__block NSError *err = nil;
+	
+	dispatch_block_t block = ^{
+		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+		
+		// Check for problems with remoteAddr parameter
+		
+		NSData *address4 = nil;
+		NSData *address6 = nil;
+		
+		if ([remoteAddr length] >= sizeof(struct sockaddr))
+		{
+			struct sockaddr *sockaddr = (struct sockaddr *)[remoteAddr bytes];
+			
+			if (sockaddr->sa_family == AF_INET)
+			{
+				if ([remoteAddr length] == sizeof(struct sockaddr_in))
+				{
+					address4 = remoteAddr;
+				}
+			}
+			else if (sockaddr->sa_family == AF_INET6)
+			{
+				if ([remoteAddr length] == sizeof(struct sockaddr_in6))
+				{
+					address6 = remoteAddr;
+				}
+			}
+		}
+		
+		if ((address4 == nil) && (address6 == nil))
+		{
+			NSString *msg = @"A valid IPv4 or IPv6 address was not given";
+			err = [[self badParamError:msg] retain];
+			
+			[pool drain];
+			return_from_block;
+		}
+		
+		BOOL isIPv4Disabled = (config & kIPv4Disabled) ? YES : NO;
+		BOOL isIPv6Disabled = (config & kIPv6Disabled) ? YES : NO;
+		
+		if (isIPv4Disabled && (address4 != nil))
+		{
+			NSString *msg = @"IPv4 has been disabled and an IPv4 address was passed.";
+			err = [[self badParamError:msg] retain];
+			
+			[pool drain];
+			return_from_block;
+		}
+		
+		if (isIPv6Disabled && (address6 != nil))
+		{
+			NSString *msg = @"IPv6 has been disabled and an IPv6 address was passed.";
+			err = [[self badParamError:msg] retain];
+			
+			[pool drain];
+			return_from_block;
+		}
+		
+		// Run through standard pre-connect checks
+		
+		result = [self preConnectWithInterface:interface error:&err];
+		if (!result)
+		{
+			[err retain];
+			[pool drain];
+			return_from_block;
+		}
+		
+		// We've made it past all the checks.
+		// It's time to start the connection process.
+		
+		if (![self connectWithAddress4:address4 address6:address6 error:&err])
+		{
+			[err retain];
+			[pool drain];
+			return_from_block;
+		}
+		
+		flags |= kSocketStarted;
 		
 		[self startConnectTimeout:timeout];
 		
@@ -1837,6 +1972,50 @@ enum GCDAsyncSocketConfig
 		return;
 	}
 	
+	// Start the normal connection process
+	
+	NSError *err = nil;
+	if (![self connectWithAddress4:address4 address6:address6 error:&err])
+	{
+		[self closeWithError:err];
+	}
+}
+
+/**
+ * This method is called if the DNS lookup fails.
+ * This method is executed on the socketQueue.
+ * 
+ * Since the DNS lookup executed synchronously on a global concurrent queue,
+ * the original connection request may have already been cancelled or timed-out by the time this method is invoked.
+ * The lookupIndex tells us whether the lookup is still valid or not.
+**/
+- (void)lookup:(int)aConnectIndex didFail:(NSError *)error
+{
+	LogTrace();
+	
+	NSAssert(dispatch_get_current_queue() == socketQueue, @"Exectued on wrong dispatch queue");
+	
+	
+	if (aConnectIndex != connectIndex)
+	{
+		LogInfo(@"Ignoring lookup:didFail: - already disconnected");
+		
+		// The connect operation has been cancelled.
+		// That is, socket was disconnected, or connection has already timed out.
+		return;
+	}
+	
+	[self endConnectTimeout];
+	[self closeWithError:error];
+}
+
+- (BOOL)connectWithAddress4:(NSData *)address4 address6:(NSData *)address6 error:(NSError **)errPtr
+{
+	LogTrace();
+	
+	NSAssert(dispatch_get_current_queue() == socketQueue, @"Exectued on wrong dispatch queue");
+	
+	
 	// Determine socket type
 	
 	BOOL preferIPv6 = (config & kPreferIPv6) ? YES : NO;
@@ -1872,8 +2051,10 @@ enum GCDAsyncSocketConfig
 	
 	if (socketFD == SOCKET_NULL)
 	{
-		[self closeWithError:[self errnoErrorWithReason:@"Error in socket() function"]];
-		return;
+		if (errPtr)
+			*errPtr = [self errnoErrorWithReason:@"Error in socket() function"];
+		
+		return NO;
 	}
 	
 	// Bind the socket to the desired interface (if needed)
@@ -1887,15 +2068,19 @@ enum GCDAsyncSocketConfig
 		int result = bind(socketFD, interfaceAddr, (socklen_t)[connectInterface length]);
 		if (result != 0)
 		{
-			[self closeWithError:[self errnoErrorWithReason:@"Error in bind() function"]];
-			return;
+			if (errPtr)
+				*errPtr = [self errnoErrorWithReason:@"Error in bind() function"];
+			
+			return NO;
 		}
 	}
 	
 	// Start the connection process in a background queue
 	
+	int aConnectIndex = connectIndex;
+	
 	dispatch_queue_t globalConcurrentQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-	dispatch_block_t connectBlock = ^{
+	dispatch_async(globalConcurrentQueue, ^{
 		
 		int result = connect(socketFD, (const struct sockaddr *)[address bytes], (socklen_t)[address length]);
 		if (result == 0)
@@ -1916,38 +2101,11 @@ enum GCDAsyncSocketConfig
 				[pool drain];
 			});
 		}
-	};
-	dispatch_async(globalConcurrentQueue, connectBlock);
+	});
 	
 	LogVerbose(@"Connecting...");
-}
-
-/**
- * This method is called if the DNS lookup fails.
- * This method is executed on the socketQueue.
- * 
- * Since the DNS lookup executed synchronously on a global concurrent queue,
- * the original connection request may have already been cancelled or timed-out by the time this method is invoked.
- * The lookupIndex tells us whether the lookup is still valid or not.
-**/
-- (void)lookup:(int)aConnectIndex didFail:(NSError *)error
-{
-	LogTrace();
 	
-	NSAssert(dispatch_get_current_queue() == socketQueue, @"Exectued on wrong dispatch queue");
-	
-	
-	if (aConnectIndex != connectIndex)
-	{
-		LogInfo(@"Ignoring lookupDidFail, already disconnected");
-		
-		// The connect operation has been cancelled.
-		// That is, socket was disconnected, or connection has already timed out.
-		return;
-	}
-	
-	[self endConnectTimeout];
-	[self closeWithError:error];
+	return YES;
 }
 
 - (void)didConnect:(int)aConnectIndex
@@ -2211,7 +2369,7 @@ enum GCDAsyncSocketConfig
 	
 	// If the client has passed the connect/accept method, then the connection has at least begun.
 	// Notify delegate that it is now ending.
-	BOOL shouldCallDelegate = (flags & kDidStartDelegate);
+	BOOL shouldCallDelegate = (flags & kSocketStarted);
 	
 	// Clear stored socket info and all flags (config remains as is)
 	socketFDBytesAvailable = 0;
@@ -2238,7 +2396,12 @@ enum GCDAsyncSocketConfig
 {
 	dispatch_block_t block = ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-		[self closeWithError:nil];
+		
+		if (flags & kSocketStarted)
+		{
+			[self closeWithError:nil];
+		}
+		
 		[pool drain];
 	};
 	
@@ -2255,8 +2418,11 @@ enum GCDAsyncSocketConfig
 	dispatch_async(socketQueue, ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		
-		flags |= (kForbidReadsWrites | kDisconnectAfterReads);
-		[self maybeClose];
+		if (flags & kSocketStarted)
+		{
+			flags |= (kForbidReadsWrites | kDisconnectAfterReads);
+			[self maybeClose];
+		}
 		
 		[pool drain];
 	});
@@ -2267,8 +2433,11 @@ enum GCDAsyncSocketConfig
 	dispatch_async(socketQueue, ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		
-		flags |= (kForbidReadsWrites | kDisconnectAfterWrites);
-		[self maybeClose];
+		if (flags & kSocketStarted)
+		{
+			flags |= (kForbidReadsWrites | kDisconnectAfterWrites);
+			[self maybeClose];
+		}
 		
 		[pool drain];
 	});
@@ -2279,8 +2448,11 @@ enum GCDAsyncSocketConfig
 	dispatch_async(socketQueue, ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		
-		flags |= (kForbidReadsWrites | kDisconnectAfterReads | kDisconnectAfterWrites);
-		[self maybeClose];
+		if (flags & kSocketStarted)
+		{
+			flags |= (kForbidReadsWrites | kDisconnectAfterReads | kDisconnectAfterWrites);
+			[self maybeClose];
+		}
 		
 		[pool drain];
 	});
@@ -2456,20 +2628,34 @@ enum GCDAsyncSocketConfig
 
 - (BOOL)isDisconnected
 {
+	__block BOOL result;
+	
+	dispatch_block_t block = ^{
+		result = (flags & kSocketStarted) ? NO : YES;
+	};
+	
 	if (dispatch_get_current_queue() == socketQueue)
-	{
-		return (socket4FD == SOCKET_NULL) && (socket6FD == SOCKET_NULL);
-	}
+		block();
 	else
-	{
-		__block BOOL result = YES;
-		
-		dispatch_sync(socketQueue, ^{
-			result = (socket4FD == SOCKET_NULL) && (socket6FD == SOCKET_NULL);
-		});
-		
-		return result;
-	}
+		dispatch_sync(socketQueue, block);
+	
+	return result;
+}
+
+- (BOOL)isConnected
+{
+	__block BOOL result;
+	
+	dispatch_block_t block = ^{
+		result = (flags & kConnected) ? YES : NO;
+	};
+	
+	if (dispatch_get_current_queue() == socketQueue)
+		block();
+	else
+		dispatch_sync(socketQueue, block);
+	
+	return result;
 }
 
 - (NSString *)connectedHost
@@ -3173,7 +3359,7 @@ enum GCDAsyncSocketConfig
 	dispatch_async(socketQueue, ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		
-		if (!(flags & kForbidReadsWrites))
+		if ((flags & kSocketStarted) && !(flags & kForbidReadsWrites))
 		{
 			[readQueue addObject:packet];
 			[self maybeDequeueRead];
@@ -3212,7 +3398,7 @@ enum GCDAsyncSocketConfig
 	dispatch_async(socketQueue, ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		
-		if (!(flags & kForbidReadsWrites))
+		if ((flags & kSocketStarted) && !(flags & kForbidReadsWrites))
 		{
 			[readQueue addObject:packet];
 			[self maybeDequeueRead];
@@ -3267,7 +3453,7 @@ enum GCDAsyncSocketConfig
 	dispatch_async(socketQueue, ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		
-		if (!(flags & kForbidReadsWrites))
+		if ((flags & kSocketStarted) && !(flags & kForbidReadsWrites))
 		{
 			[readQueue addObject:packet];
 			[self maybeDequeueRead];
@@ -4079,7 +4265,7 @@ enum GCDAsyncSocketConfig
 	dispatch_async(socketQueue, ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		
-		if (!(flags & kForbidReadsWrites))
+		if ((flags & kSocketStarted) && !(flags & kForbidReadsWrites))
 		{
 			[writeQueue addObject:packet];
 			[self maybeDequeueWrite];
@@ -4508,11 +4694,16 @@ enum GCDAsyncSocketConfig
 	dispatch_async(socketQueue, ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		
-		[readQueue addObject:packet];
-		[writeQueue addObject:packet];
-		
-		[self maybeDequeueRead];
-		[self maybeDequeueWrite];
+		if ((flags & kSocketStarted) && !(flags & kQueuedTLS) && !(flags & kForbidReadsWrites))
+		{
+			[readQueue addObject:packet];
+			[writeQueue addObject:packet];
+			
+			flags |= kQueuedTLS;
+			
+			[self maybeDequeueRead];
+			[self maybeDequeueWrite];
+		}
 		
 		[pool drain];
 	});
