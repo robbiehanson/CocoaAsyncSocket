@@ -5167,7 +5167,8 @@ OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, size_t 
 			NSUInteger numberCiphers = [cipherSuites count];
 			SSLCipherSuite ciphers[numberCiphers];
 			
-			for (NSUInteger cipherIndex = 0; cipherIndex < numberCiphers; cipherIndex++)
+			NSUInteger cipherIndex;
+			for (cipherIndex = 0; cipherIndex < numberCiphers; cipherIndex++)
 			{
 				NSNumber *cipherObject = [cipherSuites objectAtIndex:cipherIndex];
 				ciphers[cipherIndex] = [cipherObject shortValue];
