@@ -82,6 +82,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 #else
 	SSLContextRef sslContext;
 	NSMutableData *sslReadBuffer;
+	size_t sslWriteCachedLength;
 #endif
 }
 
