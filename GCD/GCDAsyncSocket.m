@@ -4641,11 +4641,9 @@ enum GCDAsyncSocketConfig
 	
 	// Note: This method is not called if theCurrentWrite is an GCDAsyncSpecialPacket (startTLS packet)
 	
-	BOOL waiting   = NO;
+	BOOL waiting = NO;
 	NSError *error = nil;
-	
 	size_t bytesWritten = 0;
-	
 	
 	if (flags & kSocketSecure)
 	{
@@ -4661,7 +4659,6 @@ enum GCDAsyncSocketConfig
 			}
 		
 			CFIndex result = CFWriteStreamWrite(writeStream, (UInt8 *)buffer, (CFIndex)bytesToWrite);
-			
 			LogVerbose(@"CFWriteStreamWrite(%lu) = %li", bytesToWrite, result);
 		
 			if (result < 0)
@@ -4670,11 +4667,13 @@ enum GCDAsyncSocketConfig
 			}
 			else
 			{
-				waiting = YES;
 				bytesWritten = (size_t)result;
+				
+				// We always set waiting to true in this scenario.
+				// CFStream may have altered our underlying socket to non-blocking.
+				// Thus if we attempt to write without a callback, we may end up blocking our queue.
+				waiting = YES;
 			}
-			
-			flags &= ~kSocketCanAcceptBytes;
 			
 		#else
 			
@@ -4721,7 +4720,10 @@ enum GCDAsyncSocketConfig
 			
 			OSStatus result;
 			
-			if (sslWriteCachedLength > 0)
+			BOOL hasCachedDataToWrite = (sslWriteCachedLength > 0);
+			BOOL hasNewDataToWrite = YES;
+			
+			if (hasCachedDataToWrite)
 			{
 				size_t processed = 0;
 				
@@ -4731,17 +4733,34 @@ enum GCDAsyncSocketConfig
 				{
 					bytesWritten = sslWriteCachedLength;
 					sslWriteCachedLength = 0;
+					
+					if (currentWrite->bytesDone == [currentWrite->buffer length])
+					{
+						// We've written all data for the current write.
+						hasNewDataToWrite = NO;
+					}
 				}
 				else
 				{
-					// Handled "below"
+					if (result == errSSLWouldBlock)
+					{
+						waiting = YES;
+					}
+					else
+					{
+						error = [self sslError:result];
+					}
+					
+					// Can't write any new data since we were unable to write the cached data.
+					hasNewDataToWrite = NO;
 				}
 			}
-			else
+			
+			if (hasNewDataToWrite)
 			{
-				void *buffer = (void *)[currentWrite->buffer bytes] + currentWrite->bytesDone;
+				void *buffer = (void *)[currentWrite->buffer bytes] + currentWrite->bytesDone + bytesWritten;
 				
-				NSUInteger bytesToWrite = [currentWrite->buffer length] - currentWrite->bytesDone;
+				NSUInteger bytesToWrite = [currentWrite->buffer length] - currentWrite->bytesDone - bytesWritten;
 				
 				if (bytesToWrite > SIZE_MAX) // NSUInteger may be bigger than size_t (write param 3)
 				{
@@ -4770,28 +4789,20 @@ enum GCDAsyncSocketConfig
 					{
 						if (result == errSSLWouldBlock)
 						{
+							waiting = YES;
 							sslWriteCachedLength = sslBytesToWrite;
+						}
+						else
+						{
+							error = [self sslError:result];
 						}
 						
 						keepLooping = NO;
-						
-						// Additional handling "below"
 					}
-				}
-			}
-			
-			if (result != noErr) // "Below"
-			{
-				if (result == errSSLWouldBlock)
-				{
-					waiting = YES;
-					flags &= ~kSocketCanAcceptBytes;
-				}
-				else
-				{
-					error = [self sslError:result];
-				}
-			}
+					
+				} // while (keepLooping)
+				
+			} // if (hasNewDataToWrite)
 		
 		#endif
 	}
@@ -4815,16 +4826,13 @@ enum GCDAsyncSocketConfig
 		if (result < 0)
 		{
 			if (errno == EWOULDBLOCK)
+			{
 				waiting = YES;
+			}
 			else
+			{
 				error = [self errnoErrorWithReason:@"Error in write() function"];
-			
-			flags &= ~kSocketCanAcceptBytes;
-		}
-		else if (result == 0)
-		{
-			waiting = YES;
-			flags &= ~kSocketCanAcceptBytes;
+			}
 		}
 		else
 		{
@@ -4832,13 +4840,33 @@ enum GCDAsyncSocketConfig
 		}
 	}
 	
+	// We're done with our writing.
+	// If we explictly ran into a situation where the socket told us there was no room in the buffer,
+	// then we immediately resume listening for notifications.
+	// 
+	// We must do this before we dequeue another write,
+	// as that may in turn invoke this method again.
+	// 
+	// Note that if CFStream is involved, it may have maliciously put our socket in blocking mode.
+	
+	if (waiting)
+	{
+		flags &= ~kSocketCanAcceptBytes;
+		
+		if (![self usingCFStream])
+		{
+			[self resumeWriteSource];
+		}
+	}
+	
+	// Check our results
+	
 	BOOL done = NO;
 	
 	if (bytesWritten > 0)
 	{
 		// Update total amount read for the current write
 		currentWrite->bytesDone += bytesWritten;
-		
 		LogVerbose(@"currentWrite->bytesDone = %lu", currentWrite->bytesDone);
 		
 		// Is packet done?
@@ -4854,22 +4882,40 @@ enum GCDAsyncSocketConfig
 			[self maybeDequeueWrite];
 		}
 	}
-	else if (bytesWritten > 0)
+	else
 	{
-		// We're not done with the entire write, but we have written some bytes
+		// We were unable to finish writing the data,
+		// so we're waiting for another callback to notify us of available space in the lower-level output buffer.
 		
-		if (delegateQueue && [delegate respondsToSelector:@selector(socket:didWritePartialDataOfLength:tag:)])
+		if (!waiting & !error)
 		{
-			id theDelegate = delegate;
-			GCDAsyncWritePacket *theWrite = currentWrite;
+			// This would be the case if our write was able to accept some data, but not all of it.
 			
-			dispatch_async(delegateQueue, ^{
-				NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+			flags &= ~kSocketCanAcceptBytes;
+			
+			if (![self usingCFStream])
+			{
+				[self resumeWriteSource];
+			}
+		}
+		
+		if (bytesWritten > 0)
+		{
+			// We're not done with the entire write, but we have written some bytes
+			
+			if (delegateQueue && [delegate respondsToSelector:@selector(socket:didWritePartialDataOfLength:tag:)])
+			{
+				id theDelegate = delegate;
+				GCDAsyncWritePacket *theWrite = currentWrite;
 				
-				[theDelegate socket:self didWritePartialDataOfLength:bytesWritten tag:theWrite->tag];
-				
-				[pool drain];
-			});
+				dispatch_async(delegateQueue, ^{
+					NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+					
+					[theDelegate socket:self didWritePartialDataOfLength:bytesWritten tag:theWrite->tag];
+					
+					[pool drain];
+				});
+			}
 		}
 	}
 	
@@ -4879,15 +4925,8 @@ enum GCDAsyncSocketConfig
 	{
 		[self closeWithError:[self errnoErrorWithReason:@"Error in write() function"]];
 	}
-	else if (waiting)
-	{
-		if (![self usingCFStream])
-		{
-			[self resumeWriteSource];
-		}
-	}
 	
-	// Do not add any code here without first adding return statements in the error cases above.
+	// Do not add any code here without first adding a return statement in the error case above.
 }
 
 - (void)completeCurrentWrite

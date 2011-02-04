@@ -68,12 +68,19 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 	
 	if (port == 443)
 	{
+		
+	#if !TARGET_IPHONE_SIMULATOR
+		
+		// Backgrounding doesn't seem to be supported on the simulator yet
+		
 		[sock performBlock:^{
 			if ([sock enableBackgroundingOnSocketWithCaveat])
 				DDLogInfo(@"Enabled backgrounding on socket");
 			else
 				DDLogWarn(@"Enabling backgrounding failed!");
 		}];
+		
+	#endif
 		
 		// Configure SSL/TLS settings
 		NSMutableDictionary *settings = [NSMutableDictionary dictionaryWithCapacity:3];
