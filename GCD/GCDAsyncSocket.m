@@ -2152,6 +2152,15 @@ enum GCDAsyncSocketConfig
 	{
 		LogVerbose(@"Binding socket...");
 		
+		if ([[self class] portFromAddress:connectInterface] > 0)
+		{
+			// Since we're going to be binding to a specific port,
+			// we should turn on reuseaddr to allow us to override sockets in time_wait.
+			
+			int reuseOn = 1;
+			setsockopt(socketFD, SOL_SOCKET, SO_REUSEADDR, &reuseOn, sizeof(reuseOn));
+		}
+		
 		struct sockaddr *interfaceAddr = (struct sockaddr *)[connectInterface bytes];
 		
 		int result = bind(socketFD, interfaceAddr, (socklen_t)[connectInterface length]);
@@ -3136,6 +3145,10 @@ enum GCDAsyncSocketConfig
 /**
  * Finds the address of an interface description.
  * An inteface description may be an interface name (en0, en1, lo0) or corresponding IP (192.168.4.34).
+ * 
+ * The interface description may optionally contain a port number at the end, separated by a colon.
+ * If a non-zeor port parameter is provided, any port number in the interface description is ignored.
+ * 
  * The returned value is a 'struct sockaddr' wrapped in an NSData object.
 **/
 - (void)getInterfaceAddress4:(NSData **)interfaceAddr4Ptr
@@ -3146,7 +3159,28 @@ enum GCDAsyncSocketConfig
 	NSData *addr4 = nil;
 	NSData *addr6 = nil;
 	
-	if (interfaceDescription == nil)
+	NSString *interface = nil;
+	
+	NSArray *components = [interfaceDescription componentsSeparatedByString:@":"];
+	if ([components count] > 0)
+	{
+		NSString *temp = [components objectAtIndex:0];
+		if ([temp length] > 0)
+		{
+			interface = temp;
+		}
+	}
+	if ([components count] > 1 && port == 0)
+	{
+		long portL = strtol([[components objectAtIndex:1] UTF8String], NULL, 10);
+		
+		if (portL > 0 && portL <= UINT16_MAX)
+		{
+			port = (UInt16)portL;
+		}
+	}
+	
+	if (interface == nil)
 	{
 		// ANY address
 		
@@ -3169,7 +3203,7 @@ enum GCDAsyncSocketConfig
 		addr4 = [NSData dataWithBytes:&nativeAddr4 length:sizeof(nativeAddr4)];
 		addr6 = [NSData dataWithBytes:&nativeAddr6 length:sizeof(nativeAddr6)];
 	}
-	else if ([interfaceDescription isEqualToString:@"localhost"] || [interfaceDescription isEqualToString:@"loopback"])
+	else if ([interface isEqualToString:@"localhost"] || [interface isEqualToString:@"loopback"])
 	{
 		// LOOPBACK address
 		
@@ -3194,7 +3228,7 @@ enum GCDAsyncSocketConfig
 	}
 	else
 	{
-		const char *interface = [interfaceDescription UTF8String];
+		const char *iface = [interface UTF8String];
 		
 		struct ifaddrs *addrs;
 		const struct ifaddrs *cursor;
@@ -3210,7 +3244,7 @@ enum GCDAsyncSocketConfig
 					
 					struct sockaddr_in *addr = (struct sockaddr_in *)cursor->ifa_addr;
 					
-					if (strcmp(cursor->ifa_name, interface) == 0)
+					if (strcmp(cursor->ifa_name, iface) == 0)
 					{
 						// Name match
 						
@@ -3226,7 +3260,7 @@ enum GCDAsyncSocketConfig
 						const char *conversion;
 						conversion = inet_ntop(AF_INET, &addr->sin_addr, ip, sizeof(ip));
 						
-						if ((conversion != NULL) && (strcmp(ip, interface) == 0))
+						if ((conversion != NULL) && (strcmp(ip, iface) == 0))
 						{
 							// IP match
 							
@@ -3243,7 +3277,7 @@ enum GCDAsyncSocketConfig
 					
 					struct sockaddr_in6 *addr = (struct sockaddr_in6 *)cursor->ifa_addr;
 					
-					if (strcmp(cursor->ifa_name, interface) == 0)
+					if (strcmp(cursor->ifa_name, iface) == 0)
 					{
 						// Name match
 						
@@ -3259,7 +3293,7 @@ enum GCDAsyncSocketConfig
 						const char *conversion;
 						conversion = inet_ntop(AF_INET6, &addr->sin6_addr, ip, sizeof(ip));
 						
-						if ((conversion != NULL) && (strcmp(ip, interface) == 0))
+						if ((conversion != NULL) && (strcmp(ip, iface) == 0))
 						{
 							// IP match
 							

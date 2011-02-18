@@ -16,10 +16,19 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 - (void)normalConnect
 {
 	NSError *error = nil;
-	if (![asyncSocket connectToHost:@"google.com" onPort:80 error:&error])
+	
+	NSString *host = @"google.com";
+//	NSString *host = @"deusty.com";
+	
+	if (![asyncSocket connectToHost:host onPort:80 error:&error])
 	{
 		DDLogError(@"Error connecting: %@", error);
 	}
+	
+//	if (![asyncSocket connectToHost:host onPort:80 viaInterface:@":12345" withTimeout:-1 error:&error])
+//	{
+//		DDLogError(@"Error connecting: %@", error);
+//	}
 }
 
 - (void)secureConnect
@@ -52,8 +61,8 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 	
 	asyncSocket = [[GCDAsyncSocket alloc] initWithDelegate:self delegateQueue:mainQueue];
 	
-//	[self normalConnect];
-	[self secureConnect];
+	[self normalConnect];
+//	[self secureConnect];
 	
 	// Add the view controller's view to the window and display.
 	[window addSubview:viewController.view];
@@ -65,6 +74,8 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 - (void)socket:(GCDAsyncSocket *)sock didConnectToHost:(NSString *)host port:(UInt16)port
 {
 	DDLogInfo(@"socket:%p didConnectToHost:%@ port:%hu", sock, host, port);
+	
+//	DDLogInfo(@"localHost:%@ port:%hu", [sock localHost], [sock localPort]);
 	
 	if (port == 443)
 	{
