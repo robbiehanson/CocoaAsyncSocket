@@ -875,6 +875,8 @@ enum GCDAsyncSocketConfig
 	[sslReadBuffer release];
 #endif
 	
+	[userData release];
+	
 	LogInfo(@"%@ - %@ (finish)", THIS_METHOD, self);
 	
 	[super dealloc];
