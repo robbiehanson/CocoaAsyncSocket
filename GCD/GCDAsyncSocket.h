@@ -84,6 +84,8 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 	NSMutableData *sslReadBuffer;
 	size_t sslWriteCachedLength;
 #endif
+	
+	id userData;
 }
 
 /**
@@ -169,6 +171,13 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 
 - (BOOL)isIPv4PreferredOverIPv6;
 - (void)setPreferIPv4OverIPv6:(BOOL)flag;
+
+/**
+ * User data allows you to associate arbitrary information with the socket.
+ * This data is not used internally by socket in any way.
+**/
+- (id)userData;
+- (void)setUserData:(id)arbitraryUserData;
 
 #pragma mark Accepting
 

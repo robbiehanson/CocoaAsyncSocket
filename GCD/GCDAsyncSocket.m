@@ -1182,6 +1182,35 @@ enum GCDAsyncSocketConfig
 	}
 }
 
+- (id)userData
+{
+	__block id result;
+	
+	dispatch_block_t block = ^{
+		
+		result = [userData retain];
+	};
+	
+	if (dispatch_get_current_queue() == socketQueue)
+		block();
+	else
+		dispatch_sync(socketQueue, block);
+	
+	return [result autorelease];
+}
+
+- (void)setUserData:(id)arbitraryUserData
+{
+	dispatch_async(socketQueue, ^{
+		
+		if (userData != arbitraryUserData)
+		{
+			[userData release];
+			userData = [arbitraryUserData retain];
+		}
+	});
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Accepting
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
