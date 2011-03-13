@@ -388,7 +388,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 {
 	HTTPLogTrace();
 	
-	if (fileFD != NULL_FD)
+	if (readQueue)
 		dispatch_release(readQueue);
 	
 	if (readBuffer)
