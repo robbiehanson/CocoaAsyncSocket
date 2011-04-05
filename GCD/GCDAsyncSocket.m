@@ -5472,7 +5472,7 @@ OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, size_t 
 		// 1. kCFStreamSSLPeerName
 		
 		value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLPeerName];
-		if (value)
+		if ([value isKindOfClass:[NSString class]])
 		{
 			NSString *peerName = (NSString *)value;
 			
