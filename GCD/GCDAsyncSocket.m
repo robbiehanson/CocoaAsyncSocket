@@ -3995,10 +3995,16 @@ enum GCDAsyncSocketConfig
 				if (result < 0)
 				{
 					error = [NSMakeCollectable(CFReadStreamCopyError(readStream)) autorelease];
+					
+					if (readIntoPartialReadBuffer)
+						[partialReadBuffer setLength:0];
 				}
 				else if (result == 0)
 				{
 					socketEOF = YES;
+					
+					if (readIntoPartialReadBuffer)
+						[partialReadBuffer setLength:0];
 				}
 				else
 				{
@@ -4024,6 +4030,9 @@ enum GCDAsyncSocketConfig
 						waiting = YES;
 					else
 						error = [self sslError:result];
+					
+					if (readIntoPartialReadBuffer)
+						[partialReadBuffer setLength:0];
 				}
 				
 				// Do not modify socketFDBytesAvailable.
@@ -4046,11 +4055,17 @@ enum GCDAsyncSocketConfig
 					error = [self errnoErrorWithReason:@"Error in read() function"];
 				
 				socketFDBytesAvailable = 0;
+				
+				if (readIntoPartialReadBuffer)
+					[partialReadBuffer setLength:0];
 			}
 			else if (result == 0)
 			{
 				socketEOF = YES;
 				socketFDBytesAvailable = 0;
+				
+				if (readIntoPartialReadBuffer)
+					[partialReadBuffer setLength:0];
 			}
 			else
 			{
