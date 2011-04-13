@@ -84,6 +84,8 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 	NSMutableData *sslReadBuffer;
 	size_t sslWriteCachedLength;
 #endif
+	
+	id userData;
 }
 
 /**
@@ -170,6 +172,13 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 - (BOOL)isIPv4PreferredOverIPv6;
 - (void)setPreferIPv4OverIPv6:(BOOL)flag;
 
+/**
+ * User data allows you to associate arbitrary information with the socket.
+ * This data is not used internally by socket in any way.
+**/
+- (id)userData;
+- (void)setUserData:(id)arbitraryUserData;
+
 #pragma mark Accepting
 
 /**
@@ -224,6 +233,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * 
  * The host may be a domain name (e.g. "deusty.com") or an IP address string (e.g. "192.168.0.2").
  * The interface may be a name (e.g. "en1" or "lo0") or the corresponding IP address (e.g. "192.168.4.35").
+ * The interface may also be used to specify the local port (see below).
  * 
  * To not time out use a negative time interval.
  * 
@@ -236,6 +246,16 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * Since this class supports queued reads and writes, you can immediately start reading and/or writing.
  * All read/write operations will be queued, and upon socket connection,
  * the operations will be dequeued and processed in order.
+ * 
+ * The interface may optionally contain a port number at the end of the string, separated by a colon.
+ * This allows you to specify the local port that should be used for the outgoing connection. (read paragraph to end)
+ * To specify both interface and local port: "en1:8082" or "192.168.4.35:2424".
+ * To specify only local port: ":8082".
+ * Please note this is an advanced feature, and is somewhat hidden on purpose.
+ * You should understand that 99.999% of the time you should NOT specify the local port for an outgoing connection.
+ * If you think you need to, there is a very good chance you have a fundamental misunderstanding somewhere.
+ * Local ports do NOT need to match remote ports. In fact, they almost never do.
+ * This feature is here for networking professionals using very advanced techniques.
 **/
 - (BOOL)connectToHost:(NSString *)host
                onPort:(UInt16)port
@@ -272,6 +292,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * struct sockaddr *sa -> NSData *dsa = [NSData dataWithBytes:remoteAddr length:remoteAddr->sa_len];
  * 
  * The interface may be a name (e.g. "en1" or "lo0") or the corresponding IP address (e.g. "192.168.4.35").
+ * The interface may also be used to specify the local port (see below).
  * 
  * The timeout is optional. To not time out use a negative time interval.
  * 
@@ -284,6 +305,16 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * Since this class supports queued reads and writes, you can immediately start reading and/or writing.
  * All read/write operations will be queued, and upon socket connection,
  * the operations will be dequeued and processed in order.
+ * 
+ * The interface may optionally contain a port number at the end of the string, separated by a colon.
+ * This allows you to specify the local port that should be used for the outgoing connection. (read paragraph to end)
+ * To specify both interface and local port: "en1:8082" or "192.168.4.35:2424".
+ * To specify only local port: ":8082".
+ * Please note this is an advanced feature, and is somewhat hidden on purpose.
+ * You should understand that 99.999% of the time you should NOT specify the local port for an outgoing connection.
+ * If you think you need to, there is a very good chance you have a fundamental misunderstanding somewhere.
+ * Local ports do NOT need to match remote ports. In fact, they almost never do.
+ * This feature is here for networking professionals using very advanced techniques.
 **/
 - (BOOL)connectToAddress:(NSData *)remoteAddr
             viaInterface:(NSString *)interface
