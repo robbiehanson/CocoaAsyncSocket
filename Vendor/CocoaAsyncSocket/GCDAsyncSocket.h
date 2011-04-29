@@ -111,12 +111,15 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 
 - (id)delegate;
 - (void)setDelegate:(id)delegate;
+- (void)synchronouslySetDelegate:(id)delegate;
 
 - (dispatch_queue_t)delegateQueue;
 - (void)setDelegateQueue:(dispatch_queue_t)delegateQueue;
+- (void)synchronouslySetDelegateQueue:(dispatch_queue_t)delegateQueue;
 
 - (void)getDelegate:(id *)delegatePtr delegateQueue:(dispatch_queue_t *)delegateQueuePtr;
 - (void)setDelegate:(id)delegate delegateQueue:(dispatch_queue_t)delegateQueue;
+- (void)synchronouslySetDelegate:(id)delegate delegateQueue:(dispatch_queue_t)delegateQueue;
 
 /**
  * Traditionally sockets are not closed until the conversation is over.
