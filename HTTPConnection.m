@@ -581,7 +581,9 @@ static NSMutableArray *recentNonces;
 	dispatch_async(connectionQueue, ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		
-		[self die];
+		// Disconnect the socket.
+		// The socketDidDisconnect delegate method will handle everything else.
+		[asyncSocket disconnect];
 		
 		[pool release];
 	});
@@ -930,10 +932,46 @@ static NSMutableArray *recentNonces;
 			
 			[[config server] addWebSocket:ws];
 			
-			[asyncSocket release];
-			asyncSocket = nil;
-			
-			[self die];
+			// The WebSocket should now be the delegate of the underlying socket.
+			// But gracefully handle the situation if it forgot.
+			if ([asyncSocket delegate] == self)
+			{
+				HTTPLogWarn(@"%@[%p]: WebSocket forgot to set itself as socket delegate", THIS_FILE, self);
+				
+				// Disconnect the socket.
+				// The socketDidDisconnect delegate method will handle everything else.
+				[asyncSocket disconnect];
+			}
+			else
+			{
+				// The WebSocket is using the socket,
+				// so make sure we don't disconnect it in the dealloc method.
+				[asyncSocket release];
+				asyncSocket = nil;
+				
+				[self die];
+				
+				// Note: There is a timing issue here that should be pointed out.
+				// 
+				// A bug that existed in previous versions happend like so:
+				// - We invoked [self die]
+				// - This caused us to get released, and our dealloc method to start executing
+				// - Meanwhile, AsyncSocket noticed a disconnect, and began to dispatch a socketDidDisconnect at us
+				// - The dealloc method finishes execution, and our instance gets freed
+				// - The socketDidDisconnect gets run, and a crash occurs
+				// 
+				// So the issue we want to avoid is releasing ourself when there is a possibility
+				// that AsyncSocket might be gearing up to queue a socketDidDisconnect for us.
+				// 
+				// In this particular situation notice that we invoke [asyncSocket delegate].
+				// This method is synchronous concerning AsyncSocket's internal socketQueue.
+				// Which means we can be sure, when it returns, that AsyncSocket has already
+				// queued any delegate methods for us if it was going to.
+				// And if the delegate methods are queued, then we've been properly retained.
+				// Meaning we won't get released / dealloc'd until the delegate method has finished executing.
+				// 
+				// In this rare situation, the die method will get invoked twice.
+			}
 		}
 		
 		return;
@@ -2223,7 +2261,10 @@ static NSMutableArray *recentNonces;
 			
 			if ([self shouldDie])
 			{
-				[self die];
+				// The only time we should invoke [self die] is from socketDidDisconnect,
+				// or if the socket gets taken over by someone else like a WebSocket.
+				
+				[asyncSocket disconnect];
 			}
 			else
 			{
@@ -2247,6 +2288,9 @@ static NSMutableArray *recentNonces;
 - (void)socketDidDisconnect:(GCDAsyncSocket *)sock withError:(NSError *)err;
 {
 	HTTPLogTrace();
+	
+	[asyncSocket release];
+	asyncSocket = nil;
 	
 	[self die];
 }
@@ -2388,6 +2432,9 @@ static NSMutableArray *recentNonces;
 	
 	// Override me if you want to perform any custom actions when a connection is closed.
 	// Then call [super die] when you're done.
+	// 
+	// Important: There is a rare timing condition where this method might get invoked twice.
+	// If you override this method, you should be prepared for this situation.
 	
 	// Inform the http response that we're done
 	if ([httpResponse respondsToSelector:@selector(connectionDidClose)])
