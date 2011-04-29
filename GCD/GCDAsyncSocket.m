@@ -904,18 +904,31 @@ enum GCDAsyncSocketConfig
 	}
 }
 
+- (void)setDelegate:(id)newDelegate synchronously:(BOOL)synchronously
+{
+	dispatch_block_t block = ^{
+		delegate = newDelegate;
+	};
+	
+	if (dispatch_get_current_queue() == socketQueue) {
+		block();
+	}
+	else {
+		if (synchronously)
+			dispatch_sync(socketQueue, block);
+		else
+			dispatch_async(socketQueue, block);
+	}
+}
+
 - (void)setDelegate:(id)newDelegate
 {
-	if (dispatch_get_current_queue() == socketQueue)
-	{
-		delegate = newDelegate;
-	}
-	else
-	{
-		dispatch_async(socketQueue, ^{
-			delegate = newDelegate;
-		});
-	}
+	[self setDelegate:newDelegate synchronously:NO];
+}
+
+- (void)synchronouslySetDelegate:(id)newDelegate
+{
+	[self setDelegate:newDelegate synchronously:YES];
 }
 
 - (dispatch_queue_t)delegateQueue
@@ -936,10 +949,10 @@ enum GCDAsyncSocketConfig
 	}
 }
 
-- (void)setDelegateQueue:(dispatch_queue_t)newDelegateQueue
+- (void)setDelegateQueue:(dispatch_queue_t)newDelegateQueue synchronously:(BOOL)synchronously
 {
-	if (dispatch_get_current_queue() == socketQueue)
-	{
+	dispatch_block_t block = ^{
+		
 		if (delegateQueue)
 			dispatch_release(delegateQueue);
 		
@@ -947,20 +960,27 @@ enum GCDAsyncSocketConfig
 			dispatch_retain(newDelegateQueue);
 		
 		delegateQueue = newDelegateQueue;
+	};
+	
+	if (dispatch_get_current_queue() == socketQueue) {
+		block();
 	}
-	else
-	{
-		dispatch_async(socketQueue, ^{
-			
-			if (delegateQueue)
-				dispatch_release(delegateQueue);
-			
-			if (newDelegateQueue)
-				dispatch_retain(newDelegateQueue);
-			
-			delegateQueue = newDelegateQueue;
-		});
+	else {
+		if (synchronously)
+			dispatch_sync(socketQueue, block);
+		else
+			dispatch_async(socketQueue, block);
 	}
+}
+
+- (void)setDelegateQueue:(dispatch_queue_t)newDelegateQueue
+{
+	[self setDelegateQueue:newDelegateQueue synchronously:NO];
+}
+
+- (void)synchronouslySetDelegateQueue:(dispatch_queue_t)newDelegateQueue
+{
+	[self setDelegateQueue:newDelegateQueue synchronously:YES];
 }
 
 - (void)getDelegate:(id *)delegatePtr delegateQueue:(dispatch_queue_t *)delegateQueuePtr
@@ -985,10 +1005,10 @@ enum GCDAsyncSocketConfig
 	}
 }
 
-- (void)setDelegate:(id)newDelegate delegateQueue:(dispatch_queue_t)newDelegateQueue
+- (void)setDelegate:(id)newDelegate delegateQueue:(dispatch_queue_t)newDelegateQueue synchronously:(BOOL)synchronously
 {
-	if (dispatch_get_current_queue() == socketQueue)
-	{
+	dispatch_block_t block = ^{
+		
 		delegate = newDelegate;
 		
 		if (delegateQueue)
@@ -998,22 +1018,27 @@ enum GCDAsyncSocketConfig
 			dispatch_retain(newDelegateQueue);
 		
 		delegateQueue = newDelegateQueue;
+	};
+	
+	if (dispatch_get_current_queue() == socketQueue) {
+		block();
 	}
-	else
-	{
-		dispatch_async(socketQueue, ^{
-			
-			delegate = newDelegate;
-			
-			if (delegateQueue)
-				dispatch_release(delegateQueue);
-			
-			if (newDelegateQueue)
-				dispatch_retain(newDelegateQueue);
-			
-			delegateQueue = newDelegateQueue;
-		});
+	else {
+		if (synchronously)
+			dispatch_sync(socketQueue, block);
+		else
+			dispatch_async(socketQueue, block);
 	}
+}
+
+- (void)setDelegate:(id)newDelegate delegateQueue:(dispatch_queue_t)newDelegateQueue
+{
+	[self setDelegate:newDelegate delegateQueue:newDelegateQueue synchronously:NO];
+}
+
+- (void)synchronouslySetDelegate:(id)newDelegate delegateQueue:(dispatch_queue_t)newDelegateQueue
+{
+	[self setDelegate:newDelegate delegateQueue:newDelegateQueue synchronously:YES];
 }
 
 - (BOOL)autoDisconnectOnClosedReadStream
@@ -1040,22 +1065,18 @@ enum GCDAsyncSocketConfig
 {
 	// Note: YES means kAllowHalfDuplexConnection is OFF
 	
-	if (dispatch_get_current_queue() == socketQueue)
-	{
+	dispatch_block_t block = ^{
+		
 		if (flag)
 			config &= ~kAllowHalfDuplexConnection;
 		else
 			config |= kAllowHalfDuplexConnection;
-	}
+	};
+	
+	if (dispatch_get_current_queue() == socketQueue)
+		block();
 	else
-	{
-		dispatch_async(socketQueue, ^{
-			if (flag)
-				config &= ~kAllowHalfDuplexConnection;
-			else
-				config |= kAllowHalfDuplexConnection;
-		});
-	}
+		dispatch_async(socketQueue, block);
 }
 
 - (BOOL)isIPv4Enabled
@@ -1082,22 +1103,18 @@ enum GCDAsyncSocketConfig
 {
 	// Note: YES means kIPv4Disabled is OFF
 	
-	if (dispatch_get_current_queue() == socketQueue)
-	{
+	dispatch_block_t block = ^{
+		
 		if (flag)
 			config &= ~kIPv4Disabled;
 		else
 			config |= kIPv4Disabled;
-	}
+	};
+	
+	if (dispatch_get_current_queue() == socketQueue)
+		block();
 	else
-	{
-		dispatch_async(socketQueue, ^{
-			if (flag)
-				config &= ~kIPv4Disabled;
-			else
-				config |= kIPv4Disabled;
-		});
-	}
+		dispatch_async(socketQueue, block);
 }
 
 - (BOOL)isIPv6Enabled
@@ -1124,22 +1141,18 @@ enum GCDAsyncSocketConfig
 {
 	// Note: YES means kIPv6Disabled is OFF
 	
-	if (dispatch_get_current_queue() == socketQueue)
-	{
+	dispatch_block_t block = ^{
+		
 		if (flag)
 			config &= ~kIPv6Disabled;
 		else
 			config |= kIPv6Disabled;
-	}
+	};
+	
+	if (dispatch_get_current_queue() == socketQueue)
+		block();
 	else
-	{
-		dispatch_async(socketQueue, ^{
-			if (flag)
-				config &= ~kIPv6Disabled;
-			else
-				config |= kIPv6Disabled;
-		});
-	}
+		dispatch_async(socketQueue, block);
 }
 
 - (BOOL)isIPv4PreferredOverIPv6
@@ -1166,22 +1179,18 @@ enum GCDAsyncSocketConfig
 {
 	// Note: YES means kPreferIPv6 is OFF
 	
-	if (dispatch_get_current_queue() == socketQueue)
-	{
+	dispatch_block_t block = ^{
+		
 		if (flag)
 			config &= ~kPreferIPv6;
 		else
 			config |= kPreferIPv6;
-	}
+	};
+	
+	if (dispatch_get_current_queue() == socketQueue)
+		block();
 	else
-	{
-		dispatch_async(socketQueue, ^{
-			if (flag)
-				config &= ~kPreferIPv6;
-			else
-				config |= kPreferIPv6;
-		});
-	}
+		dispatch_async(socketQueue, block);
 }
 
 - (id)userData
@@ -1203,14 +1212,19 @@ enum GCDAsyncSocketConfig
 
 - (void)setUserData:(id)arbitraryUserData
 {
-	dispatch_async(socketQueue, ^{
+	dispatch_block_t block = ^{
 		
 		if (userData != arbitraryUserData)
 		{
 			[userData release];
 			userData = [arbitraryUserData retain];
 		}
-	});
+	};
+	
+	if (dispatch_get_current_queue() == socketQueue)
+		block();
+	else
+		dispatch_async(socketQueue, block);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
