@@ -24,8 +24,10 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 	{
 		DDLogError(@"Error connecting: %@", error);
 	}
+
+	// You can also specify an optional connect timeout.
 	
-//	if (![asyncSocket connectToHost:host onPort:80 viaInterface:@":12345" withTimeout:-1 error:&error])
+//	if (![asyncSocket connectToHost:host onPort:80 withTimeout:5.0 error:&error])
 //	{
 //		DDLogError(@"Error connecting: %@", error);
 //	}
@@ -75,7 +77,7 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 {
 	DDLogInfo(@"socket:%p didConnectToHost:%@ port:%hu", sock, host, port);
 	
-//	DDLogInfo(@"localHost:%@ port:%hu", [sock localHost], [sock localPort]);
+//	DDLogInfo(@"localHost :%@ port:%hu", [sock localHost], [sock localPort]);
 	
 	if (port == 443)
 	{
