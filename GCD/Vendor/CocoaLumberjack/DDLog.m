@@ -235,7 +235,7 @@ typedef struct LoggerNode LoggerNode;
 			
 			[self lt_addLogger:logger];
 			
-			[pool release];
+			[pool drain];
 		};
 		
 		dispatch_async(loggingQueue, addLoggerBlock);
@@ -265,7 +265,7 @@ typedef struct LoggerNode LoggerNode;
 			
 			[self lt_removeLogger:logger];
 			
-			[pool release];
+			[pool drain];
 		};
 		
 		dispatch_async(loggingQueue, removeLoggerBlock);
@@ -293,7 +293,7 @@ typedef struct LoggerNode LoggerNode;
 			
 			[self lt_removeAllLoggers];
 			
-			[pool release];
+			[pool drain];
 		};
 		
 		dispatch_async(loggingQueue, removeAllLoggersBlock);
@@ -450,7 +450,7 @@ typedef struct LoggerNode LoggerNode;
 			
 			[self lt_log:logMessage];
 			
-			[pool release];
+			[pool drain];
 		};
 		
 		if (flag)
@@ -513,7 +513,7 @@ typedef struct LoggerNode LoggerNode;
 			
 			[self lt_flush];
 			
-			[pool release];
+			[pool drain];
 		};
 		
 		dispatch_sync(loggingQueue, flushBlock);
@@ -657,7 +657,7 @@ typedef struct LoggerNode LoggerNode;
 	
 	[[NSRunLoop currentRunLoop] run];
 	
-	[pool release];
+	[pool drain];
 }
 
 #endif
@@ -890,7 +890,7 @@ typedef struct LoggerNode LoggerNode;
 					
 					[currentNode->logger logMessage:logMessage];
 					
-					[pool release];
+					[pool drain];
 				};
 				
 				dispatch_group_async(loggingGroup, currentNode->loggerQueue, loggerBlock);
@@ -913,7 +913,7 @@ typedef struct LoggerNode LoggerNode;
 					
 					[currentNode->logger logMessage:logMessage];
 					
-					[pool release];
+					[pool drain];
 				};
 				
 				dispatch_sync(currentNode->loggerQueue, loggerBlock);
@@ -1006,7 +1006,52 @@ typedef struct LoggerNode LoggerNode;
 **/
 + (void)lt_flush
 {
-	// All log statements issued before the flush method was invoked have now been flushed
+	// All log statements issued before the flush method was invoked have now been executed.
+	// 
+	// Now we need to propogate the flush request to any loggers that implement the flush method.
+	// This is designed for loggers that buffer IO.
+	
+	if (IS_GCD_AVAILABLE)
+	{
+	#if GCD_MAYBE_AVAILABLE
+		
+		LoggerNode *currentNode = loggerNodes;
+		
+		while (currentNode)
+		{
+			if ([currentNode->logger respondsToSelector:@selector(flush)])
+			{
+				dispatch_block_t loggerBlock = ^{
+					NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+					
+					[currentNode->logger flush];
+					
+					[pool drain];
+				};
+				
+				dispatch_group_async(loggingGroup, currentNode->loggerQueue, loggerBlock);
+			}
+			currentNode = currentNode->next;
+		}
+		
+		dispatch_group_wait(loggingGroup, DISPATCH_TIME_FOREVER);
+		
+	#endif
+	}
+	else
+	{
+	#if GCD_MAYBE_UNAVAILABLE
+		
+		for (id <DDLogger> logger in loggers)
+		{
+			if ([logger respondsToSelector:@selector(flush)])
+			{
+				[logger flush];
+			}
+		}
+		
+	#endif
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1259,7 +1304,7 @@ NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy)
 		
 		// loggerQueue  : Our own private internal queue that the logMessage method runs on.
 		//                Operations are added to this queue from the global loggingQueue.
-		//
+		// 
 		// loggingQueue : The queue that all log messages go through before they arrive in our loggerQueue.
 		// 
 		// It is important to note that, while the loggerQueue is used to create thread-safety for our formatter,
@@ -1296,10 +1341,9 @@ NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy)
 		
 		__block id <DDLogFormatter> result;
 		
-		dispatch_block_t block = ^{
+		dispatch_sync([DDLog loggingQueue], ^{
 			result = [formatter retain];
-		};
-		dispatch_sync([DDLog loggingQueue], block);
+		});
 		
 		return [result autorelease];
 		
@@ -1435,6 +1479,11 @@ NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy)
 - (dispatch_queue_t)loggerQueue
 {
 	return loggerQueue;
+}
+
+- (NSString *)loggerName
+{
+	return NSStringFromClass([self class]);
 }
 
 #endif

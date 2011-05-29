@@ -22,6 +22,7 @@
 @interface DDLogFileManagerDefault (PrivateAPI)
 
 - (void)deleteOldLogFiles;
+- (NSString *)defaultLogsDirectory;
 
 @end
 
@@ -50,18 +51,27 @@
 
 @synthesize maximumNumberOfLogFiles;
 
-
 - (id)init
+{
+	return [self initWithLogsDirectory:nil];
+}
+
+- (id)initWithLogsDirectory:(NSString *)aLogsDirectory
 {
 	if ((self = [super init]))
 	{
 		maximumNumberOfLogFiles = DEFAULT_LOG_MAX_NUM_LOG_FILES;
 		
+		if (aLogsDirectory)
+			_logsDirectory = [aLogsDirectory copy];
+		else
+			_logsDirectory = [[self defaultLogsDirectory] copy];
+		
 		NSKeyValueObservingOptions kvoOptions = NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew;
 		
 		[self addObserver:self forKeyPath:@"maximumNumberOfLogFiles" options:kvoOptions context:nil];
 		
-		NSLogVerbose(@"DDFileLogManagerDefault: logsDir:\n%@", [self logsDirectory]);
+		NSLogVerbose(@"DDFileLogManagerDefault: logsDirectory:\n%@", [self logsDirectory]);
 		NSLogVerbose(@"DDFileLogManagerDefault: sortedLogFileNames:\n%@", [self sortedLogFileNames]);
 	}
 	return self;
@@ -69,6 +79,7 @@
 
 - (void)dealloc
 {
+	[_logsDirectory release];
 	[super dealloc];
 }
 
@@ -98,15 +109,13 @@
 		{
 		#if GCD_MAYBE_AVAILABLE
 			
-			dispatch_block_t block = ^{
+			dispatch_async([DDLog loggingQueue], ^{
 				NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 				
 				[self deleteOldLogFiles];
 				
-				[pool release];
-			};
-			
-			dispatch_async([DDLog loggingQueue], block);
+				[pool drain];
+			});
 			
 		#endif
 		}
@@ -187,10 +196,10 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Returns the path to the logs directory.
+ * Returns the path to the default logs directory.
  * If the logs directory doesn't exist, this method automatically creates it.
 **/
-- (NSString *)logsDirectory
+- (NSString *)defaultLogsDirectory
 {
 #if TARGET_OS_IPHONE
 	NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
@@ -204,19 +213,25 @@
 	NSString *baseDir = [basePath stringByAppendingPathComponent:appName];
 #endif
 	
-	NSString *logsDir = [baseDir stringByAppendingPathComponent:@"Logs"];
+	return [baseDir stringByAppendingPathComponent:@"Logs"];
+}
+
+- (NSString *)logsDirectory
+{
+	// We could do this check once, during initalization, and not bother again.
+	// But this way the code continues to work if the directory gets deleted while the code is running.
 	
-	if(![[NSFileManager defaultManager] fileExistsAtPath:logsDir])
+	if (![[NSFileManager defaultManager] fileExistsAtPath:_logsDirectory])
 	{
 		NSError *err = nil;
-		if(![[NSFileManager defaultManager] createDirectoryAtPath:logsDir
-		                              withIntermediateDirectories:YES attributes:nil error:&err])
+		if (![[NSFileManager defaultManager] createDirectoryAtPath:_logsDirectory
+		                               withIntermediateDirectories:YES attributes:nil error:&err])
 		{
 			NSLogError(@"DDFileLogManagerDefault: Error creating logsDirectory: %@", err);
 		}
 	}
 	
-	return logsDir;
+	return _logsDirectory;
 }
 
 - (BOOL)isLogFile:(NSString *)fileName
@@ -253,7 +268,6 @@
 - (NSArray *)unsortedLogFilePaths
 {
 	NSString *logsDirectory = [self logsDirectory];
-	
 	NSArray *fileNames = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:logsDirectory error:nil];
 	
 	NSMutableArray *unsortedLogFilePaths = [NSMutableArray arrayWithCapacity:[fileNames count]];
@@ -570,7 +584,7 @@
 			maximumFileSize = newMaximumFileSize;
 			[self maybeRollLogFileDueToSize];
 			
-			[pool release];
+			[pool drain];
 		};
 		
 		if (dispatch_get_current_queue() == loggerQueue)
@@ -676,7 +690,7 @@
 			rollingFrequency = newRollingFrequency;
 			[self maybeRollLogFileDueToAge:nil];
 			
-			[pool release];
+			[pool drain];
 		};
 		
 		if (dispatch_get_current_queue() == loggerQueue)
@@ -796,7 +810,7 @@
 		dispatch_block_t block = ^{
 			NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 			[self rollLogFileNow];
-			[pool release];
+			[pool drain];
 		};
 		dispatch_async([DDLog loggingQueue], block);
 		
@@ -1133,6 +1147,20 @@
 - (NSTimeInterval)age
 {
 	return [[self creationDate] timeIntervalSinceNow] * -1.0;
+}
+
+- (NSString *)description
+{
+	return [[NSDictionary dictionaryWithObjectsAndKeys:
+		self.filePath, @"filePath",
+		self.fileName, @"fileName",
+		self.fileAttributes, @"fileAttributes",
+		self.creationDate, @"creationDate",
+		self.modificationDate, @"modificationDate",
+		[NSNumber numberWithUnsignedLongLong:self.fileSize], @"fileSize",
+		[NSNumber numberWithInteger:self.age], @"age",
+		[NSNumber numberWithBool:self.isArchived], @"isArchived",
+	nil] description];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
