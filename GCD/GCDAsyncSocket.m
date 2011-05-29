@@ -592,7 +592,7 @@ enum GCDAsyncSocketConfig
 		maxPreBufferLength = preBufferLength;
 	}
 	
-	Byte seq[termLength];
+	uint8_t seq[termLength];
 	const void *termBuf = [term bytes];
 	
 	NSUInteger bufLen = MIN(bytesDone, (termLength - 1));
@@ -820,9 +820,9 @@ enum GCDAsyncSocketConfig
 		{
 			NSString *assertMsg = @"The given socketQueue parameter must not be a concurrent queue.";
 			
-			NSAssert(sq != dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), assertMsg);
-			NSAssert(sq != dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), assertMsg);
-			NSAssert(sq != dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), assertMsg);
+			NSAssert(sq != dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), @"%@", assertMsg);
+			NSAssert(sq != dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), @"%@", assertMsg);
+			NSAssert(sq != dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), @"%@", assertMsg);
 			
 			dispatch_retain(sq);
 			socketQueue = sq;
@@ -1789,7 +1789,7 @@ enum GCDAsyncSocketConfig
                onPort:(UInt16)port
          viaInterface:(NSString *)interface
           withTimeout:(NSTimeInterval)timeout
-                error:(NSError **)errPtr;
+                error:(NSError **)errPtr
 {
 	LogTrace();
 	
@@ -3625,7 +3625,7 @@ enum GCDAsyncSocketConfig
              maxLength:(NSUInteger)length
                    tag:(long)tag
 {
-	if (data == nil || [data length] == 0) return;
+	if ([data length] == 0) return;
 	if (offset > [buffer length]) return;
 	if (length > 0 && length < [data length]) return;
 	
@@ -4567,7 +4567,7 @@ enum GCDAsyncSocketConfig
 
 - (void)writeData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag
 {
-	if (data == nil || [data length] == 0) return;
+	if ([data length] == 0) return;
 	
 	GCDAsyncWritePacket *packet = [[GCDAsyncWritePacket alloc] initWithData:data timeout:timeout tag:tag];
 	
@@ -5421,7 +5421,7 @@ enum GCDAsyncSocketConfig
 	return errSSLWouldBlock;
 }
 
-OSStatus SSLReadFunction(SSLConnectionRef connection, void *data, size_t *dataLength)
+static OSStatus SSLReadFunction(SSLConnectionRef connection, void *data, size_t *dataLength)
 {
 	GCDAsyncSocket *asyncSocket = (GCDAsyncSocket *)connection;
 	
@@ -5430,7 +5430,7 @@ OSStatus SSLReadFunction(SSLConnectionRef connection, void *data, size_t *dataLe
 	return [asyncSocket sslReadWithBuffer:data length:dataLength];
 }
 
-OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, size_t *dataLength)
+static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, size_t *dataLength)
 {
 	GCDAsyncSocket *asyncSocket = (GCDAsyncSocket *)connection;
 	
