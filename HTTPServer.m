@@ -437,7 +437,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_INFO; // | HTTP_LOG_FLAG_TRACE;
 			[err retain];
 		}
 		
-		[pool release];
+		[pool drain];
 	});
 	
 	if (errPtr)
@@ -480,7 +480,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_INFO; // | HTTP_LOG_FLAG_TRACE;
 		[webSockets removeAllObjects];
 		[webSocketsLock unlock];
 		
-		[pool release];
+		[pool drain];
 	});
 	
 	return YES;
@@ -758,7 +758,7 @@ static NSThread *bonjourThread;
 	
 	HTTPLogVerbose(@"%@: BonjourThread: Aborted", THIS_FILE);
 	
-	[pool release];
+	[pool drain];
 }
 
 + (void)performBonjourBlock:(dispatch_block_t)block

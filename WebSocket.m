@@ -206,7 +206,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 			[self didOpen];
 		}
 		
-		[pool release];
+		[pool drain];
 	});
 }
 
@@ -224,7 +224,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 		
 		[asyncSocket disconnect];
 		
-		[pool release];
+		[pool drain];
 	});
 }
 
