@@ -150,7 +150,7 @@
 #define LOG_OBJC_MACRO(sync, lvl, flg, ctx, frmt, ...) \
              LOG_MACRO(sync, lvl, flg, ctx, sel_getName(_cmd), frmt, ##__VA_ARGS__)
 
-#define LOG_C_MACRO(sync, lvl, flag, ctx, frmt, ...) \
+#define LOG_C_MACRO(sync, lvl, flg, ctx, frmt, ...) \
           LOG_MACRO(sync, lvl, flg, ctx, __FUNCTION__, frmt, ##__VA_ARGS__)
 
 #define  SYNC_LOG_OBJC_MACRO(lvl, flg, ctx, frmt, ...) \
@@ -362,9 +362,20 @@ NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy);
  * This is the same thread/queue that will execute every logMessage: invocation.
  * Loggers may use these methods for thread synchronization or other setup/teardown tasks.
 **/
-
 - (void)didAddLogger;
 - (void)willRemoveLogger;
+
+/**
+ * Some loggers may buffer IO for optimization purposes.
+ * For example, a database logger may only save occasionaly as the disk IO is slow.
+ * In such loggers, this method should be implemented to flush any pending IO.
+ * 
+ * This allows invocations of DDLog's flushLog method to be propogated to loggers that need it.
+ * 
+ * Note that DDLog's flushLog method is invoked automatically when the application quits,
+ * and it may be also invoked manually by the developer prior to application crashes, or other such reasons.
+**/
+- (void)flush;
 
 #if GCD_MAYBE_AVAILABLE
 
