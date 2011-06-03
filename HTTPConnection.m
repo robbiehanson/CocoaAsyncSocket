@@ -561,14 +561,15 @@ static NSMutableArray *recentNonces;
 - (void)start
 {
 	dispatch_async(connectionQueue, ^{
-		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		
 		if (started) return;
 		started = YES;
 		
+		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+		
 		[self startConnection];
 		
-		[pool release];
+		[pool drain];
 	});
 }
 
@@ -583,7 +584,7 @@ static NSMutableArray *recentNonces;
 		
 		[self die];
 		
-		[pool release];
+		[pool drain];
 	});
 }
 
@@ -2300,7 +2301,7 @@ static NSMutableArray *recentNonces;
 			}
 		}
 		
-		[pool release];
+		[pool drain];
 	});
 }
 
@@ -2330,7 +2331,7 @@ static NSMutableArray *recentNonces;
 		
 		[asyncSocket disconnectAfterWriting];
 		
-		[pool release];
+		[pool drain];
 	});
 }
 
