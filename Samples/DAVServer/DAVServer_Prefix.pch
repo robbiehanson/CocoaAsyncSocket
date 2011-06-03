@@ -1,0 +1,5 @@
+// Copyright 2011 Pol-Online
+
+#ifdef __OBJC__
+#import <Cocoa/Cocoa.h>
+#endif
