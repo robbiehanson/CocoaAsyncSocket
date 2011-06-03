@@ -592,7 +592,7 @@ enum GCDAsyncSocketConfig
 		maxPreBufferLength = preBufferLength;
 	}
 	
-	Byte seq[termLength];
+	uint8_t seq[termLength];
 	const void *termBuf = [term bytes];
 	
 	NSUInteger bufLen = MIN(bytesDone, (termLength - 1));
@@ -1789,7 +1789,7 @@ enum GCDAsyncSocketConfig
                onPort:(UInt16)port
          viaInterface:(NSString *)interface
           withTimeout:(NSTimeInterval)timeout
-                error:(NSError **)errPtr;
+                error:(NSError **)errPtr
 {
 	LogTrace();
 	
@@ -3625,7 +3625,7 @@ enum GCDAsyncSocketConfig
              maxLength:(NSUInteger)length
                    tag:(long)tag
 {
-	if (data == nil || [data length] == 0) return;
+	if ([data length] == 0) return;
 	if (offset > [buffer length]) return;
 	if (length > 0 && length < [data length]) return;
 	
@@ -4567,7 +4567,7 @@ enum GCDAsyncSocketConfig
 
 - (void)writeData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag
 {
-	if (data == nil || [data length] == 0) return;
+	if ([data length] == 0) return;
 	
 	GCDAsyncWritePacket *packet = [[GCDAsyncWritePacket alloc] initWithData:data timeout:timeout tag:tag];
 	
@@ -5421,7 +5421,7 @@ enum GCDAsyncSocketConfig
 	return errSSLWouldBlock;
 }
 
-OSStatus SSLReadFunction(SSLConnectionRef connection, void *data, size_t *dataLength)
+static OSStatus SSLReadFunction(SSLConnectionRef connection, void *data, size_t *dataLength)
 {
 	GCDAsyncSocket *asyncSocket = (GCDAsyncSocket *)connection;
 	
@@ -5430,7 +5430,7 @@ OSStatus SSLReadFunction(SSLConnectionRef connection, void *data, size_t *dataLe
 	return [asyncSocket sslReadWithBuffer:data length:dataLength];
 }
 
-OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, size_t *dataLength)
+static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, size_t *dataLength)
 {
 	GCDAsyncSocket *asyncSocket = (GCDAsyncSocket *)connection;
 	
@@ -6119,7 +6119,26 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 		BOOL r1 = CFReadStreamSetProperty(readStream, kCFStreamPropertySSLSettings, (CFDictionaryRef)tlsSettings);
 		BOOL r2 = CFWriteStreamSetProperty(writeStream, kCFStreamPropertySSLSettings, (CFDictionaryRef)tlsSettings);
 		
-		if (!r1 || !r2)
+		// For some reason, starting around the time of iOS 4.3,
+		// the first call to set the kCFStreamPropertySSLSettings will return true,
+		// but the second will return false.
+		// 
+		// Order doesn't seem to matter.
+		// So you could call CFReadStreamSetProperty and then CFWriteStreamSetProperty, or you could reverse the order.
+		// Either way, the first call will return true, and the second returns false.
+		// 
+		// Interestingly, this doesn't seem to affect anything.
+		// Which is not altogether unusual, as the documentation seems to suggest that (for many settings)
+		// setting it on one side of the stream automatically sets it for the other side of the stream.
+		// 
+		// Although there isn't anything in the documentation to suggest that the second attempt would fail.
+		// 
+		// Furthermore, this only seems to affect streams that are negotiating a security upgrade.
+		// In other words, the socket gets connected, there is some back-and-forth communication over the unsecure
+		// connection, and then a startTLS is issued.
+		// So this mostly affects newer protocols (XMPP, IMAP) as opposed to older protocols (HTTPS).
+		
+		if (!r1 && !r2) // Yes, the && is correct - workaround for apple bug.
 		{
 			[self closeWithError:[self otherError:@"Error in CFStreamSetProperty"]];
 			return;
