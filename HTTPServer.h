@@ -162,8 +162,35 @@
 - (NSDictionary *)TXTRecordDictionary;
 - (void)setTXTRecordDictionary:(NSDictionary *)dict;
 
+/**
+ * Attempts to starts the server on the configured port, interface, etc.
+ * 
+ * If an error occurs, this method returns NO and sets the errPtr (if given).
+ * Otherwise returns YES on success.
+ * 
+ * Some examples of errors that might occur:
+ * - You specified the server listen on a port which is already in use by another application.
+ * - You specified the server listen on a port number below 1024, which requires root priviledges.
+ * 
+ * Code Example:
+ * 
+ * NSError *err = nil;
+ * if (![httpServer start:&err])
+ * {
+ *     NSLog(@"Error starting http server: %@", err);
+ * }
+**/
 - (BOOL)start:(NSError **)errPtr;
-- (BOOL)stop;
+
+/**
+ * Stops the server, preventing it from accepting any new connections.
+ * You may specify whether or not you want to close the existing client connections.
+ * 
+ * The default stop method (with no arguments) will close any existing connections. (It invokes [self stop:NO])
+**/
+- (void)stop;
+- (void)stop:(BOOL)keepExistingConnections;
+
 - (BOOL)isRunning;
 
 - (void)addWebSocket:(WebSocket *)ws;
