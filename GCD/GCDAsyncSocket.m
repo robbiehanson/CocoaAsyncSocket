@@ -820,9 +820,9 @@ enum GCDAsyncSocketConfig
 		{
 			NSString *assertMsg = @"The given socketQueue parameter must not be a concurrent queue.";
 			
-			NSAssert(sq != dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), @"%@", assertMsg);
-			NSAssert(sq != dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), @"%@", assertMsg);
-			NSAssert(sq != dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), @"%@", assertMsg);
+			NSAssert1(sq != dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0),     @"%@", assertMsg);
+			NSAssert1(sq != dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0),    @"%@", assertMsg);
+			NSAssert1(sq != dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), @"%@", assertMsg);
 			
 			dispatch_retain(sq);
 			socketQueue = sq;
@@ -3183,6 +3183,24 @@ enum GCDAsyncSocketConfig
 	}
 }
 
+- (BOOL)isSecure
+{
+	if (dispatch_get_current_queue() == socketQueue)
+	{
+		return (flags & kSocketSecure) ? YES : NO;
+	}
+	else
+	{
+		__block BOOL result;
+		
+		dispatch_sync(socketQueue, ^{
+			result = (flags & kSocketSecure) ? YES : NO;
+		});
+		
+		return result;
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Utilities
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3771,8 +3789,31 @@ enum GCDAsyncSocketConfig
 			
 		}
 	#else
+		
 		estimatedBytesAvailable = socketFDBytesAvailable + [sslReadBuffer length];
+		
+		if (flags & kSocketSecure)
+		{
+			// SecureTransport has an internal buffer of its own.
+			// When we invoke SSLRead, it in turn invokes our lower level read IO function,
+			// and reads data in encrypted chunks from the socket.
+			// If we ask for a length of data from SSLRead that doesn't fall on the border of
+			// one of these encrypted chunks, then the SSLRead function stores the extra
+			// data in its own internal buffer.
+			// 
+			// The SSLGetBufferedReadSize function will tell us the size of this internal buffer.
+			// From the documentation:
+			// 
+			// "This function does not block or cause any low-level read operations to occur."
+			
+			size_t sslInternalBufSize = 0;
+			SSLGetBufferedReadSize(sslContext, &sslInternalBufSize);
+			
+			estimatedBytesAvailable += sslInternalBufSize;
+		}
+	
 		hasBytesAvailable = (estimatedBytesAvailable > 0);
+	
 	#endif
 	
 	if ((hasBytesAvailable == NO) && ([partialReadBuffer length] == 0))
@@ -4038,15 +4079,22 @@ enum GCDAsyncSocketConfig
 				
 				if (result != noErr)
 				{
-					bytesRead = 0;
-					
 					if (result == errSSLWouldBlock)
 						waiting = YES;
 					else
 						error = [self sslError:result];
 					
-					if (readIntoPartialReadBuffer)
-						[partialReadBuffer setLength:0];
+					// It's possible that bytesRead > 0, yet the result is errSSLWouldBlock.
+					// This happens when the SSLRead function is able to read some data,
+					// but not the entire amount we requested.
+					
+					if (bytesRead <= 0)
+					{
+						bytesRead = 0;
+						
+						if (readIntoPartialReadBuffer)
+							[partialReadBuffer setLength:0];
+					}
 				}
 				
 				// Do not modify socketFDBytesAvailable.
@@ -5233,22 +5281,24 @@ enum GCDAsyncSocketConfig
 	
 	if (sslReadBufferLength > 0)
 	{
+		LogVerbose(@"%@: Reading from SSL pre buffer...", THIS_METHOD);
+		
 		size_t bytesToCopy = (size_t)((sslReadBufferLength > totalBytesLeft) ? totalBytesLeft : sslReadBufferLength);
 		
-		LogVerbose(@"Copying %u bytes from sslReadBuffer", (unsigned)bytesToCopy);
+		LogVerbose(@"%@: Copying %u bytes from sslReadBuffer", THIS_METHOD, (unsigned)bytesToCopy);
 		
 		memcpy(buffer, [sslReadBuffer mutableBytes], bytesToCopy);
 		
 		[sslReadBuffer replaceBytesInRange:NSMakeRange(0, bytesToCopy) withBytes:NULL length:0];
 		
-		LogVerbose(@"sslReadBuffer.length = %lu", (unsigned long)[sslReadBuffer length]);
+		LogVerbose(@"%@: sslReadBuffer.length = %lu", THIS_METHOD, (unsigned long)[sslReadBuffer length]);
 		
 		totalBytesLeft -= bytesToCopy;
 		totalBytesRead += bytesToCopy;
 		
 		done = (totalBytesLeft == 0);
 		
-		if (done) LogVerbose(@"SSLRead complete");
+		if (done) LogVerbose(@"%@: Complete", THIS_METHOD);
 	}
 	
 	// 
@@ -5257,6 +5307,8 @@ enum GCDAsyncSocketConfig
 	
 	if (!done && (socketFDBytesAvailable > 0))
 	{
+		LogVerbose(@"%@: Reading from socket...", THIS_METHOD);
+		
 		int socketFD = (socket6FD == SOCKET_NULL) ? socket4FD : socket6FD;
 		
 		BOOL readIntoPreBuffer;
@@ -5268,12 +5320,12 @@ enum GCDAsyncSocketConfig
 			// Read all available data from socket into sslReadBuffer.
 			// Then copy requested amount into dataBuffer.
 			
+			LogVerbose(@"%@: Reading into sslReadBuffer...", THIS_METHOD);
+			
 			if ([sslReadBuffer length] < socketFDBytesAvailable)
 			{
 				[sslReadBuffer setLength:socketFDBytesAvailable];
 			}
-			
-			LogVerbose(@"Reading into sslReadBuffer...");
 			
 			readIntoPreBuffer = YES;
 			bytesToRead = (size_t)socketFDBytesAvailable;
@@ -5283,17 +5335,19 @@ enum GCDAsyncSocketConfig
 		{
 			// Read available data from socket directly into dataBuffer.
 			
+			LogVerbose(@"%@: Reading directly into dataBuffer...", THIS_METHOD);
+			
 			readIntoPreBuffer = NO;
 			bytesToRead = totalBytesLeft;
 			buf = buffer + totalBytesRead;
 		}
 		
 		ssize_t result = read(socketFD, buf, bytesToRead);
-		LogVerbose(@"read from socket = %i", (int)result);
+		LogVerbose(@"%@: read from socket = %i", THIS_METHOD, (int)result);
 		
 		if (result < 0)
 		{
-			LogVerbose(@"read errno = %i", errno);
+			LogVerbose(@"%@: read errno = %i", THIS_METHOD, errno);
 			
 			if (errno != EWOULDBLOCK)
 			{
@@ -5330,7 +5384,7 @@ enum GCDAsyncSocketConfig
 			{
 				size_t bytesToCopy = MIN(totalBytesLeft, bytesReadFromSocket);
 				
-				LogVerbose(@"Copying %u bytes from sslReadBuffer", (unsigned)bytesToCopy);
+				LogVerbose(@"%@: Copying %u bytes out of sslReadBuffer", THIS_METHOD, (unsigned)bytesToCopy);
 				
 				memcpy(buffer + totalBytesRead, [sslReadBuffer bytes], bytesToCopy);
 				
@@ -5340,7 +5394,7 @@ enum GCDAsyncSocketConfig
 				totalBytesLeft -= bytesToCopy;
 				totalBytesRead += bytesToCopy;
 				
-				LogVerbose(@"sslReadBuffer.length = %lu", (unsigned long)[sslReadBuffer length]);
+				LogVerbose(@"%@: sslReadBuffer.length = %lu", THIS_METHOD, (unsigned long)[sslReadBuffer length]);
 			}
 			else
 			{
@@ -5350,7 +5404,7 @@ enum GCDAsyncSocketConfig
 			
 			done = (totalBytesLeft == 0);
 			
-			if (done) LogVerbose(@"SSLRead complete");
+			if (done) LogVerbose(@"%@: Complete", THIS_METHOD);
 		}
 	}
 	
