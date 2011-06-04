@@ -106,7 +106,6 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 #pragma mark Setup and Teardown
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-@synthesize delegate;
 @synthesize websocketQueue;
 
 - (id)initWithRequest:(HTTPMessage *)aRequest socket:(GCDAsyncSocket *)socket
