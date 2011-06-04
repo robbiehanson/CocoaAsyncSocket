@@ -418,6 +418,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				GCC_PREPROCESSOR_DEFINITIONS = NS_BLOCK_ASSERTIONS;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				PREBINDING = NO;
 				SDKROOT = macosx;
 				WARNING_CFLAGS = "-Wall";
