@@ -1,0 +1,12 @@
+Open the Xcode project, and build and go.
+
+On the Xcode console you'll see a message saying:
+"Started HTTP server on port 59123"
+
+Now open Google Chrome (or any other browser that supports WebSockets)
+and type in the URL:
+https://localhost:59123
+
+Enjoy.
+
+PS - This application creates a self-signed X509 certificate along with a newly generated private key, and adds these to your keychain under the name "SecureHTTPServer". (This is done via DDKeychain class) If you make changes to the project or code, this may alter the compiled binary file, which in turn will give the binary file a different hash. And in doing so, OS X's keychain will complain about an application requesting access to the private key which isn't in the whitelist. To get around this annoying problem while developing, simply launch the keychain application, find the SecureHTTPServer private key, and alter it's access control to "allow all applications to access this item".
