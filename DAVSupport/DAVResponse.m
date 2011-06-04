@@ -67,9 +67,6 @@ static void _AddPropertyResponse(NSString* itemPath, NSString* resourcePath, DAV
       [xmlString appendString:@"</D:propstat>"];
     [xmlString appendString:@"</D:response>\n"];
     CFRelease(escapedPath);
-  } else {
-    SEL _cmd = NULL;  // Work around _cmd missing from C function
-    HTTPLogError(@"Failed escaping DAV path \"%@\"", resourcePath);
   }
 }
 
