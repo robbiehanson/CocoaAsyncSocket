@@ -1,0 +1,11 @@
+// Copyright 2011 Pol-Online
+
+#import <Cocoa/Cocoa.h>
+
+@class HTTPServer;
+
+@interface AppDelegate : NSObject {
+@private
+  HTTPServer* _httpServer;
+}
+@end

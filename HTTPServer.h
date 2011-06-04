@@ -163,7 +163,8 @@
 - (void)setTXTRecordDictionary:(NSDictionary *)dict;
 
 - (BOOL)start:(NSError **)errPtr;
-- (BOOL)stop;
+- (void)stop;
+- (void)stop:(BOOL)keepConnectionsAlive;
 - (BOOL)isRunning;
 
 - (void)addWebSocket:(WebSocket *)ws;
