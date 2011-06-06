@@ -101,6 +101,9 @@
 		DC372E13139990C800A8407D /* DDKeychain.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DDKeychain.m; sourceTree = "<group>"; };
 		DC372E151399931000A8407D /* Web */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Web; sourceTree = "<group>"; };
 		DC372E171399943C00A8407D /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		DC372E80139D50DA00A8407D /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
+		DC372E81139D50DA00A8407D /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		DC372E83139D50DA00A8407D /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -177,6 +180,7 @@
 		DC372DAE139969B600A8407D /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
+				DC372E7F139D50DA00A8407D /* Xcode-Configurations */,
 				DC372DAF139969B600A8407D /* SecureWebSocketServer-Info.plist */,
 				DC372DB0139969B600A8407D /* InfoPlist.strings */,
 				DC372DB3139969B600A8407D /* SecureWebSocketServer-Prefix.pch */,
@@ -261,6 +265,17 @@
 				DC372DF013996A5100A8407D /* HTTPDynamicFileResponse.m */,
 			);
 			name = Responses;
+			sourceTree = "<group>";
+		};
+		DC372E7F139D50DA00A8407D /* Xcode-Configurations */ = {
+			isa = PBXGroup;
+			children = (
+				DC372E80139D50DA00A8407D /* Base.xcconfig */,
+				DC372E81139D50DA00A8407D /* Debug.xcconfig */,
+				DC372E83139D50DA00A8407D /* Release.xcconfig */,
+			);
+			name = "Xcode-Configurations";
+			path = "../../Xcode-Configurations";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -386,32 +401,16 @@
 /* Begin XCBuildConfiguration section */
 		DC372DBF139969B700A8407D /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = DC372E81139D50DA00A8407D /* Debug.xcconfig */;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
-				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = DEBUG;
-				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
-				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 			};
 			name = Debug;
 		};
 		DC372DC0139969B700A8407D /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = DC372E83139D50DA00A8407D /* Release.xcconfig */;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
-				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -419,11 +418,7 @@
 		DC372DC2139969B700A8407D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				COPY_PHASE_STRIP = NO;
 				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "SecureWebSocketServer/SecureWebSocketServer-Prefix.pch";
 				INFOPLIST_FILE = "SecureWebSocketServer/SecureWebSocketServer-Info.plist";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -434,11 +429,6 @@
 		DC372DC3139969B700A8407D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "SecureWebSocketServer/SecureWebSocketServer-Prefix.pch";
 				INFOPLIST_FILE = "SecureWebSocketServer/SecureWebSocketServer-Info.plist";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -465,6 +455,7 @@
 				DC372DC3139969B700A8407D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

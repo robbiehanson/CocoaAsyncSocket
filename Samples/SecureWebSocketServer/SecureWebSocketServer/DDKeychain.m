@@ -192,7 +192,7 @@
 	
 	// Mac OS X has problems importing private keys, so we wrap everything in PKCS#12 format
 	// You can create a p12 wrapper by running the following command in the terminal:
-	// openssl pkcs12 -export -in certificate.crt -inkey private.pem \
+	// openssl pkcs12 -export -in certificate.crt -inkey private.pem 
 	//   -passout pass:password -out certificate.p12 -name "Open Source"
 	
 	NSArray *certWrapperArgs = [NSArray arrayWithObjects:@"pkcs12", @"-export", @"-export",
