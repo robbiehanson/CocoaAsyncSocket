@@ -1730,7 +1730,7 @@ static NSMutableArray *recentNonces;
  * This method is called to handle data read from a POST / PUT.
  * The given data is part of the request body.
 **/
-- (void)processDataChunk:(NSData *)postDataChunk
+- (void)processBodyData:(NSData *)postDataChunk
 {
 	// Override me to do something useful with a POST / PUT.
 	// If the post is small, such as a simple form, you may want to simply append the data to the request.
@@ -1745,17 +1745,11 @@ static NSMutableArray *recentNonces;
 /**
  * This method is called after the request body has been fully read but before the HTTP request is processed.
 **/
-- (void)flushBody
+- (void)finishBody
 {
-	// Close file handles, etc...
-}
-
-/**
- * This method is called after the request body has been fully read and the HTTP request has been processed.
-**/
-- (void)finalizeBody
-{
-	// Release memory, etc...
+	// Override me to perform any final operations on an upload.
+	// For example, if you were saving the upload to disk this would be
+	// the hook to flush any pending data to disk and maybe close the file.
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2184,9 +2178,8 @@ static NSMutableArray *recentNonces;
 				else
 				{
 					// Empty upload
-					[self flushBody];
+					[self finishBody];
 					[self replyToHTTPRequest];
-					[self finalizeBody];
 				}
 			}
 			else
@@ -2266,7 +2259,7 @@ static NSMutableArray *recentNonces;
 			requestContentLengthReceived += [data length];
 			requestChunkSizeReceived += [data length];
 			
-			[self processDataChunk:data];
+			[self processBodyData:data];
 			
 			UInt64 bytesLeft = requestChunkSize - requestChunkSizeReceived;
 			if (bytesLeft > 0)
@@ -2343,7 +2336,7 @@ static NSMutableArray *recentNonces;
 			// Handle a chunk of data from the POST body
 			
 			requestContentLengthReceived += [data length];
-			[self processDataChunk:data];
+			[self processBodyData:data];
 			
 			if (requestContentLengthReceived < requestContentLength)
 			{
@@ -2367,9 +2360,8 @@ static NSMutableArray *recentNonces;
 		
 		if (doneReadingRequest)
 		{
-			[self flushBody];
+			[self finishBody];
 			[self replyToHTTPRequest];
-			[self finalizeBody];
 		}
 	}
 }
@@ -2432,6 +2424,16 @@ static NSMutableArray *recentNonces;
 	
 	if (doneSendingResponse)
 	{
+		// Inform the http response that we're done
+		if ([httpResponse respondsToSelector:@selector(connectionDidClose)])
+		{
+			[httpResponse connectionDidClose];
+		}
+		
+		// Cleanup after the last request
+		[self finishResponse];
+		
+		
 		if (tag == HTTP_FINAL_RESPONSE)
 		{
 			// Terminate the connection
@@ -2442,26 +2444,6 @@ static NSMutableArray *recentNonces;
 		}
 		else
 		{
-			// Cleanup after the last request
-			// And start listening for the next request
-			
-			// Inform the http response that we're done
-			if ([httpResponse respondsToSelector:@selector(connectionDidClose)])
-			{
-				[httpResponse connectionDidClose];
-			}
-			
-			// Release any resources we no longer need
-			[httpResponse release];
-			httpResponse = nil;
-			
-			[ranges release];
-			[ranges_headers release];
-			[ranges_boundry release];
-			ranges = nil;
-			ranges_headers = nil;
-			ranges_boundry = nil;
-			
 			if ([self shouldDie])
 			{
 				// The only time we should invoke [self die] is from socketDidDisconnect,
@@ -2471,8 +2453,12 @@ static NSMutableArray *recentNonces;
 			}
 			else
 			{
-				// Release the old request, and create a new one
-				[request release];
+				// Prepare for the next request
+				
+				// If this assertion fails, it likely means you overrode the
+				// finishBody method and forgot to call [super finishBody].
+				NSAssert(request == nil, @"Request not properly released in finishBody");
+				
 				request = [[HTTPMessage alloc] initEmptyRequest];
 				
 				numHeaderLines = 0;
@@ -2582,7 +2568,7 @@ static NSMutableArray *recentNonces;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#pragma mark Closing
+#pragma mark Post Request
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -2590,12 +2576,39 @@ static NSMutableArray *recentNonces;
  * Since a single connection may handle multiple request/responses, this method may be called multiple times.
  * That is, it will be called after completion of each response.
 **/
-- (BOOL)shouldDie
+- (void)finishResponse
 {
 	HTTPLogTrace();
 	
 	// Override me if you want to perform any custom actions after a response has been fully sent.
-	// You may also force close the connection by returning YES.
+	// This is the place to release memory or resources associated with the last request.
+	// 
+	// If you override this method, you should take care to invoke [super finishResponse] at some point.
+	
+	[request release];
+	request = nil;
+	
+	[httpResponse release];
+	httpResponse = nil;
+	
+	[ranges release];
+	[ranges_headers release];
+	[ranges_boundry release];
+	ranges = nil;
+	ranges_headers = nil;
+	ranges_boundry = nil;
+}
+
+/**
+ * This method is called after each successful response has been fully sent.
+ * It determines whether the connection should stay open and handle another request.
+**/
+- (BOOL)shouldDie
+{
+	HTTPLogTrace();
+	
+	// Override me if you have any need to force close the connection.
+	// You may do so by simply returning YES.
 	// 
 	// If you override this method, you should take care to fall through with [super shouldDie]
 	// instead of returning NO.
@@ -2635,6 +2648,8 @@ static NSMutableArray *recentNonces;
 	
 	// Override me if you want to perform any custom actions when a connection is closed.
 	// Then call [super die] when you're done.
+	// 
+	// See also the finishResponse method.
 	// 
 	// Important: There is a rare timing condition where this method might get invoked twice.
 	// If you override this method, you should be prepared for this situation.
