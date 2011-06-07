@@ -41,14 +41,20 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 #define TIMEOUT_NONCE                       300
 
 // Define the various limits
-// LIMIT_MAX_HEADER_LINE_LENGTH: Max length (in bytes) of any single line in a header (including \r\n)
-// LIMIT_MAX_HEADER_LINES      : Max number of lines in a single header (including first GET line)
-#define LIMIT_MAX_HEADER_LINE_LENGTH  8190
-#define LIMIT_MAX_HEADER_LINES         100
+// MAX_HEADER_LINE_LENGTH: Max length (in bytes) of any single line in a header (including \r\n)
+// MAX_HEADER_LINES      : Max number of lines in a single header (including first GET line)
+#define MAX_HEADER_LINE_LENGTH  8190
+#define MAX_HEADER_LINES         100
+// MAX_CHUNK_LINE_LENGTH : For accepting chunked transfer uploads, max length of chunk size line (including \r\n)
+#define MAX_CHUNK_LINE_LENGTH    200
 
 // Define the various tags we'll use to differentiate what it is we're currently doing
 #define HTTP_REQUEST_HEADER                10
 #define HTTP_REQUEST_BODY                  11
+#define HTTP_REQUEST_CHUNK_SIZE            12
+#define HTTP_REQUEST_CHUNK_DATA            13
+#define HTTP_REQUEST_CHUNK_TRAILER         14
+#define HTTP_REQUEST_CHUNK_FOOTER          15
 #define HTTP_PARTIAL_RESPONSE              20
 #define HTTP_PARTIAL_RESPONSE_HEADER       21
 #define HTTP_PARTIAL_RESPONSE_BODY         22
@@ -640,7 +646,7 @@ static NSMutableArray *recentNonces;
 	
 	[asyncSocket readDataToData:[GCDAsyncSocket CRLFData]
 	                withTimeout:TIMEOUT_READ_FIRST_HEADER_LINE
-	                  maxLength:LIMIT_MAX_HEADER_LINE_LENGTH
+	                  maxLength:MAX_HEADER_LINE_LENGTH
 	                        tag:HTTP_REQUEST_HEADER];
 }
 
@@ -1551,10 +1557,15 @@ static NSMutableArray *recentNonces;
 	return [NSArray arrayWithObjects:@"index.html", @"index.htm", nil];
 }
 
+- (NSString *)filePathForURI:(NSString *)path
+{
+	return [self filePathForURI:path allowDirectory:NO];
+}
+
 /**
  * Converts relative URI path into full file-system path.
 **/
-- (NSString *)filePathForURI:(NSString *)path
+- (NSString *)filePathForURI:(NSString *)path allowDirectory:(BOOL)allowDirectory
 {
 	HTTPLogTrace();
 	
@@ -1628,30 +1639,29 @@ static NSMutableArray *recentNonces;
 	}
 	
 	// Part 4: Search for index page if path is pointing to a directory
-	
-	BOOL isDir = NO;
-	
-	if ([[NSFileManager defaultManager] fileExistsAtPath:fullPath isDirectory:&isDir] && isDir)
+	if (!allowDirectory)
 	{
-		NSArray *indexFileNames = [self directoryIndexFileNames];
-		
-		for (NSString *indexFileName in indexFileNames)
+		BOOL isDir = NO;
+		if ([[NSFileManager defaultManager] fileExistsAtPath:fullPath isDirectory:&isDir] && isDir)
 		{
-			NSString *indexFilePath = [fullPath stringByAppendingPathComponent:indexFileName];
-			
-			if ([[NSFileManager defaultManager] fileExistsAtPath:indexFilePath isDirectory:&isDir] && !isDir)
+			NSArray *indexFileNames = [self directoryIndexFileNames];
+
+			for (NSString *indexFileName in indexFileNames)
 			{
-				return indexFilePath;
+				NSString *indexFilePath = [fullPath stringByAppendingPathComponent:indexFileName];
+
+				if ([[NSFileManager defaultManager] fileExistsAtPath:indexFilePath isDirectory:&isDir] && !isDir)
+				{
+					return indexFilePath;
+				}
 			}
+
+			// No matching index files found in directory
+			return nil;
 		}
-		
-		// No matching index files found in directory
-		return nil;
 	}
-	else
-	{
-		return fullPath;
-	}
+
+	return fullPath;
 }
 
 /**
@@ -1667,7 +1677,7 @@ static NSMutableArray *recentNonces;
 	
 	// Override me to provide custom responses.
 	
-	NSString *filePath = [self filePathForURI:path];
+	NSString *filePath = [self filePathForURI:path allowDirectory:NO];
 	
 	BOOL isDir = NO;
 	
@@ -1730,6 +1740,22 @@ static NSMutableArray *recentNonces;
 	// This prevents a 50 MB upload from being stored in RAM.
 	// The size of the chunks are limited by the POST_CHUNKSIZE definition.
 	// Therefore, this method may be called multiple times for the same POST request.
+}
+
+/**
+ * This method is called after the request body has been fully read but before the HTTP request is processed.
+**/
+- (void)flushBody
+{
+	// Close file handles, etc...
+}
+
+/**
+ * This method is called after the request body has been fully read and the HTTP request has been processed.
+**/
+- (void)finalizeBody
+{
+	// Release memory, etc...
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2019,7 +2045,7 @@ static NSMutableArray *recentNonces;
 		{
 			// We don't have a complete header yet
 			// That is, we haven't yet received a CRLF on a line by itself, indicating the end of the header
-			if (++numHeaderLines > LIMIT_MAX_HEADER_LINES)
+			if (++numHeaderLines > MAX_HEADER_LINES)
 			{
 				// Reached the maximum amount of header lines in a single HTTP request
 				// This could be an attempted DOS attack
@@ -2032,7 +2058,7 @@ static NSMutableArray *recentNonces;
 			{
 				[asyncSocket readDataToData:[GCDAsyncSocket CRLFData]
 				                withTimeout:TIMEOUT_READ_SUBSEQUENT_HEADER_LINE
-				                  maxLength:LIMIT_MAX_HEADER_LINE_LENGTH
+				                  maxLength:MAX_HEADER_LINE_LENGTH
 				                        tag:HTTP_REQUEST_HEADER];
 			}
 		}
@@ -2046,6 +2072,9 @@ static NSMutableArray *recentNonces;
 			// Extract the uri (such as "/index.html")
 			NSString *uri = [self requestURI];
 			
+			// Check for a Transfer-Encoding field
+			NSString *transferEncoding = [request headerField:@"Transfer-Encoding"];
+      
 			// Check for a Content-Length field
 			NSString *contentLength = [request headerField:@"Content-Length"];
 			
@@ -2055,22 +2084,29 @@ static NSMutableArray *recentNonces;
 			
 			if (expectsUpload)
 			{
-				if (contentLength == nil)
+				if (transferEncoding && ![transferEncoding caseInsensitiveCompare:@"Chunked"])
 				{
-					HTTPLogWarn(@"%@[%p]: Method expects request body, but had no specified Content-Length",
-					              THIS_FILE, self);
-					
-					[self handleInvalidRequest:nil];
-					return;
+					requestContentLength = -1;
 				}
-				
-				if (![NSNumber parseString:(NSString *)contentLength intoUInt64:&requestContentLength])
+				else
 				{
-					HTTPLogWarn(@"%@[%p]: Unable to parse Content-Length header into a valid number",
-								THIS_FILE, self);
+					if (contentLength == nil)
+					{
+						HTTPLogWarn(@"%@[%p]: Method expects request body, but had no specified Content-Length",
+									THIS_FILE, self);
+						
+						[self handleInvalidRequest:nil];
+						return;
+					}
 					
-					[self handleInvalidRequest:nil];
-					return;
+					if (![NSNumber parseString:(NSString *)contentLength intoUInt64:&requestContentLength])
+					{
+						HTTPLogWarn(@"%@[%p]: Unable to parse Content-Length header into a valid number",
+									THIS_FILE, self);
+						
+						[self handleInvalidRequest:nil];
+						return;
+					}
 				}
 			}
 			else
@@ -2123,20 +2159,34 @@ static NSMutableArray *recentNonces;
 				if (requestContentLength > 0)
 				{
 					// Start reading the request body
-					NSUInteger bytesToRead;
-					if(requestContentLength < POST_CHUNKSIZE)
-						bytesToRead = (NSUInteger)requestContentLength;
+					if (requestContentLength == -1)
+					{
+						// Chunked transfer
+						
+						[asyncSocket readDataToData:[GCDAsyncSocket CRLFData]
+						                withTimeout:TIMEOUT_READ_BODY
+						                  maxLength:MAX_CHUNK_LINE_LENGTH
+						                        tag:HTTP_REQUEST_CHUNK_SIZE];
+					}
 					else
-						bytesToRead = POST_CHUNKSIZE;
-					
-					[asyncSocket readDataToLength:bytesToRead
-					                  withTimeout:TIMEOUT_READ_BODY
-					                          tag:HTTP_REQUEST_BODY];
+					{
+						NSUInteger bytesToRead;
+						if (requestContentLength < POST_CHUNKSIZE)
+							bytesToRead = (NSUInteger)requestContentLength;
+						else
+							bytesToRead = POST_CHUNKSIZE;
+						
+						[asyncSocket readDataToLength:bytesToRead
+						                  withTimeout:TIMEOUT_READ_BODY
+						                          tag:HTTP_REQUEST_BODY];
+					}
 				}
 				else
 				{
 					// Empty upload
+					[self flushBody];
 					[self replyToHTTPRequest];
+					[self finalizeBody];
 				}
 			}
 			else
@@ -2148,26 +2198,178 @@ static NSMutableArray *recentNonces;
 	}
 	else
 	{
-		// Handle a chunk of data from the POST body
+		BOOL doneReadingRequest = NO;
 		
-		requestContentLengthReceived += [data length];
-		[self processDataChunk:data];
+		// A chunked message body contains a series of chunks,
+		// followed by a line with "0" (zero),
+		// followed by optional footers (just like headers),
+		// and a blank line.
+		// 
+		// Each chunk consists of two parts:
+		// 
+		// 1. A line with the size of the chunk data, in hex,
+		//    possibly followed by a semicolon and extra parameters you can ignore (none are currently standard),
+		//    and ending with CRLF.
+		// 2. The data itself, followed by CRLF.
+		// 
+		// Part 1 is represented by HTTP_REQUEST_CHUNK_SIZE
+		// Part 2 is represented by HTTP_REQUEST_CHUNK_DATA and HTTP_REQUEST_CHUNK_TRAILER
+		// where the trailer is the CRLF that follows the data.
+		// 
+		// The optional footers and blank line are represented by HTTP_REQUEST_CHUNK_FOOTER.
 		
-		if (requestContentLengthReceived < requestContentLength)
+		if (tag == HTTP_REQUEST_CHUNK_SIZE)
 		{
-			// We're not done reading the post body yet...
-			UInt64 bytesLeft = requestContentLength - requestContentLengthReceived;
+			// We have just read in a line with the size of the chunk data, in hex, 
+			// possibly followed by a semicolon and extra parameters that can be ignored,
+			// and ending with CRLF.
 			
-			NSUInteger bytesToRead = bytesLeft < POST_CHUNKSIZE ? (NSUInteger)bytesLeft : POST_CHUNKSIZE;
+			NSString *sizeLine = [[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] autorelease];
 			
-			[asyncSocket readDataToLength:bytesToRead
-			                  withTimeout:TIMEOUT_READ_BODY
-			                          tag:HTTP_REQUEST_BODY];
+			requestChunkSize = (UInt64)strtoull([sizeLine UTF8String], NULL, 16);
+			requestChunkSizeReceived = 0;
+			
+			if (errno != 0)
+			{
+				HTTPLogWarn(@"%@[%p]: Method expects chunk size, but received something else", THIS_FILE, self);
+				
+				[self handleInvalidRequest:nil];
+				return;
+			}
+			
+			if (requestChunkSize > 0)
+			{
+				NSUInteger bytesToRead;
+				bytesToRead = (requestChunkSize < POST_CHUNKSIZE) ? (NSUInteger)requestChunkSize : POST_CHUNKSIZE;
+				
+				[asyncSocket readDataToLength:bytesToRead
+				                  withTimeout:TIMEOUT_READ_BODY
+				                          tag:HTTP_REQUEST_CHUNK_DATA];
+			}
+			else
+			{
+				// This is the "0" (zero) line,
+				// which is to be followed by optional footers (just like headers) and finally a blank line.
+				
+				[asyncSocket readDataToData:[GCDAsyncSocket CRLFData]
+				                withTimeout:TIMEOUT_READ_BODY
+				                  maxLength:MAX_HEADER_LINE_LENGTH
+				                        tag:HTTP_REQUEST_CHUNK_FOOTER];
+			}
+			
+			return;
 		}
-		else
+		else if (tag == HTTP_REQUEST_CHUNK_DATA)
 		{
-			// Now we need to reply to the request
+			// We just read part of the actual data.
+			
+			requestContentLengthReceived += [data length];
+			requestChunkSizeReceived += [data length];
+			
+			[self processDataChunk:data];
+			
+			UInt64 bytesLeft = requestChunkSize - requestChunkSizeReceived;
+			if (bytesLeft > 0)
+			{
+				NSUInteger bytesToRead = (bytesLeft < POST_CHUNKSIZE) ? (NSUInteger)bytesLeft : POST_CHUNKSIZE;
+				
+				[asyncSocket readDataToLength:bytesToRead
+				                  withTimeout:TIMEOUT_READ_BODY
+				                          tag:HTTP_REQUEST_CHUNK_DATA];
+			}
+			else
+			{
+				// We've read in all the data for this chunk.
+				// The data is followed by a CRLF, which we need to read (and basically ignore)
+				
+				[asyncSocket readDataToLength:2
+				                  withTimeout:TIMEOUT_READ_BODY
+				                          tag:HTTP_REQUEST_CHUNK_TRAILER];
+			}
+			
+			return;
+		}
+		else if (tag == HTTP_REQUEST_CHUNK_TRAILER)
+		{
+			// This should be the CRLF following the data.
+			// Just ensure it's a CRLF.
+			
+			if (![data isEqualToData:[GCDAsyncSocket CRLFData]])
+			{
+				HTTPLogWarn(@"%@[%p]: Method expects chunk trailer, but is missing", THIS_FILE, self);
+				
+				[self handleInvalidRequest:nil];
+				return;
+			}
+			
+			// Now continue with the next chunk
+			
+			[asyncSocket readDataToData:[GCDAsyncSocket CRLFData]
+			                withTimeout:TIMEOUT_READ_BODY
+			                  maxLength:MAX_CHUNK_LINE_LENGTH
+			                        tag:HTTP_REQUEST_CHUNK_SIZE];
+			
+		}
+		else if (tag == HTTP_REQUEST_CHUNK_FOOTER)
+		{
+			if (++numHeaderLines > MAX_HEADER_LINES)
+			{
+				// Reached the maximum amount of header lines in a single HTTP request
+				// This could be an attempted DOS attack
+				[asyncSocket disconnect];
+				
+				// Explictly return to ensure we don't do anything after the socket disconnect
+				return;
+			}
+			
+			if ([data length] > 2)
+			{
+				// We read in a footer.
+				// In the future we may want to append these to the request.
+				// For now we ignore, and continue reading the footers, waiting for the final blank line.
+				
+				[asyncSocket readDataToData:[GCDAsyncSocket CRLFData]
+				                withTimeout:TIMEOUT_READ_BODY
+				                  maxLength:MAX_HEADER_LINE_LENGTH
+				                        tag:HTTP_REQUEST_CHUNK_FOOTER];
+			}
+			else
+			{
+				doneReadingRequest = YES;
+			}
+		}
+		else  // HTTP_REQUEST_BODY
+		{
+			// Handle a chunk of data from the POST body
+			
+			requestContentLengthReceived += [data length];
+			[self processDataChunk:data];
+			
+			if (requestContentLengthReceived < requestContentLength)
+			{
+				// We're not done reading the post body yet...
+				
+				UInt64 bytesLeft = requestContentLength - requestContentLengthReceived;
+				
+				NSUInteger bytesToRead = bytesLeft < POST_CHUNKSIZE ? (NSUInteger)bytesLeft : POST_CHUNKSIZE;
+				
+				[asyncSocket readDataToLength:bytesToRead
+				                  withTimeout:TIMEOUT_READ_BODY
+				                          tag:HTTP_REQUEST_BODY];
+			}
+			else
+			{
+				doneReadingRequest = YES;
+			}
+		}
+		
+		// Now that the entire body has been received, we need to reply to the request
+		
+		if (doneReadingRequest)
+		{
+			[self flushBody];
 			[self replyToHTTPRequest];
+			[self finalizeBody];
 		}
 	}
 }

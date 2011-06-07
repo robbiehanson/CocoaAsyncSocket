@@ -58,7 +58,9 @@
 	
 	UInt64 requestContentLength;
 	UInt64 requestContentLengthReceived;
-	
+	UInt64 requestChunkSize;
+	UInt64 requestChunkSizeReceived;
+  
 	NSMutableArray *responseDataSizes;
 }
 
@@ -87,11 +89,14 @@
 
 - (NSArray *)directoryIndexFileNames;
 - (NSString *)filePathForURI:(NSString *)path;
+- (NSString *)filePathForURI:(NSString *)path allowDirectory:(BOOL)allowDirectory;
 - (NSObject<HTTPResponse> *)httpResponseForMethod:(NSString *)method URI:(NSString *)path;
 - (WebSocket *)webSocketForURI:(NSString *)path;
 
 - (void)prepareForBodyWithSize:(UInt64)contentLength;
 - (void)processDataChunk:(NSData *)postDataChunk;
+- (void)flushBody;
+- (void)finalizeBody;
 
 - (void)handleVersionNotSupported:(NSString *)version;
 - (void)handleAuthenticationFailed;
