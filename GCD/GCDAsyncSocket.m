@@ -3345,7 +3345,7 @@ enum GCDAsyncSocketConfig
 					{
 						// Name match
 						
-						struct sockaddr_in6 nativeAddr6;
+						struct sockaddr_in6 nativeAddr6 = *addr;
 						nativeAddr6.sin6_port = htons(port);
 						
 						addr6 = [NSData dataWithBytes:&nativeAddr6 length:sizeof(nativeAddr6)];
@@ -3361,7 +3361,7 @@ enum GCDAsyncSocketConfig
 						{
 							// IP match
 							
-							struct sockaddr_in6 nativeAddr6;
+							struct sockaddr_in6 nativeAddr6 = *addr;
 							nativeAddr6.sin6_port = htons(port);
 							
 							addr6 = [NSData dataWithBytes:&nativeAddr6 length:sizeof(nativeAddr6)];
