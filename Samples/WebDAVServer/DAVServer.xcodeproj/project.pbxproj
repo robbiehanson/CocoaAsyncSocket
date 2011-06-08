@@ -19,6 +19,10 @@
 		DC278B551276714F00EAFA9F /* HTTPDynamicFileResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = DC278B4D1276714F00EAFA9F /* HTTPDynamicFileResponse.m */; };
 		DC278B571276714F00EAFA9F /* HTTPServer.m in Sources */ = {isa = PBXBuildFile; fileRef = DC278B511276714F00EAFA9F /* HTTPServer.m */; };
 		DC278B5A1276717D00EAFA9F /* WebSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = DC278B591276717D00EAFA9F /* WebSocket.m */; };
+		DC37324C139F3E8500A8407D /* DAVConnection.m in Sources */ = {isa = PBXBuildFile; fileRef = DC373245139F3E8500A8407D /* DAVConnection.m */; };
+		DC37324D139F3E8500A8407D /* DAVResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = DC373247139F3E8500A8407D /* DAVResponse.m */; };
+		DC37324E139F3E8500A8407D /* DELETEResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = DC373249139F3E8500A8407D /* DELETEResponse.m */; };
+		DC37324F139F3E8500A8407D /* PUTResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = DC37324B139F3E8500A8407D /* PUTResponse.m */; };
 		DC41D6D90C178D5700F8D00D /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = DC41D6D70C178D5700F8D00D /* AppDelegate.m */; };
 		DC9631E0129E2DBB003AC1CE /* GCDAsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = DC9631DF129E2DBB003AC1CE /* GCDAsyncSocket.m */; };
 		DC9631F2129E2DE9003AC1CE /* DDASLLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC9631EB129E2DE9003AC1CE /* DDASLLogger.m */; };
@@ -30,11 +34,7 @@
 		DC9631FF129E2E02003AC1CE /* HTTPRedirectResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = DC9631FC129E2E02003AC1CE /* HTTPRedirectResponse.m */; };
 		DC963205129E2E3C003AC1CE /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC963204129E2E3C003AC1CE /* Security.framework */; };
 		DC9A0996128A5275006AD900 /* HTTPMessage.m in Sources */ = {isa = PBXBuildFile; fileRef = DC9A0995128A5275006AD900 /* HTTPMessage.m */; };
-		E22075641397882F00D030B6 /* DAVResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = E220755F1397882F00D030B6 /* DAVResponse.m */; };
-		E22075651397882F00D030B6 /* DELETEResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = E22075611397882F00D030B6 /* DELETEResponse.m */; };
-		E22075661397882F00D030B6 /* PUTResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = E22075631397882F00D030B6 /* PUTResponse.m */; };
 		E220758413978B5100D030B6 /* libxml2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = E220758313978B5100D030B6 /* libxml2.dylib */; };
-		E220760C13978DFA00D030B6 /* DAVConnection.m in Sources */ = {isa = PBXBuildFile; fileRef = E220760B13978DFA00D030B6 /* DAVConnection.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -76,6 +76,14 @@
 		DC278B511276714F00EAFA9F /* HTTPServer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HTTPServer.m; sourceTree = "<group>"; };
 		DC278B581276717D00EAFA9F /* WebSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebSocket.h; sourceTree = "<group>"; };
 		DC278B591276717D00EAFA9F /* WebSocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = WebSocket.m; sourceTree = "<group>"; };
+		DC373244139F3E8500A8407D /* DAVConnection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DAVConnection.h; sourceTree = "<group>"; };
+		DC373245139F3E8500A8407D /* DAVConnection.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DAVConnection.m; sourceTree = "<group>"; };
+		DC373246139F3E8500A8407D /* DAVResponse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DAVResponse.h; sourceTree = "<group>"; };
+		DC373247139F3E8500A8407D /* DAVResponse.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DAVResponse.m; sourceTree = "<group>"; };
+		DC373248139F3E8500A8407D /* DELETEResponse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DELETEResponse.h; sourceTree = "<group>"; };
+		DC373249139F3E8500A8407D /* DELETEResponse.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DELETEResponse.m; sourceTree = "<group>"; };
+		DC37324A139F3E8500A8407D /* PUTResponse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PUTResponse.h; sourceTree = "<group>"; };
+		DC37324B139F3E8500A8407D /* PUTResponse.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PUTResponse.m; sourceTree = "<group>"; };
 		DC41D6D70C178D5700F8D00D /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		DC41D6D80C178D5700F8D00D /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		DC9631DE129E2DBB003AC1CE /* GCDAsyncSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GCDAsyncSocket.h; sourceTree = "<group>"; };
@@ -98,15 +106,7 @@
 		DC963204129E2E3C003AC1CE /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		DC9A0994128A5275006AD900 /* HTTPMessage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HTTPMessage.h; sourceTree = "<group>"; };
 		DC9A0995128A5275006AD900 /* HTTPMessage.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HTTPMessage.m; sourceTree = "<group>"; };
-		E220755E1397882F00D030B6 /* DAVResponse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DAVResponse.h; sourceTree = "<group>"; };
-		E220755F1397882F00D030B6 /* DAVResponse.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DAVResponse.m; sourceTree = "<group>"; };
-		E22075601397882F00D030B6 /* DELETEResponse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DELETEResponse.h; sourceTree = "<group>"; };
-		E22075611397882F00D030B6 /* DELETEResponse.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DELETEResponse.m; sourceTree = "<group>"; };
-		E22075621397882F00D030B6 /* PUTResponse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PUTResponse.h; sourceTree = "<group>"; };
-		E22075631397882F00D030B6 /* PUTResponse.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PUTResponse.m; sourceTree = "<group>"; };
 		E220758313978B5100D030B6 /* libxml2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libxml2.dylib; path = usr/lib/libxml2.dylib; sourceTree = SDKROOT; };
-		E220760A13978DFA00D030B6 /* DAVConnection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DAVConnection.h; sourceTree = "<group>"; };
-		E220760B13978DFA00D030B6 /* DAVConnection.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DAVConnection.m; sourceTree = "<group>"; };
 		E23C163E139F16CA009BFD22 /* Base.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 		E23C163F139F16CA009BFD22 /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		E23C1641139F16CA009BFD22 /* Release.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
@@ -150,7 +150,7 @@
 				DC9631E9129E2DD5003AC1CE /* CocoaLumberjack */,
 				DC41D6CD0C178CEA00F8D00D /* CocoaAsyncSocket */,
 				DC41D6D50C178D1600F8D00D /* Core */,
-				E220755D1397882F00D030B6 /* DAVSupport */,
+				DC373243139F3E8500A8407D /* WebDAV */,
 				080E96DDFE201D6D7F000001 /* Classes */,
 				29B97315FDCFA39411CA2CEA /* Other Sources */,
 				29B97317FDCFA39411CA2CEA /* Resources */,
@@ -186,6 +186,22 @@
 				E220758313978B5100D030B6 /* libxml2.dylib */,
 			);
 			name = "Frameworks and Libraries";
+			sourceTree = "<group>";
+		};
+		DC373243139F3E8500A8407D /* WebDAV */ = {
+			isa = PBXGroup;
+			children = (
+				DC373244139F3E8500A8407D /* DAVConnection.h */,
+				DC373245139F3E8500A8407D /* DAVConnection.m */,
+				DC373246139F3E8500A8407D /* DAVResponse.h */,
+				DC373247139F3E8500A8407D /* DAVResponse.m */,
+				DC373248139F3E8500A8407D /* DELETEResponse.h */,
+				DC373249139F3E8500A8407D /* DELETEResponse.m */,
+				DC37324A139F3E8500A8407D /* PUTResponse.h */,
+				DC37324B139F3E8500A8407D /* PUTResponse.m */,
+			);
+			name = WebDAV;
+			path = ../../Extensions/WebDAV;
 			sourceTree = "<group>";
 		};
 		DC41D6CD0C178CEA00F8D00D /* CocoaAsyncSocket */ = {
@@ -265,22 +281,6 @@
 			);
 			path = Categories;
 			sourceTree = "<group>";
-		};
-		E220755D1397882F00D030B6 /* DAVSupport */ = {
-			isa = PBXGroup;
-			children = (
-				E220760A13978DFA00D030B6 /* DAVConnection.h */,
-				E220760B13978DFA00D030B6 /* DAVConnection.m */,
-				E220755E1397882F00D030B6 /* DAVResponse.h */,
-				E220755F1397882F00D030B6 /* DAVResponse.m */,
-				E22075601397882F00D030B6 /* DELETEResponse.h */,
-				E22075611397882F00D030B6 /* DELETEResponse.m */,
-				E22075621397882F00D030B6 /* PUTResponse.h */,
-				E22075631397882F00D030B6 /* PUTResponse.m */,
-			);
-			name = DAVSupport;
-			path = ../../DAVSupport;
-			sourceTree = SOURCE_ROOT;
 		};
 		E23C163D139F16CA009BFD22 /* Xcode-Configurations */ = {
 			isa = PBXGroup;
@@ -375,10 +375,10 @@
 				DC9631FD129E2E02003AC1CE /* HTTPDataResponse.m in Sources */,
 				DC9631FE129E2E02003AC1CE /* HTTPFileResponse.m in Sources */,
 				DC9631FF129E2E02003AC1CE /* HTTPRedirectResponse.m in Sources */,
-				E22075641397882F00D030B6 /* DAVResponse.m in Sources */,
-				E22075651397882F00D030B6 /* DELETEResponse.m in Sources */,
-				E22075661397882F00D030B6 /* PUTResponse.m in Sources */,
-				E220760C13978DFA00D030B6 /* DAVConnection.m in Sources */,
+				DC37324C139F3E8500A8407D /* DAVConnection.m in Sources */,
+				DC37324D139F3E8500A8407D /* DAVResponse.m in Sources */,
+				DC37324E139F3E8500A8407D /* DELETEResponse.m in Sources */,
+				DC37324F139F3E8500A8407D /* PUTResponse.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
