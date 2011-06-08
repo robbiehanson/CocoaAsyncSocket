@@ -1,5 +1,3 @@
-// Copyright 2011 Pol-Online
-
 #import "DAVConnection.h"
 #import "HTTPMessage.h"
 #import "HTTPFileResponse.h"

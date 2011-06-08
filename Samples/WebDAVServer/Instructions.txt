@@ -10,7 +10,7 @@ On the Xcode console you'll see a message saying:
 "Started HTTP server on port 8080"
 
 Now open the Mac Finder, and click:
-Go -> Connect to server‚Ä¶ (Or type command K)
+Go -> Connect to Server… (Or type command K)
 
 You will be prompted to enter the server address. Type in:
 http://localhost:8080

@@ -1,5 +1,3 @@
-// Copyright 2011 Pol-Online
-
 #import "PUTResponse.h"
 #import "HTTPLogging.h"
 
