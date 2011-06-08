@@ -192,7 +192,7 @@
 	
 	// Mac OS X has problems importing private keys, so we wrap everything in PKCS#12 format
 	// You can create a p12 wrapper by running the following command in the terminal:
-	// openssl pkcs12 -export -in certificate.crt -inkey private.pem
+	// openssl pkcs12 -export -in certificate.crt -inkey private.pem 
 	//   -passout pass:password -out certificate.p12 -name "Open Source"
 	
 	NSArray *certWrapperArgs = [NSArray arrayWithObjects:@"pkcs12", @"-export", @"-export",
@@ -239,7 +239,7 @@
 	 *     When set, the password for import or export is obtained by user prompt. Otherwise, you must provide the
 	 *     password in the passphrase field of the SecKeyImportExportParameters structure.
 	 *     A user-supplied password is preferred, because it avoids having the cleartext password appear in the
-	 *     application’s address space at any time.
+	 *     application‚Äôs address space at any time.
 	 * kSecKeyNoAccessControl
 	 *     When set, imported private keys have no access object attached to them. In the absence of both this bit and
 	 *     the accessRef field in SecKeyImportExportParameters, imported private keys are given default access controls
@@ -260,7 +260,7 @@
 	 * CFStringRef alertTitle
 	 *     Title of secure password alert panel.
 	 *     When importing or exporting a key, if you set the kSecKeySecurePassphrase flag bit,
-	 *     you can optionally use this field to specify a string for the password panel’s title bar.
+	 *     you can optionally use this field to specify a string for the password panel‚Äôs title bar.
 	 * CFStringRef alertPrompt
 	 *     Prompt in secure password alert panel.
 	 *     When importing or exporting a key, if you set the kSecKeySecurePassphrase flag bit,
@@ -301,17 +301,17 @@
 	 *     The external representation of the items to import.
 	 * CFStringRef fileNameOrExtension
 	 *     The name or extension of the file from which the external representation was obtained.
-	 *     Pass NULL if you don’t know the name or extension.
+	 *     Pass NULL if you don‚Äôt know the name or extension.
 	 * SecExternalFormat *inputFormat
 	 *     On input, points to the format of the external representation.
 	 *     Pass kSecFormatUnknown if you do not know the exact format.
 	 *     On output, points to the format that the function has determined the external representation to be in.
-	 *     Pass NULL if you don’t know the format and don’t want the format returned to you.
+	 *     Pass NULL if you don‚Äôt know the format and don‚Äôt want the format returned to you.
 	 * SecExternalItemType *itemType
 	 *     On input, points to the item type of the item or items contained in the external representation.
 	 *     Pass kSecItemTypeUnknown if you do not know the item type.
 	 *     On output, points to the item type that the function has determined the external representation to contain.
-	 *     Pass NULL if you don’t know the item type and don’t want the type returned to you.
+	 *     Pass NULL if you don‚Äôt know the item type and don‚Äôt want the type returned to you.
 	 * SecItemImportExportFlags flags
 	 *     Unused; pass in 0.
 	 * const SecKeyImportExportParameters *keyParams
@@ -392,7 +392,7 @@
 	 *
 	 * Fields:
 	 * tag
-	 *     A 4-byte attribute tag. See “Keychain Item Attribute Constants” for valid attribute types.
+	 *     A 4-byte attribute tag. See ‚ÄúKeychain Item Attribute Constants‚Äù for valid attribute types.
 	 * length
 	 *     The length of the buffer pointed to by data.
 	 * data

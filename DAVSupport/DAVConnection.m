@@ -73,12 +73,12 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN;
     requestContentStream = [[NSOutputStream alloc] initToFileAtPath:requestContentBody append:NO];
     [requestContentStream open];
   } else {
-    requestContentBody = [[NSMutableData alloc] initWithCapacity:contentLength];
+    requestContentBody = [[NSMutableData alloc] initWithCapacity:(NSUInteger)contentLength];
     requestContentStream = nil;
   }
 }
 
-- (void) processDataChunk:(NSData*)postDataChunk {
+- (void) processBodyData:(NSData*)postDataChunk {
 	NSAssert(requestContentBody != nil, @"requestContentBody should not be nil");
   if (requestContentStream) {
     [requestContentStream write:[postDataChunk bytes] maxLength:[postDataChunk length]];
@@ -87,7 +87,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN;
   }
 }
 
-- (void) flushBody {
+- (void) finishBody {
   NSAssert(requestContentBody != nil, @"requestContentBody should not be nil");
   if (requestContentStream) {
     [requestContentStream close];
@@ -96,11 +96,12 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN;
   }
 }
 
-- (void)finalizeBody {
+- (void)finishResponse {
   NSAssert(requestContentStream == nil, @"requestContentStream should be nil");
-  NSAssert(requestContentBody != nil, @"requestContentBody should not be nil");
   [requestContentBody release];
   requestContentBody = nil;
+  
+  [super finishResponse];
 }
 
 - (NSObject<HTTPResponse>*) httpResponseForMethod:(NSString*)method URI:(NSString*)path {

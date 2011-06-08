@@ -59,6 +59,7 @@
 	UInt64 requestContentLength;
 	UInt64 requestContentLengthReceived;
 	UInt64 requestChunkSize;
+	UInt64 requestChunkSizeReceived;
   
 	NSMutableArray *responseDataSizes;
 }
@@ -93,9 +94,8 @@
 - (WebSocket *)webSocketForURI:(NSString *)path;
 
 - (void)prepareForBodyWithSize:(UInt64)contentLength;
-- (void)processDataChunk:(NSData *)postDataChunk;
-- (void)flushBody;
-- (void)finalizeBody;
+- (void)processBodyData:(NSData *)postDataChunk;
+- (void)finishBody;
 
 - (void)handleVersionNotSupported:(NSString *)version;
 - (void)handleAuthenticationFailed;
@@ -105,6 +105,8 @@
 
 - (NSData *)preprocessResponse:(HTTPMessage *)response;
 - (NSData *)preprocessErrorResponse:(HTTPMessage *)response;
+
+- (void)finishResponse;
 
 - (BOOL)shouldDie;
 - (void)die;

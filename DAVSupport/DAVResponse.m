@@ -109,7 +109,7 @@ static xmlNodePtr _XMLChildWithName(xmlNodePtr child, const xmlChar* name) {
       }
       
       DAVProperties properties = 0;
-      xmlDocPtr document = xmlReadMemory(body.bytes, body.length, NULL, NULL, kXMLParseOptions);
+      xmlDocPtr document = xmlReadMemory(body.bytes, (int)body.length, NULL, NULL, kXMLParseOptions);
       if (document) {
         xmlNodePtr node = _XMLChildWithName(document->children, (const xmlChar*)"propfind");
         if (node) {
@@ -256,7 +256,7 @@ static xmlNodePtr _XMLChildWithName(xmlNodePtr child, const xmlChar* name) {
       NSString* scope = nil;
       NSString* type = nil;
       NSString* owner = nil;
-      xmlDocPtr document = xmlReadMemory(body.bytes, body.length, NULL, NULL, kXMLParseOptions);
+      xmlDocPtr document = xmlReadMemory(body.bytes, (int)body.length, NULL, NULL, kXMLParseOptions);
       if (document) {
         xmlNodePtr node = _XMLChildWithName(document->children, (const xmlChar*)"lockinfo");
         if (node) {
@@ -353,7 +353,7 @@ static xmlNodePtr _XMLChildWithName(xmlNodePtr child, const xmlChar* name) {
 
 - (NSData*) readDataOfLength:(NSUInteger)lengthParameter {
   if (_data) {
-    NSUInteger remaining = _data.length - _offset;
+    NSUInteger remaining = _data.length - (NSUInteger)_offset;
     NSUInteger length = lengthParameter < remaining ? lengthParameter : remaining;
     void* bytes = (void*)(_data.bytes + _offset);
     _offset += length;

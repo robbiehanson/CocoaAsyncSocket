@@ -263,6 +263,8 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 	HTTPLogTrace();
 	
 	NSString *location;
+	
+	NSString *scheme = [asyncSocket isSecure] ? @"wss" : @"ws";
 	NSString *host = [request headerField:@"Host"];
 	
 	NSString *requestUri = [[request url] relativeString];
@@ -271,11 +273,11 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 	{
 		NSString *port = [NSString stringWithFormat:@"%hu", [asyncSocket localPort]];
 		
-		location = [NSString stringWithFormat:@"ws://localhost:%@%@", port, requestUri];
+		location = [NSString stringWithFormat:@"%@://localhost:%@%@", scheme, port, requestUri];
 	}
 	else
 	{
-		location = [NSString stringWithFormat:@"ws://%@%@", host, requestUri];
+		location = [NSString stringWithFormat:@"%@://%@%@", scheme, host, requestUri];
 	}
 	
 	return location;

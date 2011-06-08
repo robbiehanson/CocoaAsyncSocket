@@ -397,6 +397,13 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 - (BOOL)isIPv4;
 - (BOOL)isIPv6;
 
+/**
+ * Returns whether or not the socket has been secured via SSL/TLS.
+ * 
+ * See also the startTLS method.
+**/
+- (BOOL)isSecure;
+
 #pragma mark Reading
 
 // The readData and writeData methods won't block (they are asynchronous).

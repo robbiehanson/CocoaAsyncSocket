@@ -448,11 +448,12 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_INFO; // | HTTP_LOG_FLAG_TRACE;
 	return success;
 }
 
-- (void)stop {
-  [self stop:NO];
+- (void)stop
+{
+	[self stop:NO];
 }
 
-- (void)stop:(BOOL)keepConnectionsAlive
+- (void)stop:(BOOL)keepExistingConnections
 {
 	HTTPLogTrace();
 	
@@ -466,27 +467,27 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_INFO; // | HTTP_LOG_FLAG_TRACE;
 		[asyncSocket disconnect];
 		isRunning = NO;
 		
-		if (!keepConnectionsAlive)
-    {
-      // Now stop all HTTP connections the server owns
-      [connectionsLock lock];
-      for (HTTPConnection *connection in connections)
-      {
-        [connection stop];
-      }
-      [connections removeAllObjects];
-      [connectionsLock unlock];
-      
-      // Now stop all WebSocket connections the server owns
-      [webSocketsLock lock];
-      for (WebSocket *webSocket in webSockets)
-      {
-        [webSocket stop];
-      }
-      [webSockets removeAllObjects];
-      [webSocketsLock unlock];
+		if (!keepExistingConnections)
+		{
+			// Stop all HTTP connections the server owns
+			[connectionsLock lock];
+			for (HTTPConnection *connection in connections)
+			{
+				[connection stop];
+			}
+			[connections removeAllObjects];
+			[connectionsLock unlock];
+			
+			// Stop all WebSocket connections the server owns
+			[webSocketsLock lock];
+			for (WebSocket *webSocket in webSockets)
+			{
+				[webSocket stop];
+			}
+			[webSockets removeAllObjects];
+			[webSocketsLock unlock];
 		}
-    
+		
 		[pool drain];
 	});
 }

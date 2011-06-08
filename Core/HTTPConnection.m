@@ -41,10 +41,12 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 #define TIMEOUT_NONCE                       300
 
 // Define the various limits
-// LIMIT_MAX_HEADER_LINE_LENGTH: Max length (in bytes) of any single line in a header (including \r\n)
-// LIMIT_MAX_HEADER_LINES      : Max number of lines in a single header (including first GET line)
-#define LIMIT_MAX_HEADER_LINE_LENGTH  8190
-#define LIMIT_MAX_HEADER_LINES         100
+// MAX_HEADER_LINE_LENGTH: Max length (in bytes) of any single line in a header (including \r\n)
+// MAX_HEADER_LINES      : Max number of lines in a single header (including first GET line)
+#define MAX_HEADER_LINE_LENGTH  8190
+#define MAX_HEADER_LINES         100
+// MAX_CHUNK_LINE_LENGTH : For accepting chunked transfer uploads, max length of chunk size line (including \r\n)
+#define MAX_CHUNK_LINE_LENGTH    200
 
 // Define the various tags we'll use to differentiate what it is we're currently doing
 #define HTTP_REQUEST_HEADER                10
@@ -644,7 +646,7 @@ static NSMutableArray *recentNonces;
 	
 	[asyncSocket readDataToData:[GCDAsyncSocket CRLFData]
 	                withTimeout:TIMEOUT_READ_FIRST_HEADER_LINE
-	                  maxLength:LIMIT_MAX_HEADER_LINE_LENGTH
+	                  maxLength:MAX_HEADER_LINE_LENGTH
 	                        tag:HTTP_REQUEST_HEADER];
 }
 
@@ -1557,7 +1559,7 @@ static NSMutableArray *recentNonces;
 
 - (NSString *)filePathForURI:(NSString *)path
 {
-  return [self filePathForURI:path allowDirectory:NO];
+	return [self filePathForURI:path allowDirectory:NO];
 }
 
 /**
@@ -1636,30 +1638,30 @@ static NSMutableArray *recentNonces;
 		return nil;
 	}
 	
-  // Part 4: Search for index page if path is pointing to a directory
+	// Part 4: Search for index page if path is pointing to a directory
 	if (!allowDirectory)
-  {
-    BOOL isDir = NO;
-    if ([[NSFileManager defaultManager] fileExistsAtPath:fullPath isDirectory:&isDir] && isDir)
-    {
-      NSArray *indexFileNames = [self directoryIndexFileNames];
-      
-      for (NSString *indexFileName in indexFileNames)
-      {
-        NSString *indexFilePath = [fullPath stringByAppendingPathComponent:indexFileName];
-        
-        if ([[NSFileManager defaultManager] fileExistsAtPath:indexFilePath isDirectory:&isDir] && !isDir)
-        {
-          return indexFilePath;
-        }
-      }
-      
-      // No matching index files found in directory
-      return nil;
-    }
-  }
-  
-  return fullPath;
+	{
+		BOOL isDir = NO;
+		if ([[NSFileManager defaultManager] fileExistsAtPath:fullPath isDirectory:&isDir] && isDir)
+		{
+			NSArray *indexFileNames = [self directoryIndexFileNames];
+
+			for (NSString *indexFileName in indexFileNames)
+			{
+				NSString *indexFilePath = [fullPath stringByAppendingPathComponent:indexFileName];
+
+				if ([[NSFileManager defaultManager] fileExistsAtPath:indexFilePath isDirectory:&isDir] && !isDir)
+				{
+					return indexFilePath;
+				}
+			}
+
+			// No matching index files found in directory
+			return nil;
+		}
+	}
+
+	return fullPath;
 }
 
 /**
@@ -1728,7 +1730,7 @@ static NSMutableArray *recentNonces;
  * This method is called to handle data read from a POST / PUT.
  * The given data is part of the request body.
 **/
-- (void)processDataChunk:(NSData *)postDataChunk
+- (void)processBodyData:(NSData *)postDataChunk
 {
 	// Override me to do something useful with a POST / PUT.
 	// If the post is small, such as a simple form, you may want to simply append the data to the request.
@@ -1743,17 +1745,11 @@ static NSMutableArray *recentNonces;
 /**
  * This method is called after the request body has been fully read but before the HTTP request is processed.
 **/
-- (void)flushBody
+- (void)finishBody
 {
-  // Close file handles, etc...
-}
-
-/**
- * This method is called after the request body has been fully read and the HTTP request has been processed.
-**/
-- (void)finalizeBody
-{
-  // Release memory, etc...
+	// Override me to perform any final operations on an upload.
+	// For example, if you were saving the upload to disk this would be
+	// the hook to flush any pending data to disk and maybe close the file.
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2023,26 +2019,6 @@ static NSMutableArray *recentNonces;
 #pragma mark GCDAsyncSocket Delegate
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static NSUInteger _DecodeHexaDecimalNumber(NSString* string) {
-  NSUInteger number = 0;
-  NSUInteger length = [string length];
-  NSUInteger i;
-  for (i = 0; i < length; ++i) {
-    unichar num = [string characterAtIndex:i];
-    if((num >= 'A') && (num <= 'F')) {
-      num = num - 'A' + 10;
-    } else if((num >= 'a') && (num <= 'f')) {
-      num = num - 'a' + 10;
-    } else if((num >= '0') && (num <= '9')) {
-      num = num - '0';
-    } else {
-      return 0;
-    }
-    number = number << 4 | num;
-  }
-  return number;
-}
-
 /**
  * This method is called after the socket has successfully read data from the stream.
  * Remember that this method will only be called after the socket reaches a CRLF, or after it's read the proper length.
@@ -2063,7 +2039,7 @@ static NSUInteger _DecodeHexaDecimalNumber(NSString* string) {
 		{
 			// We don't have a complete header yet
 			// That is, we haven't yet received a CRLF on a line by itself, indicating the end of the header
-			if (++numHeaderLines > LIMIT_MAX_HEADER_LINES)
+			if (++numHeaderLines > MAX_HEADER_LINES)
 			{
 				// Reached the maximum amount of header lines in a single HTTP request
 				// This could be an attempted DOS attack
@@ -2076,7 +2052,7 @@ static NSUInteger _DecodeHexaDecimalNumber(NSString* string) {
 			{
 				[asyncSocket readDataToData:[GCDAsyncSocket CRLFData]
 				                withTimeout:TIMEOUT_READ_SUBSEQUENT_HEADER_LINE
-				                  maxLength:LIMIT_MAX_HEADER_LINE_LENGTH
+				                  maxLength:MAX_HEADER_LINE_LENGTH
 				                        tag:HTTP_REQUEST_HEADER];
 			}
 		}
@@ -2091,7 +2067,7 @@ static NSUInteger _DecodeHexaDecimalNumber(NSString* string) {
 			NSString *uri = [self requestURI];
 			
 			// Check for a Transfer-Encoding field
-      NSString *transferEncoding = [request headerField:@"Transfer-Encoding"];
+			NSString *transferEncoding = [request headerField:@"Transfer-Encoding"];
       
 			// Check for a Content-Length field
 			NSString *contentLength = [request headerField:@"Content-Length"];
@@ -2102,30 +2078,30 @@ static NSUInteger _DecodeHexaDecimalNumber(NSString* string) {
 			
 			if (expectsUpload)
 			{
-				if(transferEncoding && ![transferEncoding caseInsensitiveCompare:@"Chunked"])
-        {
-          requestContentLength = -1;
-        }
-        else
-        {
-          if (contentLength == nil)
-          {
-            HTTPLogWarn(@"%@[%p]: Method expects request body, but had no specified Content-Length",
-                          THIS_FILE, self);
-            
-            [self handleInvalidRequest:nil];
-            return;
-          }
-          
-          if (![NSNumber parseString:(NSString *)contentLength intoUInt64:&requestContentLength])
-          {
-            HTTPLogWarn(@"%@[%p]: Unable to parse Content-Length header into a valid number",
-                  THIS_FILE, self);
-            
-            [self handleInvalidRequest:nil];
-            return;
-          }
-        }
+				if (transferEncoding && ![transferEncoding caseInsensitiveCompare:@"Chunked"])
+				{
+					requestContentLength = -1;
+				}
+				else
+				{
+					if (contentLength == nil)
+					{
+						HTTPLogWarn(@"%@[%p]: Method expects request body, but had no specified Content-Length",
+									THIS_FILE, self);
+						
+						[self handleInvalidRequest:nil];
+						return;
+					}
+					
+					if (![NSNumber parseString:(NSString *)contentLength intoUInt64:&requestContentLength])
+					{
+						HTTPLogWarn(@"%@[%p]: Unable to parse Content-Length header into a valid number",
+									THIS_FILE, self);
+						
+						[self handleInvalidRequest:nil];
+						return;
+					}
+				}
 			}
 			else
 			{
@@ -2177,30 +2153,33 @@ static NSUInteger _DecodeHexaDecimalNumber(NSString* string) {
 				if (requestContentLength > 0)
 				{
 					// Start reading the request body
-					if (requestContentLength == -1) {
-            [asyncSocket readDataToData:[GCDAsyncSocket CRLFData]
-                            withTimeout:TIMEOUT_READ_BODY
-                                    tag:HTTP_REQUEST_CHUNK_SIZE];
-          }
-          else
-          {
-            NSUInteger bytesToRead;
-            if(requestContentLength < POST_CHUNKSIZE)
-              bytesToRead = (NSUInteger)requestContentLength;
-            else
-              bytesToRead = POST_CHUNKSIZE;
-            
-            [asyncSocket readDataToLength:bytesToRead
-                              withTimeout:TIMEOUT_READ_BODY
-                                      tag:HTTP_REQUEST_BODY];
-          }
+					if (requestContentLength == -1)
+					{
+						// Chunked transfer
+						
+						[asyncSocket readDataToData:[GCDAsyncSocket CRLFData]
+						                withTimeout:TIMEOUT_READ_BODY
+						                  maxLength:MAX_CHUNK_LINE_LENGTH
+						                        tag:HTTP_REQUEST_CHUNK_SIZE];
+					}
+					else
+					{
+						NSUInteger bytesToRead;
+						if (requestContentLength < POST_CHUNKSIZE)
+							bytesToRead = (NSUInteger)requestContentLength;
+						else
+							bytesToRead = POST_CHUNKSIZE;
+						
+						[asyncSocket readDataToLength:bytesToRead
+						                  withTimeout:TIMEOUT_READ_BODY
+						                          tag:HTTP_REQUEST_BODY];
+					}
 				}
 				else
 				{
 					// Empty upload
-					[self flushBody];
-          [self replyToHTTPRequest];
-          [self finalizeBody];
+					[self finishBody];
+					[self replyToHTTPRequest];
 				}
 			}
 			else
@@ -2212,111 +2191,178 @@ static NSUInteger _DecodeHexaDecimalNumber(NSString* string) {
 	}
 	else
 	{
-		if(tag == HTTP_REQUEST_CHUNK_SIZE)
-    {
-      requestChunkSize = 0;
-      
-      NSString* string = [[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] autorelease];
-      if ([string length] > 2) {
-        string = [string substringToIndex:([string length] - 2)];
-        NSRange range = [string rangeOfString:@";"];  // Ignore extensions
-        if (range.location != NSNotFound)
-        {
-          string = [string substringToIndex:range.location];
-        }
-        requestChunkSize = _DecodeHexaDecimalNumber(string);
-      } else {
-        HTTPLogWarn(@"%@[%p]: Method expects chunk size, but is missing",
-                    THIS_FILE, self);
-        [self handleInvalidRequest:nil];
-        return;
-      }
-      
-      if (requestChunkSize > 0)
-      {
-        [asyncSocket readDataToLength:requestChunkSize
-                          withTimeout:TIMEOUT_READ_BODY
-                                  tag:HTTP_REQUEST_CHUNK_DATA];
-      }
-      else
-      {
-        [asyncSocket readDataToData:[GCDAsyncSocket CRLFData]
-                        withTimeout:TIMEOUT_READ_BODY
-                                tag:HTTP_REQUEST_CHUNK_FOOTER];
-      }
-      return;
-    }
-    else if(tag == HTTP_REQUEST_CHUNK_DATA)
-    {
-      requestContentLengthReceived += [data length];
-      [self processDataChunk:data];
-      
-      requestChunkSize = requestChunkSize - [data length];
-      if (requestChunkSize > 0)
-      {
-        [asyncSocket readDataToLength:requestChunkSize
-                          withTimeout:TIMEOUT_READ_BODY
-                                  tag:HTTP_REQUEST_CHUNK_DATA];
-      }
-      else
-      {
-        [asyncSocket readDataToData:[GCDAsyncSocket CRLFData]
-                        withTimeout:TIMEOUT_READ_BODY
-                                tag:HTTP_REQUEST_CHUNK_TRAILER];
-      }
-      return;
-    }
-    else if(tag == HTTP_REQUEST_CHUNK_TRAILER)
-    {
-      if([data length] == 2)
-      {
-        [asyncSocket readDataToData:[GCDAsyncSocket CRLFData]
-                        withTimeout:TIMEOUT_READ_BODY
-                                tag:HTTP_REQUEST_CHUNK_SIZE];
-      }
-      else
-      {
-        HTTPLogWarn(@"%@[%p]: Method expects chunk trailer, but is missing",
-                    THIS_FILE, self);
-        [self handleInvalidRequest:nil];
-      }
-      return;
-    }
-    else if(tag == HTTP_REQUEST_CHUNK_FOOTER)
-    {
-      if ([data length] > 2)
-      {
-        [asyncSocket readDataToData:[GCDAsyncSocket CRLFData]
-                        withTimeout:TIMEOUT_READ_BODY
-                                tag:HTTP_REQUEST_CHUNK_FOOTER];
-        return;
-      }
-    }
-    else  // HTTP_REQUEST_BODY
-    {
-      // Handle a chunk of data from the POST body
-      
-      requestContentLengthReceived += [data length];
-      [self processDataChunk:data];
-      
-      if (requestContentLengthReceived < requestContentLength)
-      {
-        // We're not done reading the post body yet...
-        UInt64 bytesLeft = requestContentLength - requestContentLengthReceived;
-        
-        NSUInteger bytesToRead = bytesLeft < POST_CHUNKSIZE ? (NSUInteger)bytesLeft : POST_CHUNKSIZE;
-        
-        [asyncSocket readDataToLength:bytesToRead
-                          withTimeout:TIMEOUT_READ_BODY
-                                  tag:HTTP_REQUEST_BODY];
-        return;
-      }
-    }
-    
-    // Now that the entire body has been received, we need to reply to the request
-    [self flushBody];
-    [self replyToHTTPRequest];
-    [self finalizeBody];
+		BOOL doneReadingRequest = NO;
+		
+		// A chunked message body contains a series of chunks,
+		// followed by a line with "0" (zero),
+		// followed by optional footers (just like headers),
+		// and a blank line.
+		// 
+		// Each chunk consists of two parts:
+		// 
+		// 1. A line with the size of the chunk data, in hex,
+		//    possibly followed by a semicolon and extra parameters you can ignore (none are currently standard),
+		//    and ending with CRLF.
+		// 2. The data itself, followed by CRLF.
+		// 
+		// Part 1 is represented by HTTP_REQUEST_CHUNK_SIZE
+		// Part 2 is represented by HTTP_REQUEST_CHUNK_DATA and HTTP_REQUEST_CHUNK_TRAILER
+		// where the trailer is the CRLF that follows the data.
+		// 
+		// The optional footers and blank line are represented by HTTP_REQUEST_CHUNK_FOOTER.
+		
+		if (tag == HTTP_REQUEST_CHUNK_SIZE)
+		{
+			// We have just read in a line with the size of the chunk data, in hex, 
+			// possibly followed by a semicolon and extra parameters that can be ignored,
+			// and ending with CRLF.
+			
+			NSString *sizeLine = [[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] autorelease];
+			
+			requestChunkSize = (UInt64)strtoull([sizeLine UTF8String], NULL, 16);
+			requestChunkSizeReceived = 0;
+			
+			if (errno != 0)
+			{
+				HTTPLogWarn(@"%@[%p]: Method expects chunk size, but received something else", THIS_FILE, self);
+				
+				[self handleInvalidRequest:nil];
+				return;
+			}
+			
+			if (requestChunkSize > 0)
+			{
+				NSUInteger bytesToRead;
+				bytesToRead = (requestChunkSize < POST_CHUNKSIZE) ? (NSUInteger)requestChunkSize : POST_CHUNKSIZE;
+				
+				[asyncSocket readDataToLength:bytesToRead
+				                  withTimeout:TIMEOUT_READ_BODY
+				                          tag:HTTP_REQUEST_CHUNK_DATA];
+			}
+			else
+			{
+				// This is the "0" (zero) line,
+				// which is to be followed by optional footers (just like headers) and finally a blank line.
+				
+				[asyncSocket readDataToData:[GCDAsyncSocket CRLFData]
+				                withTimeout:TIMEOUT_READ_BODY
+				                  maxLength:MAX_HEADER_LINE_LENGTH
+				                        tag:HTTP_REQUEST_CHUNK_FOOTER];
+			}
+			
+			return;
+		}
+		else if (tag == HTTP_REQUEST_CHUNK_DATA)
+		{
+			// We just read part of the actual data.
+			
+			requestContentLengthReceived += [data length];
+			requestChunkSizeReceived += [data length];
+			
+			[self processBodyData:data];
+			
+			UInt64 bytesLeft = requestChunkSize - requestChunkSizeReceived;
+			if (bytesLeft > 0)
+			{
+				NSUInteger bytesToRead = (bytesLeft < POST_CHUNKSIZE) ? (NSUInteger)bytesLeft : POST_CHUNKSIZE;
+				
+				[asyncSocket readDataToLength:bytesToRead
+				                  withTimeout:TIMEOUT_READ_BODY
+				                          tag:HTTP_REQUEST_CHUNK_DATA];
+			}
+			else
+			{
+				// We've read in all the data for this chunk.
+				// The data is followed by a CRLF, which we need to read (and basically ignore)
+				
+				[asyncSocket readDataToLength:2
+				                  withTimeout:TIMEOUT_READ_BODY
+				                          tag:HTTP_REQUEST_CHUNK_TRAILER];
+			}
+			
+			return;
+		}
+		else if (tag == HTTP_REQUEST_CHUNK_TRAILER)
+		{
+			// This should be the CRLF following the data.
+			// Just ensure it's a CRLF.
+			
+			if (![data isEqualToData:[GCDAsyncSocket CRLFData]])
+			{
+				HTTPLogWarn(@"%@[%p]: Method expects chunk trailer, but is missing", THIS_FILE, self);
+				
+				[self handleInvalidRequest:nil];
+				return;
+			}
+			
+			// Now continue with the next chunk
+			
+			[asyncSocket readDataToData:[GCDAsyncSocket CRLFData]
+			                withTimeout:TIMEOUT_READ_BODY
+			                  maxLength:MAX_CHUNK_LINE_LENGTH
+			                        tag:HTTP_REQUEST_CHUNK_SIZE];
+			
+		}
+		else if (tag == HTTP_REQUEST_CHUNK_FOOTER)
+		{
+			if (++numHeaderLines > MAX_HEADER_LINES)
+			{
+				// Reached the maximum amount of header lines in a single HTTP request
+				// This could be an attempted DOS attack
+				[asyncSocket disconnect];
+				
+				// Explictly return to ensure we don't do anything after the socket disconnect
+				return;
+			}
+			
+			if ([data length] > 2)
+			{
+				// We read in a footer.
+				// In the future we may want to append these to the request.
+				// For now we ignore, and continue reading the footers, waiting for the final blank line.
+				
+				[asyncSocket readDataToData:[GCDAsyncSocket CRLFData]
+				                withTimeout:TIMEOUT_READ_BODY
+				                  maxLength:MAX_HEADER_LINE_LENGTH
+				                        tag:HTTP_REQUEST_CHUNK_FOOTER];
+			}
+			else
+			{
+				doneReadingRequest = YES;
+			}
+		}
+		else  // HTTP_REQUEST_BODY
+		{
+			// Handle a chunk of data from the POST body
+			
+			requestContentLengthReceived += [data length];
+			[self processBodyData:data];
+			
+			if (requestContentLengthReceived < requestContentLength)
+			{
+				// We're not done reading the post body yet...
+				
+				UInt64 bytesLeft = requestContentLength - requestContentLengthReceived;
+				
+				NSUInteger bytesToRead = bytesLeft < POST_CHUNKSIZE ? (NSUInteger)bytesLeft : POST_CHUNKSIZE;
+				
+				[asyncSocket readDataToLength:bytesToRead
+				                  withTimeout:TIMEOUT_READ_BODY
+				                          tag:HTTP_REQUEST_BODY];
+			}
+			else
+			{
+				doneReadingRequest = YES;
+			}
+		}
+		
+		// Now that the entire body has been received, we need to reply to the request
+		
+		if (doneReadingRequest)
+		{
+			[self finishBody];
+			[self replyToHTTPRequest];
+		}
 	}
 }
 
@@ -2378,6 +2424,16 @@ static NSUInteger _DecodeHexaDecimalNumber(NSString* string) {
 	
 	if (doneSendingResponse)
 	{
+		// Inform the http response that we're done
+		if ([httpResponse respondsToSelector:@selector(connectionDidClose)])
+		{
+			[httpResponse connectionDidClose];
+		}
+		
+		// Cleanup after the last request
+		[self finishResponse];
+		
+		
 		if (tag == HTTP_FINAL_RESPONSE)
 		{
 			// Terminate the connection
@@ -2388,26 +2444,6 @@ static NSUInteger _DecodeHexaDecimalNumber(NSString* string) {
 		}
 		else
 		{
-			// Cleanup after the last request
-			// And start listening for the next request
-			
-			// Inform the http response that we're done
-			if ([httpResponse respondsToSelector:@selector(connectionDidClose)])
-			{
-				[httpResponse connectionDidClose];
-			}
-			
-			// Release any resources we no longer need
-			[httpResponse release];
-			httpResponse = nil;
-			
-			[ranges release];
-			[ranges_headers release];
-			[ranges_boundry release];
-			ranges = nil;
-			ranges_headers = nil;
-			ranges_boundry = nil;
-			
 			if ([self shouldDie])
 			{
 				// The only time we should invoke [self die] is from socketDidDisconnect,
@@ -2417,8 +2453,12 @@ static NSUInteger _DecodeHexaDecimalNumber(NSString* string) {
 			}
 			else
 			{
-				// Release the old request, and create a new one
-				[request release];
+				// Prepare for the next request
+				
+				// If this assertion fails, it likely means you overrode the
+				// finishBody method and forgot to call [super finishBody].
+				NSAssert(request == nil, @"Request not properly released in finishBody");
+				
 				request = [[HTTPMessage alloc] initEmptyRequest];
 				
 				numHeaderLines = 0;
@@ -2528,7 +2568,7 @@ static NSUInteger _DecodeHexaDecimalNumber(NSString* string) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#pragma mark Closing
+#pragma mark Post Request
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -2536,12 +2576,39 @@ static NSUInteger _DecodeHexaDecimalNumber(NSString* string) {
  * Since a single connection may handle multiple request/responses, this method may be called multiple times.
  * That is, it will be called after completion of each response.
 **/
-- (BOOL)shouldDie
+- (void)finishResponse
 {
 	HTTPLogTrace();
 	
 	// Override me if you want to perform any custom actions after a response has been fully sent.
-	// You may also force close the connection by returning YES.
+	// This is the place to release memory or resources associated with the last request.
+	// 
+	// If you override this method, you should take care to invoke [super finishResponse] at some point.
+	
+	[request release];
+	request = nil;
+	
+	[httpResponse release];
+	httpResponse = nil;
+	
+	[ranges release];
+	[ranges_headers release];
+	[ranges_boundry release];
+	ranges = nil;
+	ranges_headers = nil;
+	ranges_boundry = nil;
+}
+
+/**
+ * This method is called after each successful response has been fully sent.
+ * It determines whether the connection should stay open and handle another request.
+**/
+- (BOOL)shouldDie
+{
+	HTTPLogTrace();
+	
+	// Override me if you have any need to force close the connection.
+	// You may do so by simply returning YES.
 	// 
 	// If you override this method, you should take care to fall through with [super shouldDie]
 	// instead of returning NO.
@@ -2581,6 +2648,8 @@ static NSUInteger _DecodeHexaDecimalNumber(NSString* string) {
 	
 	// Override me if you want to perform any custom actions when a connection is closed.
 	// Then call [super die] when you're done.
+	// 
+	// See also the finishResponse method.
 	// 
 	// Important: There is a rare timing condition where this method might get invoked twice.
 	// If you override this method, you should be prepared for this situation.
