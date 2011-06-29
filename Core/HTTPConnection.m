@@ -1918,6 +1918,7 @@ static NSMutableArray *recentNonces;
 		[df setFormatterBehavior:NSDateFormatterBehavior10_4];
 		[df setTimeZone:[NSTimeZone timeZoneWithAbbreviation:@"GMT"]];
 		[df setDateFormat:@"EEE, dd MMM y HH:mm:ss 'GMT'"];
+		[df setLocale:[[[NSLocale alloc] initWithLocaleIdentifier:@"en_US"] autorelease]];
 		
 		// For some reason, using zzz in the format string produces GMT+00:00
 	});
