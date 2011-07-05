@@ -1,0 +1,342 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		DC80CA0013C3978F00D29D06 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC80C9FF13C3978F00D29D06 /* Cocoa.framework */; };
+		DC80CA0A13C3978F00D29D06 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = DC80CA0813C3978F00D29D06 /* InfoPlist.strings */; };
+		DC80CA0D13C3978F00D29D06 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = DC80CA0C13C3978F00D29D06 /* main.m */; };
+		DC80CA1013C3978F00D29D06 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = DC80CA0E13C3978F00D29D06 /* Credits.rtf */; };
+		DC80CA1313C3978F00D29D06 /* SimpleHTTPClientAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = DC80CA1213C3978F00D29D06 /* SimpleHTTPClientAppDelegate.m */; };
+		DC80CA1613C3978F00D29D06 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = DC80CA1413C3978F00D29D06 /* MainMenu.xib */; };
+		DC80CA2813C3B0AC00D29D06 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC80CA2713C3B0AC00D29D06 /* Security.framework */; };
+		DC80CA7813C3B55800D29D06 /* GCDAsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = DC80CA7713C3B55800D29D06 /* GCDAsyncSocket.m */; };
+		DC80CA8413C3B56800D29D06 /* DDAbstractDatabaseLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC80CA7B13C3B56800D29D06 /* DDAbstractDatabaseLogger.m */; };
+		DC80CA8513C3B56800D29D06 /* DDASLLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC80CA7D13C3B56800D29D06 /* DDASLLogger.m */; };
+		DC80CA8613C3B56800D29D06 /* DDFileLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC80CA7F13C3B56800D29D06 /* DDFileLogger.m */; };
+		DC80CA8713C3B56800D29D06 /* DDLog.m in Sources */ = {isa = PBXBuildFile; fileRef = DC80CA8113C3B56800D29D06 /* DDLog.m */; };
+		DC80CA8813C3B56800D29D06 /* DDTTYLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC80CA8313C3B56800D29D06 /* DDTTYLogger.m */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		DC80C9FB13C3978F00D29D06 /* SimpleHTTPClient.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SimpleHTTPClient.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DC80C9FF13C3978F00D29D06 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		DC80CA0213C3978F00D29D06 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		DC80CA0313C3978F00D29D06 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
+		DC80CA0413C3978F00D29D06 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		DC80CA0713C3978F00D29D06 /* SimpleHTTPClient-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "SimpleHTTPClient-Info.plist"; sourceTree = "<group>"; };
+		DC80CA0913C3978F00D29D06 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		DC80CA0B13C3978F00D29D06 /* SimpleHTTPClient-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "SimpleHTTPClient-Prefix.pch"; sourceTree = "<group>"; };
+		DC80CA0C13C3978F00D29D06 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		DC80CA0F13C3978F00D29D06 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; name = en; path = en.lproj/Credits.rtf; sourceTree = "<group>"; };
+		DC80CA1113C3978F00D29D06 /* SimpleHTTPClientAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SimpleHTTPClientAppDelegate.h; sourceTree = "<group>"; };
+		DC80CA1213C3978F00D29D06 /* SimpleHTTPClientAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SimpleHTTPClientAppDelegate.m; sourceTree = "<group>"; };
+		DC80CA1513C3978F00D29D06 /* en */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = en; path = en.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		DC80CA2713C3B0AC00D29D06 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		DC80CA7613C3B55800D29D06 /* GCDAsyncSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GCDAsyncSocket.h; path = ../../../GCDAsyncSocket.h; sourceTree = "<group>"; };
+		DC80CA7713C3B55800D29D06 /* GCDAsyncSocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GCDAsyncSocket.m; path = ../../../GCDAsyncSocket.m; sourceTree = "<group>"; };
+		DC80CA7A13C3B56800D29D06 /* DDAbstractDatabaseLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDAbstractDatabaseLogger.h; path = ../../../Vendor/CocoaLumberjack/DDAbstractDatabaseLogger.h; sourceTree = "<group>"; };
+		DC80CA7B13C3B56800D29D06 /* DDAbstractDatabaseLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDAbstractDatabaseLogger.m; path = ../../../Vendor/CocoaLumberjack/DDAbstractDatabaseLogger.m; sourceTree = "<group>"; };
+		DC80CA7C13C3B56800D29D06 /* DDASLLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDASLLogger.h; path = ../../../Vendor/CocoaLumberjack/DDASLLogger.h; sourceTree = "<group>"; };
+		DC80CA7D13C3B56800D29D06 /* DDASLLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDASLLogger.m; path = ../../../Vendor/CocoaLumberjack/DDASLLogger.m; sourceTree = "<group>"; };
+		DC80CA7E13C3B56800D29D06 /* DDFileLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDFileLogger.h; path = ../../../Vendor/CocoaLumberjack/DDFileLogger.h; sourceTree = "<group>"; };
+		DC80CA7F13C3B56800D29D06 /* DDFileLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDFileLogger.m; path = ../../../Vendor/CocoaLumberjack/DDFileLogger.m; sourceTree = "<group>"; };
+		DC80CA8013C3B56800D29D06 /* DDLog.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDLog.h; path = ../../../Vendor/CocoaLumberjack/DDLog.h; sourceTree = "<group>"; };
+		DC80CA8113C3B56800D29D06 /* DDLog.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDLog.m; path = ../../../Vendor/CocoaLumberjack/DDLog.m; sourceTree = "<group>"; };
+		DC80CA8213C3B56800D29D06 /* DDTTYLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDTTYLogger.h; path = ../../../Vendor/CocoaLumberjack/DDTTYLogger.h; sourceTree = "<group>"; };
+		DC80CA8313C3B56800D29D06 /* DDTTYLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDTTYLogger.m; path = ../../../Vendor/CocoaLumberjack/DDTTYLogger.m; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		DC80C9F813C3978F00D29D06 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DC80CA2813C3B0AC00D29D06 /* Security.framework in Frameworks */,
+				DC80CA0013C3978F00D29D06 /* Cocoa.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		DC80C9F013C3978F00D29D06 = {
+			isa = PBXGroup;
+			children = (
+				DC80CA2013C398B200D29D06 /* Logging */,
+				DC80CA1C13C3984700D29D06 /* TCP */,
+				DC80CA0513C3978F00D29D06 /* SimpleHTTPClient */,
+				DC80C9FE13C3978F00D29D06 /* Frameworks */,
+				DC80C9FC13C3978F00D29D06 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		DC80C9FC13C3978F00D29D06 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				DC80C9FB13C3978F00D29D06 /* SimpleHTTPClient.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		DC80C9FE13C3978F00D29D06 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				DC80C9FF13C3978F00D29D06 /* Cocoa.framework */,
+				DC80CA2713C3B0AC00D29D06 /* Security.framework */,
+				DC80CA0113C3978F00D29D06 /* Other Frameworks */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		DC80CA0113C3978F00D29D06 /* Other Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				DC80CA0213C3978F00D29D06 /* AppKit.framework */,
+				DC80CA0313C3978F00D29D06 /* CoreData.framework */,
+				DC80CA0413C3978F00D29D06 /* Foundation.framework */,
+			);
+			name = "Other Frameworks";
+			sourceTree = "<group>";
+		};
+		DC80CA0513C3978F00D29D06 /* SimpleHTTPClient */ = {
+			isa = PBXGroup;
+			children = (
+				DC80CA1113C3978F00D29D06 /* SimpleHTTPClientAppDelegate.h */,
+				DC80CA1213C3978F00D29D06 /* SimpleHTTPClientAppDelegate.m */,
+				DC80CA1413C3978F00D29D06 /* MainMenu.xib */,
+				DC80CA0613C3978F00D29D06 /* Supporting Files */,
+			);
+			path = SimpleHTTPClient;
+			sourceTree = "<group>";
+		};
+		DC80CA0613C3978F00D29D06 /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				DC80CA0713C3978F00D29D06 /* SimpleHTTPClient-Info.plist */,
+				DC80CA0813C3978F00D29D06 /* InfoPlist.strings */,
+				DC80CA0B13C3978F00D29D06 /* SimpleHTTPClient-Prefix.pch */,
+				DC80CA0C13C3978F00D29D06 /* main.m */,
+				DC80CA0E13C3978F00D29D06 /* Credits.rtf */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		DC80CA1C13C3984700D29D06 /* TCP */ = {
+			isa = PBXGroup;
+			children = (
+				DC80CA7613C3B55800D29D06 /* GCDAsyncSocket.h */,
+				DC80CA7713C3B55800D29D06 /* GCDAsyncSocket.m */,
+			);
+			name = TCP;
+			sourceTree = "<group>";
+		};
+		DC80CA2013C398B200D29D06 /* Logging */ = {
+			isa = PBXGroup;
+			children = (
+				DC80CA8013C3B56800D29D06 /* DDLog.h */,
+				DC80CA8113C3B56800D29D06 /* DDLog.m */,
+				DC80CA7C13C3B56800D29D06 /* DDASLLogger.h */,
+				DC80CA7D13C3B56800D29D06 /* DDASLLogger.m */,
+				DC80CA8213C3B56800D29D06 /* DDTTYLogger.h */,
+				DC80CA8313C3B56800D29D06 /* DDTTYLogger.m */,
+				DC80CA7E13C3B56800D29D06 /* DDFileLogger.h */,
+				DC80CA7F13C3B56800D29D06 /* DDFileLogger.m */,
+				DC80CA7A13C3B56800D29D06 /* DDAbstractDatabaseLogger.h */,
+				DC80CA7B13C3B56800D29D06 /* DDAbstractDatabaseLogger.m */,
+			);
+			name = Logging;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		DC80C9FA13C3978F00D29D06 /* SimpleHTTPClient */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DC80CA1913C3978F00D29D06 /* Build configuration list for PBXNativeTarget "SimpleHTTPClient" */;
+			buildPhases = (
+				DC80C9F713C3978F00D29D06 /* Sources */,
+				DC80C9F813C3978F00D29D06 /* Frameworks */,
+				DC80C9F913C3978F00D29D06 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SimpleHTTPClient;
+			productName = SimpleHTTPClient;
+			productReference = DC80C9FB13C3978F00D29D06 /* SimpleHTTPClient.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		DC80C9F213C3978F00D29D06 /* Project object */ = {
+			isa = PBXProject;
+			buildConfigurationList = DC80C9F513C3978F00D29D06 /* Build configuration list for PBXProject "SimpleHTTPClient" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = DC80C9F013C3978F00D29D06;
+			productRefGroup = DC80C9FC13C3978F00D29D06 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				DC80C9FA13C3978F00D29D06 /* SimpleHTTPClient */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		DC80C9F913C3978F00D29D06 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DC80CA0A13C3978F00D29D06 /* InfoPlist.strings in Resources */,
+				DC80CA1013C3978F00D29D06 /* Credits.rtf in Resources */,
+				DC80CA1613C3978F00D29D06 /* MainMenu.xib in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		DC80C9F713C3978F00D29D06 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DC80CA0D13C3978F00D29D06 /* main.m in Sources */,
+				DC80CA1313C3978F00D29D06 /* SimpleHTTPClientAppDelegate.m in Sources */,
+				DC80CA7813C3B55800D29D06 /* GCDAsyncSocket.m in Sources */,
+				DC80CA8413C3B56800D29D06 /* DDAbstractDatabaseLogger.m in Sources */,
+				DC80CA8513C3B56800D29D06 /* DDASLLogger.m in Sources */,
+				DC80CA8613C3B56800D29D06 /* DDFileLogger.m in Sources */,
+				DC80CA8713C3B56800D29D06 /* DDLog.m in Sources */,
+				DC80CA8813C3B56800D29D06 /* DDTTYLogger.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		DC80CA0813C3978F00D29D06 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				DC80CA0913C3978F00D29D06 /* en */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+		DC80CA0E13C3978F00D29D06 /* Credits.rtf */ = {
+			isa = PBXVariantGroup;
+			children = (
+				DC80CA0F13C3978F00D29D06 /* en */,
+			);
+			name = Credits.rtf;
+			sourceTree = "<group>";
+		};
+		DC80CA1413C3978F00D29D06 /* MainMenu.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				DC80CA1513C3978F00D29D06 /* en */,
+			);
+			name = MainMenu.xib;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		DC80CA1713C3978F00D29D06 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = DEBUG;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		DC80CA1813C3978F00D29D06 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		DC80CA1A13C3978F00D29D06 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "SimpleHTTPClient/SimpleHTTPClient-Prefix.pch";
+				INFOPLIST_FILE = "SimpleHTTPClient/SimpleHTTPClient-Info.plist";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				WRAPPER_EXTENSION = app;
+			};
+			name = Debug;
+		};
+		DC80CA1B13C3978F00D29D06 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "SimpleHTTPClient/SimpleHTTPClient-Prefix.pch";
+				INFOPLIST_FILE = "SimpleHTTPClient/SimpleHTTPClient-Info.plist";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				WRAPPER_EXTENSION = app;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		DC80C9F513C3978F00D29D06 /* Build configuration list for PBXProject "SimpleHTTPClient" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DC80CA1713C3978F00D29D06 /* Debug */,
+				DC80CA1813C3978F00D29D06 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DC80CA1913C3978F00D29D06 /* Build configuration list for PBXNativeTarget "SimpleHTTPClient" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DC80CA1A13C3978F00D29D06 /* Debug */,
+				DC80CA1B13C3978F00D29D06 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = DC80C9F213C3978F00D29D06 /* Project object */;
+}
