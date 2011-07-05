@@ -43,8 +43,8 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 
 @interface GCDAsyncSocket : NSObject
 {
-	UInt16 flags;
-	UInt16 config;
+	uint16_t flags;
+	uint16_t config;
 	
 	id delegate;
 	dispatch_queue_t delegateQueue;
@@ -191,7 +191,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * 
  * The socket will listen on all available interfaces (e.g. wifi, ethernet, etc)
 **/
-- (BOOL)acceptOnPort:(UInt16)port error:(NSError **)errPtr;
+- (BOOL)acceptOnPort:(uint16_t)port error:(NSError **)errPtr;
 
 /**
  * This method is the same as acceptOnPort:error: with the
@@ -209,7 +209,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * 
  * To accept connections on any interface pass nil, or simply use the acceptOnPort:error: method.
 **/
-- (BOOL)acceptOnInterface:(NSString *)interface port:(UInt16)port error:(NSError **)errPtr;
+- (BOOL)acceptOnInterface:(NSString *)interface port:(uint16_t)port error:(NSError **)errPtr;
 
 #pragma mark Connecting
 
@@ -219,7 +219,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * This method invokes connectToHost:onPort:viaInterface:withTimeout:error:
  * and uses the default interface, and no timeout.
 **/
-- (BOOL)connectToHost:(NSString *)host onPort:(UInt16)port error:(NSError **)errPtr;
+- (BOOL)connectToHost:(NSString *)host onPort:(uint16_t)port error:(NSError **)errPtr;
 
 /**
  * Connects to the given host and port with an optional timeout.
@@ -227,7 +227,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * This method invokes connectToHost:onPort:viaInterface:withTimeout:error: and uses the default interface.
 **/
 - (BOOL)connectToHost:(NSString *)host
-               onPort:(UInt16)port
+               onPort:(uint16_t)port
           withTimeout:(NSTimeInterval)timeout
                 error:(NSError **)errPtr;
 
@@ -261,7 +261,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * This feature is here for networking professionals using very advanced techniques.
 **/
 - (BOOL)connectToHost:(NSString *)host
-               onPort:(UInt16)port
+               onPort:(uint16_t)port
          viaInterface:(NSString *)interface
           withTimeout:(NSTimeInterval)timeout
                 error:(NSError **)errPtr;
@@ -376,10 +376,10 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * The host will be an IP address.
 **/
 - (NSString *)connectedHost;
-- (UInt16)connectedPort;
+- (uint16_t)connectedPort;
 
 - (NSString *)localHost;
-- (UInt16)localPort;
+- (uint16_t)localPort;
 
 /**
  * Returns the local or remote address to which this socket is connected,
@@ -728,7 +728,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * 
  * Example usage:
  * 
- * - (void)socket:(GCDAsyncSocket *)sock didConnectToHost:(NSString *)host port:(UInt16)port
+ * - (void)socket:(GCDAsyncSocket *)sock didConnectToHost:(NSString *)host port:(uint16_t)port
  * {
  *     [asyncSocket performBlock:^{
  *         [asyncSocket enableBackgroundingOnSocket];
@@ -788,8 +788,8 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * Extracting host and port information from raw address data.
 **/
 + (NSString *)hostFromAddress:(NSData *)address;
-+ (UInt16)portFromAddress:(NSData *)address;
-+ (BOOL)getHost:(NSString **)hostPtr port:(UInt16 *)portPtr fromAddress:(NSData *)address;
++ (uint16_t)portFromAddress:(NSData *)address;
++ (BOOL)getHost:(NSString **)hostPtr port:(uint16_t *)portPtr fromAddress:(NSData *)address;
 
 /**
  * A few common line separators, for use with the readDataToData:... methods.
@@ -844,7 +844,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * Called when a socket connects and is ready for reading and writing.
  * The host parameter will be an IP address, not a DNS name.
 **/
-- (void)socket:(GCDAsyncSocket *)sock didConnectToHost:(NSString *)host port:(UInt16)port;
+- (void)socket:(GCDAsyncSocket *)sock didConnectToHost:(NSString *)host port:(uint16_t)port;
 
 /**
  * Called when a socket has completed reading the requested data into memory.
