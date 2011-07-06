@@ -14,7 +14,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_INFO; // | HTTP_LOG_FLAG_TRACE;
 - (void)publishBonjour;
 
 + (void)startBonjourThreadIfNeeded;
-+ (void)performBonjourBlock:(dispatch_block_t)block waitUntilDone:(BOOL)waitUntilDone;
++ (void)performBonjourBlock:(dispatch_block_t)block;
 
 @end
 
@@ -320,7 +320,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_INFO; // | HTTP_LOG_FLAG_TRACE;
 				result = [[netService name] copy];
 			};
 			
-			[[self class] performBonjourBlock:bonjourBlock waitUntilDone:YES];
+			[[self class] performBonjourBlock:bonjourBlock];
 		}
 	});
 	
@@ -402,7 +402,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_INFO; // | HTTP_LOG_FLAG_TRACE;
 				[theNetService setTXTRecordData:txtRecordData];
 			};
 			
-			[[self class] performBonjourBlock:bonjourBlock waitUntilDone:NO];
+			[[self class] performBonjourBlock:bonjourBlock];
 		}
 	});
 	
@@ -612,7 +612,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_INFO; // | HTTP_LOG_FLAG_TRACE;
 		};
 		
 		[[self class] startBonjourThreadIfNeeded];
-		[[self class] performBonjourBlock:bonjourBlock waitUntilDone:NO];
+		[[self class] performBonjourBlock:bonjourBlock];
 	}
 }
 
@@ -632,7 +632,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_INFO; // | HTTP_LOG_FLAG_TRACE;
 			[theNetService release];
 		};
 		
-		[[self class] performBonjourBlock:bonjourBlock waitUntilDone:NO];
+		[[self class] performBonjourBlock:bonjourBlock];
 		
 		netService = nil;
 	}
@@ -767,7 +767,7 @@ static NSThread *bonjourThread;
 	[pool drain];
 }
 
-+ (void)performBonjourBlock:(dispatch_block_t)block
++ (void)executeBonjourBlock:(dispatch_block_t)block
 {
 	HTTPLogTrace();
 	
@@ -776,18 +776,14 @@ static NSThread *bonjourThread;
 	block();
 }
 
-+ (void)performBonjourBlock:(dispatch_block_t)block waitUntilDone:(BOOL)waitUntilDone
++ (void)performBonjourBlock:(dispatch_block_t)block
 {
 	HTTPLogTrace();
 	
-	dispatch_block_t bonjourBlock = Block_copy(block);
-	
-	[self performSelector:@selector(performBonjourBlock:)
+	[self performSelector:@selector(executeBonjourBlock:)
 	             onThread:bonjourThread
-	           withObject:bonjourBlock
-	        waitUntilDone:waitUntilDone];
-	
-	Block_release(bonjourBlock);
+	           withObject:block
+	        waitUntilDone:YES];
 }
 
 @end
