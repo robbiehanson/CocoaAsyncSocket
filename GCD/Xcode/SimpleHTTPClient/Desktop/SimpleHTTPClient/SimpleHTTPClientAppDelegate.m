@@ -6,6 +6,9 @@
 // Log levels: off, error, warn, info, verbose
 static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
+#define USE_SECURE_CONNECTION    0
+#define READ_HEADER_LINE_BY_LINE 0
+
 
 @implementation SimpleHTTPClientAppDelegate
 
@@ -63,10 +66,48 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// When the asynchronous sockets connects, it will invoke the socket:didConnectToHost:port: delegate method.
 	
 	NSError *error = nil;
-	if (![asyncSocket connectToHost:@"deusty.com" onPort:80 error:&error])
+	
+#if USE_SECURE_CONNECTION
+	uint16_t port = 443; // HTTPS
+#else
+	uint16_t port = 80;  // HTTP
+#endif
+	
+	if (![asyncSocket connectToHost:@"deusty.com" onPort:port error:&error])
 	{
 		DDLogError(@"Unable to connect to due to invalid configuration: %@", error);
 	}
+	else
+	{
+		DDLogVerbose(@"Connecting...");
+	}
+	
+#if USE_SECURE_CONNECTION
+	
+	// The connect method above is asynchronous.
+	// At this point, the connection has been initiated, but hasn't completed.
+	// When the connection is establish, our socket:didConnectToHost:port: delegate method will be invoked.
+	// 
+	// Now, for a secure connection we have to connect to the HTTPS server running on port 443.
+	// The SSL/TLS protocol runs atop TCP, so after the connection is established we want to start the TLS handshake.
+	// 
+	// We already know this is what we want to do.
+	// Wouldn't it be convenient if we could tell the socket to queue the security upgrade now instead of waiting?
+	// Well in fact you can! This is part of the queued architecture of AsyncSocket.
+	// 
+	// After the connection has been established, AsyncSocket will look in it's queue for the next task.
+	// There it will find, dequeue and execute our request to start the TLS security protocol.
+	// 
+	// The options passed to the startTLS method are fully documented in the GCDAsyncSocket header file.
+	// The deusty server only has a development (self-signed) X.509 certificate.
+	// So we tell it not to attempt to validate the cert (cause if it did it would fail).
+	
+	NSDictionary *options = [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:NO]
+	                                                    forKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
+	
+	[asyncSocket startTLS:options];
+	
+#endif
 }
 
 - (void)socket:(GCDAsyncSocket *)sock didConnectToHost:(NSString *)host port:(UInt16)port
@@ -81,7 +122,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// We're just going to tell the server to send us the metadata (essentially) about a particular resource.
 	// The server will send an http response, and then immediately close the connection.
 	
-	NSString *requestStr = @"HEAD / HTTP/1.0\r\nHost: deusty.com\r\n\r\n";
+	NSString *requestStr = @"HEAD / HTTP/1.0\r\nHost: deusty.com\r\nConnection: Close\r\n\r\n";
 	NSData *requestData = [requestStr dataUsingEncoding:NSUTF8StringEncoding];
 	
 	[asyncSocket writeData:requestData withTimeout:-1.0 tag:0];
@@ -100,13 +141,30 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// Do networking stuff when it is easiest for you, or when it makes the most sense for you.
 	// AsyncSocket adapts to your schedule, not the other way around.
 	
+#if READ_HEADER_LINE_BY_LINE
+	
+	// Now we tell the socket to read the first line of the http response header.
+	// As per the http protocol, we know each header line is terminated with a CRLF (carriage return, line feed).
+	
+	[asyncSocket readDataToData:[GCDAsyncSocket CRLFData] withTimeout:-1.0 tag:0];
+	
+#else
 	
 	// Now we tell the socket to read the full header for the http response.
-	// As per the http protocol, we know the header is terminated with two CFLF's (carriage return, line feed).
+	// As per the http protocol, we know the header is terminated with two CRLF's (carriage return, line feed).
 	
 	NSData *responseTerminatorData = [@"\r\n\r\n" dataUsingEncoding:NSASCIIStringEncoding];
 	
 	[asyncSocket readDataToData:responseTerminatorData withTimeout:-1.0 tag:0];
+	
+#endif
+}
+
+- (void)socketDidSecure:(GCDAsyncSocket *)sock
+{
+	// This method will be called if USE_SECURE_CONNECTION is set
+	
+	DDLogVerbose(@"socketDidSecure:");
 }
 
 - (void)socket:(GCDAsyncSocket *)sock didWriteDataWithTag:(long)tag
@@ -118,12 +176,32 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 {
 	DDLogVerbose(@"socket:didReadData:withTag:");
 	
-	if (LOG_INFO)
+	NSString *httpResponse = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+	
+#if READ_HEADER_LINE_BY_LINE
+	
+	DDLogInfo(@"Line httpResponse: %@", httpResponse);
+	
+	// As per the http protocol, we know the header is terminated with two CRLF's.
+	// In other words, an empty line.
+	
+	if ([data length] == 2) // 2 bytes = CRLF
 	{
-		NSString *httpResponse = [[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] autorelease];
-		
-		DDLogInfo(@"httpResponse: %@", httpResponse);
+		DDLogInfo(@"<done>");
 	}
+	else
+	{
+		// Read the next line of the header
+		[asyncSocket readDataToData:[GCDAsyncSocket CRLFData] withTimeout:-1.0 tag:0];
+	}
+	
+#else
+	
+	DDLogInfo(@"Full httpResponse: %@", httpResponse);
+	
+#endif
+	
+	[httpResponse release];
 }
 
 - (void)socketDidDisconnect:(GCDAsyncSocket *)sock withError:(NSError *)err

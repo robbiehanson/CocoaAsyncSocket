@@ -43,7 +43,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 
 @interface GCDAsyncSocket : NSObject
 {
-	uint16_t flags;
+	uint32_t flags;
 	uint16_t config;
 	
 	id delegate;
@@ -328,13 +328,22 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 
 /**
  * Disconnects immediately (synchronously). Any pending reads or writes are dropped.
- * If the socket is not already disconnected, the socketDidDisconnect delegate method
- * will be called immediately, before this method returns.
  * 
- * Please note the recommended way of releasing an AsyncSocket instance (e.g. in a dealloc method)
+ * If the socket is not already disconnected, an invocation to the socketDidDisconnect:withError: delegate method
+ * will be queued onto the delegateQueue asynchronously (behind any previously queued delegate methods).
+ * In other words, the disconnected delegate method will be invoked sometime shortly after this method returns.
+ * 
+ * Please note the recommended way of releasing a GCDAsyncSocket instance (e.g. in a dealloc method)
  * [asyncSocket setDelegate:nil];
  * [asyncSocket disconnect];
  * [asyncSocket release];
+ * 
+ * If you plan on disconnecting the socket, and then immediately asking it to connect again,
+ * you'll likely want to do so like this:
+ * [asyncSocket setDelegate:nil];
+ * [asyncSocket disconnect];
+ * [asyncSocket setDelegate:self];
+ * [asyncSocket connect...];
 **/
 - (void)disconnect;
 

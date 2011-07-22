@@ -118,9 +118,11 @@ enum GCDAsyncSocketFlags
 	kStartingReadTLS               = 1 << 11,  // If set, we're waiting for TLS negotiation to complete
 	kStartingWriteTLS              = 1 << 12,  // If set, we're waiting for TLS negotiation to complete
 	kSocketSecure                  = 1 << 13,  // If set, socket is using secure communication via SSL/TLS
+	kSocketHasReadEOF              = 1 << 14,  // If set, we have read EOF from socket
+	kReadStreamClosed              = 1 << 15,  // If set, we've read EOF plus prebuffer has been drained
 #if TARGET_OS_IPHONE
-	kAddedHandshakeListener        = 1 << 14,  // If set, rw streams have been added to handshake listener thread
-	kSecureSocketHasBytesAvailable = 1 << 15,  // If set, CFReadStream has notified us of bytes available
+	kAddedHandshakeListener        = 1 << 16,  // If set, rw streams have been added to handshake listener thread
+	kSecureSocketHasBytesAvailable = 1 << 17,  // If set, CFReadStream has notified us of bytes available
 #endif
 };
 
@@ -197,6 +199,7 @@ enum GCDAsyncSocketConfig
 
 // Reading
 - (void)maybeDequeueRead;
+- (void)flushSSLBuffers;
 - (void)doReadData;
 - (void)doReadEOF;
 - (void)completeCurrentRead;
@@ -3731,7 +3734,141 @@ enum GCDAsyncSocketConfig
 				[self closeWithError:nil];
 			}
 		}
+		else if (flags & kSocketSecure)
+		{
+			[self flushSSLBuffers];
+			
+			// Edge case:
+			// 
+			// We just drained all data from the ssl buffers,
+			// and all known data from the socket (socketFDBytesAvailable).
+			// 
+			// If we didn't get any data from this process,
+			// then we may have reached the end of the TCP stream.
+			// 
+			// Be sure callbacks are enabled so we're notified about a disconnection.
+			
+			if ([partialReadBuffer length] == 0)
+			{
+				if ([self usingCFStream]) {
+					// Callbacks never disabled
+				}
+				else {
+					[self resumeReadSource];
+				}
+			}
+		}
 	}
+}
+
+- (void)flushSSLBuffers
+{
+	LogTrace();
+	
+	NSAssert((flags & kSocketSecure), @"Cannot flush ssl buffers on non-secure socket");
+	
+	if ([partialReadBuffer length] > 0)
+	{
+		// Only flush the ssl buffers if the partialReadBuffer is empty.
+		// This is to avoid growing the partialReadBuffer inifinitely large.
+		
+		return;
+	}
+	
+#if TARGET_OS_IPHONE
+	
+	if (flags & kSecureSocketHasBytesAvailable)
+	{
+		LogVerbose(@"%@ - Flushing ssl buffers into partialReadBuffer...", THIS_METHOD);
+		
+		CFIndex defaultBytesToRead = (1024 * 16);
+		
+		NSUInteger partialReadBufferOffset = [partialReadBuffer length];
+		[partialReadBuffer increaseLengthBy:defaultBytesToRead];
+		
+		uint8_t *buffer = [partialReadBuffer mutableBytes] + partialReadBufferOffset;
+		
+		CFIndex result = CFReadStreamRead(readStream, buffer, defaultBytesToRead);
+		LogVerbose(@"%@ - CFReadStreamRead(): result = %i", THIS_METHOD, (int)result);
+		
+		if (result <= 0)
+		{
+			[partialReadBuffer setLength:partialReadBufferOffset];
+		}
+		else
+		{
+			[partialReadBuffer setLength:(partialReadBufferOffset + result)];
+		}
+		
+		flags &= ~kSecureSocketHasBytesAvailable;
+	}
+	
+#else
+	
+	__block NSUInteger estimatedBytesAvailable;
+	
+	dispatch_block_t updateEstimatedBytesAvailable = ^{
+		
+		// Figure out if there is any data available to be read
+		// 
+		// socketFDBytesAvailable <- Number of encrypted bytes we haven't read from the bsd socket
+		// [sslReadBuffer length] <- Number of encrypted bytes we've buffered from bsd socket
+		// sslInternalBufSize     <- Number od decrypted bytes SecureTransport has buffered
+		// 
+		// We call the variable "estimated" because we don't know how many decrypted bytes we'll get
+		// from the encrypted bytes in the sslReadBuffer.
+		// However, we do know this is an upper bound on the estimation.
+		
+		estimatedBytesAvailable = socketFDBytesAvailable + [sslReadBuffer length];
+		
+		size_t sslInternalBufSize = 0;
+		SSLGetBufferedReadSize(sslContext, &sslInternalBufSize);
+		
+		estimatedBytesAvailable += sslInternalBufSize;
+	};
+	
+	updateEstimatedBytesAvailable();
+	
+	if (estimatedBytesAvailable > 0)
+	{
+		LogVerbose(@"%@ - Flushing ssl buffers into partialReadBuffer...", THIS_METHOD);
+		
+		BOOL done = NO;
+		do
+		{
+			LogVerbose(@"%@ - estimatedBytesAvailable = %lu", THIS_METHOD, (unsigned long)estimatedBytesAvailable);
+			
+			// Make room in the partialReadBuffer
+			
+			NSUInteger partialReadBufferOffset = [partialReadBuffer length];
+			[partialReadBuffer increaseLengthBy:estimatedBytesAvailable];
+			
+			uint8_t *buffer = [partialReadBuffer mutableBytes] + partialReadBufferOffset;
+			size_t bytesRead = 0;
+			
+			// Read data into partialReadBuffer
+			
+			OSStatus result = SSLRead(sslContext, buffer, (size_t)estimatedBytesAvailable, &bytesRead);
+			LogVerbose(@"%@ - read from secure socket = %u", THIS_METHOD, (unsigned)bytesRead);
+			
+			[partialReadBuffer setLength:(partialReadBufferOffset + bytesRead)];
+			LogVerbose(@"%@ - partialReadBuffer.length = %lu", THIS_METHOD, (unsigned long)[partialReadBuffer length]);
+			
+			if (result != noErr)
+			{
+				done = YES;
+			}
+			else
+			{
+				updateEstimatedBytesAvailable();
+			}
+			
+			[DDLog flushLog];
+			
+		} while (!done && estimatedBytesAvailable > 0);
+	}
+	
+#endif
 }
 
 - (void)doReadData
@@ -3746,6 +3883,25 @@ enum GCDAsyncSocketConfig
 		LogVerbose(@"No currentRead or kReadsPaused");
 		
 		// Unable to read at this time
+		
+		if (flags & kSocketSecure)
+		{
+			// Here's the situation:
+			// 
+			// We have an established secure connection.
+			// There may not be a currentRead, but there might be encrypted data sitting around for us.
+			// When the user does get around to issuing a read, that encrypted data will need to be decrypted.
+			// 
+			// So why make the user wait?
+			// We might as well get a head start on decrypting some data now.
+			// 
+			// The other reason we do this has to do with detecting a socket disconnection.
+			// The SSL/TLS protocol has it's own disconnection handshake.
+			// So when a secure socket is closed, a "goodbye" packet comes across the wire.
+			// We want to make sure we read the "goodbye" packet so we can properly detect the TCP disconnection.
+			
+			[self flushSSLBuffers];
+		}
 		
 		if ([self usingCFStream])
 		{
@@ -3787,16 +3943,32 @@ enum GCDAsyncSocketConfig
 		}
 	#else
 		
-		estimatedBytesAvailable = socketFDBytesAvailable + [sslReadBuffer length];
+		estimatedBytesAvailable = socketFDBytesAvailable;
 		
 		if (flags & kSocketSecure)
 		{
-			// SecureTransport has an internal buffer of its own.
-			// When we invoke SSLRead, it in turn invokes our lower level read IO function,
-			// and reads data in encrypted chunks from the socket.
-			// If we ask for a length of data from SSLRead that doesn't fall on the border of
-			// one of these encrypted chunks, then the SSLRead function stores the extra
-			// data in its own internal buffer.
+			// There are 2 buffers to be aware of here.
+			// 
+			// We are using SecureTransport, a TLS/SSL security layer which sits atop TCP.
+			// We issue a read to the SecureTranport API, which in turn issues a read to our SSLReadFunction.
+			// Our SSLReadFunction then reads from the BSD socket and returns the encrypted data to SecureTransport.
+			// SecureTransport then decrypts the data, and finally returns the decrypted data back to us.
+			// 
+			// The first buffer is one we create.
+			// SecureTransport often requests small amounts of data.
+			// This has to do with the encypted packets that are coming across the TCP stream.
+			// But it's non-optimal to do a bunch of small reads from the BSD socket.
+			// So our SSLReadFunction reads all available data from the socket (optimizing the sys call)
+			// and may store excess in the sslReadBuffer.
+			
+			estimatedBytesAvailable += [sslReadBuffer length];
+			
+			// The second buffer is within SecureTransport.
+			// As mentioned earlier, there are encrypted packets coming across the TCP stream.
+			// SecureTransport needs the entire packet to decrypt it.
+			// But if the entire packet produces X bytes of decrypted data,
+			// and we only asked SecureTransport for X/2 bytes of data,
+			// it must store the extra X/2 bytes of decrypted data for the next read.
 			// 
 			// The SSLGetBufferedReadSize function will tell us the size of this internal buffer.
 			// From the documentation:
@@ -3862,10 +4034,10 @@ enum GCDAsyncSocketConfig
 		return;
 	}
 	
-	BOOL done        = NO;  // Completed read operation
-	BOOL waiting     = NO;  // Ran out of data, waiting for more
-	BOOL socketEOF   = NO;  // Nothing more to read (end of file)
-	NSError *error   = nil; // Error occured
+	BOOL done        = NO;                                      // Completed read operation
+	BOOL waiting     = NO;                                      // Ran out of data, waiting for more
+	BOOL socketEOF   = (flags & kSocketHasReadEOF) ? YES : NO;  // Nothing more to via socket (end of file)
+	NSError *error   = nil;                                     // Error occured
 	
 	NSUInteger totalBytesReadForCurrentRead = 0;
 	
@@ -3904,7 +4076,8 @@ enum GCDAsyncSocketConfig
 		
 		// Copy bytes from prebuffer into packet buffer
 		
-		uint8_t *buffer = (uint8_t *)[currentRead->buffer mutableBytes] + currentRead->startOffset + currentRead->bytesDone;
+		uint8_t *buffer = (uint8_t *)[currentRead->buffer mutableBytes] + currentRead->startOffset +
+		                                                                  currentRead->bytesDone;
 		
 		memcpy(buffer, [partialReadBuffer bytes], bytesToCopy);
 		
@@ -3959,7 +4132,7 @@ enum GCDAsyncSocketConfig
 	// STEP 2 - READ FROM SOCKET
 	// 
 	
-	if (!done && !error && hasBytesAvailable)
+	if (!done && !waiting && !socketEOF && !error && hasBytesAvailable)
 	{
 		NSAssert((partialReadBufferLength == 0), @"Invalid logic");
 		
@@ -4041,7 +4214,7 @@ enum GCDAsyncSocketConfig
 		{
 			#if TARGET_OS_IPHONE
 				
-				CFIndex result = CFReadStreamRead(readStream, (uint8_t *)buffer, (CFIndex)bytesToRead);
+				CFIndex result = CFReadStreamRead(readStream, buffer, (CFIndex)bytesToRead);
 				LogVerbose(@"CFReadStreamRead(): result = %i", (int)result);
 				
 				if (result < 0)
@@ -4329,7 +4502,7 @@ enum GCDAsyncSocketConfig
 	{
 		[self completeCurrentRead];
 		
-		if (!socketEOF && !error)
+		if (!error && (!socketEOF || partialReadBufferLength > 0))
 		{
 			[self maybeDequeueRead];
 		}
@@ -4379,6 +4552,19 @@ enum GCDAsyncSocketConfig
 {
 	LogTrace();
 	
+	// This method may be called more than once.
+	// If the EOF is read while there is still data in the partialReadBuffer,
+	// then this method may be called continually after invocations of doReadData to see if it's time to disconnect.
+	
+	flags |= kSocketHasReadEOF;
+	
+	if (flags & kSocketSecure)
+	{
+		// If the SSL layer has any buffered data, flush it into the partialReadBuffer now.
+		
+		[self flushSSLBuffers];
+	}
+	
 	BOOL shouldDisconnect;
 	NSError *error = nil;
 	
@@ -4393,10 +4579,34 @@ enum GCDAsyncSocketConfig
 			error = [self sslError:errSSLClosedAbort];
 		#endif
 	}
+	else if (flags & kReadStreamClosed)
+	{
+		// The partialReadBuffer has already been drained.
+		// The config allows half-duplex connections.
+		// We've previously checked the socket, and it appeared writeable.
+		// So we marked the read stream as closed and notified the delegate.
+		// 
+		// As per the half-duplex contract, the socket will be closed when a write fails,
+		// or when the socket is manually closed.
+		
+		shouldDisconnect = NO;
+	}
+	else if ([partialReadBuffer length] > 0)
+	{
+		LogVerbose(@"Socket reached EOF, but there is still data available in prebuffer");
+		
+		// Although we won't be able to read any more data from the socket,
+		// there is existing data that has been prebuffered that we can read.
+		
+		shouldDisconnect = NO;
+	}
 	else if (config & kAllowHalfDuplexConnection)
 	{
 		// We just received an EOF (end of file) from the socket's read stream.
-		// Query the socket to see if it is still writeable.
+		// This means the remote end of the socket (the peer we're connected to)
+		// has explicitly stated that it will not be sending us any more data.
+		// 
+		// Query the socket to see if it is still writeable. (Perhaps the peer will continue reading data from us)
 		
 		int socketFD = (socket4FD == SOCKET_NULL) ? socket6FD : socket4FD;
 		
@@ -4407,7 +4617,32 @@ enum GCDAsyncSocketConfig
 		
 		poll(pfd, 1, 0);
 		
-		shouldDisconnect = (pfd[0].revents & POLLOUT) ? NO : YES;
+		if (pfd[0].revents & POLLOUT)
+		{
+			// Socket appears to still be writeable
+			
+			shouldDisconnect = NO;
+			flags |= kReadStreamClosed;
+			
+			// Notify the delegate that we're going half-duplex
+			
+			if (delegateQueue && [delegate respondsToSelector:@selector(socketDidCloseReadStream:)])
+			{
+				id theDelegate = delegate;
+				
+				dispatch_async(delegateQueue, ^{
+					NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+					
+					[theDelegate socketDidCloseReadStream:self];
+					
+					[pool drain];
+				});
+			}
+		}
+		else
+		{
+			shouldDisconnect = YES;
+		}
 	}
 	else
 	{
@@ -4425,21 +4660,6 @@ enum GCDAsyncSocketConfig
 	}
 	else
 	{
-		// Notify the delegate
-		
-		if (delegateQueue && [delegate respondsToSelector:@selector(socketDidCloseReadStream:)])
-		{
-			id theDelegate = delegate;
-			
-			dispatch_async(delegateQueue, ^{
-				NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-				
-				[theDelegate socketDidCloseReadStream:self];
-				
-				[pool drain];
-			});
-		}
-		
 		if (![self usingCFStream])
 		{
 			// Suspend the read source (if needed)
@@ -5264,8 +5484,8 @@ enum GCDAsyncSocketConfig
 		return errSSLWouldBlock;
 	}
 	
-	size_t totalBytesLeft = *bufferLength;
 	size_t totalBytesRead = 0;
+	size_t totalBytesLeftToBeRead = *bufferLength;
 	
 	BOOL done = NO;
 	BOOL socketError = NO;
@@ -5280,7 +5500,11 @@ enum GCDAsyncSocketConfig
 	{
 		LogVerbose(@"%@: Reading from SSL pre buffer...", THIS_METHOD);
 		
-		size_t bytesToCopy = (size_t)((sslReadBufferLength > totalBytesLeft) ? totalBytesLeft : sslReadBufferLength);
+		size_t bytesToCopy;
+		if (sslReadBufferLength > totalBytesLeftToBeRead)
+			bytesToCopy = totalBytesLeftToBeRead;
+		else
+			bytesToCopy = (size_t)sslReadBufferLength;
 		
 		LogVerbose(@"%@: Copying %zu bytes from sslReadBuffer", THIS_METHOD, bytesToCopy);
 		
@@ -5290,10 +5514,10 @@ enum GCDAsyncSocketConfig
 		
 		LogVerbose(@"%@: sslReadBuffer.length = %lu", THIS_METHOD, (unsigned long)[sslReadBuffer length]);
 		
-		totalBytesLeft -= bytesToCopy;
 		totalBytesRead += bytesToCopy;
+		totalBytesLeftToBeRead -= bytesToCopy;
 		
-		done = (totalBytesLeft == 0);
+		done = (totalBytesLeftToBeRead == 0);
 		
 		if (done) LogVerbose(@"%@: Complete", THIS_METHOD);
 	}
@@ -5312,7 +5536,7 @@ enum GCDAsyncSocketConfig
 		size_t bytesToRead;
 		uint8_t *buf;
 		
-		if (socketFDBytesAvailable > totalBytesLeft)
+		if (socketFDBytesAvailable > totalBytesLeftToBeRead)
 		{
 			// Read all available data from socket into sslReadBuffer.
 			// Then copy requested amount into dataBuffer.
@@ -5335,7 +5559,7 @@ enum GCDAsyncSocketConfig
 			LogVerbose(@"%@: Reading directly into dataBuffer...", THIS_METHOD);
 			
 			readIntoPreBuffer = NO;
-			bytesToRead = totalBytesLeft;
+			bytesToRead = totalBytesLeftToBeRead;
 			buf = (uint8_t *)buffer + totalBytesRead;
 		}
 		
@@ -5360,6 +5584,8 @@ enum GCDAsyncSocketConfig
 		}
 		else if (result == 0)
 		{
+			LogVerbose(@"%@: read EOF", THIS_METHOD);
+			
 			socketError = YES;
 			socketFDBytesAvailable = 0;
 			
@@ -5379,7 +5605,7 @@ enum GCDAsyncSocketConfig
 			
 			if (readIntoPreBuffer)
 			{
-				size_t bytesToCopy = MIN(totalBytesLeft, bytesReadFromSocket);
+				size_t bytesToCopy = MIN(totalBytesLeftToBeRead, bytesReadFromSocket);
 				
 				LogVerbose(@"%@: Copying %zu bytes out of sslReadBuffer", THIS_METHOD, bytesToCopy);
 				
@@ -5388,18 +5614,18 @@ enum GCDAsyncSocketConfig
 				[sslReadBuffer setLength:bytesReadFromSocket];
 				[sslReadBuffer replaceBytesInRange:NSMakeRange(0, bytesToCopy) withBytes:NULL length:0];
 				
-				totalBytesLeft -= bytesToCopy;
 				totalBytesRead += bytesToCopy;
+				totalBytesLeftToBeRead -= bytesToCopy;
 				
 				LogVerbose(@"%@: sslReadBuffer.length = %lu", THIS_METHOD, (unsigned long)[sslReadBuffer length]);
 			}
 			else
 			{
-				totalBytesLeft -= bytesReadFromSocket;
 				totalBytesRead += bytesReadFromSocket;
+				totalBytesLeftToBeRead -= bytesReadFromSocket;
 			}
 			
-			done = (totalBytesLeft == 0);
+			done = (totalBytesLeftToBeRead == 0);
 			
 			if (done) LogVerbose(@"%@: Complete", THIS_METHOD);
 		}
@@ -5943,7 +6169,11 @@ static void CFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType type
 		}
 		default:
 		{
-			NSError *error = NSMakeCollectable(CFReadStreamCopyError(stream));
+			NSError *error;
+			if (type == kCFStreamEventEndEncountered)
+				error = [[asyncSocket connectionClosedError] retain];
+			else
+				error = NSMakeCollectable(CFReadStreamCopyError(stream));
 			
 			dispatch_async(asyncSocket->socketQueue, ^{
 				
