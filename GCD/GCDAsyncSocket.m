@@ -3939,8 +3939,6 @@ enum GCDAsyncSocketConfig
 				updateEstimatedBytesAvailable();
 			}
 			
-			[DDLog flushLog];
-			
 		} while (!done && estimatedBytesAvailable > 0);
 	}
 	
