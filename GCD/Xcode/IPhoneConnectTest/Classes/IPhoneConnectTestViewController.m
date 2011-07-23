@@ -3,6 +3,8 @@
 
 @implementation IPhoneConnectTestViewController
 
+@synthesize label;
+
 - (void)dealloc
 {
 	[super dealloc];

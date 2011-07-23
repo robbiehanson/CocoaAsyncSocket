@@ -121,7 +121,7 @@ enum GCDAsyncSocketFlags
 	kSocketHasReadEOF              = 1 << 14,  // If set, we have read EOF from socket
 	kReadStreamClosed              = 1 << 15,  // If set, we've read EOF plus prebuffer has been drained
 #if TARGET_OS_IPHONE
-	kAddedHandshakeListener        = 1 << 16,  // If set, rw streams have been added to handshake listener thread
+	kAddedStreamListener           = 1 << 16,  // If set, CFStreams have been added to listener thread
 	kSecureSocketHasBytesAvailable = 1 << 17,  // If set, CFReadStream has notified us of bytes available
 #endif
 };
@@ -135,7 +135,7 @@ enum GCDAsyncSocketConfig
 };
 
 #if TARGET_OS_IPHONE
-  static NSThread *sslHandshakeThread;
+  static NSThread *listenerThread;  // Used for CFStreams
 #endif
 
 @interface GCDAsyncSocket (Private)
@@ -221,6 +221,16 @@ enum GCDAsyncSocketConfig
 - (void)maybeStartTLS;
 #if !TARGET_OS_IPHONE
 - (void)continueSSLHandshake;
+#endif
+
+// CFStream
+#if TARGET_OS_IPHONE
++ (void)startListenerThreadIfNeeded;
+- (BOOL)createReadAndWriteStream;
+- (BOOL)registerForStreamCallbacksIncludingReadWrite:(BOOL)includeReadWrite;
+- (BOOL)addStreamsToRunLoop;
+- (BOOL)openStreams;
+- (void)removeStreamsFromRunLoop;
 #endif
 
 // Class Methods
@@ -1683,7 +1693,7 @@ enum GCDAsyncSocketConfig
 **/
 - (BOOL)preConnectWithInterface:(NSString *)interface error:(NSError **)errPtr
 {
-	NSAssert(dispatch_get_current_queue() == socketQueue, @"Exectued on wrong dispatch queue");
+	NSAssert(dispatch_get_current_queue() == socketQueue, @"Must be dispatched on socketQueue");
 	
 	if (delegate == nil) // Must have delegate set
 	{
@@ -2077,7 +2087,7 @@ enum GCDAsyncSocketConfig
 {
 	LogTrace();
 	
-	NSAssert(dispatch_get_current_queue() == socketQueue, @"Exectued on wrong dispatch queue");
+	NSAssert(dispatch_get_current_queue() == socketQueue, @"Must be dispatched on socketQueue");
 	NSAssert(address4 || address6, @"Expected at least one valid address");
 	
 	if (aConnectIndex != connectIndex)
@@ -2131,7 +2141,7 @@ enum GCDAsyncSocketConfig
 {
 	LogTrace();
 	
-	NSAssert(dispatch_get_current_queue() == socketQueue, @"Exectued on wrong dispatch queue");
+	NSAssert(dispatch_get_current_queue() == socketQueue, @"Must be dispatched on socketQueue");
 	
 	
 	if (aConnectIndex != connectIndex)
@@ -2151,7 +2161,7 @@ enum GCDAsyncSocketConfig
 {
 	LogTrace();
 	
-	NSAssert(dispatch_get_current_queue() == socketQueue, @"Exectued on wrong dispatch queue");
+	NSAssert(dispatch_get_current_queue() == socketQueue, @"Must be dispatched on socketQueue");
 	
 	
 	// Determine socket type
@@ -2274,21 +2284,89 @@ enum GCDAsyncSocketConfig
 	flags |= kConnected;
 	
 	[self endConnectTimeout];
+	aConnectIndex = connectIndex;
+	
+	// Setup read/write streams (as workaround for specific shortcomings in the iOS platform)
+	// 
+	// Note:
+	// There may be configuration options that must be set by the delegate before opening the streams.
+	// The primary example is the kCFStreamNetworkServiceTypeVoIP flag, which only works on an unopened stream.
+	// 
+	// Thus we wait until after the socket:didConnectToHost:port: delegate method has completed.
+	// This gives the delegate time to properly configure the streams if needed.
+	
+	dispatch_block_t SetupStreamsPart1 = ^{
+		#if TARGET_OS_IPHONE
+		
+		if (![self createReadAndWriteStream])
+		{
+			[self closeWithError:[self otherError:@"Error creating CFStreams"]];
+			return;
+		}
+		
+		if (![self registerForStreamCallbacksIncludingReadWrite:NO])
+		{
+			[self closeWithError:[self otherError:@"Error in CFStreamSetClient"]];
+			return;
+		}
+		
+		#endif
+	};
+	dispatch_block_t SetupStreamsPart2 = ^{
+		#if TARGET_OS_IPHONE
+		
+		if (aConnectIndex != connectIndex)
+		{
+			// The socket has been disconnected.
+			return;
+		}
+		
+		if (![self addStreamsToRunLoop])
+		{
+			[self closeWithError:[self otherError:@"Error in CFStreamScheduleWithRunLoop"]];
+			return;
+		}
+		
+		if (![self openStreams])
+		{
+			[self closeWithError:[self otherError:@"Error creating CFStreams"]];
+			return;
+		}
+		
+		#endif
+	};
+	
+	// Notify delegate
 	
 	NSString *host = [self connectedHost];
 	uint16_t port = [self connectedPort];
 	
 	if (delegateQueue && [delegate respondsToSelector:@selector(socket:didConnectToHost:port:)])
 	{
+		SetupStreamsPart1();
+		
 		id theDelegate = delegate;
 		
 		dispatch_async(delegateQueue, ^{
-			NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+			NSAutoreleasePool *delegatePool = [[NSAutoreleasePool alloc] init];
 			
 			[theDelegate socket:self didConnectToHost:host port:port];
 			
-			[pool drain];
+			dispatch_async(socketQueue, ^{
+				NSAutoreleasePool *callbackPool = [[NSAutoreleasePool alloc] init];
+				
+				SetupStreamsPart2();
+				
+				[callbackPool drain];
+			});
+			
+			[delegatePool drain];
 		});
+	}
+	else
+	{
+		SetupStreamsPart1();
+		SetupStreamsPart2();
 	}
 		
 	// Get the connected socket
@@ -2311,7 +2389,7 @@ enum GCDAsyncSocketConfig
 	int nosigpipe = 1;
 	setsockopt(socketFD, SOL_SOCKET, SO_NOSIGPIPE, &nosigpipe, sizeof(nosigpipe));
 	
-	// Setup our read/write sources.
+	// Setup our read/write sources
 	
 	[self setupReadAndWriteSourcesForNewlyConnectedSocket:socketFD];
 	
@@ -2428,15 +2506,10 @@ enum GCDAsyncSocketConfig
 	[partialReadBuffer setLength:0];
 	
 	#if TARGET_OS_IPHONE
+	{
 		if (readStream || writeStream)
 		{
-			if (flags & kAddedHandshakeListener)
-			{
-				[[self class] performSelector:@selector(removeHandshakeListener:)
-				                     onThread:sslHandshakeThread
-				                   withObject:self
-			                waitUntilDone:YES];
-			}
+			[self removeStreamsFromRunLoop];
 			
 			if (readStream)
 			{
@@ -2453,13 +2526,16 @@ enum GCDAsyncSocketConfig
 				writeStream = NULL;
 			}
 		}
+	}
 	#else
+	{
 		[sslReadBuffer setLength:0];
 		if (sslContext)
 		{
 			SSLDisposeContext(sslContext);
 			sslContext = NULL;
 		}
+	}
 	#endif
 	
 	// For some crazy reason (in my opinion), cancelling a dispatch source doesn't
@@ -6033,62 +6109,6 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 
 #if TARGET_OS_IPHONE
 
-+ (void)startHandshakeThreadIfNeeded
-{
-	static dispatch_once_t predicate;
-	
-	dispatch_once(&predicate, ^{
-		
-		sslHandshakeThread = [[NSThread alloc] initWithTarget:self
-		                                             selector:@selector(sslHandshakeThread)
-		                                               object:nil];
-		[sslHandshakeThread start];
-	});
-}
-
-+ (void)sslHandshakeThread
-{
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-	
-	LogInfo(@"SSLHandshakeThread: Started");
-	
-	// We can't run the run loop unless it has an associated input source or a timer.
-	// So we'll just create a timer that will never fire - unless the server runs for 10,000 years.
-	[NSTimer scheduledTimerWithTimeInterval:DBL_MAX target:self selector:@selector(ignore:) userInfo:nil repeats:NO];
-	
-	[[NSRunLoop currentRunLoop] run];
-	
-	LogInfo(@"SSLHandshakeThread: Stopped");
-	
-	[pool release];
-}
-
-+ (void)addHandshakeListener:(GCDAsyncSocket *)asyncSocket
-{
-	LogTrace();
-	
-	CFRunLoopRef runLoop = CFRunLoopGetCurrent();
-	
-	if (asyncSocket->readStream)
-		CFReadStreamScheduleWithRunLoop(asyncSocket->readStream, runLoop, kCFRunLoopDefaultMode);
-	
-	if (asyncSocket->writeStream)
-		CFWriteStreamScheduleWithRunLoop(asyncSocket->writeStream, runLoop, kCFRunLoopDefaultMode);
-}
-
-+ (void)removeHandshakeListener:(GCDAsyncSocket *)asyncSocket
-{
-	LogTrace();
-	
-	CFRunLoopRef runLoop = CFRunLoopGetCurrent();
-	
-	if (asyncSocket->readStream)
-		CFReadStreamUnscheduleFromRunLoop(asyncSocket->readStream, runLoop, kCFRunLoopDefaultMode);
-	
-	if (asyncSocket->writeStream)
-		CFWriteStreamUnscheduleFromRunLoop(asyncSocket->writeStream, runLoop, kCFRunLoopDefaultMode);
-}
-
 - (void)finishSSLHandshake
 {
 	LogTrace();
@@ -6134,6 +6154,165 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	}
 }
 
+- (void)maybeStartTLS
+{
+	LogTrace();
+	
+	// We can't start TLS until:
+	// - All queued reads prior to the user calling startTLS are complete
+	// - All queued writes prior to the user calling startTLS are complete
+	// 
+	// We'll know these conditions are met when both kStartingReadTLS and kStartingWriteTLS are set
+	
+	if ((flags & kStartingReadTLS) && (flags & kStartingWriteTLS))
+	{
+		LogVerbose(@"Starting TLS...");
+		
+		if ([partialReadBuffer length] > 0)
+		{
+			NSString *msg = @"Invalid TLS transition. Handshake has already been read from socket.";
+			
+			[self closeWithError:[self otherError:msg]];
+			return;
+		}
+		
+		[self suspendReadSource];
+		[self suspendWriteSource];
+		
+		socketFDBytesAvailable = 0;
+		flags &= ~kSocketCanAcceptBytes;
+		flags &= ~kSecureSocketHasBytesAvailable;
+		
+		if (![self createReadAndWriteStream])
+		{
+			[self closeWithError:[self otherError:@"Error in CFStreamCreatePairWithSocket"]];
+			return;
+		}
+		
+		if (![self registerForStreamCallbacksIncludingReadWrite:YES])
+		{
+			[self closeWithError:[self otherError:@"Error in CFStreamSetClient"]];
+			return;
+		}
+		
+		if (![self addStreamsToRunLoop])
+		{
+			[self closeWithError:[self otherError:@"Error in CFStreamScheduleWithRunLoop"]];
+			return;
+		}
+		
+		NSAssert([currentRead isKindOfClass:[GCDAsyncSpecialPacket class]], @"Invalid read packet for startTLS");
+		NSAssert([currentWrite isKindOfClass:[GCDAsyncSpecialPacket class]], @"Invalid write packet for startTLS");
+		
+		GCDAsyncSpecialPacket *tlsPacket = (GCDAsyncSpecialPacket *)currentRead;
+		NSDictionary *tlsSettings = tlsPacket->tlsSettings;
+		
+		// Getting an error concerning kCFStreamPropertySSLSettings ?
+		// You need to add the CFNetwork framework to your iOS application.
+		
+		BOOL r1 = CFReadStreamSetProperty(readStream, kCFStreamPropertySSLSettings, (CFDictionaryRef)tlsSettings);
+		BOOL r2 = CFWriteStreamSetProperty(writeStream, kCFStreamPropertySSLSettings, (CFDictionaryRef)tlsSettings);
+		
+		// For some reason, starting around the time of iOS 4.3,
+		// the first call to set the kCFStreamPropertySSLSettings will return true,
+		// but the second will return false.
+		// 
+		// Order doesn't seem to matter.
+		// So you could call CFReadStreamSetProperty and then CFWriteStreamSetProperty, or you could reverse the order.
+		// Either way, the first call will return true, and the second returns false.
+		// 
+		// Interestingly, this doesn't seem to affect anything.
+		// Which is not altogether unusual, as the documentation seems to suggest that (for many settings)
+		// setting it on one side of the stream automatically sets it for the other side of the stream.
+		// 
+		// Although there isn't anything in the documentation to suggest that the second attempt would fail.
+		// 
+		// Furthermore, this only seems to affect streams that are negotiating a security upgrade.
+		// In other words, the socket gets connected, there is some back-and-forth communication over the unsecure
+		// connection, and then a startTLS is issued.
+		// So this mostly affects newer protocols (XMPP, IMAP) as opposed to older protocols (HTTPS).
+		
+		if (!r1 && !r2) // Yes, the && is correct - workaround for apple bug.
+		{
+			[self closeWithError:[self otherError:@"Error in CFStreamSetProperty"]];
+			return;
+		}
+		
+		if (![self openStreams])
+		{
+			[self closeWithError:[self otherError:@"Error in CFStreamOpen"]];
+			return;
+		}
+		
+		LogVerbose(@"Waiting for SSL Handshake to complete...");
+	}
+}
+
+#endif
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark CFStream
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#if TARGET_OS_IPHONE
+
++ (void)startListenerThreadIfNeeded
+{
+	static dispatch_once_t predicate;
+	dispatch_once(&predicate, ^{
+		
+		listenerThread = [[NSThread alloc] initWithTarget:self
+		                                         selector:@selector(listenerThread)
+		                                           object:nil];
+		[listenerThread start];
+	});
+}
+
++ (void)listenerThread
+{
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	
+	LogInfo(@"ListenerThread: Started");
+	
+	// We can't run the run loop unless it has an associated input source or a timer.
+	// So we'll just create a timer that will never fire - unless the server runs for 10,000 years.
+	[NSTimer scheduledTimerWithTimeInterval:DBL_MAX target:self selector:@selector(ignore:) userInfo:nil repeats:NO];
+	
+	[[NSRunLoop currentRunLoop] run];
+	
+	LogInfo(@"ListenerThread: Stopped");
+	
+	[pool release];
+}
+
++ (void)addStreamListener:(GCDAsyncSocket *)asyncSocket
+{
+	LogTrace();
+	NSAssert([NSThread currentThread] == listenerThread, @"Invoked on wrong thread");
+	
+	CFRunLoopRef runLoop = CFRunLoopGetCurrent();
+	
+	if (asyncSocket->readStream)
+		CFReadStreamScheduleWithRunLoop(asyncSocket->readStream, runLoop, kCFRunLoopDefaultMode);
+	
+	if (asyncSocket->writeStream)
+		CFWriteStreamScheduleWithRunLoop(asyncSocket->writeStream, runLoop, kCFRunLoopDefaultMode);
+}
+
++ (void)removeStreamListener:(GCDAsyncSocket *)asyncSocket
+{
+	LogTrace();
+	NSAssert([NSThread currentThread] == listenerThread, @"Invoked on wrong thread");
+	
+	CFRunLoopRef runLoop = CFRunLoopGetCurrent();
+	
+	if (asyncSocket->readStream)
+		CFReadStreamUnscheduleFromRunLoop(asyncSocket->readStream, runLoop, kCFRunLoopDefaultMode);
+	
+	if (asyncSocket->writeStream)
+		CFWriteStreamUnscheduleFromRunLoop(asyncSocket->writeStream, runLoop, kCFRunLoopDefaultMode);
+}
+
 static void CFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType type, void *pInfo)
 {
 	GCDAsyncSocket *asyncSocket = [(GCDAsyncSocket *)pInfo retain];
@@ -6169,11 +6348,11 @@ static void CFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType type
 		}
 		default:
 		{
-			NSError *error;
-			if (type == kCFStreamEventEndEncountered)
+			NSError *error = NSMakeCollectable(CFReadStreamCopyError(stream));
+			if (error == nil && type == kCFStreamEventEndEncountered)
+			{
 				error = [[asyncSocket connectionClosedError] retain];
-			else
-				error = NSMakeCollectable(CFReadStreamCopyError(stream));
+			}
 			
 			dispatch_async(asyncSocket->socketQueue, ^{
 				
@@ -6240,6 +6419,10 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 		default:
 		{
 			NSError *error = NSMakeCollectable(CFWriteStreamCopyError(stream));
+			if (error == nil && type == kCFStreamEventEndEncountered)
+			{
+				error = [[asyncSocket connectionClosedError] retain];
+			}
 			
 			dispatch_async(asyncSocket->socketQueue, ^{
 				
@@ -6272,12 +6455,28 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 
 - (BOOL)createReadAndWriteStream
 {
-	NSAssert((readStream == NULL && writeStream == NULL), @"Read/Write stream not null");
+	LogTrace();
+	
+	NSAssert(dispatch_get_current_queue() == socketQueue, @"Must be dispatched on socketQueue");
+	
+	
+	if (readStream || writeStream)
+	{
+		// Streams already created
+		return YES;
+	}
 	
 	int socketFD = (socket6FD == SOCKET_NULL) ? socket4FD : socket6FD;
 	
 	if (socketFD == SOCKET_NULL)
 	{
+		// Cannot create streams without a file descriptor
+		return NO;
+	}
+	
+	if (![self isConnected])
+	{
+		// Cannot create streams until file descriptor is connected
 		return NO;
 	}
 	
@@ -6316,131 +6515,104 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	return YES;
 }
 
-- (void)maybeStartTLS
+- (BOOL)registerForStreamCallbacksIncludingReadWrite:(BOOL)includeReadWrite
+{
+	LogVerbose(@"%@ %@", THIS_METHOD, (includeReadWrite ? @"YES" : @"NO"));
+	
+	NSAssert(dispatch_get_current_queue() == socketQueue, @"Must be dispatched on socketQueue");
+	NSAssert((readStream != NULL && writeStream != NULL), @"Read/Write stream is null");
+	
+	streamContext.version = 0;
+	streamContext.info = self;
+	streamContext.retain = nil;
+	streamContext.release = nil;
+	streamContext.copyDescription = nil;
+	
+	CFOptionFlags readStreamEvents = kCFStreamEventErrorOccurred | kCFStreamEventEndEncountered;
+	if (includeReadWrite)
+		readStreamEvents |= kCFStreamEventHasBytesAvailable;
+	
+	if (!CFReadStreamSetClient(readStream, readStreamEvents, &CFReadStreamCallback, &streamContext))
+	{
+		return NO;
+	}
+	
+	CFOptionFlags writeStreamEvents = kCFStreamEventErrorOccurred | kCFStreamEventEndEncountered;
+	if (includeReadWrite)
+		writeStreamEvents |= kCFStreamEventCanAcceptBytes;
+	
+	if (!CFWriteStreamSetClient(writeStream, writeStreamEvents, &CFWriteStreamCallback, &streamContext))
+	{
+		return NO;
+	}
+	
+	return YES;
+}
+
+- (BOOL)addStreamsToRunLoop
 {
 	LogTrace();
 	
-	// We can't start TLS until:
-	// - All queued reads prior to the user calling startTLS are complete
-	// - All queued writes prior to the user calling startTLS are complete
-	// 
-	// We'll know these conditions are met when both kStartingReadTLS and kStartingWriteTLS are set
+	NSAssert(dispatch_get_current_queue() == socketQueue, @"Must be dispatched on socketQueue");
+	NSAssert((readStream != NULL && writeStream != NULL), @"Read/Write stream is null");
 	
-	if ((flags & kStartingReadTLS) && (flags & kStartingWriteTLS))
+	if (!(flags & kAddedStreamListener))
 	{
-		LogVerbose(@"Starting TLS...");
-		
-		if ([partialReadBuffer length] > 0)
-		{
-			NSString *msg = @"Invalid TLS transition. Handshake has already been read from socket.";
-			
-			[self closeWithError:[self otherError:msg]];
-			return;
-		}
-		
-		[self suspendReadSource];
-		[self suspendWriteSource];
-		
-		socketFDBytesAvailable = 0;
-		flags &= ~kSocketCanAcceptBytes;
-		flags &= ~kSecureSocketHasBytesAvailable;
-		
-		if (readStream == NULL || writeStream == NULL)
-		{
-			if (![self createReadAndWriteStream])
-			{
-				[self closeWithError:[self otherError:@"Error in CFStreamCreatePairWithSocket"]];
-				return;
-			}
-		}
-		
-		streamContext.version = 0;
-		streamContext.info = self;
-		streamContext.retain = nil;
-		streamContext.release = nil;
-		streamContext.copyDescription = nil;
-		
-		CFOptionFlags readStreamEvents = kCFStreamEventHasBytesAvailable |
-		                                 kCFStreamEventErrorOccurred     |
-		                                 kCFStreamEventEndEncountered    ;
-		
-		if (!CFReadStreamSetClient(readStream, readStreamEvents, &CFReadStreamCallback, &streamContext))
-		{
-			[self closeWithError:[self otherError:@"Error in CFReadStreamSetClient"]];
-			return;
-		}
-		
-		CFOptionFlags writeStreamEvents = kCFStreamEventCanAcceptBytes |
-		                                  kCFStreamEventErrorOccurred  |
-		                                  kCFStreamEventEndEncountered ;
-		
-		if (!CFWriteStreamSetClient(writeStream, writeStreamEvents, &CFWriteStreamCallback, &streamContext))
-		{
-			[self closeWithError:[self otherError:@"Error in CFWriteStreamSetClient"]];
-			return;
-		}
-		
-		[[self class] startHandshakeThreadIfNeeded];
-		[[self class] performSelector:@selector(addHandshakeListener:)
-		                     onThread:sslHandshakeThread
+		[[self class] startListenerThreadIfNeeded];
+		[[self class] performSelector:@selector(addStreamListener:)
+		                     onThread:listenerThread
 		                   withObject:self
 		                waitUntilDone:YES];
 		
-		flags |= kAddedHandshakeListener;
-		
-		NSAssert([currentRead isKindOfClass:[GCDAsyncSpecialPacket class]], @"Invalid read packet for startTLS");
-		NSAssert([currentWrite isKindOfClass:[GCDAsyncSpecialPacket class]], @"Invalid write packet for startTLS");
-		
-		GCDAsyncSpecialPacket *tlsPacket = (GCDAsyncSpecialPacket *)currentRead;
-		NSDictionary *tlsSettings = tlsPacket->tlsSettings;
-		
-		// Getting an error concerning kCFStreamPropertySSLSettings ?
-		// You need to add the CFNetwork framework to your iOS application.
-		
-		BOOL r1 = CFReadStreamSetProperty(readStream, kCFStreamPropertySSLSettings, (CFDictionaryRef)tlsSettings);
-		BOOL r2 = CFWriteStreamSetProperty(writeStream, kCFStreamPropertySSLSettings, (CFDictionaryRef)tlsSettings);
-		
-		// For some reason, starting around the time of iOS 4.3,
-		// the first call to set the kCFStreamPropertySSLSettings will return true,
-		// but the second will return false.
-		// 
-		// Order doesn't seem to matter.
-		// So you could call CFReadStreamSetProperty and then CFWriteStreamSetProperty, or you could reverse the order.
-		// Either way, the first call will return true, and the second returns false.
-		// 
-		// Interestingly, this doesn't seem to affect anything.
-		// Which is not altogether unusual, as the documentation seems to suggest that (for many settings)
-		// setting it on one side of the stream automatically sets it for the other side of the stream.
-		// 
-		// Although there isn't anything in the documentation to suggest that the second attempt would fail.
-		// 
-		// Furthermore, this only seems to affect streams that are negotiating a security upgrade.
-		// In other words, the socket gets connected, there is some back-and-forth communication over the unsecure
-		// connection, and then a startTLS is issued.
-		// So this mostly affects newer protocols (XMPP, IMAP) as opposed to older protocols (HTTPS).
-		
-		if (!r1 && !r2) // Yes, the && is correct - workaround for apple bug.
-		{
-			[self closeWithError:[self otherError:@"Error in CFStreamSetProperty"]];
-			return;
-		}
-		
-		CFStreamStatus readStatus = CFReadStreamGetStatus(readStream);
-		CFStreamStatus writeStatus = CFWriteStreamGetStatus(writeStream);
-		
-		if ((readStatus == kCFStreamStatusNotOpen) || (writeStatus == kCFStreamStatusNotOpen))
-		{
-			r1 = CFReadStreamOpen(readStream);
-			r2 = CFWriteStreamOpen(writeStream);
-			
-			if (!r1 || !r2)
-			{
-				[self closeWithError:[self otherError:@"Error in CFStreamOpen"]];
-			}
-		}
-		
-		LogVerbose(@"Waiting for SSL Handshake to complete...");
+		flags |= kAddedStreamListener;
 	}
+	
+	return YES;
+}
+
+- (void)removeStreamsFromRunLoop
+{
+	LogTrace();
+	
+	NSAssert(dispatch_get_current_queue() == socketQueue, @"Must be dispatched on socketQueue");
+	NSAssert((readStream != NULL && writeStream != NULL), @"Read/Write stream is null");
+	
+	if (flags & kAddedStreamListener)
+	{
+		[[self class] performSelector:@selector(removeStreamListener:)
+		                     onThread:listenerThread
+		                   withObject:self
+		                waitUntilDone:YES];
+		
+		flags &= ~kAddedStreamListener;
+	}
+}
+
+- (BOOL)openStreams
+{
+	LogTrace();
+	
+	NSAssert(dispatch_get_current_queue() == socketQueue, @"Must be dispatched on socketQueue");
+	NSAssert((readStream != NULL && writeStream != NULL), @"Read/Write stream is null");
+	
+	CFStreamStatus readStatus = CFReadStreamGetStatus(readStream);
+	CFStreamStatus writeStatus = CFWriteStreamGetStatus(writeStream);
+	
+	if ((readStatus == kCFStreamStatusNotOpen) || (writeStatus == kCFStreamStatusNotOpen))
+	{
+		LogVerbose(@"Opening read and write stream...");
+		
+		BOOL r1 = CFReadStreamOpen(readStream);
+		BOOL r2 = CFWriteStreamOpen(writeStream);
+		
+		if (!r1 || !r2)
+		{
+			LogError(@"Error in CFStreamOpen");
+			return NO;
+		}
+	}
+	
+	return YES;
 }
 
 #endif
@@ -6519,13 +6691,10 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 
 - (BOOL)enableBackgroundingOnSocketWithCaveat:(BOOL)caveat
 {
-	if (readStream == NULL || writeStream == NULL)
+	if (![self createReadAndWriteStream])
 	{
-		if (![self createReadAndWriteStream])
-		{
-			// Error occured creating streams (perhaps socket isn't open)
-			return NO;
-		}
+		// Error occured creating streams (perhaps socket isn't open)
+		return NO;
 	}
 	
 	BOOL r1, r2;
@@ -6543,19 +6712,9 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	
 	if (!caveat)
 	{
-		CFStreamStatus readStatus = CFReadStreamGetStatus(readStream);
-		CFStreamStatus writeStatus = CFWriteStreamGetStatus(writeStream);
-		
-		if ((readStatus == kCFStreamStatusNotOpen) || (writeStatus == kCFStreamStatusNotOpen))
+		if (![self openStreams])
 		{
-			r1 = CFReadStreamOpen(readStream);
-			r2 = CFWriteStreamOpen(writeStream);
-			
-			if (!r1 || !r2)
-			{
-				LogError(@"Error opening bg streams");
-				return NO;
-			}
+			return NO;
 		}
 	}
 	
@@ -6576,8 +6735,12 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	}
 }
 
-- (BOOL)enableBackgroundingOnSocketWithCaveat
+- (BOOL)enableBackgroundingOnSocketWithCaveat // Deprecated in iOS 4.???
 {
+	// This method was created as a workaround for a bug in iOS.
+	// Apple has since fixed this bug.
+	// I'm not entirely sure which version of iOS they fixed it in...
+	
 	LogTrace();
 	
 	if (dispatch_get_current_queue() == socketQueue)
