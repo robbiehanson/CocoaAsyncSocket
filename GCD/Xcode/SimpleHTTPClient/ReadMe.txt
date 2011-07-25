@@ -1,1 +1,1 @@
-This project is just a simple demonstration of writing and reading data using GCDAsyncSocket. Obviously it's not meant to be a full fledged HTTP client. There are other excellent libraries for that task. But the HTTP protocol itself is so simple, it makes for a great example.
+The SimpleHTTPClient projects are just a simple demonstration of reading and writing data using GCDAsyncSocket. Obviously it's not meant to be a full fledged HTTP client. There are other excellent libraries for that task. But the HTTP protocol itself is so simple, it makes for a great example.

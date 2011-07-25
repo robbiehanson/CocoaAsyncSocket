@@ -1254,7 +1254,7 @@ enum GCDAsyncSocketConfig
 {
 	LogTrace();
 	
-	__block BOOL result = YES;
+	__block BOOL result = NO;
 	__block NSError *err = nil;
 	
 	// CreateSocket Block
@@ -1331,8 +1331,6 @@ enum GCDAsyncSocketConfig
 		
 		if (delegate == nil) // Must have delegate set
 		{
-			result = NO;
-			
 			NSString *msg = @"Attempting to accept without a delegate. Set a delegate first.";
 			err = [[self badConfigError:msg] retain];
 			
@@ -1342,8 +1340,6 @@ enum GCDAsyncSocketConfig
 		
 		if (delegateQueue == NULL) // Must have delegate queue set
 		{
-			result = NO;
-			
 			NSString *msg = @"Attempting to accept without a delegate queue. Set a delegate queue first.";
 			err = [[self badConfigError:msg] retain];
 			
@@ -1356,8 +1352,6 @@ enum GCDAsyncSocketConfig
 		
 		if (isIPv4Disabled && isIPv6Disabled) // Must have IPv4 or IPv6 enabled
 		{
-			result = NO;
-			
 			NSString *msg = @"Both IPv4 and IPv6 have been disabled. Must enable at least one protocol first.";
 			err = [[self badConfigError:msg] retain];
 			
@@ -1367,8 +1361,6 @@ enum GCDAsyncSocketConfig
 		
 		if (![self isDisconnected]) // Must be disconnected
 		{
-			result = NO;
-			
 			NSString *msg = @"Attempting to accept while connected or accepting connections. Disconnect first.";
 			err = [[self badConfigError:msg] retain];
 			
@@ -1389,8 +1381,6 @@ enum GCDAsyncSocketConfig
 		
 		if ((interface4 == nil) && (interface6 == nil))
 		{
-			result = NO;
-			
 			NSString *msg = @"Unknown interface. Specify valid interface by name (e.g. \"en1\") or IP address.";
 			err = [[self badParamError:msg] retain];
 			
@@ -1400,8 +1390,6 @@ enum GCDAsyncSocketConfig
 		
 		if (isIPv4Disabled && (interface6 == nil))
 		{
-			result = NO;
-			
 			NSString *msg = @"IPv4 has been disabled and specified interface doesn't support IPv6.";
 			err = [[self badParamError:msg] retain];
 			
@@ -1411,8 +1399,6 @@ enum GCDAsyncSocketConfig
 		
 		if (isIPv6Disabled && (interface4 == nil))
 		{
-			result = NO;
-			
 			NSString *msg = @"IPv6 has been disabled and specified interface doesn't support IPv4.";
 			err = [[self badParamError:msg] retain];
 			
@@ -1432,8 +1418,6 @@ enum GCDAsyncSocketConfig
 			
 			if (socket4FD == SOCKET_NULL)
 			{
-				result = NO;
-				
 				[pool drain];
 				return_from_block;
 			}
@@ -1456,8 +1440,6 @@ enum GCDAsyncSocketConfig
 			
 			if (socket6FD == SOCKET_NULL)
 			{
-				result = NO;
-				
 				if (socket4FD != SOCKET_NULL)
 				{
 					close(socket4FD);
@@ -1541,6 +1523,8 @@ enum GCDAsyncSocketConfig
 		}
 		
 		flags |= kSocketStarted;
+		
+		result = YES;
 		[pool drain];
 	};
 	
@@ -1807,14 +1791,26 @@ enum GCDAsyncSocketConfig
 {
 	LogTrace();
 	
-	__block BOOL result = YES;
+	__block BOOL result = NO;
 	__block NSError *err = nil;
 	
 	dispatch_block_t block = ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		
-		result = [self preConnectWithInterface:interface error:&err];
-		if (!result)
+		// Check for problems with host parameter
+		
+		if (host == nil)
+		{
+			NSString *msg = @"Invalid host parameter (nil). Should be a domain name or IP address string.";
+			err = [[self badParamError:msg] retain];
+			
+			[pool drain];
+			return_from_block;
+		}
+		
+		// Run through standard pre-connect checks
+		
+		if (![self preConnectWithInterface:interface error:&err])
 		{
 			[err retain];
 			[pool drain];
@@ -1846,6 +1842,7 @@ enum GCDAsyncSocketConfig
 		
 		[self startConnectTimeout:timeout];
 		
+		result = YES;
 		[pool drain];
 	};
 	
@@ -1882,7 +1879,7 @@ enum GCDAsyncSocketConfig
 {
 	LogTrace();
 	
-	__block BOOL result = YES;
+	__block BOOL result = NO;
 	__block NSError *err = nil;
 	
 	dispatch_block_t block = ^{
@@ -1945,8 +1942,7 @@ enum GCDAsyncSocketConfig
 		
 		// Run through standard pre-connect checks
 		
-		result = [self preConnectWithInterface:interface error:&err];
-		if (!result)
+		if (![self preConnectWithInterface:interface error:&err])
 		{
 			[err retain];
 			[pool drain];
@@ -1967,6 +1963,7 @@ enum GCDAsyncSocketConfig
 		
 		[self startConnectTimeout:timeout];
 		
+		result = YES;
 		[pool drain];
 	};
 	
@@ -2163,6 +2160,8 @@ enum GCDAsyncSocketConfig
 	
 	NSAssert(dispatch_get_current_queue() == socketQueue, @"Must be dispatched on socketQueue");
 	
+	LogVerbose(@"IPv4: %@:%hu", [[self class] hostFromAddress:address4], [[self class] portFromAddress:address4]);
+	LogVerbose(@"IPv6: %@:%hu", [[self class] hostFromAddress:address6], [[self class] portFromAddress:address6]);
 	
 	// Determine socket type
 	
@@ -2532,6 +2531,9 @@ enum GCDAsyncSocketConfig
 		[sslReadBuffer setLength:0];
 		if (sslContext)
 		{
+			// Getting a linker error here about SSLDisposeContext?
+			// You need to add the Security Framework to your application.
+			
 			SSLDisposeContext(sslContext);
 			sslContext = NULL;
 		}

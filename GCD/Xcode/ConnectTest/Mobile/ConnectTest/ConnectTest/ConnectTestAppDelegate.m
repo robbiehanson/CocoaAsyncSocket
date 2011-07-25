@@ -1,5 +1,5 @@
-#import "IPhoneConnectTestAppDelegate.h"
-#import "IPhoneConnectTestViewController.h"
+#import "ConnectTestAppDelegate.h"
+#import "ConnectTestViewController.h"
 #import "GCDAsyncSocket.h"
 #import "DDLog.h"
 #import "DDTTYLogger.h"
@@ -7,13 +7,14 @@
 // Log levels: off, error, warn, info, verbose
 static const int ddLogLevel = LOG_LEVEL_INFO;
 
-#define USE_SECURE_CONNECTION 0
+#define USE_SECURE_CONNECTION 1
 #define ENABLE_BACKGROUNDING  0
 
-@implementation IPhoneConnectTestAppDelegate
 
-@synthesize window;
-@synthesize viewController;
+@implementation ConnectTestAppDelegate
+
+@synthesize window = _window;
+@synthesize viewController = _viewController;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Application Lifecycle
@@ -52,27 +53,31 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 	#if USE_SECURE_CONNECTION
 	{
 		NSString *host = @"www.paypal.com";
+		uint16_t port = 443;
 		
-		DDLogInfo(@"Connecting to %@...", host);
-		viewController.label.text = [NSString stringWithFormat:@"Connecting to %@", host];
+		DDLogInfo(@"Connecting to \"%@\" on port %hu...", host, port);
+		self.viewController.label.text = @"Connecting...";
 		
 		NSError *error = nil;
-		if (![asyncSocket connectToHost:@"www.paypal.com" onPort:443 error:&error])
+		if (![asyncSocket connectToHost:@"www.paypal.com" onPort:port error:&error])
 		{
 			DDLogError(@"Error connecting: %@", error);
+			self.viewController.label.text = @"Oops";
 		}
 	}
 	#else
 	{
 		NSString *host = @"deusty.com";
+		uint16_t port = 80;
 		
-		DDLogInfo(@"Connecting to %@...", host);
-		viewController.label.text = [NSString stringWithFormat:@"Connecting to %@", host];
+		DDLogInfo(@"Connecting to \"%@\" on port %hu...", host, port);
+		self.viewController.label.text = @"Connecting...";
 		
 		NSError *error = nil;
-		if (![asyncSocket connectToHost:host onPort:80 error:&error])
+		if (![asyncSocket connectToHost:host onPort:port error:&error])
 		{
 			DDLogError(@"Error connecting: %@", error);
+			self.viewController.label.text = @"Oops";
 		}
 
 		// You can also specify an optional connect timeout.
@@ -87,8 +92,8 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 	#endif
 	
 	// Add the view controller's view to the window and display.
-	[window addSubview:viewController.view];
-	[window makeKeyAndVisible];
+	[self.window addSubview:self.viewController.view];
+	[self.window makeKeyAndVisible];
 	
 	return YES;
 }
@@ -127,7 +132,7 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 - (void)socket:(GCDAsyncSocket *)sock didConnectToHost:(NSString *)host port:(UInt16)port
 {
 	DDLogInfo(@"socket:%p didConnectToHost:%@ port:%hu", sock, host, port);
-	viewController.label.text = @"Connected";
+	self.viewController.label.text = @"Connected";
 	
 //	DDLogInfo(@"localHost :%@ port:%hu", [sock localHost], [sock localPort]);
 	
@@ -209,7 +214,7 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 - (void)socketDidSecure:(GCDAsyncSocket *)sock
 {
 	DDLogInfo(@"socketDidSecure:%p", sock);
-	viewController.label.text = @"Connected + Secure";
+	self.viewController.label.text = @"Connected + Secure";
 }
 
 - (void)socket:(GCDAsyncSocket *)sock didWriteDataWithTag:(long)tag
@@ -231,7 +236,7 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 - (void)socketDidDisconnect:(GCDAsyncSocket *)sock withError:(NSError *)err
 {
 	DDLogInfo(@"socketDidDisconnect:%p withError: %@", sock, err);
-	viewController.label.text = @"Disconnected";
+	self.viewController.label.text = @"Disconnected";
 }
 
 @end

@@ -41,7 +41,7 @@
 				<string key="targetRuntimeIdentifier">IBCocoaTouchFramework</string>
 			</object>
 			<object class="IBUIViewController" id="943309135">
-				<string key="IBUINibName">IPhoneConnectTestViewController</string>
+				<string key="IBUINibName">ConnectTestViewController</string>
 				<object class="IBUISimulatedStatusBarMetrics" key="IBUISimulatedStatusBarMetrics"/>
 				<object class="IBUISimulatedOrientationMetrics" key="IBUISimulatedOrientationMetrics">
 					<int key="interfaceOrientation">1</int>
@@ -111,7 +111,7 @@
 						<int key="objectID">3</int>
 						<reference key="object" ref="664661524"/>
 						<reference key="parent" ref="0"/>
-						<string key="objectName">IPhoneConnectTest App Delegate</string>
+						<string key="objectName">ConnectTest App Delegate</string>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">-2</int>
@@ -148,12 +148,12 @@
 					<bool key="EncodedWithXMLCoder">YES</bool>
 					<string>UIApplication</string>
 					<string>UIResponder</string>
-					<string>IPhoneConnectTestViewController</string>
+					<string>ConnectTestViewController</string>
 					<string>{{234, 376}, {320, 480}}</string>
 					<string>com.apple.InterfaceBuilder.IBCocoaTouchPlugin</string>
 					<string>{{525, 346}, {320, 480}}</string>
 					<string>com.apple.InterfaceBuilder.IBCocoaTouchPlugin</string>
-					<string>IPhoneConnectTestAppDelegate</string>
+					<string>ConnectTestAppDelegate</string>
 					<string>com.apple.InterfaceBuilder.IBCocoaTouchPlugin</string>
 				</object>
 			</object>
@@ -187,7 +187,7 @@
 					</object>
 				</object>
 				<object class="IBPartialClassDescription">
-					<string key="className">IPhoneConnectTestAppDelegate</string>
+					<string key="className">ConnectTestAppDelegate</string>
 					<string key="superclassName">NSObject</string>
 					<object class="NSMutableDictionary" key="outlets">
 						<bool key="EncodedWithXMLCoder">YES</bool>
@@ -198,7 +198,7 @@
 						</object>
 						<object class="NSMutableArray" key="dict.values">
 							<bool key="EncodedWithXMLCoder">YES</bool>
-							<string>IPhoneConnectTestViewController</string>
+							<string>ConnectTestViewController</string>
 							<string>UIWindow</string>
 						</object>
 					</object>
@@ -213,7 +213,7 @@
 							<bool key="EncodedWithXMLCoder">YES</bool>
 							<object class="IBToOneOutletInfo">
 								<string key="name">viewController</string>
-								<string key="candidateClassName">IPhoneConnectTestViewController</string>
+								<string key="candidateClassName">ConnectTestViewController</string>
 							</object>
 							<object class="IBToOneOutletInfo">
 								<string key="name">window</string>
@@ -223,11 +223,11 @@
 					</object>
 					<object class="IBClassDescriptionSource" key="sourceIdentifier">
 						<string key="majorKey">IBProjectSource</string>
-						<string key="minorKey">Classes/IPhoneConnectTestAppDelegate.h</string>
+						<string key="minorKey">ConnectTestAppDelegate.h</string>
 					</object>
 				</object>
 				<object class="IBPartialClassDescription">
-					<string key="className">IPhoneConnectTestAppDelegate</string>
+					<string key="className">ConnectTestAppDelegate</string>
 					<string key="superclassName">NSObject</string>
 					<object class="IBClassDescriptionSource" key="sourceIdentifier">
 						<string key="majorKey">IBUserSource</string>
@@ -235,11 +235,11 @@
 					</object>
 				</object>
 				<object class="IBPartialClassDescription">
-					<string key="className">IPhoneConnectTestViewController</string>
+					<string key="className">ConnectTestViewController</string>
 					<string key="superclassName">UIViewController</string>
 					<object class="IBClassDescriptionSource" key="sourceIdentifier">
 						<string key="majorKey">IBProjectSource</string>
-						<string key="minorKey">Classes/IPhoneConnectTestViewController.h</string>
+						<string key="minorKey">ConnectTestViewController.h</string>
 					</object>
 				</object>
 			</object>
@@ -437,7 +437,7 @@
 			<integer value="3100" key="NS.object.0"/>
 		</object>
 		<bool key="IBDocument.PluginDeclaredDependenciesTrackSystemTargetVersion">YES</bool>
-		<string key="IBDocument.LastKnownRelativeProjectPath">IPhoneConnectTest.xcodeproj</string>
+		<string key="IBDocument.LastKnownRelativeProjectPath">ConnectTest.xcodeproj</string>
 		<int key="IBDocument.defaultPropertyAccessControl">3</int>
 		<string key="IBCocoaTouchPluginVersion">112</string>
 	</data>

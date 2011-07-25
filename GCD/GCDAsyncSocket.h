@@ -235,6 +235,9 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * Connects to the given host & port, via the optional interface, with an optional timeout.
  * 
  * The host may be a domain name (e.g. "deusty.com") or an IP address string (e.g. "192.168.0.2").
+ * The host may also be the special strings "localhost" or "loopback" to specify connecting
+ * to a service on the local machine.
+ * 
  * The interface may be a name (e.g. "en1" or "lo0") or the corresponding IP address (e.g. "192.168.4.35").
  * The interface may also be used to specify the local port (see below).
  * 
