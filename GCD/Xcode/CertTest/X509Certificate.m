@@ -496,10 +496,10 @@ static void AddCSSMField(const CSSM_FIELD *field, NSMutableDictionary *dict)
 	}
 	else if(CompareOids(fieldOid, &CSSMOID_X509V1ValidityNotBefore))
 	{
-		CSSM_X509_TIME_PTR time = (CSSM_X509_TIME_PTR)fieldData->Data;
-		if(time && fieldData->Length == sizeof(CSSM_X509_TIME))
+		CSSM_X509_TIME_PTR theTime = (CSSM_X509_TIME_PTR)fieldData->Data;
+		if(theTime && fieldData->Length == sizeof(CSSM_X509_TIME))
 		{
-			NSDate *date = TimeToDate((const char *)time->time.Data, time->time.Length);
+			NSDate *date = TimeToDate((const char *)theTime->time.Data, theTime->time.Length);
 			if(date)
 			{
 				[dict setObject:date forKey:X509_NOT_VALID_BEFORE];
@@ -508,10 +508,10 @@ static void AddCSSMField(const CSSM_FIELD *field, NSMutableDictionary *dict)
 	}
 	else if(CompareOids(fieldOid, &CSSMOID_X509V1ValidityNotAfter))
 	{
-		CSSM_X509_TIME_PTR time = (CSSM_X509_TIME_PTR)fieldData->Data;
-		if(time && fieldData->Length == sizeof(CSSM_X509_TIME))
+		CSSM_X509_TIME_PTR theTime = (CSSM_X509_TIME_PTR)fieldData->Data;
+		if(theTime && fieldData->Length == sizeof(CSSM_X509_TIME))
 		{
-			NSDate *date = TimeToDate((const char *)time->time.Data, time->time.Length);
+			NSDate *date = TimeToDate((const char *)theTime->time.Data, theTime->time.Length);
 			if(date)
 			{
 				[dict setObject:date forKey:X509_NOT_VALID_AFTER];

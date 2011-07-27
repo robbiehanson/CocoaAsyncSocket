@@ -3921,7 +3921,7 @@ enum GCDAsyncSocketConfig
 			NSUInteger partialReadBufferOffset = [partialReadBuffer length];
 			[partialReadBuffer increaseLengthBy:estimatedBytesAvailable];
 			
-			uint8_t *buffer = [partialReadBuffer mutableBytes] + partialReadBufferOffset;
+			uint8_t *buffer = (uint8_t *)[partialReadBuffer mutableBytes] + partialReadBufferOffset;
 			size_t bytesRead = 0;
 			
 			// Read data into partialReadBuffer
