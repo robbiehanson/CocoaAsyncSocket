@@ -51,9 +51,13 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 	}
 	#else
 	{
-		NSString *host = @"deusty.com";
+	//	NSString *host = @"deusty.com";
+	//	NSString *host = @"google.com";
+	//	NSString *host = @"apple.com";
+		NSString *host = @"www.ipv6.he.net";
 		uint16_t port = 80;
 	
+		[asyncSocket setPreferIPv6];
 		
 		DDLogInfo(@"Connecting to \"%@\" on port %hu...", host, port);
 		
@@ -78,6 +82,22 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Socket Delegate
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+- (void)socket:(GCDAsyncSocket *)sock didResolveAddresses:(NSArray *)addresses
+{
+	DDLogInfo(@"socket:%p didResolveAddresses: (count = %lu)", sock, (unsigned long)[addresses count]);
+	
+	for (NSData *address in addresses)
+	{
+		BOOL isIPv4 = [GCDAsyncSocket isIPv4Address:address];
+		
+		NSString *host = nil;
+		uint16_t port = 0;
+		[GCDAsyncSocket getHost:&host port:&port fromAddress:address];
+		
+		DDLogInfo(@"    %@: %@:%hu", (isIPv4 ? @"IPv4" : @"IPv6"), host, port);
+	}
+}
 
 - (void)socket:(GCDAsyncSocket *)sock didConnectToHost:(NSString *)host port:(UInt16)port
 {

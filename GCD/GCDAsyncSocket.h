@@ -163,8 +163,13 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * For outgoing connections, this means GCDAsyncSocket can connect to remote hosts running either protocol.
  * If a DNS lookup returns only IPv4 results, GCDAsyncSocket will automatically use IPv4.
  * If a DNS lookup returns only IPv6 results, GCDAsyncSocket will automatically use IPv6.
- * If a DNS lookup returns both IPv4 and IPv6 results, the preferred protocol will be chosen.
- * By default, the preferred protocol is IPv4, but may be configured as desired.
+ * If a DNS lookup returns both IPv4 and IPv6 results, then the protocol used depends on the configured preference.
+ * If IPv4 is preferred, then IPv4 is used.
+ * If IPv6 is preferred, then IPv6 is used.
+ * If neutral, then the first IP version in the resolved array will be used.
+ * 
+ * Starting with Mac OS X 10.7 Lion and iOS 5, the default IP preference is neutral.
+ * On prior systems the default IP preference is IPv4.
 **/
 - (BOOL)isIPv4Enabled;
 - (void)setIPv4Enabled:(BOOL)flag;
@@ -172,8 +177,13 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 - (BOOL)isIPv6Enabled;
 - (void)setIPv6Enabled:(BOOL)flag;
 
-- (BOOL)isIPv4PreferredOverIPv6;
-- (void)setPreferIPv4OverIPv6:(BOOL)flag;
+- (BOOL)isIPv4Preferred;
+- (BOOL)isIPv6Preferred;
+- (BOOL)isIPVersionNeutral;
+
+- (void)setPreferIPv4;
+- (void)setPreferIPv6;
+- (void)setIPVersionNeutral;
 
 /**
  * User data allows you to associate arbitrary information with the socket.
@@ -721,7 +731,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  *   Apple only bothers to notify us via the CFStream API.
  *   The faster and more powerful GCD API isn't notified properly in this case.
  * 
- * See also: (BOOL)enableBackgroundingOnSocket
+ * @see enableBackgroundingOnSocket
 **/
 - (CFReadStreamRef)readStream;
 - (CFWriteStreamRef)writeStream;
@@ -768,11 +778,62 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 #pragma mark Utilities
 
 /**
- * Extracting host and port information from raw address data.
+ * Extracts the host (human readable IP addresss string) from raw address data.
+ * 
+ * This method only supports addresses of type IPv4 (sockaddr_in) or IPv6 (sockaddr_in6).
+ * 
+ * @param address
+ *     A sockaddr address wrapped in a NSData container.
+ * 
+ * @returns
+ *     A human readable IP address string, or nil if an invalid address was passed.
 **/
 + (NSString *)hostFromAddress:(NSData *)address;
+
+/**
+ * Extracs the port from raw address data.
+ * 
+ * This method only supports addresses of type IPv4 (sockaddr_in) or IPv6 (sockaddr_in6).
+ * 
+ * @param address
+ *     A sockaddr address wrapped in a NSData container.
+ * 
+ * @returns
+ *     The port number of the address [0 - 65535], or 0 if an invalid address was passed.
+**/
 + (uint16_t)portFromAddress:(NSData *)address;
+
+/**
+ * Extracts the address family from raw address data.
+ * 
+ * This method only supports addresses of type IPv4 (sockaddr_in) or IPv6 (sockaddr_in6).
+ * To get access to the address family constants (AF_INET, AF_INET6, etc) in your code,
+ * you may need to {{{ #import <sys/socket.h> }}}.
+ * 
+ * @param address
+ *     A sockaddr address wrapped in a NSData container.
+ * 
+ * @returns
+ *     One of AF_INET (IPv4), AF_INET6 (IPv6), or AF_UNSPEC (unknown).
+ * 
+ * @see isIPv4Address:
+ * @see isIPv6Address:
+**/
++ (int)familyFromAddress:(NSData *)address;
+
+/**
+ * Returns YES if the given address is a IPv4 address (sockaddr_in).
+**/
++ (BOOL)isIPv4Address:(NSData *)address;
+
+/**
+ * Returns YES if the given address is a IPv6 address (sockaddr_in6).
+**/
++ (BOOL)isIPv6Address:(NSData *)address;
+
+
 + (BOOL)getHost:(NSString **)hostPtr port:(uint16_t *)portPtr fromAddress:(NSData *)address;
++ (BOOL)getHost:(NSString **)hostPtr port:(uint16_t *)portPtr family:(int *)afPtr fromAddress:(NSData *)address;
 
 /**
  * A few common line separators, for use with the readDataToData:... methods.
@@ -822,6 +883,11 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * You may, of course, change this at any time.
 **/
 - (void)socket:(GCDAsyncSocket *)sock didAcceptNewSocket:(GCDAsyncSocket *)newSocket;
+
+/**
+ * Called after a hostname has been resolved by the DNS system.
+**/
+- (void)socket:(GCDAsyncSocket *)sock didResolveAddresses:(NSArray *)addresses;
 
 /**
  * Called when a socket connects and is ready for reading and writing.
