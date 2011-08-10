@@ -426,7 +426,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 // You may optionally set a timeout for any read/write operation. (To not timeout, use a negative time interval.)
 // If a read/write opertion times out, the corresponding "socket:shouldTimeout..." delegate method
 // is called to optionally allow you to extend the timeout.
-// Upon a timeout, the "socket:willDisconnectWithError:" method is called, followed by "socketDidDisconnect".
+// Upon a timeout, the "socket:didDisconnectWithError:" method is called
 // 
 // The tag is for your convenience.
 // You can use it as an array index, step number, state id, pointer, etc.

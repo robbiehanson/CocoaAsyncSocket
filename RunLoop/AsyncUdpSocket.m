@@ -1694,7 +1694,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 
 - (BOOL)sendData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag
 {
-	if((data == nil) || ([data length] == 0)) return NO;
+	if([data length] == 0) return NO;
 	if(theFlags & kForbidSendReceive) return NO;
 	if(theFlags & kDidClose) return NO;
 	
@@ -1712,7 +1712,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 
 - (BOOL)sendData:(NSData *)data toHost:(NSString *)host port:(UInt16)port withTimeout:(NSTimeInterval)timeout tag:(long)tag
 {
-	if((data == nil) || ([data length] == 0)) return NO;
+	if([data length] == 0) return NO;
 	if(theFlags & kForbidSendReceive) return NO;
 	if(theFlags & kDidClose) return NO;
 	
@@ -1740,7 +1740,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 
 - (BOOL)sendData:(NSData *)data toAddress:(NSData *)remoteAddr withTimeout:(NSTimeInterval)timeout tag:(long)tag
 {
-	if((data == nil) || ([data length] == 0)) return NO;
+	if([data length] == 0) return NO;
 	if(theFlags & kForbidSendReceive) return NO;
 	if(theFlags & kDidClose) return NO;
 	
