@@ -1619,24 +1619,25 @@ enum GCDAsyncSocketConfig
 		if ([host isEqualToString:@"localhost"] || [host isEqualToString:@"loopback"])
 		{
 			// Use LOOPBACK address
-			struct sockaddr_in nativeAddr;
-			nativeAddr.sin_len         = sizeof(struct sockaddr_in);
-			nativeAddr.sin_family      = AF_INET;
-			nativeAddr.sin_port        = htons(port);
-			nativeAddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-			memset(&(nativeAddr.sin_zero), 0, sizeof(nativeAddr.sin_zero));
+			struct sockaddr_in sockaddr4;
+			memset(&sockaddr4, 0, sizeof(sockaddr4));
 			
-			struct sockaddr_in6 nativeAddr6;
-			nativeAddr6.sin6_len       = sizeof(struct sockaddr_in6);
-			nativeAddr6.sin6_family    = AF_INET6;
-			nativeAddr6.sin6_port      = htons(port);
-			nativeAddr6.sin6_flowinfo  = 0;
-			nativeAddr6.sin6_addr      = in6addr_loopback;
-			nativeAddr6.sin6_scope_id  = 0;
+			sockaddr4.sin_len         = sizeof(struct sockaddr_in);
+			sockaddr4.sin_family      = AF_INET;
+			sockaddr4.sin_port        = htons(port);
+			sockaddr4.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+			
+			struct sockaddr_in6 sockaddr6;
+			memset(&sockaddr6, 0, sizeof(sockaddr6));
+			
+			sockaddr6.sin6_len       = sizeof(struct sockaddr_in6);
+			sockaddr6.sin6_family    = AF_INET6;
+			sockaddr6.sin6_port      = htons(port);
+			sockaddr6.sin6_addr      = in6addr_loopback;
 			
 			// Wrap the native address structures and add to list
-			[addresses addObject:[NSData dataWithBytes:&nativeAddr length:sizeof(nativeAddr)]];
-			[addresses addObject:[NSData dataWithBytes:&nativeAddr6 length:sizeof(nativeAddr6)]];
+			[addresses addObject:[NSData dataWithBytes:&sockaddr4 length:sizeof(sockaddr4)]];
+			[addresses addObject:[NSData dataWithBytes:&sockaddr6 length:sizeof(sockaddr6)]];
 		}
 		else
 		{
@@ -6973,7 +6974,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 #pragma mark Class Methods
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-+ (NSString *)hostFromAddress4:(const struct sockaddr_in *)pSockaddr4
++ (NSString *)hostFromSockaddr4:(const struct sockaddr_in *)pSockaddr4
 {
 	char addrBuf[INET_ADDRSTRLEN];
 	
@@ -6985,7 +6986,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	return [NSString stringWithCString:addrBuf encoding:NSASCIIStringEncoding];
 }
 
-+ (NSString *)hostFromAddress6:(const struct sockaddr_in6 *)pSockaddr6
++ (NSString *)hostFromSockaddr6:(const struct sockaddr_in6 *)pSockaddr6
 {
 	char addrBuf[INET6_ADDRSTRLEN];
 	
@@ -6997,12 +6998,12 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	return [NSString stringWithCString:addrBuf encoding:NSASCIIStringEncoding];
 }
 
-+ (uint16_t)portFromAddress4:(const struct sockaddr_in *)pSockaddr4
++ (uint16_t)portFromSockaddr4:(const struct sockaddr_in *)pSockaddr4
 {
 	return ntohs(pSockaddr4->sin_port);
 }
 
-+ (uint16_t)portFromAddress6:(const struct sockaddr_in6 *)pSockaddr6
++ (uint16_t)portFromSockaddr6:(const struct sockaddr_in6 *)pSockaddr6
 {
 	return ntohs(pSockaddr6->sin6_port);
 }
@@ -7064,8 +7065,8 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 			{
 				const struct sockaddr_in *addr4 = (const struct sockaddr_in *)addrX;
 				
-				if (hostPtr) *hostPtr = [self hostFromAddress4:addr4];
-				if (portPtr) *portPtr = [self portFromAddress4:addr4];
+				if (hostPtr) *hostPtr = [self hostFromSockaddr4:addr4];
+				if (portPtr) *portPtr = [self portFromSockaddr4:addr4];
 				if (afPtr)   *afPtr   = AF_INET;
 				
 				return YES;
@@ -7077,8 +7078,8 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 			{
 				const struct sockaddr_in6 *addr6 = (const struct sockaddr_in6 *)addrX;
 				
-				if (hostPtr) *hostPtr = [self hostFromAddress6:addr6];
-				if (portPtr) *portPtr = [self portFromAddress6:addr6];
+				if (hostPtr) *hostPtr = [self hostFromSockaddr6:addr6];
+				if (portPtr) *portPtr = [self portFromSockaddr6:addr6];
 				if (afPtr)   *afPtr   = AF_INET6;
 				
 				return YES;
