@@ -1,0 +1,3 @@
+[submodule "External/CocoaLumberjack"]
+	path = External/CocoaLumberjack
+	url = https://code.google.com/p/cocoalumberjack/
