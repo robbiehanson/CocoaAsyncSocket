@@ -1570,7 +1570,7 @@ enum GCDAsyncSocketConfig
 	
 	if (delegateQueue)
 	{
-		id theDelegate = delegate;
+		__strong id theDelegate = delegate;
 		
 		dispatch_async(delegateQueue, ^{ @autoreleasepool {
 			
@@ -2280,7 +2280,7 @@ enum GCDAsyncSocketConfig
 	{
 		SetupStreamsPart1();
 		
-		id theDelegate = delegate;
+		__strong id theDelegate = delegate;
 		
 		dispatch_async(delegateQueue, ^{ @autoreleasepool {
 			
@@ -2528,7 +2528,7 @@ enum GCDAsyncSocketConfig
 	{
 		if (delegateQueue && [delegate respondsToSelector: @selector(socketDidDisconnect:withError:)])
 		{
-			id theDelegate = delegate;
+			__strong id theDelegate = delegate;
 			
 			dispatch_async(delegateQueue, ^{ @autoreleasepool {
 				
@@ -4485,7 +4485,7 @@ enum GCDAsyncSocketConfig
 		
 		if (delegateQueue && [delegate respondsToSelector:@selector(socket:didReadPartialDataOfLength:tag:)])
 		{
-			id theDelegate = delegate;
+			__strong id theDelegate = delegate;
 			GCDAsyncReadPacket *theRead = currentRead;
 			
 			dispatch_async(delegateQueue, ^{ @autoreleasepool {
@@ -4597,7 +4597,7 @@ enum GCDAsyncSocketConfig
 			
 			if (delegateQueue && [delegate respondsToSelector:@selector(socketDidCloseReadStream:)])
 			{
-				id theDelegate = delegate;
+				__strong id theDelegate = delegate;
 				
 				dispatch_async(delegateQueue, ^{ @autoreleasepool {
 					
@@ -4675,7 +4675,7 @@ enum GCDAsyncSocketConfig
 	
 	if (delegateQueue && [delegate respondsToSelector:@selector(socket:didReadData:withTag:)])
 	{
-		id theDelegate = delegate;
+		__strong id theDelegate = delegate;
 		GCDAsyncReadPacket *theRead = currentRead;
 		
 		dispatch_async(delegateQueue, ^{ @autoreleasepool {
@@ -4733,7 +4733,7 @@ enum GCDAsyncSocketConfig
 	
 	if (delegateQueue && [delegate respondsToSelector:@selector(socket:shouldTimeoutReadWithTag:elapsed:bytesDone:)])
 	{
-		id theDelegate = delegate;
+		__strong id theDelegate = delegate;
 		GCDAsyncReadPacket *theRead = currentRead;
 		
 		dispatch_async(delegateQueue, ^{ @autoreleasepool {
@@ -5217,7 +5217,7 @@ enum GCDAsyncSocketConfig
 			
 			if (delegateQueue && [delegate respondsToSelector:@selector(socket:didWritePartialDataOfLength:tag:)])
 			{
-				id theDelegate = delegate;
+				__strong id theDelegate = delegate;
 				GCDAsyncWritePacket *theWrite = currentWrite;
 				
 				dispatch_async(delegateQueue, ^{ @autoreleasepool {
@@ -5247,7 +5247,7 @@ enum GCDAsyncSocketConfig
 	
 	if (delegateQueue && [delegate respondsToSelector:@selector(socket:didWriteDataWithTag:)])
 	{
-		id theDelegate = delegate;
+		__strong id theDelegate = delegate;
 		GCDAsyncWritePacket *theWrite = currentWrite;
 		
 		dispatch_async(delegateQueue, ^{ @autoreleasepool {
@@ -5305,7 +5305,7 @@ enum GCDAsyncSocketConfig
 	
 	if (delegateQueue && [delegate respondsToSelector:@selector(socket:shouldTimeoutWriteWithTag:elapsed:bytesDone:)])
 	{
-		id theDelegate = delegate;
+		__strong id theDelegate = delegate;
 		GCDAsyncWritePacket *theWrite = currentWrite;
 		
 		dispatch_async(delegateQueue, ^{ @autoreleasepool {
@@ -5929,7 +5929,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		
 		if (delegateQueue && [delegate respondsToSelector:@selector(socketDidSecure:)])
 		{
-			id theDelegate = delegate;
+			__strong id theDelegate = delegate;
 			
 			dispatch_async(delegateQueue, ^{ @autoreleasepool {
 				
@@ -5978,7 +5978,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		
 		if (delegateQueue && [delegate respondsToSelector:@selector(socketDidSecure:)])
 		{
-			id theDelegate = delegate;
+			__strong id theDelegate = delegate;
 		
 			dispatch_async(delegateQueue, ^{ @autoreleasepool {
 				
