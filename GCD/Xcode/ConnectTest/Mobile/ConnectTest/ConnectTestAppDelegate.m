@@ -230,7 +230,6 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 	
 	DDLogInfo(@"HTTP Response:\n%@", httpResponse);
 	
-	[httpResponse release];
 }
 
 - (void)socketDidDisconnect:(GCDAsyncSocket *)sock withError:(NSError *)err

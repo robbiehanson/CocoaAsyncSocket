@@ -26,7 +26,6 @@
 	[self destroySaveTimer];
 	[self destroyDeleteTimer];
 	
-    [super dealloc];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -129,13 +128,10 @@
 	{
 		saveTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, loggerQueue);
 		
-		dispatch_source_set_event_handler(saveTimer, ^{
-			NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+		dispatch_source_set_event_handler(saveTimer, ^{ @autoreleasepool {
 			
 			[self performSaveAndSuspendSaveTimer];
-			
-			[pool drain];
-		});
+		}});
 		
 		saveTimerSuspended = YES;
 	}
@@ -173,13 +169,10 @@
 	{
 		deleteTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, loggerQueue);
 		
-		dispatch_source_set_event_handler(deleteTimer, ^{
-			NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+		dispatch_source_set_event_handler(deleteTimer, ^{ @autoreleasepool {
 			
 			[self performDelete];
-			
-			[pool drain];
-		});
+		}});
 		
 		[self updateDeleteTimer];
 		
@@ -211,7 +204,7 @@
 
 - (void)setSaveThreshold:(NSUInteger)threshold
 {
-	dispatch_block_t block = ^{
+	dispatch_block_t block = ^{ @autoreleasepool {
 		
 		if (saveThreshold != threshold)
 		{
@@ -224,14 +217,10 @@
 			
 			if ((unsavedCount >= saveThreshold) && (saveThreshold > 0))
 			{
-				NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-				
 				[self performSaveAndSuspendSaveTimer];
-				
-				[pool drain];
 			}
 		}
-	};
+	}};
 	
 	if (dispatch_get_current_queue() == loggerQueue)
 		block();
@@ -259,7 +248,7 @@
 
 - (void)setSaveInterval:(NSTimeInterval)interval
 {
-	dispatch_block_t block = ^{
+	dispatch_block_t block = ^{ @autoreleasepool {
 	
 		if (saveInterval != interval)
 		{
@@ -280,8 +269,6 @@
 			
 			if (saveInterval > 0.0)
 			{
-				NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-				
 				if (saveTimer == NULL)
 				{
 					// Handles #2
@@ -302,8 +289,6 @@
 					
 					[self updateAndResumeSaveTimer];
 				}
-				
-				[pool drain];
 			}
 			else if (saveTimer)
 			{
@@ -312,7 +297,7 @@
 				[self destroySaveTimer];
 			}
 		}
-	};
+	}};
 	
 	if (dispatch_get_current_queue() == loggerQueue)
 		block();
@@ -340,7 +325,7 @@
 
 - (void)setMaxAge:(NSTimeInterval)interval
 {
-	dispatch_block_t block = ^{
+	dispatch_block_t block = ^{ @autoreleasepool {
 		
 		if (maxAge != interval)
 		{
@@ -387,19 +372,15 @@
 			
 			if (shouldDeleteNow)
 			{
-				NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-				
 				[self performDelete];
 				
 				if (deleteTimer)
 					[self updateDeleteTimer];
 				else
 					[self createAndStartDeleteTimer];
-				
-				[pool drain];
 			}
 		}
-	};
+	}};
 	
 	if (dispatch_get_current_queue() == loggerQueue)
 		block();
@@ -427,7 +408,7 @@
 
 - (void)setDeleteInterval:(NSTimeInterval)interval
 {
-	dispatch_block_t block = ^{
+	dispatch_block_t block = ^{ @autoreleasepool {
 		
 		if (deleteInterval != interval)
 		{
@@ -448,8 +429,6 @@
 			
 			if (deleteInterval > 0.0)
 			{
-				NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-				
 				if (deleteTimer == NULL)
 				{
 					// Handles #2
@@ -469,8 +448,6 @@
 					
 					[self updateDeleteTimer];
 				}
-				
-				[pool drain];
 			}
 			else if (deleteTimer)
 			{
@@ -479,7 +456,7 @@
 				[self destroyDeleteTimer];
 			}
 		}
-	};
+	}};
 	
 	if (dispatch_get_current_queue() == loggerQueue)
 		block();
@@ -524,13 +501,10 @@
 
 - (void)savePendingLogEntries
 {
-	dispatch_block_t block = ^{
-		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	dispatch_block_t block = ^{ @autoreleasepool {
 		
 		[self performSaveAndSuspendSaveTimer];
-		
-		[pool drain];
-	};
+	}};
 	
 	if (dispatch_get_current_queue() == loggerQueue)
 		block();
@@ -540,13 +514,10 @@
 
 - (void)deleteOldLogEntries
 {
-	dispatch_block_t block = ^{
-		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	dispatch_block_t block = ^{ @autoreleasepool {
 		
 		[self performDelete];
-		
-		[pool drain];
-	};
+	}};
 	
 	if (dispatch_get_current_queue() == loggerQueue)
 		block();

@@ -141,7 +141,7 @@
 
 @interface DDFileLogger : DDAbstractLogger <DDLogger>
 {
-	id <DDLogFileManager> logFileManager;
+	__strong id <DDLogFileManager> logFileManager;
 	
 	DDLogFileInfo *currentLogFileInfo;
 	NSFileHandle *currentLogFileHandle;
@@ -217,13 +217,13 @@
 
 @interface DDLogFileInfo : NSObject
 {
-	NSString *filePath;
-	NSString *fileName;
+	__strong NSString *filePath;
+	__strong NSString *fileName;
 	
-	NSDictionary *fileAttributes;
+	__strong NSDictionary *fileAttributes;
 	
-	NSDate *creationDate;
-	NSDate *modificationDate;
+	__strong NSDate *creationDate;
+	__strong NSDate *modificationDate;
 	
 	unsigned long long fileSize;
 }

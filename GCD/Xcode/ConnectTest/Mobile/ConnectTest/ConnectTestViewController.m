@@ -5,9 +5,5 @@
 
 @synthesize label = _label;
 
-- (void)dealloc
-{
-    [super dealloc];
-}
 
 @end
