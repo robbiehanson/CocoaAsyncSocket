@@ -33,7 +33,11 @@
 // You can use methods such as performSelectorOnThread to accomplish this.
 // Failure to comply with these thread-safety rules may result in errors.
 // You can enable this option to help diagnose where you are incorrectly accessing your socket.
-#define DEBUG_THREAD_SAFETY 0
+#if DEBUG
+  #define DEBUG_THREAD_SAFETY 1
+#else
+  #define DEBUG_THREAD_SAFETY 0
+#endif
 // 
 // If you constantly need to access your socket from multiple threads
 // then you may consider using GCDAsyncSocket instead, which is thread-safe.
@@ -764,14 +768,14 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 		// it is very likely that thread-safety has been broken.
 		// This method may be enabled via the DEBUG_THREAD_SAFETY macro,
 		// and will allow you to discover the place in your code where thread-safety is being broken.
-		
-		[NSException raise:AsyncSocketException
-		            format:@"Attempting to access AsyncSocket instance from incorrect thread."];
-		
+		// 
 		// Note:
 		// 
 		// If you find you constantly need to access your socket from various threads,
 		// you may prefer to use GCDAsyncSocket which is thread-safe.
+		
+		[NSException raise:AsyncSocketException
+		            format:@"Attempting to access AsyncSocket instance from incorrect thread."];
 	}
 }
 
