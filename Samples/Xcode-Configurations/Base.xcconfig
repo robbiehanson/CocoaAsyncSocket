@@ -14,11 +14,6 @@ GCC_PRECOMPILE_PREFIX_HEADER = YES
 WARNING_CFLAGS = -Wall -Winline
 
 // iOS SDK
-ARCHS[sdk=iphoneos*] = $(ARCHS_STANDARD_32_BIT)
-GCC_VERSION[sdk=iphonesimulator*][arch=*] = com.apple.compilers.llvmgcc42
-GCC_VERSION[sdk=iphoneos*][arch=*] = com.apple.compilers.llvmgcc42
 CODE_SIGN_IDENTITY[sdk=iphoneos*] = iPhone Developer
 
-// MacOS X SDK
-ARCHS[sdk=macosx10.5] = i386 ppc
-ARCHS[sdk=macosx10.6] = i386 x86_64
+
