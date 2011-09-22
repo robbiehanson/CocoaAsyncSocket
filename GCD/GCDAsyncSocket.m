@@ -1209,7 +1209,7 @@ enum GCDAsyncSocketConfig
 
 - (id)userData
 {
-	__block id result;
+	__block id result = nil;
 	
 	dispatch_block_t block = ^{
 		
@@ -2283,7 +2283,11 @@ enum GCDAsyncSocketConfig
 	flags |= kConnected;
 	
 	[self endConnectTimeout];
+	
+	#if TARGET_OS_IPHONE
+	// The endConnectTimeout method executed above incremented the connectIndex.
 	aConnectIndex = connectIndex;
+	#endif
 	
 	// Setup read/write streams (as workaround for specific shortcomings in the iOS platform)
 	// 
@@ -2851,7 +2855,7 @@ enum GCDAsyncSocketConfig
 
 - (BOOL)isDisconnected
 {
-	__block BOOL result;
+	__block BOOL result = NO;
 	
 	dispatch_block_t block = ^{
 		result = (flags & kSocketStarted) ? NO : YES;
@@ -2867,7 +2871,7 @@ enum GCDAsyncSocketConfig
 
 - (BOOL)isConnected
 {
-	__block BOOL result;
+	__block BOOL result = NO;
 	
 	dispatch_block_t block = ^{
 		result = (flags & kConnected) ? YES : NO;
