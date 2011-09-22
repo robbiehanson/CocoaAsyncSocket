@@ -43,8 +43,8 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 
 @interface GCDAsyncSocket : NSObject
 {
-	UInt16 flags;
-	UInt16 config;
+	uint32_t flags;
+	uint16_t config;
 	
 	id delegate;
 	dispatch_queue_t delegateQueue;
@@ -191,7 +191,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * 
  * The socket will listen on all available interfaces (e.g. wifi, ethernet, etc)
 **/
-- (BOOL)acceptOnPort:(UInt16)port error:(NSError **)errPtr;
+- (BOOL)acceptOnPort:(uint16_t)port error:(NSError **)errPtr;
 
 /**
  * This method is the same as acceptOnPort:error: with the
@@ -209,7 +209,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * 
  * To accept connections on any interface pass nil, or simply use the acceptOnPort:error: method.
 **/
-- (BOOL)acceptOnInterface:(NSString *)interface port:(UInt16)port error:(NSError **)errPtr;
+- (BOOL)acceptOnInterface:(NSString *)interface port:(uint16_t)port error:(NSError **)errPtr;
 
 #pragma mark Connecting
 
@@ -219,7 +219,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * This method invokes connectToHost:onPort:viaInterface:withTimeout:error:
  * and uses the default interface, and no timeout.
 **/
-- (BOOL)connectToHost:(NSString *)host onPort:(UInt16)port error:(NSError **)errPtr;
+- (BOOL)connectToHost:(NSString *)host onPort:(uint16_t)port error:(NSError **)errPtr;
 
 /**
  * Connects to the given host and port with an optional timeout.
@@ -227,7 +227,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * This method invokes connectToHost:onPort:viaInterface:withTimeout:error: and uses the default interface.
 **/
 - (BOOL)connectToHost:(NSString *)host
-               onPort:(UInt16)port
+               onPort:(uint16_t)port
           withTimeout:(NSTimeInterval)timeout
                 error:(NSError **)errPtr;
 
@@ -235,6 +235,9 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * Connects to the given host & port, via the optional interface, with an optional timeout.
  * 
  * The host may be a domain name (e.g. "deusty.com") or an IP address string (e.g. "192.168.0.2").
+ * The host may also be the special strings "localhost" or "loopback" to specify connecting
+ * to a service on the local machine.
+ * 
  * The interface may be a name (e.g. "en1" or "lo0") or the corresponding IP address (e.g. "192.168.4.35").
  * The interface may also be used to specify the local port (see below).
  * 
@@ -261,7 +264,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * This feature is here for networking professionals using very advanced techniques.
 **/
 - (BOOL)connectToHost:(NSString *)host
-               onPort:(UInt16)port
+               onPort:(uint16_t)port
          viaInterface:(NSString *)interface
           withTimeout:(NSTimeInterval)timeout
                 error:(NSError **)errPtr;
@@ -328,13 +331,22 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 
 /**
  * Disconnects immediately (synchronously). Any pending reads or writes are dropped.
- * If the socket is not already disconnected, the socketDidDisconnect delegate method
- * will be called immediately, before this method returns.
  * 
- * Please note the recommended way of releasing an AsyncSocket instance (e.g. in a dealloc method)
+ * If the socket is not already disconnected, an invocation to the socketDidDisconnect:withError: delegate method
+ * will be queued onto the delegateQueue asynchronously (behind any previously queued delegate methods).
+ * In other words, the disconnected delegate method will be invoked sometime shortly after this method returns.
+ * 
+ * Please note the recommended way of releasing a GCDAsyncSocket instance (e.g. in a dealloc method)
  * [asyncSocket setDelegate:nil];
  * [asyncSocket disconnect];
  * [asyncSocket release];
+ * 
+ * If you plan on disconnecting the socket, and then immediately asking it to connect again,
+ * you'll likely want to do so like this:
+ * [asyncSocket setDelegate:nil];
+ * [asyncSocket disconnect];
+ * [asyncSocket setDelegate:self];
+ * [asyncSocket connect...];
 **/
 - (void)disconnect;
 
@@ -376,10 +388,10 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * The host will be an IP address.
 **/
 - (NSString *)connectedHost;
-- (UInt16)connectedPort;
+- (uint16_t)connectedPort;
 
 - (NSString *)localHost;
-- (UInt16)localPort;
+- (uint16_t)localPort;
 
 /**
  * Returns the local or remote address to which this socket is connected,
@@ -414,7 +426,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 // You may optionally set a timeout for any read/write operation. (To not timeout, use a negative time interval.)
 // If a read/write opertion times out, the corresponding "socket:shouldTimeout..." delegate method
 // is called to optionally allow you to extend the timeout.
-// Upon a timeout, the "socket:willDisconnectWithError:" method is called, followed by "socketDidDisconnect".
+// Upon a timeout, the "socket:didDisconnectWithError:" method is called
 // 
 // The tag is for your convenience.
 // You can use it as an array index, step number, state id, pointer, etc.
@@ -696,16 +708,20 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * These methods are only available from within the context of a performBlock: invocation.
  * See the documentation for the performBlock: method above.
  * 
- * Provides access to the socket's internal read/write streams.
- * These streams are normally only created if startTLS has been invoked to start SSL/TLS (see note below),
- * but if these methods are invoked, the read/write streams will be created automatically so that you may use them.
+ * Provides access to the socket's internal CFReadStream/CFWriteStream.
+ * 
+ * These streams are only used as workarounds for specific iOS shortcomings:
+ * 
+ * - Apple has decided to keep the SecureTransport framework private is iOS.
+ *   This means the only supplied way to do SSL/TLS is via CFStream or some other API layered on top of it.
+ *   Thus, in order to provide SSL/TLS support on iOS we are forced to rely on CFStream,
+ *   instead of the preferred and faster and more powerful SecureTransport.
+ * 
+ * - If a socket doesn't have backgrounding enabled, and that socket is closed while the app is backgrounded,
+ *   Apple only bothers to notify us via the CFStream API.
+ *   The faster and more powerful GCD API isn't notified properly in this case.
  * 
  * See also: (BOOL)enableBackgroundingOnSocket
- * 
- * Note: Apple has decided to keep the SecureTransport framework private is iOS.
- * This means the only supplied way to do SSL/TLS is via CFStream or some other API layered on top of it.
- * Thus, in order to provide SSL/TLS support on iOS we are forced to rely on CFStream,
- * instead of the preferred and faster and more powerful SecureTransport.
 **/
 - (CFReadStreamRef)readStream;
 - (CFWriteStreamRef)writeStream;
@@ -728,7 +744,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * 
  * Example usage:
  * 
- * - (void)socket:(GCDAsyncSocket *)sock didConnectToHost:(NSString *)host port:(UInt16)port
+ * - (void)socket:(GCDAsyncSocket *)sock didConnectToHost:(NSString *)host port:(uint16_t)port
  * {
  *     [asyncSocket performBlock:^{
  *         [asyncSocket enableBackgroundingOnSocket];
@@ -736,39 +752,6 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * }
 **/
 - (BOOL)enableBackgroundingOnSocket;
-
-/**
- * This method is only available from within the context of a performBlock: invocation.
- * See the documentation for the performBlock: method above.
- * 
- * This method should be used in place of the usual enableBackgroundingOnSocket method if
- * you later plan on securing the socket with SSL/TLS via the startTLS method.
- * 
- * This is due to a bug in iOS. Description of the bug:
- * 
- * First of all, Apple has decided to keep the SecureTransport framework private in iOS.
- * This removes the preferred, faster, and more powerful way of doing SSL/TLS.
- * The only option they have given us on iOS is to use CFStream.
- * 
- * In addition to this, Apple does not allow us to enable SSL/TLS on a stream after it has been opened.
- * This effectively breaks many newer protocols which negotiate upgrades to TLS in-band (such as XMPP).
- * 
- * And on top of that, if we flag a socket for backgrounding, that flag doesn't take effect until
- * after we have opened the socket. And if we try to flag the socket for backgrounding after we've opened
- * the socket, the flagging fails.
- * 
- * So the order of operations matters, and the ONLY order that works is this:
- * 
- * - Create read and write stream
- * - Mark streams for backgrounding
- * - Setup SSL on streams
- * - Open streams
- * 
- * So the caveat is that this method will mark the socket for backgrounding,
- * but it will not open the read and write streams. (Because if it did, later attempts to start TLS would fail.)
- * Thus the socket will not actually support backgrounding until after the startTLS method has been called.
-**/
-- (BOOL)enableBackgroundingOnSocketWithCaveat;
 
 #else
 
@@ -788,8 +771,8 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * Extracting host and port information from raw address data.
 **/
 + (NSString *)hostFromAddress:(NSData *)address;
-+ (UInt16)portFromAddress:(NSData *)address;
-+ (BOOL)getHost:(NSString **)hostPtr port:(UInt16 *)portPtr fromAddress:(NSData *)address;
++ (uint16_t)portFromAddress:(NSData *)address;
++ (BOOL)getHost:(NSString **)hostPtr port:(uint16_t *)portPtr fromAddress:(NSData *)address;
 
 /**
  * A few common line separators, for use with the readDataToData:... methods.
@@ -844,7 +827,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * Called when a socket connects and is ready for reading and writing.
  * The host parameter will be an IP address, not a DNS name.
 **/
-- (void)socket:(GCDAsyncSocket *)sock didConnectToHost:(NSString *)host port:(UInt16)port;
+- (void)socket:(GCDAsyncSocket *)sock didConnectToHost:(NSString *)host port:(uint16_t)port;
 
 /**
  * Called when a socket has completed reading the requested data into memory.
