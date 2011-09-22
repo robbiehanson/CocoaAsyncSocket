@@ -42,13 +42,17 @@
 
 #define LOG_MAX_QUEUE_SIZE 1000 // Should not exceed INT32_MAX
 
+
 #if GCD_MAYBE_AVAILABLE
-struct LoggerNode {
-	id <DDLogger> logger;
+@interface DDLoggerNode : NSObject {
+@public 
+	id <DDLogger> logger;	
 	dispatch_queue_t loggerQueue;
-    struct LoggerNode * next;
-};
-typedef struct LoggerNode LoggerNode;
+}
+
++ (DDLoggerNode *)nodeWithLogger:(id <DDLogger>)logger loggerQueue:(dispatch_queue_t)loggerQueue;
+
+@end
 #endif
 
 
@@ -68,6 +72,10 @@ typedef struct LoggerNode LoggerNode;
 
 @implementation DDLog
 
+  // An array used to manage all the individual loggers.
+  // The array is only modified on the loggingQueue/loggingThread.
+  static NSMutableArray *loggers;
+
 #if GCD_MAYBE_AVAILABLE
 
   // All logging statements are added to the same queue to ensure FIFO operation.
@@ -76,10 +84,6 @@ typedef struct LoggerNode LoggerNode;
   // Individual loggers are executed concurrently per log statement.
   // Each logger has it's own associated queue, and a dispatch group is used for synchrnoization.
   static dispatch_group_t loggingGroup;
-
-  // A linked list is used to manage all the individual loggers.
-  // Each item in the linked list also includes the loggers associated dispatch queue.
-  static LoggerNode *loggerNodes;
 
   // In order to prevent to queue from growing infinitely large,
   // a maximum size is enforced (LOG_MAX_QUEUE_SIZE).
@@ -94,10 +98,6 @@ typedef struct LoggerNode LoggerNode;
 
   // All logging statements are queued onto the same thread to ensure FIFO operation.
   static NSThread *loggingThread;
-
-  // An array is used to manage all the individual loggers.
-  // The array is only modified on the loggingThread.
-  static NSMutableArray *loggers;
 
   // In order to prevent to queue from growing infinitely large,
   // a maximum size is enforced (LOG_MAX_QUEUE_SIZE).
@@ -122,6 +122,8 @@ typedef struct LoggerNode LoggerNode;
 	{
 		initialized = YES;
 		
+		loggers = [[NSMutableArray alloc] initWithCapacity:4];
+		
 		if (IS_GCD_AVAILABLE)
 		{
 		#if GCD_MAYBE_AVAILABLE
@@ -130,8 +132,6 @@ typedef struct LoggerNode LoggerNode;
 			
 			loggingQueue = dispatch_queue_create("cocoa.lumberjack", NULL);
 			loggingGroup = dispatch_group_create();
-			
-			loggerNodes = NULL;
 			
 			queueSemaphore = dispatch_semaphore_create(LOG_MAX_QUEUE_SIZE);
 			
@@ -161,8 +161,6 @@ typedef struct LoggerNode LoggerNode;
 			
 			loggingThread = [[NSThread alloc] initWithTarget:self selector:@selector(lt_main:) object:nil];
 			[loggingThread start];
-			
-			loggers = [[NSMutableArray alloc] initWithCapacity:4];
 			
 			queueSize = 0;
 			
@@ -539,6 +537,50 @@ typedef struct LoggerNode LoggerNode;
 	SEL getterSel = @selector(ddLogLevel);
 	SEL setterSel = @selector(ddSetLogLevel:);
 	
+#if TARGET_OS_IPHONE
+	
+	// Issue #6 - Crashes on iOS 4.2.1 and iPhone 4
+	// 
+	// Crash caused by class_getClassMethod(2).
+	// 
+	//     "It's a bug with UIAccessibilitySafeCategory__NSObject so it didn't pop up until
+	//      users had VoiceOver enabled [...]. I was able to work around it by searching the
+	//      result of class_copyMethodList() instead of calling class_getClassMethod()"
+	
+	unsigned int methodCount, i;
+	Method *methodList = class_copyMethodList(object_getClass(class), &methodCount);
+	
+	if (methodList != NULL)
+	{
+		BOOL getterFound = NO;
+		BOOL setterFound = NO;
+		
+		for (i = 0; i < methodCount; ++i)
+		{
+			SEL currentSel = method_getName(methodList[i]);
+			
+			if (currentSel == getterSel)
+			{
+				getterFound = YES;
+			}
+			else if (currentSel == setterSel)
+			{
+				setterFound = YES;
+			}
+			
+			if (getterFound && setterFound)
+			{
+				return YES;
+			}
+		}
+		
+		free(methodList);
+	}
+	
+	return NO;
+	
+#else
+	
 	Method getter = class_getClassMethod(class, getterSel);
 	Method setter = class_getClassMethod(class, setterSel);
 	
@@ -548,6 +590,8 @@ typedef struct LoggerNode LoggerNode;
 	}
 	
 	return NO;
+	
+#endif
 }
 
 + (NSArray *)registeredClasses
@@ -671,24 +715,19 @@ typedef struct LoggerNode LoggerNode;
 	{
 	#if GCD_MAYBE_AVAILABLE
 		
-		// Add to linked list of LoggerNode elements.
+		// Add to loggers array.
 		// Need to create loggerQueue if loggerNode doesn't provide one.
 		
-		LoggerNode *loggerNode = malloc(sizeof(LoggerNode));
-		loggerNode->logger = [logger retain];
+		dispatch_queue_t loggerQueue = NULL;
 		
 		if ([logger respondsToSelector:@selector(loggerQueue)])
 		{
 			// Logger may be providing its own queue
 			
-			loggerNode->loggerQueue = [logger loggerQueue];
+			loggerQueue = [logger loggerQueue];
 		}
 		
-		if (loggerNode->loggerQueue)
-		{
-			dispatch_retain(loggerNode->loggerQueue);
-		}
-		else
+		if (loggerQueue == nil)
 		{
 			// Automatically create queue for the logger.
 			// Use the logger name as the queue name if possible.
@@ -699,11 +738,22 @@ typedef struct LoggerNode LoggerNode;
 				loggerQueueName = [[logger loggerName] UTF8String];
 			}
 			
-			loggerNode->loggerQueue = dispatch_queue_create(loggerQueueName, NULL);
+			loggerQueue = dispatch_queue_create(loggerQueueName, NULL);
 		}
 		
-		loggerNode->next = loggerNodes;
-		loggerNodes = loggerNode;
+		DDLoggerNode *loggerNode = [DDLoggerNode nodeWithLogger:logger loggerQueue:loggerQueue];
+		[loggers addObject:loggerNode];
+		
+		if ([logger respondsToSelector:@selector(didAddLogger)])
+		{
+			dispatch_async(loggerNode->loggerQueue, ^{
+				NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+				
+				[logger didAddLogger];
+				
+				[pool drain];
+			});
+		}
 		
 	#endif
 	}
@@ -715,12 +765,12 @@ typedef struct LoggerNode LoggerNode;
 		
 		[loggers addObject:logger];
 		
+		if ([logger respondsToSelector:@selector(didAddLogger)])
+		{
+			[logger didAddLogger];
+		}
+		
 	#endif
-	}
-	
-	if ([logger respondsToSelector:@selector(didAddLogger)])
-	{
-		[logger didAddLogger];
 	}
 }
 
@@ -729,63 +779,59 @@ typedef struct LoggerNode LoggerNode;
 **/
 + (void)lt_removeLogger:(id <DDLogger>)logger
 {
-	if ([logger respondsToSelector:@selector(willRemoveLogger)])
-	{
-		[logger willRemoveLogger];
-	}
-	
 	if (IS_GCD_AVAILABLE)
 	{
 	#if GCD_MAYBE_AVAILABLE
 		
-		// Remove from linked list of LoggerNode elements.
-		// 
-		// Need to release:
-		// - logger
-		// - loggerQueue
-		// - loggerNode
+		// Find associated loggerNode in list of added loggers
 		
-		LoggerNode *prevNode = NULL;
-		LoggerNode *currentNode = loggerNodes;
+		DDLoggerNode *loggerNode = nil;
 		
-		while (currentNode)
+		for (DDLoggerNode *node in loggers)
 		{
-			if (currentNode->logger == logger)
+			if (node->logger == logger)
 			{
-				if (prevNode)
-				{
-					// LoggerNode had previous node pointing to it.
-					prevNode->next = currentNode->next;
-				}
-				else
-				{
-					// LoggerNode was first in list. Update loggerNodes pointer.
-					loggerNodes = currentNode->next;
-				}
-				
-				[currentNode->logger release];
-				currentNode->logger = nil;
-				
-				dispatch_release(currentNode->loggerQueue);
-				currentNode->loggerQueue = NULL;
-				
-				currentNode->next = NULL;
-				
-				free(currentNode);
-				
+				loggerNode = node;
 				break;
 			}
-			
-			prevNode = currentNode;
-			currentNode = currentNode->next;
 		}
+		
+		if (loggerNode == nil)
+		{
+			NSLogDebug(@"DDLog: Request to remove logger which wasn't added");
+			return;
+		}
+		
+		// Notify logger
+		
+		if ([logger respondsToSelector:@selector(willRemoveLogger)])
+		{
+			dispatch_async(loggerNode->loggerQueue, ^{
+				NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+				
+				[logger willRemoveLogger];
+				
+				[pool drain];
+			});
+		}
+		
+		// Remove from loggers array
+		
+		[loggers removeObject:loggerNode];
 		
 	#endif
 	}
 	else
 	{
 	#if GCD_MAYBE_UNAVAILABLE
-	
+		
+		// Notify logger
+		
+		if ([logger respondsToSelector:@selector(willRemoveLogger)])
+		{
+			[logger willRemoveLogger];
+		}
+		
 		// Remove from loggers array
 		
 		[loggers removeObject:logger];
@@ -799,53 +845,31 @@ typedef struct LoggerNode LoggerNode;
 **/
 + (void)lt_removeAllLoggers
 {
+	// Notify all loggers
+	
 	if (IS_GCD_AVAILABLE)
 	{
 	#if GCD_MAYBE_AVAILABLE
 		
-		// Iterate through linked list of LoggerNode elements.
-		// For each one, notify the logger, and deallocate all associated resources.
-		// 
-		// Need to release:
-		// - logger
-		// - loggerQueue
-		// - loggerNode
-		
-		LoggerNode *nextNode;
-		LoggerNode *currentNode = loggerNodes;
-		
-		while (currentNode)
+		for (DDLoggerNode *loggerNode in loggers)
 		{
-			if ([currentNode->logger respondsToSelector:@selector(willRemoveLogger)])
+			if ([loggerNode->logger respondsToSelector:@selector(willRemoveLogger)])
 			{
-				[currentNode->logger willRemoveLogger];
+				dispatch_async(loggerNode->loggerQueue, ^{
+					NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+					
+					[loggerNode->logger willRemoveLogger];
+					
+					[pool drain];
+				});
 			}
-			
-			nextNode = currentNode->next;
-			
-			[currentNode->logger release];
-			currentNode->logger = nil;
-			
-			dispatch_release(currentNode->loggerQueue);
-			currentNode->loggerQueue = NULL;
-			
-			currentNode->next = NULL;
-			
-			free(currentNode);
-			
-			currentNode = nextNode;
 		}
-		
-		loggerNodes = NULL;
 		
 	#endif
 	}
 	else
 	{
 	#if GCD_MAYBE_UNAVAILABLE
-		
-		// Notify all loggers.
-		// And then remove them all from loggers array.
 		
 		for (id <DDLogger> logger in loggers)
 		{
@@ -855,10 +879,12 @@ typedef struct LoggerNode LoggerNode;
 			}
 		}
 		
-		[loggers removeAllObjects];
-		
 	#endif
 	}
+	
+	// Remove all loggers from array
+	
+	[loggers removeAllObjects];
 }
 
 /**
@@ -881,21 +907,16 @@ typedef struct LoggerNode LoggerNode;
 			// The waiting ensures that a slow logger doesn't end up with a large queue of pending log messages.
 			// This would defeat the purpose of the efforts we made earlier to restrict the max queue size.
 			
-			LoggerNode *currentNode = loggerNodes;
-			
-			while (currentNode)
+			for (DDLoggerNode *loggerNode in loggers)
 			{
-				dispatch_block_t loggerBlock = ^{
+				dispatch_group_async(loggingGroup, loggerNode->loggerQueue, ^{
+					
 					NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 					
-					[currentNode->logger logMessage:logMessage];
+					[loggerNode->logger logMessage:logMessage];
 					
 					[pool drain];
-				};
-				
-				dispatch_group_async(loggingGroup, currentNode->loggerQueue, loggerBlock);
-				
-				currentNode = currentNode->next;
+				});
 			}
 			
 			dispatch_group_wait(loggingGroup, DISPATCH_TIME_FOREVER);
@@ -904,21 +925,15 @@ typedef struct LoggerNode LoggerNode;
 		{
 			// Execute each logger serialy, each within its own queue.
 			
-			LoggerNode *currentNode = loggerNodes;
-			
-			while (currentNode)
+			for (DDLoggerNode *loggerNode in loggers)
 			{
-				dispatch_block_t loggerBlock = ^{
+				dispatch_sync(loggerNode->loggerQueue, ^{
 					NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 					
-					[currentNode->logger logMessage:logMessage];
+					[loggerNode->logger logMessage:logMessage];
 					
 					[pool drain];
-				};
-				
-				dispatch_sync(currentNode->loggerQueue, loggerBlock);
-				
-				currentNode = currentNode->next;
+				});
 			}
 		}
 		
@@ -1015,23 +1030,19 @@ typedef struct LoggerNode LoggerNode;
 	{
 	#if GCD_MAYBE_AVAILABLE
 		
-		LoggerNode *currentNode = loggerNodes;
-		
-		while (currentNode)
+		for (DDLoggerNode *loggerNode in loggers)
 		{
-			if ([currentNode->logger respondsToSelector:@selector(flush)])
+			if ([loggerNode->logger respondsToSelector:@selector(flush)])
 			{
-				dispatch_block_t loggerBlock = ^{
+				dispatch_group_async(loggingGroup, loggerNode->loggerQueue, ^{
+				
 					NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 					
-					[currentNode->logger flush];
+					[loggerNode->logger flush];
 					
 					[pool drain];
-				};
-				
-				dispatch_group_async(loggingGroup, currentNode->loggerQueue, loggerBlock);
+				});
 			}
-			currentNode = currentNode->next;
 		}
 		
 		dispatch_group_wait(loggingGroup, DISPATCH_TIME_FOREVER);
@@ -1136,6 +1147,46 @@ NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy)
 #pragma mark -
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#if GCD_MAYBE_AVAILABLE
+
+@implementation DDLoggerNode
+
+- (id)initWithLogger:(id <DDLogger>)aLogger loggerQueue:(dispatch_queue_t)aLoggerQueue
+{
+	if ((self = [super init]))
+	{
+		logger = [aLogger retain];
+		
+		if (aLoggerQueue) {
+			loggerQueue = aLoggerQueue;
+			dispatch_retain(loggerQueue);
+		}
+	}
+	return self;
+}
+
++ (DDLoggerNode *)nodeWithLogger:(id <DDLogger>)logger loggerQueue:(dispatch_queue_t)loggerQueue
+{
+	return [[[DDLoggerNode alloc] initWithLogger:logger loggerQueue:loggerQueue] autorelease];
+}
+
+- (void)dealloc
+{
+	[logger release];
+	if (loggerQueue) {
+		dispatch_release(loggerQueue);
+	}
+	[super dealloc];
+}
+
+@end
+
+#endif
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark -
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 @implementation DDLogMessage
 
 - (id)initWithLogMsg:(NSString *)msg
@@ -1159,6 +1210,19 @@ NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy)
 		timestamp = [[NSDate alloc] init];
 		
 		machThreadID = pthread_mach_thread_np(pthread_self());
+        
+        if (IS_GCD_AVAILABLE)
+        {
+#if GCD_MAYBE_AVAILABLE
+            const char *label = dispatch_queue_get_label(dispatch_get_current_queue());
+            if (label) {
+                size_t labelLength = strlen(label);
+                queueLabel = malloc(labelLength+1);
+                strncpy(queueLabel, label, labelLength);
+                queueLabel[labelLength] = 0;
+            }
+#endif
+        }
 	}
 	return self;
 }
@@ -1201,6 +1265,14 @@ NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy)
 	[threadID release];
 	[fileName release];
 	[methodName release];
+    
+    if (IS_GCD_AVAILABLE) {
+#if GCD_MAYBE_AVAILABLE
+        if (queueLabel != NULL) {
+            free(queueLabel);
+        }
+#endif
+    }
 	
 	[super dealloc];
 }
