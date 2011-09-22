@@ -2431,22 +2431,26 @@ static NSMutableArray *recentNonces;
 			[httpResponse connectionDidClose];
 		}
 		
-		// Cleanup after the last request
-		[self finishResponse];
-		
 		
 		if (tag == HTTP_FINAL_RESPONSE)
 		{
+			// Cleanup after the last request
+			[self finishResponse];
+			
 			// Terminate the connection
 			[asyncSocket disconnect];
 			
-			// Explictly return to ensure we don't do anything after the socket disconnect
+			// Explictly return to ensure we don't do anything after the socket disconnects
 			return;
 		}
 		else
 		{
 			if ([self shouldDie])
 			{
+				// Cleanup after the last request
+				// Note: Don't do this before calling shouldDie, as it needs the request object still.
+				[self finishResponse];
+				
 				// The only time we should invoke [self die] is from socketDidDisconnect,
 				// or if the socket gets taken over by someone else like a WebSocket.
 				
@@ -2454,6 +2458,9 @@ static NSMutableArray *recentNonces;
 			}
 			else
 			{
+				// Cleanup after the last request
+				[self finishResponse];
+				
 				// Prepare for the next request
 				
 				// If this assertion fails, it likely means you overrode the
