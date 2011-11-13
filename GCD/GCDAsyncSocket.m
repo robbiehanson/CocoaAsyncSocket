@@ -6135,7 +6135,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 				
 				[theDelegate socketDidSecure:self];
 				
-				[pool release];
+				[pool drain];
 			});
 		}
 		
@@ -6281,14 +6281,18 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	LogInfo(@"ListenerThread: Started");
 	
 	// We can't run the run loop unless it has an associated input source or a timer.
-	// So we'll just create a timer that will never fire - unless the server runs for 10,000 years.
-	[NSTimer scheduledTimerWithTimeInterval:DBL_MAX target:self selector:@selector(ignore:) userInfo:nil repeats:NO];
+	// So we'll just create a timer that will never fire - unless the server runs for a decades.
+	[NSTimer scheduledTimerWithTimeInterval:[[NSDate distantFuture] timeIntervalSinceNow]
+	                                 target:self
+	                               selector:@selector(ignore:)
+	                               userInfo:nil
+	                                repeats:YES];
 	
 	[[NSRunLoop currentRunLoop] run];
 	
 	LogInfo(@"ListenerThread: Stopped");
 	
-	[pool release];
+	[pool drain];
 }
 
 + (void)addStreamListener:(GCDAsyncSocket *)asyncSocket
@@ -6347,7 +6351,7 @@ static void CFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType type
 					[asyncSocket doReadData];
 				}
 				
-				[pool release];
+				[pool drain];
 			});
 			
 			break;
@@ -6378,7 +6382,7 @@ static void CFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType type
 					[asyncSocket closeWithError:error];
 				}
 				
-				[pool release];
+				[pool drain];
 			});
 			
 			[error release];
@@ -6417,7 +6421,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 					[asyncSocket doWriteData];
 				}
 				
-				[pool release];
+				[pool drain];
 			});
 			
 			break;
@@ -6448,7 +6452,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 					[asyncSocket closeWithError:error];
 				}
 				
-				[pool release];
+				[pool drain];
 			});
 			
 			[error release];
