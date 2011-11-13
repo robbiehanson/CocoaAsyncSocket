@@ -3267,7 +3267,7 @@ Failed:
 	
 	[ms appendString:[NSString stringWithFormat:@"has queued %u reads %u writes, ", readQueueCount, writeQueueCount]];
 
-	if (theCurrentRead == nil)
+	if (theCurrentRead == nil || [theCurrentRead isKindOfClass:[AsyncSpecialPacket class]])
 		[ms appendString: @"no current read, "];
 	else
 	{
@@ -3282,7 +3282,7 @@ Failed:
 			theCurrentRead->bytesDone ? percentDone : 0]];
 	}
 
-	if (theCurrentWrite == nil)
+	if (theCurrentWrite == nil || [theCurrentWrite isKindOfClass:[AsyncSpecialPacket class]])
 		[ms appendString: @"no current write, "];
 	else
 	{
