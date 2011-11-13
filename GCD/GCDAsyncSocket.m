@@ -234,10 +234,10 @@ enum GCDAsyncSocketConfig
 #endif
 
 // Class Methods
-+ (NSString *)hostFromAddress4:(const struct sockaddr_in *)pSockaddr4;
-+ (NSString *)hostFromAddress6:(const struct sockaddr_in6 *)pSockaddr6;
-+ (uint16_t)portFromAddress4:(const struct sockaddr_in *)pSockaddr4;
-+ (uint16_t)portFromAddress6:(const struct sockaddr_in6 *)pSockaddr6;
++ (NSString *)hostFromSockaddr4:(const struct sockaddr_in *)pSockaddr4;
++ (NSString *)hostFromSockaddr6:(const struct sockaddr_in6 *)pSockaddr6;
++ (uint16_t)portFromSockaddr4:(const struct sockaddr_in *)pSockaddr4;
++ (uint16_t)portFromSockaddr6:(const struct sockaddr_in6 *)pSockaddr6;
 
 @end
 
@@ -1209,7 +1209,7 @@ enum GCDAsyncSocketConfig
 
 - (id)userData
 {
-	__block id result;
+	__block id result = nil;
 	
 	dispatch_block_t block = ^{
 		
@@ -2283,7 +2283,11 @@ enum GCDAsyncSocketConfig
 	flags |= kConnected;
 	
 	[self endConnectTimeout];
+	
+	#if TARGET_OS_IPHONE
+	// The endConnectTimeout method executed above incremented the connectIndex.
 	aConnectIndex = connectIndex;
+	#endif
 	
 	// Setup read/write streams (as workaround for specific shortcomings in the iOS platform)
 	// 
@@ -2851,7 +2855,7 @@ enum GCDAsyncSocketConfig
 
 - (BOOL)isDisconnected
 {
-	__block BOOL result;
+	__block BOOL result = NO;
 	
 	dispatch_block_t block = ^{
 		result = (flags & kSocketStarted) ? NO : YES;
@@ -2867,7 +2871,7 @@ enum GCDAsyncSocketConfig
 
 - (BOOL)isConnected
 {
-	__block BOOL result;
+	__block BOOL result = NO;
 	
 	dispatch_block_t block = ^{
 		result = (flags & kConnected) ? YES : NO;
@@ -3070,7 +3074,7 @@ enum GCDAsyncSocketConfig
 	{
 		return nil;
 	}
-	return [[self class] hostFromAddress4:&sockaddr4];
+	return [[self class] hostFromSockaddr4:&sockaddr4];
 }
 
 - (NSString *)connectedHostFromSocket6:(int)socketFD
@@ -3082,7 +3086,7 @@ enum GCDAsyncSocketConfig
 	{
 		return nil;
 	}
-	return [[self class] hostFromAddress6:&sockaddr6];
+	return [[self class] hostFromSockaddr6:&sockaddr6];
 }
 
 - (uint16_t)connectedPortFromSocket4:(int)socketFD
@@ -3094,7 +3098,7 @@ enum GCDAsyncSocketConfig
 	{
 		return 0;
 	}
-	return [[self class] portFromAddress4:&sockaddr4];
+	return [[self class] portFromSockaddr4:&sockaddr4];
 }
 
 - (uint16_t)connectedPortFromSocket6:(int)socketFD
@@ -3106,7 +3110,7 @@ enum GCDAsyncSocketConfig
 	{
 		return 0;
 	}
-	return [[self class] portFromAddress6:&sockaddr6];
+	return [[self class] portFromSockaddr6:&sockaddr6];
 }
 
 - (NSString *)localHostFromSocket4:(int)socketFD
@@ -3118,7 +3122,7 @@ enum GCDAsyncSocketConfig
 	{
 		return nil;
 	}
-	return [[self class] hostFromAddress4:&sockaddr4];
+	return [[self class] hostFromSockaddr4:&sockaddr4];
 }
 
 - (NSString *)localHostFromSocket6:(int)socketFD
@@ -3130,7 +3134,7 @@ enum GCDAsyncSocketConfig
 	{
 		return nil;
 	}
-	return [[self class] hostFromAddress6:&sockaddr6];
+	return [[self class] hostFromSockaddr6:&sockaddr6];
 }
 
 - (uint16_t)localPortFromSocket4:(int)socketFD
@@ -3142,7 +3146,7 @@ enum GCDAsyncSocketConfig
 	{
 		return 0;
 	}
-	return [[self class] portFromAddress4:&sockaddr4];
+	return [[self class] portFromSockaddr4:&sockaddr4];
 }
 
 - (uint16_t)localPortFromSocket6:(int)socketFD
@@ -3154,7 +3158,7 @@ enum GCDAsyncSocketConfig
 	{
 		return 0;
 	}
-	return [[self class] portFromAddress6:&sockaddr6];
+	return [[self class] portFromSockaddr6:&sockaddr6];
 }
 
 - (NSData *)connectedAddress
@@ -3329,47 +3333,47 @@ enum GCDAsyncSocketConfig
 	{
 		// ANY address
 		
-		struct sockaddr_in nativeAddr4;
-		memset(&nativeAddr4, 0, sizeof(nativeAddr4));
+		struct sockaddr_in sockaddr4;
+		memset(&sockaddr4, 0, sizeof(sockaddr4));
 		
-		nativeAddr4.sin_len         = sizeof(nativeAddr4);
-		nativeAddr4.sin_family      = AF_INET;
-		nativeAddr4.sin_port        = htons(port);
-		nativeAddr4.sin_addr.s_addr = htonl(INADDR_ANY);
+		sockaddr4.sin_len         = sizeof(sockaddr4);
+		sockaddr4.sin_family      = AF_INET;
+		sockaddr4.sin_port        = htons(port);
+		sockaddr4.sin_addr.s_addr = htonl(INADDR_ANY);
 		
-		struct sockaddr_in6 nativeAddr6;
-		memset(&nativeAddr6, 0, sizeof(nativeAddr6));
+		struct sockaddr_in6 sockaddr6;
+		memset(&sockaddr6, 0, sizeof(sockaddr6));
 		
-		nativeAddr6.sin6_len       = sizeof(nativeAddr6);
-		nativeAddr6.sin6_family    = AF_INET6;
-		nativeAddr6.sin6_port      = htons(port);
-		nativeAddr6.sin6_addr      = in6addr_any;
+		sockaddr6.sin6_len       = sizeof(sockaddr6);
+		sockaddr6.sin6_family    = AF_INET6;
+		sockaddr6.sin6_port      = htons(port);
+		sockaddr6.sin6_addr      = in6addr_any;
 		
-		addr4 = [NSMutableData dataWithBytes:&nativeAddr4 length:sizeof(nativeAddr4)];
-		addr6 = [NSMutableData dataWithBytes:&nativeAddr6 length:sizeof(nativeAddr6)];
+		addr4 = [NSMutableData dataWithBytes:&sockaddr4 length:sizeof(sockaddr4)];
+		addr6 = [NSMutableData dataWithBytes:&sockaddr6 length:sizeof(sockaddr6)];
 	}
 	else if ([interface isEqualToString:@"localhost"] || [interface isEqualToString:@"loopback"])
 	{
 		// LOOPBACK address
 		
-		struct sockaddr_in nativeAddr4;
-		memset(&nativeAddr4, 0, sizeof(nativeAddr4));
+		struct sockaddr_in sockaddr4;
+		memset(&sockaddr4, 0, sizeof(sockaddr4));
 		
-		nativeAddr4.sin_len         = sizeof(struct sockaddr_in);
-		nativeAddr4.sin_family      = AF_INET;
-		nativeAddr4.sin_port        = htons(port);
-		nativeAddr4.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+		sockaddr4.sin_len         = sizeof(sockaddr4);
+		sockaddr4.sin_family      = AF_INET;
+		sockaddr4.sin_port        = htons(port);
+		sockaddr4.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 		
-		struct sockaddr_in6 nativeAddr6;
-		memset(&nativeAddr6, 0, sizeof(nativeAddr6));
+		struct sockaddr_in6 sockaddr6;
+		memset(&sockaddr6, 0, sizeof(sockaddr6));
 		
-		nativeAddr6.sin6_len       = sizeof(struct sockaddr_in6);
-		nativeAddr6.sin6_family    = AF_INET6;
-		nativeAddr6.sin6_port      = htons(port);
-		nativeAddr6.sin6_addr      = in6addr_loopback;
+		sockaddr6.sin6_len       = sizeof(sockaddr6);
+		sockaddr6.sin6_family    = AF_INET6;
+		sockaddr6.sin6_port      = htons(port);
+		sockaddr6.sin6_addr      = in6addr_loopback;
 		
-		addr4 = [NSMutableData dataWithBytes:&nativeAddr4 length:sizeof(nativeAddr4)];
-		addr6 = [NSMutableData dataWithBytes:&nativeAddr6 length:sizeof(nativeAddr6)];
+		addr4 = [NSMutableData dataWithBytes:&sockaddr4 length:sizeof(sockaddr4)];
+		addr6 = [NSMutableData dataWithBytes:&sockaddr6 length:sizeof(sockaddr6)];
 	}
 	else
 	{
@@ -6771,7 +6775,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 #pragma mark Class Methods
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-+ (NSString *)hostFromAddress4:(const struct sockaddr_in *)pSockaddr4
++ (NSString *)hostFromSockaddr4:(const struct sockaddr_in *)pSockaddr4
 {
 	char addrBuf[INET_ADDRSTRLEN];
 	
@@ -6783,7 +6787,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	return [NSString stringWithCString:addrBuf encoding:NSASCIIStringEncoding];
 }
 
-+ (NSString *)hostFromAddress6:(const struct sockaddr_in6 *)pSockaddr6
++ (NSString *)hostFromSockaddr6:(const struct sockaddr_in6 *)pSockaddr6
 {
 	char addrBuf[INET6_ADDRSTRLEN];
 	
@@ -6795,12 +6799,12 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	return [NSString stringWithCString:addrBuf encoding:NSASCIIStringEncoding];
 }
 
-+ (uint16_t)portFromAddress4:(const struct sockaddr_in *)pSockaddr4
++ (uint16_t)portFromSockaddr4:(const struct sockaddr_in *)pSockaddr4
 {
 	return ntohs(pSockaddr4->sin_port);
 }
 
-+ (uint16_t)portFromAddress6:(const struct sockaddr_in6 *)pSockaddr6
++ (uint16_t)portFromSockaddr6:(const struct sockaddr_in6 *)pSockaddr6
 {
 	return ntohs(pSockaddr6->sin6_port);
 }
@@ -6829,28 +6833,28 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 {
 	if ([address length] >= sizeof(struct sockaddr))
 	{
-		const struct sockaddr *addrX = (const struct sockaddr *)[address bytes];
+		const struct sockaddr *sockaddrX = (const struct sockaddr *)[address bytes];
 		
-		if (addrX->sa_family == AF_INET)
+		if (sockaddrX->sa_family == AF_INET)
 		{
 			if ([address length] >= sizeof(struct sockaddr_in))
 			{
-				const struct sockaddr_in *addr4 = (const struct sockaddr_in *)addrX;
+				const struct sockaddr_in *sockaddr4 = (const struct sockaddr_in *)sockaddrX;
 				
-				if (hostPtr) *hostPtr = [self hostFromAddress4:addr4];
-				if (portPtr) *portPtr = [self portFromAddress4:addr4];
+				if (hostPtr) *hostPtr = [self hostFromSockaddr4:sockaddr4];
+				if (portPtr) *portPtr = [self portFromSockaddr4:sockaddr4];
 				
 				return YES;
 			}
 		}
-		else if (addrX->sa_family == AF_INET6)
+		else if (sockaddrX->sa_family == AF_INET6)
 		{
 			if ([address length] >= sizeof(struct sockaddr_in6))
 			{
-				const struct sockaddr_in6 *addr6 = (const struct sockaddr_in6 *)addrX;
+				const struct sockaddr_in6 *sockaddr6 = (const struct sockaddr_in6 *)sockaddrX;
 				
-				if (hostPtr) *hostPtr = [self hostFromAddress6:addr6];
-				if (portPtr) *portPtr = [self portFromAddress6:addr6];
+				if (hostPtr) *hostPtr = [self hostFromSockaddr6:sockaddr6];
+				if (portPtr) *portPtr = [self portFromSockaddr6:sockaddr6];
 				
 				return YES;
 			}
