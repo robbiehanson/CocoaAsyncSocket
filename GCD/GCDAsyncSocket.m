@@ -741,7 +741,7 @@ enum GCDAsyncSocketConfig
 {
 	if((self = [super init]))
 	{
-		buffer = [d retain];
+		buffer = [d copy]; // If d is immutable, this is just a retain
 		bytesDone = 0;
 		timeout = t;
 		tag = i;
