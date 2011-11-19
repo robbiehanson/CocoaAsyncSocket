@@ -1,5 +1,19 @@
 #import "DDAbstractDatabaseLogger.h"
 
+/**
+ * Welcome to Cocoa Lumberjack!
+ * 
+ * The project page has a wealth of documentation if you have any questions.
+ * https://github.com/robbiehanson/CocoaLumberjack
+ * 
+ * If you're new to the project you may wish to read the "Getting Started" wiki.
+ * https://github.com/robbiehanson/CocoaLumberjack/wiki/GettingStarted
+**/
+
+#if ! __has_feature(objc_arc)
+#warning This file must be compiled with ARC. Use -fobjc-arc flag (or convert project to ARC).
+#endif
+
 @interface DDAbstractDatabaseLogger ()
 - (void)destroySaveTimer;
 - (void)destroyDeleteTimer;
@@ -131,6 +145,7 @@
 		dispatch_source_set_event_handler(saveTimer, ^{ @autoreleasepool {
 			
 			[self performSaveAndSuspendSaveTimer];
+			
 		}});
 		
 		saveTimerSuspended = YES;
@@ -172,6 +187,7 @@
 		dispatch_source_set_event_handler(deleteTimer, ^{ @autoreleasepool {
 			
 			[self performDelete];
+			
 		}});
 		
 		[self updateDeleteTimer];
@@ -204,7 +220,7 @@
 
 - (void)setSaveThreshold:(NSUInteger)threshold
 {
-	dispatch_block_t block = ^{ @autoreleasepool {
+	dispatch_block_t block = ^{
 		
 		if (saveThreshold != threshold)
 		{
@@ -217,10 +233,14 @@
 			
 			if ((unsavedCount >= saveThreshold) && (saveThreshold > 0))
 			{
-				[self performSaveAndSuspendSaveTimer];
+				@autoreleasepool {
+					
+					[self performSaveAndSuspendSaveTimer];
+				
+				}
 			}
 		}
-	}};
+	};
 	
 	if (dispatch_get_current_queue() == loggerQueue)
 		block();
@@ -248,7 +268,7 @@
 
 - (void)setSaveInterval:(NSTimeInterval)interval
 {
-	dispatch_block_t block = ^{ @autoreleasepool {
+	dispatch_block_t block = ^{
 	
 		if (saveInterval != interval)
 		{
@@ -269,25 +289,28 @@
 			
 			if (saveInterval > 0.0)
 			{
-				if (saveTimer == NULL)
+				@autoreleasepool
 				{
-					// Handles #2
-					// 
-					// Since the saveTimer uses the unsavedTime to calculate it's first fireDate,
-					// if a save is needed the timer will fire immediately.
-					
-					[self createSuspendedSaveTimer];
-					[self updateAndResumeSaveTimer];
-				}
-				else
-				{
-					// Handles #3
-					// Handles #4
-					// 
-					// Since the saveTimer uses the unsavedTime to calculate it's first fireDate,
-					// if a save is needed the timer will fire immediately.
-					
-					[self updateAndResumeSaveTimer];
+					if (saveTimer == NULL)
+					{
+						// Handles #2
+						// 
+						// Since the saveTimer uses the unsavedTime to calculate it's first fireDate,
+						// if a save is needed the timer will fire immediately.
+						
+						[self createSuspendedSaveTimer];
+						[self updateAndResumeSaveTimer];
+					}
+					else
+					{
+						// Handles #3
+						// Handles #4
+						// 
+						// Since the saveTimer uses the unsavedTime to calculate it's first fireDate,
+						// if a save is needed the timer will fire immediately.
+						
+						[self updateAndResumeSaveTimer];
+					}
 				}
 			}
 			else if (saveTimer)
@@ -297,7 +320,7 @@
 				[self destroySaveTimer];
 			}
 		}
-	}};
+	};
 	
 	if (dispatch_get_current_queue() == loggerQueue)
 		block();
@@ -325,7 +348,7 @@
 
 - (void)setMaxAge:(NSTimeInterval)interval
 {
-	dispatch_block_t block = ^{ @autoreleasepool {
+	dispatch_block_t block = ^{
 		
 		if (maxAge != interval)
 		{
@@ -372,15 +395,18 @@
 			
 			if (shouldDeleteNow)
 			{
-				[self performDelete];
-				
-				if (deleteTimer)
-					[self updateDeleteTimer];
-				else
-					[self createAndStartDeleteTimer];
+				@autoreleasepool
+				{
+					[self performDelete];
+					
+					if (deleteTimer)
+						[self updateDeleteTimer];
+					else
+						[self createAndStartDeleteTimer];
+				}
 			}
 		}
-	}};
+	};
 	
 	if (dispatch_get_current_queue() == loggerQueue)
 		block();
@@ -408,7 +434,7 @@
 
 - (void)setDeleteInterval:(NSTimeInterval)interval
 {
-	dispatch_block_t block = ^{ @autoreleasepool {
+	dispatch_block_t block = ^{
 		
 		if (deleteInterval != interval)
 		{
@@ -429,24 +455,27 @@
 			
 			if (deleteInterval > 0.0)
 			{
-				if (deleteTimer == NULL)
+				@autoreleasepool
 				{
-					// Handles #2
-					// 
-					// Since the deleteTimer uses the lastDeleteTime to calculate it's first fireDate,
-					// if a delete is needed the timer will fire immediately.
-					
-					[self createAndStartDeleteTimer];
-				}
-				else
-				{
-					// Handles #3
-					// Handles #4
-					// 
-					// Since the deleteTimer uses the lastDeleteTime to calculate it's first fireDate,
-					// if a save is needed the timer will fire immediately.
-					
-					[self updateDeleteTimer];
+					if (deleteTimer == NULL)
+					{
+						// Handles #2
+						// 
+						// Since the deleteTimer uses the lastDeleteTime to calculate it's first fireDate,
+						// if a delete is needed the timer will fire immediately.
+						
+						[self createAndStartDeleteTimer];
+					}
+					else
+					{
+						// Handles #3
+						// Handles #4
+						// 
+						// Since the deleteTimer uses the lastDeleteTime to calculate it's first fireDate,
+						// if a save is needed the timer will fire immediately.
+						
+						[self updateDeleteTimer];
+					}
 				}
 			}
 			else if (deleteTimer)
@@ -456,7 +485,7 @@
 				[self destroyDeleteTimer];
 			}
 		}
-	}};
+	};
 	
 	if (dispatch_get_current_queue() == loggerQueue)
 		block();
