@@ -93,7 +93,6 @@
 	[attributes setObject:[NSColor redColor] forKey:NSForegroundColorAttributeName];
 	
 	NSAttributedString *as = [[NSAttributedString alloc] initWithString:paragraph attributes:attributes];
-	[as autorelease];
 	
 	[[logView textStorage] appendAttributedString:as];
 	[self scrollToBottom];
@@ -107,7 +106,6 @@
 	[attributes setObject:[NSColor purpleColor] forKey:NSForegroundColorAttributeName];
 	
 	NSAttributedString *as = [[NSAttributedString alloc] initWithString:paragraph attributes:attributes];
-	[as autorelease];
 	
 	[[logView textStorage] appendAttributedString:as];
 	[self scrollToBottom];
@@ -121,7 +119,6 @@
 	[attributes setObject:[NSColor blackColor] forKey:NSForegroundColorAttributeName];
 	
 	NSAttributedString *as = [[NSAttributedString alloc] initWithString:paragraph attributes:attributes];
-	[as autorelease];
 	
 	[[logView textStorage] appendAttributedString:as];
 	[self scrollToBottom];
@@ -191,11 +188,11 @@
 	UInt16 port = [newSocket connectedPort];
 	
 	dispatch_async(dispatch_get_main_queue(), ^{
-		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+		@autoreleasepool {
 		
-		[self logInfo:FORMAT(@"Accepted client %@:%hu", host, port)];
+			[self logInfo:FORMAT(@"Accepted client %@:%hu", host, port)];
 		
-		[pool release];
+		}
 	});
 	
 	NSString *welcomeMsg = @"Welcome to the AsyncSocket Echo Server\r\n";
@@ -217,20 +214,20 @@
 - (void)socket:(GCDAsyncSocket *)sock didReadData:(NSData *)data withTag:(long)tag
 {
 	dispatch_async(dispatch_get_main_queue(), ^{
-		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+		@autoreleasepool {
 		
-		NSData *strData = [data subdataWithRange:NSMakeRange(0, [data length] - 2)];
-		NSString *msg = [[[NSString alloc] initWithData:strData encoding:NSUTF8StringEncoding] autorelease];
-		if (msg)
-		{
-			[self logMessage:msg];
-		}
-		else
-		{
-			[self logError:@"Error converting received data into UTF-8 String"];
-		}
+			NSData *strData = [data subdataWithRange:NSMakeRange(0, [data length] - 2)];
+			NSString *msg = [[NSString alloc] initWithData:strData encoding:NSUTF8StringEncoding];
+			if (msg)
+			{
+				[self logMessage:msg];
+			}
+			else
+			{
+				[self logError:@"Error converting received data into UTF-8 String"];
+			}
 		
-		[pool release];
+		}
 	});
 	
 	// Echo message back to client
@@ -264,11 +261,11 @@
 	if (sock != listenSocket)
 	{
 		dispatch_async(dispatch_get_main_queue(), ^{
-			NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+			@autoreleasepool {
 			
-			[self logInfo:FORMAT(@"Client Disconnected")];
+				[self logInfo:FORMAT(@"Client Disconnected")];
 			
-			[pool release];
+			}
 		});
 		
 		@synchronized(connectedSockets)
