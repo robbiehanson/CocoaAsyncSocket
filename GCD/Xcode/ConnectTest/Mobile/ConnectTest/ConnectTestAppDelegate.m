@@ -10,6 +10,13 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 #define USE_SECURE_CONNECTION 1
 #define ENABLE_BACKGROUNDING  0
 
+#if USE_SECURE_CONNECTION
+  #define HOST @"www.paypal.com"
+  #define PORT 443
+#else
+  #define HOST @"deusty.com";
+  #define PORT 80
+#endif
 
 @implementation ConnectTestAppDelegate
 
@@ -52,8 +59,8 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 	
 	#if USE_SECURE_CONNECTION
 	{
-		NSString *host = @"www.paypal.com";
-		uint16_t port = 443;
+		NSString *host = HOST;
+		uint16_t port = PORT;
 		
 		DDLogInfo(@"Connecting to \"%@\" on port %hu...", host, port);
 		self.viewController.label.text = @"Connecting...";
@@ -67,8 +74,8 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 	}
 	#else
 	{
-		NSString *host = @"deusty.com";
-		uint16_t port = 80;
+		NSString *host = HOST;
+		uint16_t port = PORT;
 		
 		DDLogInfo(@"Connecting to \"%@\" on port %hu...", host, port);
 		self.viewController.label.text = @"Connecting...";
@@ -215,6 +222,12 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 {
 	DDLogInfo(@"socketDidSecure:%p", sock);
 	self.viewController.label.text = @"Connected + Secure";
+	
+	NSString *requestStr = [NSString stringWithFormat:@"GET / HTTP/1.1\r\nHost: %@\r\n\r\n", HOST];
+	NSData *requestData = [requestStr dataUsingEncoding:NSUTF8StringEncoding];
+	
+	[sock writeData:requestData withTimeout:-1 tag:0];
+	[sock readDataToData:[GCDAsyncSocket CRLFData] withTimeout:-1 tag:0];
 }
 
 - (void)socket:(GCDAsyncSocket *)sock didWriteDataWithTag:(long)tag

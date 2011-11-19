@@ -6342,8 +6342,14 @@ static void CFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType type
 				
 				if ((asyncSocket->flags & kStartingReadTLS) && (asyncSocket->flags & kStartingWriteTLS))
 				{
-					asyncSocket->flags |= kSecureSocketHasBytesAvailable;
-					[asyncSocket finishSSLHandshake];
+					// If we set kCFStreamPropertySSLSettings before we opened the streams, this might be a lie.
+					// (A callback related to the tcp stream, but not to the SSL layer).
+					
+					if (CFReadStreamHasBytesAvailable(asyncSocket->readStream))
+					{
+						asyncSocket->flags |= kSecureSocketHasBytesAvailable;
+						[asyncSocket finishSSLHandshake];
+					}
 				}
 				else
 				{
@@ -6412,8 +6418,14 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 				
 				if ((asyncSocket->flags & kStartingReadTLS) && (asyncSocket->flags & kStartingWriteTLS))
 				{
-					asyncSocket->flags |= kSocketCanAcceptBytes;
-					[asyncSocket finishSSLHandshake];
+					// If we set kCFStreamPropertySSLSettings before we opened the streams, this might be a lie.
+					// (A callback related to the tcp stream, but not to the SSL layer).
+					
+					if (CFWriteStreamCanAcceptBytes(asyncSocket->writeStream))
+					{
+						asyncSocket->flags |= kSocketCanAcceptBytes;
+						[asyncSocket finishSSLHandshake];
+					}
 				}
 				else
 				{
@@ -6568,6 +6580,8 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	
 	if (!(flags & kAddedStreamListener))
 	{
+		LogVerbose(@"Adding streams to runloop...");
+		
 		[[self class] startListenerThreadIfNeeded];
 		[[self class] performSelector:@selector(addStreamListener:)
 		                     onThread:listenerThread
@@ -6589,6 +6603,8 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	
 	if (flags & kAddedStreamListener)
 	{
+		LogVerbose(@"Removing streams from runloop...");
+		
 		[[self class] performSelector:@selector(removeStreamListener:)
 		                     onThread:listenerThread
 		                   withObject:self
@@ -6638,65 +6654,73 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 
 - (int)socketFD
 {
-	if (dispatch_get_current_queue() == socketQueue)
+	if (dispatch_get_current_queue() != socketQueue)
 	{
-		if (socket4FD != SOCKET_NULL)
-			return socket4FD;
-		else
-			return socket6FD;
-	}
-	else
-	{
+		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
+				THIS_FILE, THIS_METHOD);
 		return SOCKET_NULL;
 	}
+	
+	if (socket4FD != SOCKET_NULL)
+		return socket4FD;
+	else
+		return socket6FD;
 }
 
 - (int)socket4FD
 {
-	if (dispatch_get_current_queue() == socketQueue)
-		return socket4FD;
-	else
+	if (dispatch_get_current_queue() != socketQueue)
+	{
+		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
+				THIS_FILE, THIS_METHOD);
 		return SOCKET_NULL;
+	}
+	
+	return socket4FD;
 }
 
 - (int)socket6FD
 {
-	if (dispatch_get_current_queue() == socketQueue)
-		return socket6FD;
-	else
+	if (dispatch_get_current_queue() != socketQueue)
+	{
+		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
+				THIS_FILE, THIS_METHOD);
 		return SOCKET_NULL;
+	}
+	
+	return socket6FD;
 }
 
 #if TARGET_OS_IPHONE
 
 - (CFReadStreamRef)readStream
 {
-	if (dispatch_get_current_queue() == socketQueue)
+	if (dispatch_get_current_queue() != socketQueue)
 	{
-		if (readStream == NULL)
-			[self createReadAndWriteStream];
-		
-		return readStream;
-	}
-	else
-	{
+		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
+				THIS_FILE, THIS_METHOD);
 		return NULL;
 	}
+	
+	if (readStream == NULL)
+		[self createReadAndWriteStream];
+	
+	return readStream;
 }
 
 - (CFWriteStreamRef)writeStream
 {
-	if (dispatch_get_current_queue() == socketQueue)
+	if (dispatch_get_current_queue() != socketQueue)
 	{
-		if (writeStream == NULL)
-			[self createReadAndWriteStream];
-		
-		return writeStream;
-	}
-	else
-	{
+		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
+				THIS_FILE, THIS_METHOD);
 		return NULL;
 	}
+	
+	if (writeStream == NULL)
+		[self createReadAndWriteStream];
+	
+	return writeStream;
 }
 
 - (BOOL)enableBackgroundingOnSocketWithCaveat:(BOOL)caveat
@@ -6735,14 +6759,14 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 {
 	LogTrace();
 	
-	if (dispatch_get_current_queue() == socketQueue)
+	if (dispatch_get_current_queue() != socketQueue)
 	{
-		return [self enableBackgroundingOnSocketWithCaveat:NO];
-	}
-	else
-	{
+		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
+				THIS_FILE, THIS_METHOD);
 		return NO;
 	}
+	
+	return [self enableBackgroundingOnSocketWithCaveat:NO];
 }
 
 - (BOOL)enableBackgroundingOnSocketWithCaveat // Deprecated in iOS 4.???
@@ -6753,24 +6777,28 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	
 	LogTrace();
 	
-	if (dispatch_get_current_queue() == socketQueue)
+	if (dispatch_get_current_queue() != socketQueue)
 	{
-		return [self enableBackgroundingOnSocketWithCaveat:YES];
-	}
-	else
-	{
+		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
+				THIS_FILE, THIS_METHOD);
 		return NO;
 	}
+	
+	return [self enableBackgroundingOnSocketWithCaveat:YES];
 }
 
 #else
 
 - (SSLContextRef)sslContext
 {
-	if (dispatch_get_current_queue() == socketQueue)
-		return sslContext;
-	else
+	if (dispatch_get_current_queue() != socketQueue)
+	{
+		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
+				THIS_FILE, THIS_METHOD);
 		return NULL;
+	}
+	
+	return sslContext;
 }
 
 #endif
