@@ -49,7 +49,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	{
 		DDLogVerbose(@"Resolving...");
 		
-		serverService = [netService retain];
+		serverService = netService;
 		
 		[serverService setDelegate:self];
 		[serverService resolveWithTimeout:5.0];
@@ -105,12 +105,12 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 		
 		if (YES) // Iterate forwards
 		{
-			addr = [[serverAddresses objectAtIndex:0] retain];
+			addr = [serverAddresses objectAtIndex:0];
 			[serverAddresses removeObjectAtIndex:0];
 		}
 		else // Iterate backwards
 		{
-			addr = [[serverAddresses lastObject] retain];
+			addr = [serverAddresses lastObject];
 			[serverAddresses removeLastObject];
 		}
 		
@@ -126,7 +126,6 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 			DDLogWarn(@"Unable to connect: %@", err);
 		}
 		
-		[addr release];
 	}
 	
 	if (!done)
