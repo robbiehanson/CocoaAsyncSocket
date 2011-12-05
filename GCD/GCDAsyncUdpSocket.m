@@ -3449,6 +3449,7 @@ SetParamPtrsAndReturn:
 				[pool drain];
 				return_from_block;
 			}
+			result = YES;
 		}
 		
 		// IPv6 does not implement broadcast, the ability to send a packet to all hosts on the attached link.
