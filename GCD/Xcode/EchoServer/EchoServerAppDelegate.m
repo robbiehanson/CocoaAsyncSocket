@@ -45,8 +45,8 @@
 		// Or we could use a dedicated dispatch queue, which could be helpful if we were doing a lot of processing.
 		// 
 		// The best approach for your application will depend upon convenience, requirements and performance.
-		// 
-		// For this simple example, we're just going to use the main thread.
+		
+		socketQueue = dispatch_queue_create("socketQueue", NULL);
 		
 		listenSocket = [[GCDAsyncSocket alloc] initWithDelegate:self delegateQueue:socketQueue];
 		
@@ -204,6 +204,8 @@
 
 - (void)socket:(GCDAsyncSocket *)sock didWriteDataWithTag:(long)tag
 {
+	// This method is executed on the socketQueue (not the main thread)
+	
 	if (tag == ECHO_MSG)
 	{
 		[sock readDataToData:[GCDAsyncSocket CRLFData] withTimeout:READ_TIMEOUT tag:0];
@@ -212,6 +214,8 @@
 
 - (void)socket:(GCDAsyncSocket *)sock didReadData:(NSData *)data withTag:(long)tag
 {
+	// This method is executed on the socketQueue (not the main thread)
+	
 	dispatch_async(dispatch_get_main_queue(), ^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		
