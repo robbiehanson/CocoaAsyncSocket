@@ -3859,7 +3859,7 @@ enum GCDAsyncSocketConfig
 	
 #if TARGET_OS_IPHONE
 	
-	if (flags & kSecureSocketHasBytesAvailable)
+	if ((flags & kSecureSocketHasBytesAvailable) && CFReadStreamHasBytesAvailable(readStream))
 	{
 		LogVerbose(@"%@ - Flushing ssl buffers into partialReadBuffer...", THIS_METHOD);
 		
@@ -4013,7 +4013,10 @@ enum GCDAsyncSocketConfig
 			// Relegated to using CFStream... :( Boo! Give us SecureTransport Apple!
 			
 			estimatedBytesAvailable = 0;
-			hasBytesAvailable = (flags & kSecureSocketHasBytesAvailable) ? YES : NO;
+			if ((flags & kSecureSocketHasBytesAvailable) && CFReadStreamHasBytesAvailable(readStream))
+				hasBytesAvailable = YES;
+			else
+				hasBytesAvailable = NO;
 		}
 		else
 		{
