@@ -10,17 +10,68 @@
 
 #import <Foundation/Foundation.h>
 #import <Security/Security.h>
+#import <Security/SecureTransport.h>
 #import <dispatch/dispatch.h>
 
 @class GCDAsyncReadPacket;
 @class GCDAsyncWritePacket;
 
+#if TARGET_OS_IPHONE
+
+  // Compiling for iOS
+
+  #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 50000 // iOS 5.0 supported
+  
+    #if __IPHONE_OS_VERSION_MIN_REQUIRED >= 50000 // iOS 5.0 supported and required
+
+      #define IS_SECURE_TRANSPORT_AVAILABLE      YES
+      #define SECURE_TRANSPORT_MAYBE_AVAILABLE   1
+      #define SECURE_TRANSPORT_MAYBE_UNAVAILABLE 0
+
+    #else                                         // iOS 5.0 supported but not required
+
+      #ifndef NSFoundationVersionNumber_iPhoneOS_5_0
+        #define NSFoundationVersionNumber_iPhoneOS_5_0 881.00
+      #endif
+
+      #define IS_SECURE_TRANSPORT_AVAILABLE     (NSFoundationVersionNumber >= NSFoundationVersionNumber_iPhoneOS_5_0)
+      #define SECURE_TRANSPORT_MAYBE_AVAILABLE   1
+      #define SECURE_TRANSPORT_MAYBE_UNAVAILABLE 1
+
+    #endif
+
+  #else                                        // iOS 5.0 not supported
+
+    #define IS_SECURE_TRANSPORT_AVAILABLE      NO
+    #define SECURE_TRANSPORT_MAYBE_AVAILABLE   0
+    #define SECURE_TRANSPORT_MAYBE_UNAVAILABLE 1
+
+  #endif
+
+#else
+
+  // Compiling for Mac OS X
+
+  #define IS_SECURE_TRANSPORT_AVAILABLE      YES
+  #define SECURE_TRANSPORT_MAYBE_AVAILABLE   1
+  #define SECURE_TRANSPORT_MAYBE_UNAVAILABLE 0
+
+#endif
+
 extern NSString *const GCDAsyncSocketException;
 extern NSString *const GCDAsyncSocketErrorDomain;
 
-#if !TARGET_OS_IPHONE
+extern NSString *const GCDAsyncSocketQueueName;
+extern NSString *const GCDAsyncSocketThreadName;
+
+#if SECURE_TRANSPORT_MAYBE_AVAILABLE
 extern NSString *const GCDAsyncSocketSSLCipherSuites;
+#if TARGET_OS_IPHONE
+extern NSString *const GCDAsyncSocketSSLProtocolVersionMin;
+extern NSString *const GCDAsyncSocketSSLProtocolVersionMax;
+#else
 extern NSString *const GCDAsyncSocketSSLDiffieHellmanParameters;
+#endif
 #endif
 
 enum GCDAsyncSocketError
@@ -79,7 +130,8 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 	CFStreamClientContext streamContext;
 	CFReadStreamRef readStream;
 	CFWriteStreamRef writeStream;
-#else
+#endif
+#if SECURE_TRANSPORT_MAYBE_AVAILABLE
 	SSLContextRef sslContext;
 	NSMutableData *sslReadBuffer;
 	size_t sslWriteCachedLength;
@@ -626,7 +678,8 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * Any reads or writes scheduled after this method is called will occur over the secured connection.
  * 
  * The possible keys and values for the TLS settings are well documented.
- * Some possible keys are:
+ * Standard keys are:
+ * 
  * - kCFStreamSSLLevel
  * - kCFStreamSSLAllowsExpiredCertificates
  * - kCFStreamSSLAllowsExpiredRoots
@@ -635,6 +688,18 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * - kCFStreamSSLPeerName
  * - kCFStreamSSLCertificates
  * - kCFStreamSSLIsServer
+ * 
+ * If SecureTransport is available on iOS:
+ * 
+ * - GCDAsyncSocketSSLCipherSuites
+ * - GCDAsyncSocketSSLProtocolVersionMin
+ * - GCDAsyncSocketSSLProtocolVersionMax
+ * 
+ * If SecureTransport is available on Mac OS X:
+ * 
+ * - GCDAsyncSocketSSLCipherSuites
+ * - GCDAsyncSocketSSLDiffieHellmanParameters;
+ * 
  * 
  * Please refer to Apple's documentation for associated values, as well as other possible keys.
  * 
