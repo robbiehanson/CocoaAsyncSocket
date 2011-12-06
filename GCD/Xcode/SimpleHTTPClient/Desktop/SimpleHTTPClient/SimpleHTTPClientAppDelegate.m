@@ -6,7 +6,7 @@
 // Log levels: off, error, warn, info, verbose
 static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
-#define USE_SECURE_CONNECTION    0
+#define USE_SECURE_CONNECTION    1
 #define READ_HEADER_LINE_BY_LINE 0
 
 
