@@ -2,6 +2,20 @@
 
 #import <libkern/OSAtomic.h>
 
+/**
+ * Welcome to Cocoa Lumberjack!
+ * 
+ * The project page has a wealth of documentation if you have any questions.
+ * https://github.com/robbiehanson/CocoaLumberjack
+ * 
+ * If you're new to the project you may wish to read the "Getting Started" wiki.
+ * https://github.com/robbiehanson/CocoaLumberjack/wiki/GettingStarted
+**/
+
+#if ! __has_feature(objc_arc)
+#warning This file must be compiled with ARC. Use -fobjc-arc flag (or convert project to ARC).
+#endif
+
 
 @implementation DDASLLogger
 
@@ -35,7 +49,6 @@ static DDASLLogger *sharedInstance;
 {
 	if (sharedInstance != nil)
 	{
-		[self release];
 		return nil;
 	}
 	
