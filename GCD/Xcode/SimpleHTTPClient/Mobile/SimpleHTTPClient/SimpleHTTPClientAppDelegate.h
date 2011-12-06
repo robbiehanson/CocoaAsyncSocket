@@ -9,7 +9,7 @@
 	GCDAsyncSocket *asyncSocket;
 }
 
-@property (nonatomic, retain) IBOutlet UIWindow *window;
-@property (nonatomic, retain) IBOutlet SimpleHTTPClientViewController *viewController;
+@property (nonatomic, strong) IBOutlet UIWindow *window;
+@property (nonatomic, strong) IBOutlet SimpleHTTPClientViewController *viewController;
 
 @end
