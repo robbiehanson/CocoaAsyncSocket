@@ -807,11 +807,11 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	
 	NSAssert((address4 || address6), @"address4 and address6 are nil");
 	
-	// Set the SO_REUSEADDR flags
+	// Set the SO_REUSEPORT flags
 	
 	int reuseOn = 1;
-	if (theSocket4)	setsockopt(CFSocketGetNative(theSocket4), SOL_SOCKET, SO_REUSEADDR, &reuseOn, sizeof(reuseOn));
-	if (theSocket6)	setsockopt(CFSocketGetNative(theSocket6), SOL_SOCKET, SO_REUSEADDR, &reuseOn, sizeof(reuseOn));
+	if (theSocket4)	setsockopt(CFSocketGetNative(theSocket4), SOL_SOCKET, SO_REUSEPORT, &reuseOn, sizeof(reuseOn));
+	if (theSocket6)	setsockopt(CFSocketGetNative(theSocket6), SOL_SOCKET, SO_REUSEPORT, &reuseOn, sizeof(reuseOn));
 	
 	// Bind the sockets
 	
