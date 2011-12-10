@@ -1806,9 +1806,9 @@ enum GCDAsyncSocketConfig
 		
 		// Check for problems with host parameter
 		
-		if (host == nil)
+		if ([host length] == 0)
 		{
-			NSString *msg = @"Invalid host parameter (nil). Should be a domain name or IP address string.";
+			NSString *msg = @"Invalid host parameter (nil or \"\"). Should be a domain name or IP address string.";
 			err = [[self badParamError:msg] retain];
 			
 			[pool drain];
