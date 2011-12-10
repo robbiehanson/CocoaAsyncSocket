@@ -178,7 +178,7 @@
 		DC80C9F213C3978F00D29D06 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0420;
+				LastUpgradeCheck = 0430;
 			};
 			buildConfigurationList = DC80C9F513C3978F00D29D06 /* Build configuration list for PBXProject "SimpleHTTPClient" */;
 			compatibilityVersion = "Xcode 3.2";

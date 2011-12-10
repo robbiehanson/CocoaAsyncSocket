@@ -741,7 +741,7 @@ enum GCDAsyncSocketConfig
 {
 	if((self = [super init]))
 	{
-		buffer = [d copy]; // If d is immutable, this is just a retain
+		buffer = [d retain]; // Retain not copy. For performance as documented in header file.
 		bytesDone = 0;
 		timeout = t;
 		tag = i;
@@ -1250,9 +1250,12 @@ enum GCDAsyncSocketConfig
 	return [self acceptOnInterface:nil port:port error:errPtr];
 }
 
-- (BOOL)acceptOnInterface:(NSString *)interface port:(uint16_t)port error:(NSError **)errPtr
+- (BOOL)acceptOnInterface:(NSString *)inInterface port:(uint16_t)port error:(NSError **)errPtr
 {
 	LogTrace();
+	
+	// Just in-case interface parameter is immutable.
+	NSString *interface = [[inInterface copy] autorelease];
 	
 	__block BOOL result = NO;
 	__block NSError *err = nil;
@@ -1783,13 +1786,17 @@ enum GCDAsyncSocketConfig
 	return [self connectToHost:host onPort:port viaInterface:nil withTimeout:timeout error:errPtr];
 }
 
-- (BOOL)connectToHost:(NSString *)host
+- (BOOL)connectToHost:(NSString *)inHost
                onPort:(uint16_t)port
-         viaInterface:(NSString *)interface
+         viaInterface:(NSString *)inInterface
           withTimeout:(NSTimeInterval)timeout
                 error:(NSError **)errPtr
 {
 	LogTrace();
+	
+	// Just in case immutable objects were passed
+	NSString *host = [[inHost copy] autorelease];
+	NSString *interface = [[inInterface copy] autorelease];
 	
 	__block BOOL result = NO;
 	__block NSError *err = nil;
@@ -1872,12 +1879,16 @@ enum GCDAsyncSocketConfig
 	return [self connectToAddress:remoteAddr viaInterface:nil withTimeout:timeout error:errPtr];
 }
 
-- (BOOL)connectToAddress:(NSData *)remoteAddr
-            viaInterface:(NSString *)interface
+- (BOOL)connectToAddress:(NSData *)inRemoteAddr
+            viaInterface:(NSString *)inInterface
              withTimeout:(NSTimeInterval)timeout
                    error:(NSError **)errPtr
 {
 	LogTrace();
+	
+	// Just in case immutable objects were passed
+	NSData *remoteAddr = [[inRemoteAddr copy] autorelease];
+	NSString *interface = [[inInterface copy] autorelease];
 	
 	__block BOOL result = NO;
 	__block NSError *err = nil;
@@ -3629,7 +3640,10 @@ enum GCDAsyncSocketConfig
                   maxLength:(NSUInteger)length
                         tag:(long)tag
 {
-	if (offset > [buffer length]) return;
+	if (offset > [buffer length]) {
+		LogWarn(@"Cannot read: offset > [buffer length]");
+		return;
+	}
 	
 	GCDAsyncReadPacket *packet = [[GCDAsyncReadPacket alloc] initWithData:buffer
 	                                                          startOffset:offset
@@ -3669,8 +3683,14 @@ enum GCDAsyncSocketConfig
             bufferOffset:(NSUInteger)offset
                      tag:(long)tag
 {
-	if (length == 0) return;
-	if (offset > [buffer length]) return;
+	if (length == 0) {
+		LogWarn(@"Cannot read: length == 0");
+		return;
+	}
+	if (offset > [buffer length]) {
+		LogWarn(@"Cannot read: offset > [buffer length]");
+		return;
+	}
 	
 	GCDAsyncReadPacket *packet = [[GCDAsyncReadPacket alloc] initWithData:buffer
 	                                                          startOffset:offset
@@ -3722,16 +3742,25 @@ enum GCDAsyncSocketConfig
            withTimeout:(NSTimeInterval)timeout
                 buffer:(NSMutableData *)buffer
           bufferOffset:(NSUInteger)offset
-             maxLength:(NSUInteger)length
+             maxLength:(NSUInteger)maxLength
                    tag:(long)tag
 {
-	if ([data length] == 0) return;
-	if (offset > [buffer length]) return;
-	if (length > 0 && length < [data length]) return;
+	if ([data length] == 0) {
+		LogWarn(@"Cannot read: [data length] == 0");
+		return;
+	}
+	if (offset > [buffer length]) {
+		LogWarn(@"Cannot read: offset > [buffer length]");
+		return;
+	}
+	if (maxLength > 0 && maxLength < [data length]) {
+		LogWarn(@"Cannot read: maxLength > 0 && maxLength < [data length]");
+		return;
+	}
 	
 	GCDAsyncReadPacket *packet = [[GCDAsyncReadPacket alloc] initWithData:buffer
 	                                                          startOffset:offset
-	                                                            maxLength:length
+	                                                            maxLength:maxLength
 	                                                              timeout:timeout
 	                                                           readLength:0
 	                                                           terminator:data
@@ -6659,8 +6688,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 {
 	if (dispatch_get_current_queue() != socketQueue)
 	{
-		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
-				THIS_FILE, THIS_METHOD);
+		LogWarn(@"%@ - Method only available from within the context of a performBlock: invocation", THIS_METHOD);
 		return SOCKET_NULL;
 	}
 	
@@ -6674,8 +6702,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 {
 	if (dispatch_get_current_queue() != socketQueue)
 	{
-		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
-				THIS_FILE, THIS_METHOD);
+		LogWarn(@"%@ - Method only available from within the context of a performBlock: invocation", THIS_METHOD);
 		return SOCKET_NULL;
 	}
 	
@@ -6686,8 +6713,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 {
 	if (dispatch_get_current_queue() != socketQueue)
 	{
-		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
-				THIS_FILE, THIS_METHOD);
+		LogWarn(@"%@ - Method only available from within the context of a performBlock: invocation", THIS_METHOD);
 		return SOCKET_NULL;
 	}
 	
@@ -6700,8 +6726,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 {
 	if (dispatch_get_current_queue() != socketQueue)
 	{
-		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
-				THIS_FILE, THIS_METHOD);
+		LogWarn(@"%@ - Method only available from within the context of a performBlock: invocation", THIS_METHOD);
 		return NULL;
 	}
 	
@@ -6715,8 +6740,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 {
 	if (dispatch_get_current_queue() != socketQueue)
 	{
-		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
-				THIS_FILE, THIS_METHOD);
+		LogWarn(@"%@ - Method only available from within the context of a performBlock: invocation", THIS_METHOD);
 		return NULL;
 	}
 	
@@ -6743,7 +6767,6 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	
 	if (!r1 || !r2)
 	{
-		LogError(@"Error setting voip type");
 		return NO;
 	}
 	
@@ -6764,8 +6787,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	
 	if (dispatch_get_current_queue() != socketQueue)
 	{
-		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
-				THIS_FILE, THIS_METHOD);
+		LogWarn(@"%@ - Method only available from within the context of a performBlock: invocation", THIS_METHOD);
 		return NO;
 	}
 	
@@ -6782,8 +6804,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	
 	if (dispatch_get_current_queue() != socketQueue)
 	{
-		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
-				THIS_FILE, THIS_METHOD);
+		LogWarn(@"%@ - Method only available from within the context of a performBlock: invocation", THIS_METHOD);
 		return NO;
 	}
 	
@@ -6796,8 +6817,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 {
 	if (dispatch_get_current_queue() != socketQueue)
 	{
-		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
-				THIS_FILE, THIS_METHOD);
+		LogWarn(@"%@ - Method only available from within the context of a performBlock: invocation", THIS_METHOD);
 		return NULL;
 	}
 	
