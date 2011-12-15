@@ -2337,7 +2337,7 @@ static void MyCFSocketCallback(CFSocketRef sref, CFSocketCallBackType type, CFDa
 	AsyncUdpSocket *theSocket = [[(AsyncUdpSocket *)pInfo retain] autorelease];
 	[theSocket doCFSocketCallback:type forSocket:sref withAddress:(NSData *)address withData:pData];
 	
-	[pool release];
+	[pool drain];
 }
 
 @end
