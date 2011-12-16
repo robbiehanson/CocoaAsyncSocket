@@ -1519,7 +1519,7 @@ Failed:
  * specifically in the onSocketWillConnect: method.
  * 
  * Note: The NSData parameter is expected to be a sockaddr structure. For example, an NSData object returned from
- * NSNetservice addresses method.
+ * NSNetService addresses method.
  * If you have an existing struct sockaddr you can convert it to an NSData object like so:
  * struct sockaddr sa  -> NSData *dsa = [NSData dataWithBytes:&remoteAddr length:remoteAddr.sa_len];
  * struct sockaddr *sa -> NSData *dsa = [NSData dataWithBytes:remoteAddr length:remoteAddr->sa_len];
