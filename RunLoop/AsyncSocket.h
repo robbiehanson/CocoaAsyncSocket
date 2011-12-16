@@ -267,7 +267,7 @@ typedef enum AsyncSocketError AsyncSocketError;
 
 /**
  * Connects to the given address, specified as a sockaddr structure wrapped in a NSData object.
- * For example, a NSData object returned from NSNetservice's addresses method.
+ * For example, a NSData object returned from NSNetService's addresses method.
  * 
  * If you have an existing struct sockaddr you can convert it to a NSData object like so:
  * struct sockaddr sa  -> NSData *dsa = [NSData dataWithBytes:&remoteAddr length:remoteAddr.sa_len];
