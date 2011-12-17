@@ -174,7 +174,7 @@
 		DC34A19A147DF0A8004F0A03 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0420;
+				LastUpgradeCheck = 0430;
 			};
 			buildConfigurationList = DC34A19D147DF0A8004F0A03 /* Build configuration list for PBXProject "UdpEchoServer" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -338,6 +338,7 @@
 				DC34A1C3147DF0A8004F0A03 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
