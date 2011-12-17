@@ -3957,7 +3957,7 @@ SetParamPtrsAndReturn:
 	{
 		NSAssert(inFilterQueue, @"Must provide a dispatch_queue in which to run the filter block.");
 		
-		newFilterBlock = Block_copy(inFilterBlock);
+		newFilterBlock = [inFilterBlock copy];
 		newFilterQueue = inFilterQueue;
 		dispatch_retain(newFilterQueue);
 	}
@@ -3968,6 +3968,12 @@ SetParamPtrsAndReturn:
 	}
 	
 	dispatch_block_t block = ^{
+		
+		if (filterBlock)
+			[filterBlock release];
+		
+		if (filterQueue)
+			dispatch_release(filterQueue);
 		
 		filterBlock = newFilterBlock;
 		filterQueue = newFilterQueue;
