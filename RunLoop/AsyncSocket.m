@@ -1519,7 +1519,7 @@ Failed:
  * specifically in the onSocketWillConnect: method.
  * 
  * Note: The NSData parameter is expected to be a sockaddr structure. For example, an NSData object returned from
- * NSNetservice addresses method.
+ * NSNetService addresses method.
  * If you have an existing struct sockaddr you can convert it to an NSData object like so:
  * struct sockaddr sa  -> NSData *dsa = [NSData dataWithBytes:&remoteAddr length:remoteAddr.sa_len];
  * struct sockaddr *sa -> NSData *dsa = [NSData dataWithBytes:remoteAddr length:remoteAddr->sa_len];
@@ -4291,7 +4291,7 @@ static void MyCFSocketCallback (CFSocketRef sref, CFSocketCallBackType type, CFD
 	AsyncSocket *theSocket = [[(AsyncSocket *)pInfo retain] autorelease];
 	[theSocket doCFSocketCallback:type forSocket:sref withAddress:(NSData *)address withData:pData];
 	
-	[pool release];
+	[pool drain];
 }
 
 /**
@@ -4305,7 +4305,7 @@ static void MyCFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType ty
 	AsyncSocket *theSocket = [[(AsyncSocket *)pInfo retain] autorelease];
 	[theSocket doCFReadStreamCallback:type forStream:stream];
 	
-	[pool release];
+	[pool drain];
 }
 
 /**
@@ -4319,7 +4319,7 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 	AsyncSocket *theSocket = [[(AsyncSocket *)pInfo retain] autorelease];
 	[theSocket doCFWriteStreamCallback:type forStream:stream];
 	
-	[pool release];
+	[pool drain];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
