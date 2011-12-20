@@ -165,7 +165,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 @public
 	NSTimeInterval timeout;
 	long tag;
-	NSMutableData *buffer;
+	NSData *buffer;
 	NSString *host;
 	UInt16 port;
 }
