@@ -2757,6 +2757,9 @@ SetParamPtrsAndReturn:
 	else
 		dispatch_sync(socketQueue, block);
 	
+	if (err)
+		LogError(@"Error binding to port/interface: %@", err);
+	
 	if (errPtr)
 		*errPtr = [err autorelease];
 	else
@@ -2883,6 +2886,9 @@ SetParamPtrsAndReturn:
 	else
 		dispatch_sync(socketQueue, block);
 	
+	if (err)
+		LogError(@"Error binding to address: %@", err);
+	
 	if (errPtr)
 		*errPtr = [err autorelease];
 	else
@@ -3006,6 +3012,9 @@ SetParamPtrsAndReturn:
 	else
 		dispatch_sync(socketQueue, block);
 	
+	if (err)
+		LogError(@"Error connecting to host/port: %@", err);
+	
 	if (errPtr)
 		*errPtr = [err autorelease];
 	else
@@ -3073,6 +3082,9 @@ SetParamPtrsAndReturn:
 		block();
 	else
 		dispatch_sync(socketQueue, block);
+	
+	if (err)
+		LogError(@"Error connecting to address: %@", err);
 	
 	if (errPtr)
 		*errPtr = [err autorelease];
@@ -3832,6 +3844,9 @@ SetParamPtrsAndReturn:
 		block();
 	else
 		dispatch_sync(socketQueue, block);
+	
+	if (err)
+		LogError(@"Error in beginReceiving: %@", err);
 	
 	if (errPtr)
 		*errPtr = [err autorelease];
