@@ -3997,7 +3997,7 @@ SetParamPtrsAndReturn:
 				socket4FDBytesAvailable -= result;
 			
 			if (result != bufSize) {
-				realloc(buf, result);
+				buf = realloc(buf, result);
 			}
 			
 			data = [NSData dataWithBytesNoCopy:buf length:result freeWhenDone:YES];
@@ -4006,6 +4006,7 @@ SetParamPtrsAndReturn:
 		else
 		{
 			LogVerbose(@"recvfrom(socket4FD) = %@", [self errnoError]);
+			free(buf);
 		}
 	}
 	else
@@ -4030,7 +4031,7 @@ SetParamPtrsAndReturn:
 				socket6FDBytesAvailable -= result;
 			
 			if (result != bufSize) {
-				realloc(buf, result);
+				buf = realloc(buf, result);
 			}
 		
 			data = [NSData dataWithBytesNoCopy:buf length:result freeWhenDone:YES];
@@ -4039,6 +4040,7 @@ SetParamPtrsAndReturn:
 		else
 		{
 			LogVerbose(@"recvfrom(socket6FD) = %@", [self errnoError]);
+			free(buf);
 		}
 	}
 	
