@@ -1538,7 +1538,7 @@ SetParamPtrsAndReturn:
 	{
 		return NO;
 	}
-	if (memcmp(&sSockaddr4->sin_port, &cSockaddr4->sin_addr, sizeof(in_port_t)) != 0)
+	if (memcmp(&sSockaddr4->sin_port, &cSockaddr4->sin_port, sizeof(in_port_t)) != 0)
 	{
 		return NO;
 	}
