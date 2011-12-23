@@ -3916,7 +3916,7 @@ enum GCDAsyncSocketConfig
 	
 #else
 	
-	__block NSUInteger estimatedBytesAvailable;
+	__block NSUInteger estimatedBytesAvailable = 0;
 	
 	dispatch_block_t updateEstimatedBytesAvailable = ^{
 		
