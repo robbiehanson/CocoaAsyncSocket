@@ -1,8 +1,8 @@
 CocoaLumberjack is under the New BSD License.
-http://code.google.com/p/cocoalumberjack/
+https://github.com/robbiehanson/CocoaLumberjack
 
 Extensive documentation, tutorials, etc are available:
-http://code.google.com/p/cocoalumberjack/w/list
+https://github.com/robbiehanson/CocoaLumberjack/wiki
 
 Overview of the project (copied from google code homepage):
 
