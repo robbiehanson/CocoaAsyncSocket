@@ -9,7 +9,9 @@
 
 @interface HTTPResponseTest : NSObject <HTTPResponse>
 {
-	HTTPConnection *connection;
+	// Parents retain children, children do NOT retain parents
+	
+	HTTPConnection __unsafe_unretained *connection;
 	dispatch_queue_t connectionQueue;
 	
 	BOOL readyToSendResponseHeaders;

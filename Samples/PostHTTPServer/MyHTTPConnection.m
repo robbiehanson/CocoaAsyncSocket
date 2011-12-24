@@ -59,7 +59,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 		NSData *postData = [request body];
 		if (postData)
 		{
-			postStr = [[[NSString alloc] initWithData:postData encoding:NSUTF8StringEncoding] autorelease];
+			postStr = [[NSString alloc] initWithData:postData encoding:NSUTF8StringEncoding];
 		}
 		
 		HTTPLogVerbose(@"%@[%p]: postStr: %@", THIS_FILE, self, postStr);
@@ -78,7 +78,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 			response = [@"<html><body>Sorry - Try Again<body></html>" dataUsingEncoding:NSUTF8StringEncoding];
 		}
 		
-		return [[[HTTPDataResponse alloc] initWithData:response] autorelease];
+		return [[HTTPDataResponse alloc] initWithData:response];
 	}
 	
 	return [super httpResponseForMethod:method URI:path];

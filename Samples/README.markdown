@@ -27,5 +27,3 @@ Don't forget to use source control to stay up-to-date with the latest version of
 
 If you've implemented your custom server by extending the HTTPServer and HTTPConnection classes, it should be relatively easy to merge the latest improvements from subversion into your project.
 
-If you would like to receive email notifications when changes are committed, you may subscribe to the commit mailing list:
-http://groups.google.com/group/cocoahttpserver-commit

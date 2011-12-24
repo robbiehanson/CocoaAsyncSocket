@@ -69,16 +69,16 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 		
 		HTTPLogVerbose(@"%@[%p]: replacementDict = \n%@", THIS_FILE, self, replacementDict);
 		
-		return [[[HTTPDynamicFileResponse alloc] initWithFilePath:[self filePathForURI:path]
+		return [[HTTPDynamicFileResponse alloc] initWithFilePath:[self filePathForURI:path]
 		                                            forConnection:self
 		                                                separator:@"%%"
-		                                    replacementDictionary:replacementDict] autorelease];
+		                                    replacementDictionary:replacementDict];
 	}
 	else if ([relativePath isEqualToString:@"/unittest.html"])
 	{
 		HTTPLogVerbose(@"%@[%p]: Serving up HTTPResponseTest (unit testing)", THIS_FILE, self);
 		
-		return [[[HTTPResponseTest alloc] initWithConnection:self] autorelease];
+		return [[HTTPResponseTest alloc] initWithConnection:self];
 	}
 	
 	return [super httpResponseForMethod:method URI:path];

@@ -33,7 +33,7 @@
 	if(status == noErr)
 	{
 		NSData *passwordData = [NSData dataWithBytesNoCopy:passwordBytes length:passwordLength freeWhenDone:NO];
-		password = [[[NSString alloc] initWithData:passwordData encoding:NSUTF8StringEncoding] autorelease];
+		password = [[NSString alloc] initWithData:passwordData encoding:NSUTF8StringEncoding];
 	}
 	
 	// SecKeychainItemFreeContent(attrList, data)
@@ -136,7 +136,7 @@
 	
 	NSArray *privateKeyArgs = [NSArray arrayWithObjects:@"genrsa", @"-out", privateKeyPath, @"1024", nil];
 	
-	NSTask *genPrivateKeyTask = [[[NSTask alloc] init] autorelease];
+	NSTask *genPrivateKeyTask = [[NSTask alloc] init];
 	
 	[genPrivateKeyTask setLaunchPath:@"/usr/bin/openssl"];
 	[genPrivateKeyTask setArguments:privateKeyArgs];
@@ -179,7 +179,7 @@
 	                                                     @"-out", certificatePath,
 	                                                     @"-text", @"-days", @"365", @"-batch", nil];
 	
-	NSTask *genCertificateTask = [[[NSTask alloc] init] autorelease];
+	NSTask *genCertificateTask = [[NSTask alloc] init];
 	
 	[genCertificateTask setLaunchPath:@"/usr/bin/openssl"];
 	[genCertificateTask setArguments:certificateArgs];
@@ -192,7 +192,7 @@
 	
 	// Mac OS X has problems importing private keys, so we wrap everything in PKCS#12 format
 	// You can create a p12 wrapper by running the following command in the terminal:
-	// openssl pkcs12 -export -in certificate.crt -inkey private.pem 
+	// openssl pkcs12 -export -in certificate.crt -inkey private.pem
 	//   -passout pass:password -out certificate.p12 -name "Open Source"
 	
 	NSArray *certWrapperArgs = [NSArray arrayWithObjects:@"pkcs12", @"-export", @"-export",
@@ -202,7 +202,7 @@
 	                                                     @"-out", certWrapperPath,
 	                                                     @"-name", @"SecureHTTPServer", nil];
 	
-	NSTask *genCertWrapperTask = [[[NSTask alloc] init] autorelease];
+	NSTask *genCertWrapperTask = [[NSTask alloc] init];
 	
 	[genCertWrapperTask setLaunchPath:@"/usr/bin/openssl"];
 	[genCertWrapperTask setArguments:certWrapperArgs];
@@ -239,7 +239,7 @@
 	 *     When set, the password for import or export is obtained by user prompt. Otherwise, you must provide the
 	 *     password in the passphrase field of the SecKeyImportExportParameters structure.
 	 *     A user-supplied password is preferred, because it avoids having the cleartext password appear in the
-	 *     applicationâ€™s address space at any time.
+	 *     applicationÕs address space at any time.
 	 * kSecKeyNoAccessControl
 	 *     When set, imported private keys have no access object attached to them. In the absence of both this bit and
 	 *     the accessRef field in SecKeyImportExportParameters, imported private keys are given default access controls
@@ -260,7 +260,7 @@
 	 * CFStringRef alertTitle
 	 *     Title of secure password alert panel.
 	 *     When importing or exporting a key, if you set the kSecKeySecurePassphrase flag bit,
-	 *     you can optionally use this field to specify a string for the password panelâ€™s title bar.
+	 *     you can optionally use this field to specify a string for the password panelÕs title bar.
 	 * CFStringRef alertPrompt
 	 *     Prompt in secure password alert panel.
 	 *     When importing or exporting a key, if you set the kSecKeySecurePassphrase flag bit,
@@ -301,17 +301,17 @@
 	 *     The external representation of the items to import.
 	 * CFStringRef fileNameOrExtension
 	 *     The name or extension of the file from which the external representation was obtained.
-	 *     Pass NULL if you donâ€™t know the name or extension.
+	 *     Pass NULL if you donÕt know the name or extension.
 	 * SecExternalFormat *inputFormat
 	 *     On input, points to the format of the external representation.
 	 *     Pass kSecFormatUnknown if you do not know the exact format.
 	 *     On output, points to the format that the function has determined the external representation to be in.
-	 *     Pass NULL if you donâ€™t know the format and donâ€™t want the format returned to you.
+	 *     Pass NULL if you donÕt know the format and donÕt want the format returned to you.
 	 * SecExternalItemType *itemType
 	 *     On input, points to the item type of the item or items contained in the external representation.
 	 *     Pass kSecItemTypeUnknown if you do not know the item type.
 	 *     On output, points to the item type that the function has determined the external representation to contain.
-	 *     Pass NULL if you donâ€™t know the item type and donâ€™t want the type returned to you.
+	 *     Pass NULL if you donÕt know the item type and donÕt want the type returned to you.
 	 * SecItemImportExportFlags flags
 	 *     Unused; pass in 0.
 	 * const SecKeyImportExportParameters *keyParams
@@ -338,21 +338,21 @@
 	SecKeychainCopyDefault(&keychain);
 	
 	OSStatus err = 0;
-	err = SecKeychainItemImport((CFDataRef)certData,   // CFDataRef importedData
-								NULL,                  // CFStringRef fileNameOrExtension
-								&inputFormat,          // SecExternalFormat *inputFormat
-								&itemType,             // SecExternalItemType *itemType
-								0,                     // SecItemImportExportFlags flags (Unused)
-								&importParameters,     // const SecKeyImportExportParameters *keyParams
-								keychain,              // SecKeychainRef importKeychain
-								&outItems);            // CFArrayRef *outItems
+	err = SecKeychainItemImport((__bridge CFDataRef)certData,  // CFDataRef importedData
+								NULL,                          // CFStringRef fileNameOrExtension
+								&inputFormat,                  // SecExternalFormat *inputFormat
+								&itemType,                     // SecExternalItemType *itemType
+								0,                             // SecItemImportExportFlags flags (Unused)
+								&importParameters,             // const SecKeyImportExportParameters *keyParams
+								keychain,                      // SecKeychainRef importKeychain
+								&outItems);                    // CFArrayRef *outItems
 	
 	NSLog(@"OSStatus: %i", err);
 	
 	NSLog(@"SecExternalFormat: %@", [DDKeychain stringForSecExternalFormat:inputFormat]);
 	NSLog(@"SecExternalItemType: %@", [DDKeychain stringForSecExternalItemType:itemType]);
 	
-	NSLog(@"outItems: %@", (NSArray *)outItems);
+	NSLog(@"outItems: %@", (__bridge NSArray *)outItems);
 	
 	// Don't forget to delete the temporary files
 	[[NSFileManager defaultManager] removeItemAtPath:privateKeyPath  error:nil];
@@ -392,7 +392,7 @@
 	 *
 	 * Fields:
 	 * tag
-	 *     A 4-byte attribute tag. See â€œKeychain Item Attribute Constantsâ€ for valid attribute types.
+	 *     A 4-byte attribute tag. See ÒKeychain Item Attribute ConstantsÓ for valid attribute types.
 	 * length
 	 *     The length of the buffer pointed to by data.
 	 * data
@@ -449,9 +449,9 @@
 			{
 				SecKeychainAttribute nameAttribute = privateKeyAttributeList->attr[0];
 				
-				NSString *name = [[[NSString alloc] initWithBytes:nameAttribute.data
+				NSString *name = [[NSString alloc] initWithBytes:nameAttribute.data
 														   length:(nameAttribute.length)
-														 encoding:NSUTF8StringEncoding] autorelease];
+														 encoding:NSUTF8StringEncoding];
 				
 				// Ugly Hack
 				// For some reason, name sometimes contains odd characters at the end of it
@@ -462,7 +462,7 @@
 					// But we're only allowed to have one identity, so we make sure to only add one to the array
 					if([result count] == 0)
 					{
-						[result addObject:(id)currentIdentityRef];
+						[result addObject:(__bridge id)currentIdentityRef];
 					}
 				}
 				

@@ -28,7 +28,6 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 		{
 			HTTPLogWarn(@"%@: Init failed - Nil filePath", THIS_FILE);
 			
-			[self release];
 			return nil;
 		}
 		
@@ -37,7 +36,6 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 		{
 			HTTPLogWarn(@"%@: Init failed - Unable to get file attributes. filePath: %@", THIS_FILE, filePath);
 			
-			[self release];
 			return nil;
 		}
 		
@@ -230,8 +228,6 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 	if (buffer)
 		free(buffer);
 	
-	[filePath release];
-	[super dealloc];
 }
 
 @end

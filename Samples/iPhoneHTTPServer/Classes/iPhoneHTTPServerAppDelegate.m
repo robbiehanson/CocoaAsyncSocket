@@ -40,7 +40,11 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// Start the server (and check for problems)
 	
 	NSError *error;
-	if(![httpServer start:&error])
+	if([httpServer start:&error])
+	{
+		DDLogInfo(@"Started HTTP Server on port %hu", [httpServer listeningPort]);
+	}
+	else
 	{
 		DDLogError(@"Error starting HTTP Server: %@", error);
 	}
@@ -52,12 +56,6 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
     return YES;
 }
 
-- (void)dealloc
-{
-	[viewController release];
-	[window release];
-	[super dealloc];
-}
 
 
 @end

@@ -33,7 +33,7 @@
 	if(status == noErr)
 	{
 		NSData *passwordData = [NSData dataWithBytesNoCopy:passwordBytes length:passwordLength freeWhenDone:NO];
-		password = [[[NSString alloc] initWithData:passwordData encoding:NSUTF8StringEncoding] autorelease];
+		password = [[NSString alloc] initWithData:passwordData encoding:NSUTF8StringEncoding];
 	}
 	
 	// SecKeychainItemFreeContent(attrList, data)
@@ -136,7 +136,7 @@
 	
 	NSArray *privateKeyArgs = [NSArray arrayWithObjects:@"genrsa", @"-out", privateKeyPath, @"1024", nil];
 	
-	NSTask *genPrivateKeyTask = [[[NSTask alloc] init] autorelease];
+	NSTask *genPrivateKeyTask = [[NSTask alloc] init];
 	
 	[genPrivateKeyTask setLaunchPath:@"/usr/bin/openssl"];
 	[genPrivateKeyTask setArguments:privateKeyArgs];
@@ -179,7 +179,7 @@
 	                                                     @"-out", certificatePath,
 	                                                     @"-text", @"-days", @"365", @"-batch", nil];
 	
-	NSTask *genCertificateTask = [[[NSTask alloc] init] autorelease];
+	NSTask *genCertificateTask = [[NSTask alloc] init];
 	
 	[genCertificateTask setLaunchPath:@"/usr/bin/openssl"];
 	[genCertificateTask setArguments:certificateArgs];
@@ -202,7 +202,7 @@
 	                                                     @"-out", certWrapperPath,
 	                                                     @"-name", @"SecureHTTPServer", nil];
 	
-	NSTask *genCertWrapperTask = [[[NSTask alloc] init] autorelease];
+	NSTask *genCertWrapperTask = [[NSTask alloc] init];
 	
 	[genCertWrapperTask setLaunchPath:@"/usr/bin/openssl"];
 	[genCertWrapperTask setArguments:certWrapperArgs];
@@ -338,21 +338,21 @@
 	SecKeychainCopyDefault(&keychain);
 	
 	OSStatus err = 0;
-	err = SecKeychainItemImport((CFDataRef)certData,   // CFDataRef importedData
-								NULL,                  // CFStringRef fileNameOrExtension
-								&inputFormat,          // SecExternalFormat *inputFormat
-								&itemType,             // SecExternalItemType *itemType
-								0,                     // SecItemImportExportFlags flags (Unused)
-								&importParameters,     // const SecKeyImportExportParameters *keyParams
-								keychain,              // SecKeychainRef importKeychain
-								&outItems);            // CFArrayRef *outItems
+	err = SecKeychainItemImport((__bridge CFDataRef)certData,  // CFDataRef importedData
+								NULL,                          // CFStringRef fileNameOrExtension
+								&inputFormat,                  // SecExternalFormat *inputFormat
+								&itemType,                     // SecExternalItemType *itemType
+								0,                             // SecItemImportExportFlags flags (Unused)
+								&importParameters,             // const SecKeyImportExportParameters *keyParams
+								keychain,                      // SecKeychainRef importKeychain
+								&outItems);                    // CFArrayRef *outItems
 	
 	NSLog(@"OSStatus: %i", err);
 	
 	NSLog(@"SecExternalFormat: %@", [DDKeychain stringForSecExternalFormat:inputFormat]);
 	NSLog(@"SecExternalItemType: %@", [DDKeychain stringForSecExternalItemType:itemType]);
 	
-	NSLog(@"outItems: %@", (NSArray *)outItems);
+	NSLog(@"outItems: %@", (__bridge NSArray *)outItems);
 	
 	// Don't forget to delete the temporary files
 	[[NSFileManager defaultManager] removeItemAtPath:privateKeyPath  error:nil];
@@ -449,9 +449,9 @@
 			{
 				SecKeychainAttribute nameAttribute = privateKeyAttributeList->attr[0];
 				
-				NSString *name = [[[NSString alloc] initWithBytes:nameAttribute.data
+				NSString *name = [[NSString alloc] initWithBytes:nameAttribute.data
 														   length:(nameAttribute.length)
-														 encoding:NSUTF8StringEncoding] autorelease];
+														 encoding:NSUTF8StringEncoding];
 				
 				// Ugly Hack
 				// For some reason, name sometimes contains odd characters at the end of it
@@ -462,7 +462,7 @@
 					// But we're only allowed to have one identity, so we make sure to only add one to the array
 					if([result count] == 0)
 					{
-						[result addObject:(id)currentIdentityRef];
+						[result addObject:(__bridge id)currentIdentityRef];
 					}
 				}
 				

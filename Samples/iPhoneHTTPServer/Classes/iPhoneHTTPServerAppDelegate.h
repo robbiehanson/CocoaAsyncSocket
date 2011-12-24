@@ -11,8 +11,8 @@
 	iPhoneHTTPServerViewController *viewController;
 }
 
-@property (nonatomic, retain) IBOutlet UIWindow *window;
-@property (nonatomic, retain) IBOutlet iPhoneHTTPServerViewController *viewController;
+@property (nonatomic) IBOutlet UIWindow *window;
+@property (nonatomic) IBOutlet iPhoneHTTPServerViewController *viewController;
 
 @end
 

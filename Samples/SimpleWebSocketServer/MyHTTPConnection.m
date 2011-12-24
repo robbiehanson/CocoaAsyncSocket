@@ -43,10 +43,10 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 		
 		NSDictionary *replacementDict = [NSDictionary dictionaryWithObject:wsLocation forKey:@"WEBSOCKET_URL"];
 		
-		return [[[HTTPDynamicFileResponse alloc] initWithFilePath:[self filePathForURI:path]
+		return [[HTTPDynamicFileResponse alloc] initWithFilePath:[self filePathForURI:path]
 		                                            forConnection:self
 		                                                separator:@"%%"
-		                                    replacementDictionary:replacementDict] autorelease];
+		                                    replacementDictionary:replacementDict];
 	}
 	
 	return [super httpResponseForMethod:method URI:path];
@@ -60,7 +60,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 	{
 		HTTPLogInfo(@"MyHTTPConnection: Creating MyWebSocket...");
 		
-		return [[[MyWebSocket alloc] initWithRequest:request socket:asyncSocket] autorelease];		
+		return [[MyWebSocket alloc] initWithRequest:request socket:asyncSocket];		
 	}
 	
 	return [super webSocketForURI:path];

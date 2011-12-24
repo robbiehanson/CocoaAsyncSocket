@@ -16,10 +16,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN;
 
 - (void) dealloc {
   [requestContentStream close];
-  [requestContentStream release];
-  [requestContentBody release];
   
-  [super dealloc];
 }
 
 - (BOOL) supportsMethod:(NSString*)method atPath:(NSString*)path {
@@ -89,14 +86,12 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN;
   NSAssert(requestContentBody != nil, @"requestContentBody should not be nil");
   if (requestContentStream) {
     [requestContentStream close];
-    [requestContentStream release];
     requestContentStream = nil;
   }
 }
 
 - (void)finishResponse {
   NSAssert(requestContentStream == nil, @"requestContentStream should be nil");
-  [requestContentBody release];
   requestContentBody = nil;
   
   [super finishResponse];
@@ -109,9 +104,9 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN;
       NSDictionary* fileAttributes = [[NSFileManager defaultManager] attributesOfItemAtPath:filePath error:NULL];
       if (fileAttributes) {
         if ([[fileAttributes objectForKey:NSFileSize] unsignedLongLongValue] > HTTP_ASYNC_FILE_RESPONSE_THRESHOLD) {
-          return [[[HTTPAsyncFileResponse alloc] initWithFilePath:filePath forConnection:self] autorelease];
+          return [[HTTPAsyncFileResponse alloc] initWithFilePath:filePath forConnection:self];
         } else {
-          return [[[HTTPFileResponse alloc] initWithFilePath:filePath forConnection:self] autorelease];
+          return [[HTTPFileResponse alloc] initWithFilePath:filePath forConnection:self];
         }
       }
     }
@@ -121,9 +116,9 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN;
     NSString* filePath = [self filePathForURI:path allowDirectory:YES];
     if (filePath) {
       if ([requestContentBody isKindOfClass:[NSString class]]) {
-        return [[[PUTResponse alloc] initWithFilePath:filePath headers:[request allHeaderFields] bodyFile:requestContentBody] autorelease];
+        return [[PUTResponse alloc] initWithFilePath:filePath headers:[request allHeaderFields] bodyFile:requestContentBody];
       } else if ([requestContentBody isKindOfClass:[NSData class]]) {
-        return [[[PUTResponse alloc] initWithFilePath:filePath headers:[request allHeaderFields] bodyData:requestContentBody] autorelease];
+        return [[PUTResponse alloc] initWithFilePath:filePath headers:[request allHeaderFields] bodyData:requestContentBody];
       } else {
         HTTPLogError(@"Internal error");
       }
@@ -133,7 +128,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN;
 	if ([method isEqualToString:@"DELETE"]) {
     NSString* filePath = [self filePathForURI:path allowDirectory:YES];
     if (filePath) {
-      return [[[DELETEResponse alloc] initWithFilePath:filePath] autorelease];
+      return [[DELETEResponse alloc] initWithFilePath:filePath];
     }
   }
   
@@ -151,11 +146,11 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN;
           return nil;
         }
       }
-      return [[[DAVResponse alloc] initWithMethod:method
+      return [[DAVResponse alloc] initWithMethod:method
                                           headers:[request allHeaderFields]
                                          bodyData:requestContentBody
                                      resourcePath:resourcePath
-                                         rootPath:rootPath] autorelease];
+                                         rootPath:rootPath];
     }
   }
   

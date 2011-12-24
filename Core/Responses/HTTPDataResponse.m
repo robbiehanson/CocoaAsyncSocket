@@ -15,7 +15,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_OFF; // | HTTP_LOG_FLAG_TRACE;
 		HTTPLogTrace();
 		
 		offset = 0;
-		data = [dataParam retain];
+		data = dataParam;
 	}
 	return self;
 }
@@ -24,8 +24,6 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_OFF; // | HTTP_LOG_FLAG_TRACE;
 {
 	HTTPLogTrace();
 	
-	[data release];
-	[super dealloc];
 }
 
 - (UInt64)contentLength

@@ -33,7 +33,6 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 - (void) applicationWillTerminate:(NSNotification*)notification {
   // Stop DAV server
   [_httpServer stop];
-  [_httpServer release];
   _httpServer = nil;
 }
 

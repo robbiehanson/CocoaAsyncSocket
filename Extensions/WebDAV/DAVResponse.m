@@ -20,7 +20,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN;
 @implementation DAVResponse
 
 static void _AddPropertyResponse(NSString* itemPath, NSString* resourcePath, DAVProperties properties, NSMutableString* xmlString) {
-  CFStringRef escapedPath = CFURLCreateStringByAddingPercentEscapes(kCFAllocatorDefault, (CFStringRef)resourcePath, NULL,
+  CFStringRef escapedPath = CFURLCreateStringByAddingPercentEscapes(kCFAllocatorDefault, (__bridge CFStringRef)resourcePath, NULL,
                                                                     CFSTR("<&>?+"), kCFStringEncodingUTF8);
   if (escapedPath) {
     NSDictionary* attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:itemPath error:NULL];
@@ -40,20 +40,18 @@ static void _AddPropertyResponse(NSString* itemPath, NSString* resourcePath, DAV
           
           if ((properties & kDAVProperty_CreationDate) && [attributes objectForKey:NSFileCreationDate]) {
             NSDateFormatter* formatter = [[NSDateFormatter alloc] init];
-            formatter.locale = [[[NSLocale alloc] initWithLocaleIdentifier:@"en_US"] autorelease];
+            formatter.locale = [[NSLocale alloc] initWithLocaleIdentifier:@"en_US"];
             formatter.timeZone = [NSTimeZone timeZoneWithName:@"GMT"];
             formatter.dateFormat = @"yyyy-MM-dd'T'HH:mm:ss'+00:00'";
             [xmlString appendFormat:@"<D:creationdate>%@</D:creationdate>", [formatter stringFromDate:[attributes fileCreationDate]]];
-            [formatter release];
           }
           
           if ((properties & kDAVProperty_LastModified) && [attributes objectForKey:NSFileModificationDate]) {
             NSDateFormatter* formatter = [[NSDateFormatter alloc] init];
-            formatter.locale = [[[NSLocale alloc] initWithLocaleIdentifier:@"en_US"] autorelease];
+            formatter.locale = [[NSLocale alloc] initWithLocaleIdentifier:@"en_US"];
             formatter.timeZone = [NSTimeZone timeZoneWithName:@"GMT"];
             formatter.dateFormat = @"EEE', 'd' 'MMM' 'yyyy' 'HH:mm:ss' GMT'";
             [xmlString appendFormat:@"<D:getlastmodified>%@</D:getlastmodified>", [formatter stringFromDate:[attributes fileModificationDate]]];
-            [formatter release];
           }
           
           if ((properties & kDAVProperty_ContentLength) && !isDirectory && [attributes objectForKey:NSFileSize]) {
@@ -102,7 +100,6 @@ static xmlNodePtr _XMLChildWithName(xmlNodePtr child, const xmlChar* name) {
         depth = 1;
       } else {
         HTTPLogError(@"Unsupported DAV depth \"%@\"", depthHeader);
-        [self release];
         return nil;
       }
       
@@ -130,7 +127,7 @@ static xmlNodePtr _XMLChildWithName(xmlNodePtr child, const xmlChar* name) {
             node = node->next;
           }
         } else {
-          HTTPLogWarn(@"HTTP Server: Invalid DAV properties\n%@", [[[NSString alloc] initWithData:body encoding:NSUTF8StringEncoding] autorelease]);
+          HTTPLogWarn(@"HTTP Server: Invalid DAV properties\n%@", [[NSString alloc] initWithData:body encoding:NSUTF8StringEncoding]);
         }
         xmlFreeDoc(document);
       }
@@ -140,7 +137,6 @@ static xmlNodePtr _XMLChildWithName(xmlNodePtr child, const xmlChar* name) {
       
       NSString* basePath = [rootPath stringByAppendingPathComponent:resourcePath];
       if (![basePath hasPrefix:rootPath] || ![[NSFileManager defaultManager] fileExistsAtPath:basePath]) {
-        [self release];
         return nil;
       }
       
@@ -164,7 +160,7 @@ static xmlNodePtr _XMLChildWithName(xmlNodePtr child, const xmlChar* name) {
       [xmlString appendString:@"</D:multistatus>"];
       
       [_headers setObject:@"application/xml; charset=\"utf-8\"" forKey:@"Content-Type"];
-      _data = [[xmlString dataUsingEncoding:NSUTF8StringEncoding] retain];
+      _data = [xmlString dataUsingEncoding:NSUTF8StringEncoding];
       _status = 207;
     }
     
@@ -172,7 +168,6 @@ static xmlNodePtr _XMLChildWithName(xmlNodePtr child, const xmlChar* name) {
     if ([method isEqualToString:@"MKCOL"]) {
       NSString* path = [rootPath stringByAppendingPathComponent:resourcePath];
       if (![path hasPrefix:rootPath]) {
-        [self release];
         return nil;
       }
       
@@ -190,26 +185,22 @@ static xmlNodePtr _XMLChildWithName(xmlNodePtr child, const xmlChar* name) {
     if ([method isEqualToString:@"MOVE"] || [method isEqualToString:@"COPY"]) {
       if ([method isEqualToString:@"COPY"] && ![[headers objectForKey:@"Depth"] isEqualToString:@"infinity"]) {
         HTTPLogError(@"Unsupported DAV depth \"%@\"", [headers objectForKey:@"Depth"]);
-        [self release];
         return nil;
       }
       
       NSString* sourcePath = [rootPath stringByAppendingPathComponent:resourcePath];
       if (![sourcePath hasPrefix:rootPath] || ![[NSFileManager defaultManager] fileExistsAtPath:sourcePath]) {
-        [self release];
         return nil;
       }
       
       NSString* destination = [headers objectForKey:@"Destination"];
       NSRange range = [destination rangeOfString:[headers objectForKey:@"Host"]];
       if (range.location == NSNotFound) {
-        [self release];
         return nil;
       }
       NSString* destinationPath = [rootPath stringByAppendingPathComponent:
         [[destination substringFromIndex:(range.location + range.length)] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
       if (![destinationPath hasPrefix:rootPath] || [[NSFileManager defaultManager] fileExistsAtPath:destinationPath]) {
-        [self release];
         return nil;
       }
       
@@ -246,7 +237,6 @@ static xmlNodePtr _XMLChildWithName(xmlNodePtr child, const xmlChar* name) {
     if ([method isEqualToString:@"LOCK"]) {
       NSString* path = [rootPath stringByAppendingPathComponent:resourcePath];
       if (![path hasPrefix:rootPath]) {
-        [self release];
         return nil;
       }
       
@@ -274,7 +264,7 @@ static xmlNodePtr _XMLChildWithName(xmlNodePtr child, const xmlChar* name) {
             }
           }
         } else {
-          HTTPLogWarn(@"HTTP Server: Invalid DAV properties\n%@", [[[NSString alloc] initWithData:body encoding:NSUTF8StringEncoding] autorelease]);
+          HTTPLogWarn(@"HTTP Server: Invalid DAV properties\n%@", [[NSString alloc] initWithData:body encoding:NSUTF8StringEncoding]);
         }
         xmlFreeDoc(document);
       }
@@ -283,7 +273,8 @@ static xmlNodePtr _XMLChildWithName(xmlNodePtr child, const xmlChar* name) {
         NSString* timeout = [headers objectForKey:@"Timeout"];
         
         CFUUIDRef uuid = CFUUIDCreate(kCFAllocatorDefault);
-        NSString* token = [NSString stringWithFormat:@"urn:uuid:%@", [(id)CFUUIDCreateString(kCFAllocatorDefault, uuid) autorelease]];
+        NSString *uuidStr = (__bridge_transfer NSString *)CFUUIDCreateString(kCFAllocatorDefault, uuid);
+        NSString* token = [NSString stringWithFormat:@"urn:uuid:%@", uuidStr];
         CFRelease(uuid);
         
         NSMutableString* xmlString = [NSMutableString stringWithString:@"<?xml version=\"1.0\" encoding=\"utf-8\" ?>"];
@@ -304,7 +295,7 @@ static xmlNodePtr _XMLChildWithName(xmlNodePtr child, const xmlChar* name) {
         [xmlString appendString:@"</D:prop>"];
         
         [_headers setObject:@"application/xml; charset=\"utf-8\"" forKey:@"Content-Type"];
-        _data = [[xmlString dataUsingEncoding:NSUTF8StringEncoding] retain];
+        _data = [xmlString dataUsingEncoding:NSUTF8StringEncoding];
         _status = 200;
         HTTPLogVerbose(@"Pretending to lock \"%@\"", resourcePath);
       } else {
@@ -317,7 +308,6 @@ static xmlNodePtr _XMLChildWithName(xmlNodePtr child, const xmlChar* name) {
     if ([method isEqualToString:@"UNLOCK"]) {
       NSString* path = [rootPath stringByAppendingPathComponent:resourcePath];
       if (![path hasPrefix:rootPath] || ![[NSFileManager defaultManager] fileExistsAtPath:path]) {
-        [self release];
         return nil;
       }
       
@@ -330,12 +320,6 @@ static xmlNodePtr _XMLChildWithName(xmlNodePtr child, const xmlChar* name) {
   return self;
 }
 
-- (void) dealloc {
-  [_headers release];
-  [_data release];
-  
-  [super dealloc];
-}
 
 - (UInt64) contentLength {
   return _data ? _data.length : 0;

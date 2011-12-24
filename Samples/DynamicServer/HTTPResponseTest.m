@@ -24,7 +24,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_OFF; // | HTTP_LOG_FLAG_TRACE;
 	{
 		HTTPLogTrace();
 		
-		connection = parent; // Parents retain children, children do NOT retain parents
+		connection = parent;
 		
 		connectionQueue = dispatch_get_current_queue();
 		dispatch_retain(connectionQueue);
@@ -32,11 +32,10 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_OFF; // | HTTP_LOG_FLAG_TRACE;
 		readyToSendResponseHeaders = NO;
 		
 		dispatch_queue_t concurrentQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0);
-		dispatch_async(concurrentQueue, ^{
-			NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+		dispatch_async(concurrentQueue, ^{ @autoreleasepool {
+			
 			[self doAsyncStuff];
-			[pool release];
-		});
+		}});
 	}
 	return self;
 }
@@ -49,11 +48,10 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_OFF; // | HTTP_LOG_FLAG_TRACE;
 	
 	[NSThread sleepForTimeInterval:5.0];
 	
-	dispatch_async(connectionQueue, ^{
-		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	dispatch_async(connectionQueue, ^{ @autoreleasepool {
+		
 		[self asyncStuffFinished];
-		[pool release];
-	});
+	}});
 }
 
 - (void)asyncStuffFinished
@@ -122,7 +120,6 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_OFF; // | HTTP_LOG_FLAG_TRACE;
 	HTTPLogTrace();
 	
 	dispatch_release(connectionQueue);
-	[super dealloc];
 }
 
 @end
