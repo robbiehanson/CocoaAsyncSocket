@@ -218,6 +218,9 @@ enum GCDAsyncUdpSocketConfig
 + (uint16_t)portFromSockaddr4:(const struct sockaddr_in *)pSockaddr4;
 + (uint16_t)portFromSockaddr6:(const struct sockaddr_in6 *)pSockaddr6;
 
+// Forward declaration
++ (void)listenerThread;
+
 @end
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -4219,6 +4222,9 @@ SetParamPtrsAndReturn:
 #if TARGET_OS_IPHONE
 
 static NSThread *listenerThread;
+
++ (void)ignore:(id)_
+{}
 
 + (void)startListenerThreadIfNeeded
 {
