@@ -3798,7 +3798,7 @@ SetParamPtrsAndReturn:
 			dispatch_release(theSendTimer);
 		});
 		
-		dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (timeout * NSEC_PER_SEC));
+		dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeout * NSEC_PER_SEC));
 		
 		dispatch_source_set_timer(sendTimer, tt, DISPATCH_TIME_FOREVER, 0);
 		dispatch_resume(sendTimer);
@@ -4006,12 +4006,12 @@ SetParamPtrsAndReturn:
 		
 		if (result > 0)
 		{
-			if (result >= socket4FDBytesAvailable)
+			if ((size_t)result >= socket4FDBytesAvailable)
 				socket4FDBytesAvailable = 0;
 			else
 				socket4FDBytesAvailable -= result;
 			
-			if (result != bufSize) {
+			if ((size_t)result != bufSize) {
 				buf = realloc(buf, result);
 			}
 			
@@ -4040,12 +4040,12 @@ SetParamPtrsAndReturn:
 		
 		if (result > 0)
 		{
-			if (result >= socket6FDBytesAvailable)
+			if ((size_t)result >= socket6FDBytesAvailable)
 				socket6FDBytesAvailable = 0;
 			else
 				socket6FDBytesAvailable -= result;
 			
-			if (result != bufSize) {
+			if ((size_t)result != bufSize) {
 				buf = realloc(buf, result);
 			}
 		
