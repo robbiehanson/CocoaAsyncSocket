@@ -204,6 +204,8 @@ enum GCDAsyncUdpSocketConfig
 
 - (void)closeWithError:(NSError *)error;
 
+- (BOOL)performMulticastRequest:(int)requestType forGroup:(NSString *)group onInterface:(NSString *)interface error:(NSError **)errPtr;
+
 #if TARGET_OS_IPHONE
 - (BOOL)createReadAndWriteStreams:(NSError **)errPtr;
 - (BOOL)registerForStreamCallbacks:(NSError **)errPtr;
@@ -3246,6 +3248,24 @@ SetParamPtrsAndReturn:
 
 - (BOOL)joinMulticastGroup:(NSString *)group onInterface:(NSString *)interface error:(NSError **)errPtr
 {
+    // IP_ADD_MEMBERSHIP == IPV6_JOIN_GROUP
+    return [self performMulticastRequest:IP_ADD_MEMBERSHIP forGroup:group onInterface:interface error:errPtr];
+}
+
+
+- (BOOL)leaveMulticastGroup:(NSString *)group error:(NSError **)errPtr
+{
+	return [self leaveMulticastGroup:group onInterface:nil error:errPtr];
+}
+
+- (BOOL)leaveMulticastGroup:(NSString *)group onInterface:(NSString *)interface error:(NSError **)errPtr
+{
+    // IP_DROP_MEMBERSHIP == IPV6_LEAVE_GROUP
+    return [self performMulticastRequest:IP_DROP_MEMBERSHIP forGroup:group onInterface:interface error:errPtr];
+}
+
+- (BOOL)performMulticastRequest:(int)requestType forGroup:(NSString *)group onInterface:(NSString *)interface error:(NSError **)errPtr
+{
 	__block BOOL result = NO;
 	__block NSError *err = nil;
 	
@@ -3300,7 +3320,7 @@ SetParamPtrsAndReturn:
 			imreq.imr_multiaddr = nativeGroup->sin_addr;
 			imreq.imr_interface = nativeIface->sin_addr;
 			
-			int status = setsockopt(socket4FD, IPPROTO_IP, IP_ADD_MEMBERSHIP, (const void *)&imreq, sizeof(imreq));
+			int status = setsockopt(socket4FD, IPPROTO_IP, requestType, (const void *)&imreq, sizeof(imreq));
 			if (status != 0)
 			{
 				err = [[self errnoErrorWithReason:@"Error in setsockopt() function"] retain];
@@ -3322,7 +3342,7 @@ SetParamPtrsAndReturn:
 			imreq.ipv6mr_multiaddr = nativeGroup->sin6_addr;
 			imreq.ipv6mr_interface = [self indexOfInterfaceAddr6:interfaceAddr6];
 			
-			int status = setsockopt(socket6FD, IPPROTO_IP, IPV6_JOIN_GROUP, (const void *)&imreq, sizeof(imreq));
+			int status = setsockopt(socket6FD, IPPROTO_IP, requestType, (const void *)&imreq, sizeof(imreq));
 			if (status != 0)
 			{
 				err = [[self errnoErrorWithReason:@"Error in setsockopt() function"] retain];
