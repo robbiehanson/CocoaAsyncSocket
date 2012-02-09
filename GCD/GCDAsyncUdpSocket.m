@@ -428,7 +428,7 @@ enum GCDAsyncUdpSocketConfig
 	}
 	else
 	{
-		__block id result;
+		__block id result = nil;
 		
 		dispatch_sync(socketQueue, ^{
 			result = delegate;
@@ -473,7 +473,7 @@ enum GCDAsyncUdpSocketConfig
 	}
 	else
 	{
-		__block dispatch_queue_t result;
+		__block dispatch_queue_t result = NULL;
 		
 		dispatch_sync(socketQueue, ^{
 			result = delegateQueue;
@@ -655,7 +655,7 @@ enum GCDAsyncUdpSocketConfig
 
 - (BOOL)isIPv4Preferred
 {
-	__block BOOL result;
+	__block BOOL result = NO;
 	
 	dispatch_block_t block = ^{
 		result = (config & kPreferIPv4) ? YES : NO;
@@ -671,7 +671,7 @@ enum GCDAsyncUdpSocketConfig
 
 - (BOOL)isIPv6Preferred
 {
-	__block BOOL result;
+	__block BOOL result = NO;
 	
 	dispatch_block_t block = ^{
 		result = (config & kPreferIPv6) ? YES : NO;
@@ -687,7 +687,7 @@ enum GCDAsyncUdpSocketConfig
 
 - (BOOL)isIPVersionNeutral
 {
-	__block BOOL result;
+	__block BOOL result = NO;
 	
 	dispatch_block_t block = ^{
 		result = (config & (kPreferIPv4 | kPreferIPv6)) == 0;
@@ -819,7 +819,7 @@ enum GCDAsyncUdpSocketConfig
 
 - (id)userData
 {
-	__block id result;
+	__block id result = nil;
 	
 	dispatch_block_t block = ^{
 		
@@ -2286,7 +2286,7 @@ SetParamPtrsAndReturn:
 
 - (NSData *)localAddress_IPv4
 {
-	__block NSData *result;
+	__block NSData *result = nil;
 	
 	dispatch_block_t block = ^{
 		
@@ -2304,7 +2304,7 @@ SetParamPtrsAndReturn:
 
 - (NSString *)localHost_IPv4
 {
-	__block NSString *result;
+	__block NSString *result = nil;
 	
 	dispatch_block_t block = ^{
 		
@@ -2322,7 +2322,7 @@ SetParamPtrsAndReturn:
 
 - (uint16_t)localPort_IPv4
 {
-	__block uint16_t result;
+	__block uint16_t result = 0;
 	
 	dispatch_block_t block = ^{
 		
@@ -2340,7 +2340,7 @@ SetParamPtrsAndReturn:
 
 - (NSData *)localAddress_IPv6
 {
-	__block NSData *result;
+	__block NSData *result = nil;
 	
 	dispatch_block_t block = ^{
 		
@@ -2358,7 +2358,7 @@ SetParamPtrsAndReturn:
 
 - (NSString *)localHost_IPv6
 {
-	__block NSString *result;
+	__block NSString *result = nil;
 	
 	dispatch_block_t block = ^{
 		
@@ -2376,7 +2376,7 @@ SetParamPtrsAndReturn:
 
 - (uint16_t)localPort_IPv6
 {
-	__block uint16_t result;
+	__block uint16_t result = 0;
 	
 	dispatch_block_t block = ^{
 		
@@ -2455,7 +2455,7 @@ SetParamPtrsAndReturn:
 
 - (NSData *)connectedAddress
 {
-	__block NSData *result;
+	__block NSData *result = nil;
 	
 	dispatch_block_t block = ^{
 		
@@ -2473,7 +2473,7 @@ SetParamPtrsAndReturn:
 
 - (NSString *)connectedHost
 {
-	__block NSString *result;
+	__block NSString *result = nil;
 	
 	dispatch_block_t block = ^{
 		
@@ -2491,7 +2491,7 @@ SetParamPtrsAndReturn:
 
 - (uint16_t)connectedPort
 {
-	__block uint16_t result;
+	__block uint16_t result = 0;
 	
 	dispatch_block_t block = ^{
 		
@@ -2509,7 +2509,7 @@ SetParamPtrsAndReturn:
 
 - (BOOL)isConnected
 {
-	__block BOOL result;
+	__block BOOL result = NO;
 	
 	dispatch_block_t block = ^{
 		result = (flags & kDidConnect) ? YES : NO;
@@ -2542,7 +2542,7 @@ SetParamPtrsAndReturn:
 
 - (BOOL)isIPv4
 {
-	__block BOOL result;
+	__block BOOL result = NO;
 	
 	dispatch_block_t block = ^{
 		
@@ -2566,7 +2566,7 @@ SetParamPtrsAndReturn:
 
 - (BOOL)isIPv6
 {
-	__block BOOL result;
+	__block BOOL result = NO;
 	
 	dispatch_block_t block = ^{
 		
