@@ -19,7 +19,7 @@ extern NSString *const AsyncUdpSocketErrorDomain;
 enum AsyncUdpSocketError
 {
 	AsyncUdpSocketCFSocketError = kCFSocketError,	// From CFSocketError enum
-	AsyncUdpSocketNoError = 0,						// Never used
+	AsyncUdpSocketNoError = 0,                      // Never used
 	AsyncUdpSocketBadParameter,                     // Used if given a bad parameter (such as an improper address)
 	AsyncUdpSocketIPv4Unavailable,                  // Used if you bind/connect using IPv6 only
 	AsyncUdpSocketIPv6Unavailable,                  // Used if you bind/connect using IPv4 only (or iPhone)
