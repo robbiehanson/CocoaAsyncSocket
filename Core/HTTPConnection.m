@@ -2220,6 +2220,7 @@ static NSMutableArray *recentNonces;
 			
 			NSString *sizeLine = [[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] autorelease];
 			
+			errno = 0;  // Reset errno before calling strtoull() to ensure it is always zero on success
 			requestChunkSize = (UInt64)strtoull([sizeLine UTF8String], NULL, 16);
 			requestChunkSizeReceived = 0;
 			
