@@ -89,6 +89,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 
 @implementation HTTPConnection
 
+static dispatch_queue_t recentNonceQueue;
 static NSMutableArray *recentNonces;
 
 /**
@@ -97,23 +98,66 @@ static NSMutableArray *recentNonces;
 **/
 + (void)initialize
 {
-	static BOOL initialized = NO;
-	if(!initialized)
-	{
-		// Initialize class variables
-		recentNonces = [[NSMutableArray alloc] initWithCapacity:5];
+	static dispatch_once_t onceToken;
+	dispatch_once(&onceToken, ^{
 		
-		initialized = YES;
-	}
+		// Initialize class variables
+		recentNonceQueue = dispatch_queue_create("HTTPConnection-Nonce", NULL);
+		recentNonces = [[NSMutableArray alloc] initWithCapacity:5];
+	});
 }
 
 /**
- * This method is designed to be called by a scheduled timer, and will remove a nonce from the recent nonce list.
- * The nonce to remove should be set as the timer's userInfo.
+ * Generates and returns an authentication nonce.
+ * A nonce is a  server-specified string uniquely generated for each 401 response.
+ * The default implementation uses a single nonce for each session.
 **/
-+ (void)removeRecentNonce:(NSTimer *)aTimer
++ (NSString *)generateNonce
 {
-	[recentNonces removeObject:[aTimer userInfo]];
+	// We use the Core Foundation UUID class to generate a nonce value for us
+	// UUIDs (Universally Unique Identifiers) are 128-bit values guaranteed to be unique.
+	CFUUIDRef theUUID = CFUUIDCreate(NULL);
+	NSString *newNonce = (__bridge_transfer NSString *)CFUUIDCreateString(NULL, theUUID);
+	CFRelease(theUUID);
+	
+	// We have to remember that the HTTP protocol is stateless.
+	// Even though with version 1.1 persistent connections are the norm, they are not guaranteed.
+	// Thus if we generate a nonce for this connection,
+	// it should be honored for other connections in the near future.
+	// 
+	// In fact, this is absolutely necessary in order to support QuickTime.
+	// When QuickTime makes it's initial connection, it will be unauthorized, and will receive a nonce.
+	// It then disconnects, and creates a new connection with the nonce, and proper authentication.
+	// If we don't honor the nonce for the second connection, QuickTime will repeat the process and never connect.
+	
+	dispatch_async(recentNonceQueue, ^{ @autoreleasepool {
+		
+		[recentNonces addObject:newNonce];
+	}});
+	
+	double delayInSeconds = TIMEOUT_NONCE;
+	dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
+	dispatch_after(popTime, recentNonceQueue, ^{ @autoreleasepool {
+		
+		[recentNonces removeObject:newNonce];
+	}});
+	
+	return newNonce;
+}
+
+/**
+ * Returns whether or not the given nonce is in the list of recently generated nonce's.
+**/
++ (BOOL)hasRecentNonce:(NSString *)recentNonce
+{
+	__block BOOL result = NO;
+	
+	dispatch_sync(recentNonceQueue, ^{ @autoreleasepool {
+		
+		result = [recentNonces containsObject:recentNonce];
+	}});
+	
+	return result;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -350,41 +394,6 @@ static NSMutableArray *recentNonces;
 }
 
 /**
- * Generates and returns an authentication nonce.
- * A nonce is a  server-specified string uniquely generated for each 401 response.
- * The default implementation uses a single nonce for each session.
-**/
-- (NSString *)generateNonce
-{
-	HTTPLogTrace();
-	
-	// We use the Core Foundation UUID class to generate a nonce value for us
-	// UUIDs (Universally Unique Identifiers) are 128-bit values guaranteed to be unique.
-	CFUUIDRef theUUID = CFUUIDCreate(NULL);
-	NSString *newNonce = (__bridge_transfer NSString *)CFUUIDCreateString(NULL, theUUID);
-	CFRelease(theUUID);
-	
-	// We have to remember that the HTTP protocol is stateless.
-	// Even though with version 1.1 persistent connections are the norm, they are not guaranteed.
-	// Thus if we generate a nonce for this connection,
-	// it should be honored for other connections in the near future.
-	// 
-	// In fact, this is absolutely necessary in order to support QuickTime.
-	// When QuickTime makes it's initial connection, it will be unauthorized, and will receive a nonce.
-	// It then disconnects, and creates a new connection with the nonce, and proper authentication.
-	// If we don't honor the nonce for the second connection, QuickTime will repeat the process and never connect.
-	
-	[recentNonces addObject:newNonce];
-	
-	[NSTimer scheduledTimerWithTimeInterval:TIMEOUT_NONCE
-	                                 target:[HTTPConnection class]
-	                               selector:@selector(removeRecentNonce:)
-	                               userInfo:newNonce
-	                                repeats:NO];
-	return newNonce;
-}
-
-/**
  * Returns whether or not the user is properly authenticated.
 **/
 - (BOOL)isAuthenticated
@@ -433,7 +442,7 @@ static NSMutableArray *recentNonces;
 		{
 			// The given nonce may be from another connection
 			// We need to search our list of recent nonce strings that have been recently distributed
-			if ([recentNonces containsObject:[auth nonce]])
+			if ([[self class] hasRecentNonce:[auth nonce]])
 			{
 				// Store nonce in local (cached) nonce variable to prevent array searches in the future
 				nonce = [[auth nonce] copy];
@@ -527,7 +536,7 @@ static NSMutableArray *recentNonces;
 	HTTPLogTrace();
 	
 	NSString *authFormat = @"Digest realm=\"%@\", qop=\"auth\", nonce=\"%@\"";
-	NSString *authInfo = [NSString stringWithFormat:authFormat, [self realm], [self generateNonce]];
+	NSString *authInfo = [NSString stringWithFormat:authFormat, [self realm], [[self class] generateNonce]];
 	
 	[response setHeaderField:@"WWW-Authenticate" value:authInfo];
 }
