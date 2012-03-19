@@ -96,8 +96,8 @@
 // 
 // All log files are placed inside the logsDirectory.
 // If a specific logsDirectory isn't specified, the default directory is used.
-// On Mac, this is in ~/Library/Application Support/<Application Name>/Logs.
-// On iPhone, this is in ~/Documents/Logs.
+// On Mac, this is in ~/Library/Logs/<Application Name>.
+// On iPhone, this is in ~/Library/Caches/Logs.
 // 
 // Log files are named "log-<uuid>.txt",
 // where uuid is a 6 character hexadecimal consisting of the set [0123456789ABCDEF].

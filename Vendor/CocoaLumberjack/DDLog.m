@@ -262,6 +262,7 @@ static unsigned int numProcessors;
        file:(const char *)file
    function:(const char *)function
        line:(int)line
+        tag:(id)tag
      format:(NSString *)format, ...
 {
 	va_list args;
@@ -276,7 +277,8 @@ static unsigned int numProcessors;
 		                                                        context:context
 		                                                           file:file
 		                                                       function:function
-		                                                           line:line];
+		                                                           line:line
+		                                                            tag:tag];
 		
 		[self queueLogMessage:logMessage asynchronously:asynchronous];
 		
@@ -301,15 +303,17 @@ static unsigned int numProcessors;
 	SEL getterSel = @selector(ddLogLevel);
 	SEL setterSel = @selector(ddSetLogLevel:);
 	
-#if TARGET_OS_IPHONE
+#if TARGET_OS_IPHONE && !TARGET_IPHONE_SIMULATOR
 	
-	// Issue #6 - Crashes on iOS 4.2.1 and iPhone 4
+	// Issue #6 (GoogleCode) - Crashes on iOS 4.2.1 and iPhone 4
 	// 
 	// Crash caused by class_getClassMethod(2).
 	// 
 	//     "It's a bug with UIAccessibilitySafeCategory__NSObject so it didn't pop up until
 	//      users had VoiceOver enabled [...]. I was able to work around it by searching the
 	//      result of class_copyMethodList() instead of calling class_getClassMethod()"
+	
+	BOOL result = NO;
 	
 	unsigned int methodCount, i;
 	Method *methodList = class_copyMethodList(object_getClass(class), &methodCount);
@@ -334,16 +338,22 @@ static unsigned int numProcessors;
 			
 			if (getterFound && setterFound)
 			{
-				return YES;
+				result = YES;
+				break;
 			}
 		}
 		
 		free(methodList);
 	}
 	
-	return NO;
+	return result;
 	
 #else
+	
+	// Issue #24 (GitHub) - Crashing in in ARC+Simulator
+	// 
+	// The method +[DDLog isRegisteredClass] will crash a project when using it with ARC + Simulator.
+	// For running in the Simulator, it needs to execute the non-iOS code.
 	
 	Method getter = class_getClassMethod(class, getterSel);
 	Method setter = class_getClassMethod(class, setterSel);
@@ -642,7 +652,7 @@ static unsigned int numProcessors;
 #pragma mark Utilities
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy)
+NSString *DDExtractFileNameWithoutExtension(const char *filePath, BOOL copy)
 {
 	if (filePath == NULL) return nil;
 	
@@ -763,6 +773,7 @@ NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy)
                 file:(const char *)aFile
             function:(const char *)aFunction
                 line:(int)line
+                 tag:(id)aTag
 {
 	if ((self = [super init]))
 	{
@@ -773,6 +784,7 @@ NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy)
 		file       = aFile;
 		function   = aFunction;
 		lineNumber = line;
+		tag        = aTag;
 		
 		timestamp = [[NSDate alloc] init];
 		
@@ -806,7 +818,7 @@ NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy)
 {
 	if (fileName == nil && file != NULL)
 	{
-		fileName = ExtractFileNameWithoutExtension(file, NO);
+		fileName = DDExtractFileNameWithoutExtension(file, NO);
 	}
 	
 	return fileName;
