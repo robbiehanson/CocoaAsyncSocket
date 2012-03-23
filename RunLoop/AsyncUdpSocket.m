@@ -165,7 +165,7 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 @public
 	NSTimeInterval timeout;
 	long tag;
-	NSMutableData *buffer;
+	NSData *buffer;
 	NSString *host;
 	UInt16 port;
 }
@@ -2337,7 +2337,7 @@ static void MyCFSocketCallback(CFSocketRef sref, CFSocketCallBackType type, CFDa
 	AsyncUdpSocket *theSocket = [[(AsyncUdpSocket *)pInfo retain] autorelease];
 	[theSocket doCFSocketCallback:type forSocket:sref withAddress:(NSData *)address withData:pData];
 	
-	[pool release];
+	[pool drain];
 }
 
 @end

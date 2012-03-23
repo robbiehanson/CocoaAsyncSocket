@@ -1,0 +1,345 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		DC34A1FE1484363D004F0A03 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC34A1FD1484363D004F0A03 /* Cocoa.framework */; };
+		DC34A2081484363D004F0A03 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = DC34A2061484363D004F0A03 /* InfoPlist.strings */; };
+		DC34A20A1484363D004F0A03 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = DC34A2091484363D004F0A03 /* main.m */; };
+		DC34A20E1484363D004F0A03 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = DC34A20C1484363D004F0A03 /* Credits.rtf */; };
+		DC34A2111484363D004F0A03 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = DC34A2101484363D004F0A03 /* AppDelegate.m */; };
+		DC34A2141484363D004F0A03 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = DC34A2121484363D004F0A03 /* MainMenu.xib */; };
+		DC34A21E1484365D004F0A03 /* GCDAsyncUdpSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = DC34A21D1484365D004F0A03 /* GCDAsyncUdpSocket.m */; };
+		DC34A2291484366F004F0A03 /* DDAbstractDatabaseLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC34A2201484366F004F0A03 /* DDAbstractDatabaseLogger.m */; };
+		DC34A22A1484366F004F0A03 /* DDASLLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC34A2221484366F004F0A03 /* DDASLLogger.m */; };
+		DC34A22B1484366F004F0A03 /* DDFileLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC34A2241484366F004F0A03 /* DDFileLogger.m */; };
+		DC34A22C1484366F004F0A03 /* DDLog.m in Sources */ = {isa = PBXBuildFile; fileRef = DC34A2261484366F004F0A03 /* DDLog.m */; };
+		DC34A22D1484366F004F0A03 /* DDTTYLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC34A2281484366F004F0A03 /* DDTTYLogger.m */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		DC34A1F91484363D004F0A03 /* UdpEchoClient.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UdpEchoClient.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DC34A1FD1484363D004F0A03 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		DC34A2001484363D004F0A03 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		DC34A2011484363D004F0A03 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
+		DC34A2021484363D004F0A03 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		DC34A2051484363D004F0A03 /* UdpEchoClient-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "UdpEchoClient-Info.plist"; sourceTree = "<group>"; };
+		DC34A2071484363D004F0A03 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		DC34A2091484363D004F0A03 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		DC34A20B1484363D004F0A03 /* UdpEchoClient-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "UdpEchoClient-Prefix.pch"; sourceTree = "<group>"; };
+		DC34A20D1484363D004F0A03 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; name = en; path = en.lproj/Credits.rtf; sourceTree = "<group>"; };
+		DC34A20F1484363D004F0A03 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
+		DC34A2101484363D004F0A03 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
+		DC34A2131484363D004F0A03 /* en */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = en; path = en.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		DC34A21C1484365D004F0A03 /* GCDAsyncUdpSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GCDAsyncUdpSocket.h; path = ../../GCDAsyncUdpSocket.h; sourceTree = "<group>"; };
+		DC34A21D1484365D004F0A03 /* GCDAsyncUdpSocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GCDAsyncUdpSocket.m; path = ../../GCDAsyncUdpSocket.m; sourceTree = "<group>"; };
+		DC34A21F1484366F004F0A03 /* DDAbstractDatabaseLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDAbstractDatabaseLogger.h; path = ../../../Vendor/CocoaLumberjack/DDAbstractDatabaseLogger.h; sourceTree = "<group>"; };
+		DC34A2201484366F004F0A03 /* DDAbstractDatabaseLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDAbstractDatabaseLogger.m; path = ../../../Vendor/CocoaLumberjack/DDAbstractDatabaseLogger.m; sourceTree = "<group>"; };
+		DC34A2211484366F004F0A03 /* DDASLLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDASLLogger.h; path = ../../../Vendor/CocoaLumberjack/DDASLLogger.h; sourceTree = "<group>"; };
+		DC34A2221484366F004F0A03 /* DDASLLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDASLLogger.m; path = ../../../Vendor/CocoaLumberjack/DDASLLogger.m; sourceTree = "<group>"; };
+		DC34A2231484366F004F0A03 /* DDFileLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDFileLogger.h; path = ../../../Vendor/CocoaLumberjack/DDFileLogger.h; sourceTree = "<group>"; };
+		DC34A2241484366F004F0A03 /* DDFileLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDFileLogger.m; path = ../../../Vendor/CocoaLumberjack/DDFileLogger.m; sourceTree = "<group>"; };
+		DC34A2251484366F004F0A03 /* DDLog.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDLog.h; path = ../../../Vendor/CocoaLumberjack/DDLog.h; sourceTree = "<group>"; };
+		DC34A2261484366F004F0A03 /* DDLog.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDLog.m; path = ../../../Vendor/CocoaLumberjack/DDLog.m; sourceTree = "<group>"; };
+		DC34A2271484366F004F0A03 /* DDTTYLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDTTYLogger.h; path = ../../../Vendor/CocoaLumberjack/DDTTYLogger.h; sourceTree = "<group>"; };
+		DC34A2281484366F004F0A03 /* DDTTYLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDTTYLogger.m; path = ../../../Vendor/CocoaLumberjack/DDTTYLogger.m; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		DC34A1F61484363D004F0A03 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DC34A1FE1484363D004F0A03 /* Cocoa.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		DC34A1EE1484363D004F0A03 = {
+			isa = PBXGroup;
+			children = (
+				DC34A21B1484364C004F0A03 /* Logging */,
+				DC34A21A14843649004F0A03 /* UDP */,
+				DC34A2031484363D004F0A03 /* UdpEchoClient */,
+				DC34A1FC1484363D004F0A03 /* Frameworks */,
+				DC34A1FA1484363D004F0A03 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		DC34A1FA1484363D004F0A03 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				DC34A1F91484363D004F0A03 /* UdpEchoClient.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		DC34A1FC1484363D004F0A03 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				DC34A1FD1484363D004F0A03 /* Cocoa.framework */,
+				DC34A1FF1484363D004F0A03 /* Other Frameworks */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		DC34A1FF1484363D004F0A03 /* Other Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				DC34A2001484363D004F0A03 /* AppKit.framework */,
+				DC34A2011484363D004F0A03 /* CoreData.framework */,
+				DC34A2021484363D004F0A03 /* Foundation.framework */,
+			);
+			name = "Other Frameworks";
+			sourceTree = "<group>";
+		};
+		DC34A2031484363D004F0A03 /* UdpEchoClient */ = {
+			isa = PBXGroup;
+			children = (
+				DC34A20F1484363D004F0A03 /* AppDelegate.h */,
+				DC34A2101484363D004F0A03 /* AppDelegate.m */,
+				DC34A2121484363D004F0A03 /* MainMenu.xib */,
+				DC34A2041484363D004F0A03 /* Supporting Files */,
+			);
+			path = UdpEchoClient;
+			sourceTree = "<group>";
+		};
+		DC34A2041484363D004F0A03 /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				DC34A2051484363D004F0A03 /* UdpEchoClient-Info.plist */,
+				DC34A2061484363D004F0A03 /* InfoPlist.strings */,
+				DC34A2091484363D004F0A03 /* main.m */,
+				DC34A20B1484363D004F0A03 /* UdpEchoClient-Prefix.pch */,
+				DC34A20C1484363D004F0A03 /* Credits.rtf */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		DC34A21A14843649004F0A03 /* UDP */ = {
+			isa = PBXGroup;
+			children = (
+				DC34A21C1484365D004F0A03 /* GCDAsyncUdpSocket.h */,
+				DC34A21D1484365D004F0A03 /* GCDAsyncUdpSocket.m */,
+			);
+			name = UDP;
+			sourceTree = "<group>";
+		};
+		DC34A21B1484364C004F0A03 /* Logging */ = {
+			isa = PBXGroup;
+			children = (
+				DC34A21F1484366F004F0A03 /* DDAbstractDatabaseLogger.h */,
+				DC34A2201484366F004F0A03 /* DDAbstractDatabaseLogger.m */,
+				DC34A2211484366F004F0A03 /* DDASLLogger.h */,
+				DC34A2221484366F004F0A03 /* DDASLLogger.m */,
+				DC34A2231484366F004F0A03 /* DDFileLogger.h */,
+				DC34A2241484366F004F0A03 /* DDFileLogger.m */,
+				DC34A2251484366F004F0A03 /* DDLog.h */,
+				DC34A2261484366F004F0A03 /* DDLog.m */,
+				DC34A2271484366F004F0A03 /* DDTTYLogger.h */,
+				DC34A2281484366F004F0A03 /* DDTTYLogger.m */,
+			);
+			name = Logging;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		DC34A1F81484363D004F0A03 /* UdpEchoClient */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DC34A2171484363D004F0A03 /* Build configuration list for PBXNativeTarget "UdpEchoClient" */;
+			buildPhases = (
+				DC34A1F51484363D004F0A03 /* Sources */,
+				DC34A1F61484363D004F0A03 /* Frameworks */,
+				DC34A1F71484363D004F0A03 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = UdpEchoClient;
+			productName = UdpEchoClient;
+			productReference = DC34A1F91484363D004F0A03 /* UdpEchoClient.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		DC34A1F01484363D004F0A03 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0420;
+			};
+			buildConfigurationList = DC34A1F31484363D004F0A03 /* Build configuration list for PBXProject "UdpEchoClient" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = DC34A1EE1484363D004F0A03;
+			productRefGroup = DC34A1FA1484363D004F0A03 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				DC34A1F81484363D004F0A03 /* UdpEchoClient */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		DC34A1F71484363D004F0A03 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DC34A2081484363D004F0A03 /* InfoPlist.strings in Resources */,
+				DC34A20E1484363D004F0A03 /* Credits.rtf in Resources */,
+				DC34A2141484363D004F0A03 /* MainMenu.xib in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		DC34A1F51484363D004F0A03 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DC34A20A1484363D004F0A03 /* main.m in Sources */,
+				DC34A2111484363D004F0A03 /* AppDelegate.m in Sources */,
+				DC34A21E1484365D004F0A03 /* GCDAsyncUdpSocket.m in Sources */,
+				DC34A2291484366F004F0A03 /* DDAbstractDatabaseLogger.m in Sources */,
+				DC34A22A1484366F004F0A03 /* DDASLLogger.m in Sources */,
+				DC34A22B1484366F004F0A03 /* DDFileLogger.m in Sources */,
+				DC34A22C1484366F004F0A03 /* DDLog.m in Sources */,
+				DC34A22D1484366F004F0A03 /* DDTTYLogger.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		DC34A2061484363D004F0A03 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				DC34A2071484363D004F0A03 /* en */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+		DC34A20C1484363D004F0A03 /* Credits.rtf */ = {
+			isa = PBXVariantGroup;
+			children = (
+				DC34A20D1484363D004F0A03 /* en */,
+			);
+			name = Credits.rtf;
+			sourceTree = "<group>";
+		};
+		DC34A2121484363D004F0A03 /* MainMenu.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				DC34A2131484363D004F0A03 /* en */,
+			);
+			name = MainMenu.xib;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		DC34A2151484363D004F0A03 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		DC34A2161484363D004F0A03 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		DC34A2181484363D004F0A03 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "UdpEchoClient/UdpEchoClient-Prefix.pch";
+				INFOPLIST_FILE = "UdpEchoClient/UdpEchoClient-Info.plist";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				WRAPPER_EXTENSION = app;
+			};
+			name = Debug;
+		};
+		DC34A2191484363D004F0A03 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "UdpEchoClient/UdpEchoClient-Prefix.pch";
+				INFOPLIST_FILE = "UdpEchoClient/UdpEchoClient-Info.plist";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				WRAPPER_EXTENSION = app;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		DC34A1F31484363D004F0A03 /* Build configuration list for PBXProject "UdpEchoClient" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DC34A2151484363D004F0A03 /* Debug */,
+				DC34A2161484363D004F0A03 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DC34A2171484363D004F0A03 /* Build configuration list for PBXNativeTarget "UdpEchoClient" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DC34A2181484363D004F0A03 /* Debug */,
+				DC34A2191484363D004F0A03 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = DC34A1F01484363D004F0A03 /* Project object */;
+}

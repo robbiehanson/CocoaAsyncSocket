@@ -67,6 +67,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// When the asynchronous sockets connects, it will invoke the socket:didConnectToHost:port: delegate method.
 	
 	NSError *error = nil;
+	NSString *host = @"deusty.com";
 	
 #if USE_SECURE_CONNECTION
 	uint16_t port = 443; // HTTPS
@@ -74,13 +75,13 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	uint16_t port = 80;  // HTTP
 #endif
 	
-	if (![asyncSocket connectToHost:@"deusty.com" onPort:port error:&error])
+	if (![asyncSocket connectToHost:host onPort:port error:&error])
 	{
 		DDLogError(@"Unable to connect to due to invalid configuration: %@", error);
 	}
 	else
 	{
-		DDLogVerbose(@"Connecting...");
+		DDLogVerbose(@"Connecting to \"%@\" on port %hu...", host, port);
 	}
 	
 #if USE_SECURE_CONNECTION
@@ -105,6 +106,8 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	
 	NSDictionary *options = [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:NO]
 	                                                    forKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
+	
+	DDLogVerbose(@"Requesting StartTLS with options:\n%@", options);
 	
 	[asyncSocket startTLS:options];
 	
@@ -133,6 +136,8 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	NSData *requestData = [requestStr dataUsingEncoding:NSUTF8StringEncoding];
 	
 	[asyncSocket writeData:requestData withTimeout:-1.0 tag:0];
+	
+	DDLogVerbose(@"Sending HTTP Request:\n%@", requestStr);
 	
 	// Side Note:
 	// 
@@ -204,7 +209,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	
 #else
 	
-	DDLogInfo(@"Full httpResponse: %@", httpResponse);
+	DDLogInfo(@"Full HTTP Response:\n%@", httpResponse);
 	
 #endif
 	

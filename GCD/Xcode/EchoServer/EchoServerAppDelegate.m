@@ -33,25 +33,21 @@
 	if((self = [super init]))
 	{
 		// Setup our logging framework.
-		// Logging isn't used in this file, but can optionally be enabled in GCDAsyncSocket.
+		
 		[DDLog addLogger:[DDTTYLogger sharedInstance]];
 		
-		// Setup our server socket (GCDAsyncSocket).
+		// Setup our socket.
 		// The socket will invoke our delegate methods using the usual delegate paradigm.
 		// However, it will invoke the delegate methods on a specified GCD delegate dispatch queue.
 		// 
-		// Now we can setup these delegate dispatch queues however we want.
-		// Here are a few examples:
-		// 
-		// - A different delegate queue for each client connection.
-		// - Simply use the main dispatch queue, so the delegate methods are invoked on the main thread.
-		// - Add each client connection to the same dispatch queue.
+		// Now we can configure the delegate dispatch queues however we want.
+		// We could simply use the main dispatc queue, so the delegate methods are invoked on the main thread.
+		// Or we could use a dedicated dispatch queue, which could be helpful if we were doing a lot of processing.
 		// 
 		// The best approach for your application will depend upon convenience, requirements and performance.
-		// 
-		// For this simple example, we're just going to share the same dispatch queue amongst all client connections.
 		
-		socketQueue = dispatch_queue_create("SocketQueue", NULL);
+		socketQueue = dispatch_queue_create("socketQueue", NULL);
+		
 		listenSocket = [[GCDAsyncSocket alloc] initWithDelegate:self delegateQueue:socketQueue];
 		
 		// Setup an array to store all accepted client connections
@@ -130,7 +126,7 @@
 	{
 		int port = [portField intValue];
 		
-		if(port < 0 || port > 65535)
+		if (port < 0 || port > 65535)
 		{
 			[portField setStringValue:@""];
 			port = 0;
@@ -205,6 +201,8 @@
 
 - (void)socket:(GCDAsyncSocket *)sock didWriteDataWithTag:(long)tag
 {
+	// This method is executed on the socketQueue (not the main thread)
+	
 	if (tag == ECHO_MSG)
 	{
 		[sock readDataToData:[GCDAsyncSocket CRLFData] withTimeout:READ_TIMEOUT tag:0];
@@ -213,6 +211,8 @@
 
 - (void)socket:(GCDAsyncSocket *)sock didReadData:(NSData *)data withTag:(long)tag
 {
+	// This method is executed on the socketQueue (not the main thread)
+	
 	dispatch_async(dispatch_get_main_queue(), ^{
 		@autoreleasepool {
 		
