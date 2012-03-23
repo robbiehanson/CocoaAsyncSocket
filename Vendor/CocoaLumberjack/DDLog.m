@@ -262,6 +262,7 @@ static unsigned int numProcessors;
        file:(const char *)file
    function:(const char *)function
        line:(int)line
+        tag:(id)tag
      format:(NSString *)format, ...
 {
 	va_list args;
@@ -276,7 +277,8 @@ static unsigned int numProcessors;
 		                                                        context:context
 		                                                           file:file
 		                                                       function:function
-		                                                           line:line];
+		                                                           line:line
+		                                                            tag:tag];
 		
 		[self queueLogMessage:logMessage asynchronously:asynchronous];
 		
@@ -301,15 +303,17 @@ static unsigned int numProcessors;
 	SEL getterSel = @selector(ddLogLevel);
 	SEL setterSel = @selector(ddSetLogLevel:);
 	
-#if TARGET_OS_IPHONE
+#if TARGET_OS_IPHONE && !TARGET_IPHONE_SIMULATOR
 	
-	// Issue #6 - Crashes on iOS 4.2.1 and iPhone 4
+	// Issue #6 (GoogleCode) - Crashes on iOS 4.2.1 and iPhone 4
 	// 
 	// Crash caused by class_getClassMethod(2).
 	// 
 	//     "It's a bug with UIAccessibilitySafeCategory__NSObject so it didn't pop up until
 	//      users had VoiceOver enabled [...]. I was able to work around it by searching the
 	//      result of class_copyMethodList() instead of calling class_getClassMethod()"
+	
+	BOOL result = NO;
 	
 	unsigned int methodCount, i;
 	Method *methodList = class_copyMethodList(object_getClass(class), &methodCount);
@@ -334,16 +338,22 @@ static unsigned int numProcessors;
 			
 			if (getterFound && setterFound)
 			{
-				return YES;
+				result = YES;
+				break;
 			}
 		}
 		
 		free(methodList);
 	}
 	
-	return NO;
+	return result;
 	
 #else
+	
+	// Issue #24 (GitHub) - Crashing in in ARC+Simulator
+	// 
+	// The method +[DDLog isRegisteredClass] will crash a project when using it with ARC + Simulator.
+	// For running in the Simulator, it needs to execute the non-iOS code.
 	
 	Method getter = class_getClassMethod(class, getterSel);
 	Method setter = class_getClassMethod(class, setterSel);
@@ -642,7 +652,7 @@ static unsigned int numProcessors;
 #pragma mark Utilities
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy)
+NSString *DDExtractFileNameWithoutExtension(const char *filePath, BOOL copy)
 {
 	if (filePath == NULL) return nil;
 	
@@ -763,6 +773,7 @@ NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy)
                 file:(const char *)aFile
             function:(const char *)aFunction
                 line:(int)line
+                 tag:(id)aTag
 {
 	if ((self = [super init]))
 	{
@@ -773,6 +784,7 @@ NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy)
 		file       = aFile;
 		function   = aFunction;
 		lineNumber = line;
+		tag        = aTag;
 		
 		timestamp = [[NSDate alloc] init];
 		
@@ -806,7 +818,7 @@ NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy)
 {
 	if (fileName == nil && file != NULL)
 	{
-		fileName = ExtractFileNameWithoutExtension(file, NO);
+		fileName = DDExtractFileNameWithoutExtension(file, NO);
 	}
 	
 	return fileName;
@@ -879,20 +891,20 @@ NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy)
 	// - Must NOT require the logMessage method to acquire a lock.
 	// - Must NOT require the logMessage method to access an atomic property (also a lock of sorts).
 	// 
-	// Thread safety is ensured by executing access to the formatter variable on the logging thread/queue.
-	// This is the same thread/queue that the logMessage method operates on.
+	// Thread safety is ensured by executing access to the formatter variable on the loggerQueue.
+	// This is the same queue that the logMessage method operates on.
 	// 
 	// Note: The last time I benchmarked the performance of direct access vs atomic property access,
 	// direct access was over twice as fast on the desktop and over 6 times as fast on the iPhone.
-	
-		
+	// 
+	// 
 	// loggerQueue  : Our own private internal queue that the logMessage method runs on.
 	//                Operations are added to this queue from the global loggingQueue.
 	// 
 	// loggingQueue : The queue that all log messages go through before they arrive in our loggerQueue.
 	// 
 	// It is important to note that, while the loggerQueue is used to create thread-safety for our formatter,
-	// changes to the formatter variable are queued on the loggingQueue.
+	// changes to the formatter variable are queued through the loggingQueue.
 	// 
 	// Since this will obviously confuse the hell out of me later, here is a better description.
 	// Imagine the following code:
@@ -918,87 +930,52 @@ NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy)
 	// So direct access to the formatter is only available if requested from the loggerQueue.
 	// In all other circumstances we need to go through the loggingQueue to get the proper value.
 	
-	if (dispatch_get_current_queue() == loggerQueue)
+	dispatch_queue_t currentQueue = dispatch_get_current_queue();
+	if (currentQueue == loggerQueue)
 	{
 		return formatter;
 	}
-	
-	__block id <DDLogFormatter> result;
-	
-	dispatch_sync([DDLog loggingQueue], ^{
-		result = formatter;
-	});
-	
-	return result;
+	else
+	{
+		dispatch_queue_t globalLoggingQueue = [DDLog loggingQueue];
+		NSAssert(currentQueue != globalLoggingQueue, @"Core architecture requirement failure");
+		
+		__block id <DDLogFormatter> result;
+		
+		dispatch_sync(globalLoggingQueue, ^{
+			dispatch_sync(loggerQueue, ^{
+				result = formatter;
+			});
+		});
+		
+		return result;
+	}
 }
 
 - (void)setLogFormatter:(id <DDLogFormatter>)logFormatter
 {
-	// This method must be thread safe and intuitive.
-	// Therefore if somebody executes the following code:
-	// 
-	// [logger setLogFormatter:myFormatter];
-	// formatter = [logger logFormatter];
-	// 
-	// They would expect formatter to equal myFormatter.
-	// This functionality must be ensured by the getter and setter method.
-	// 
-	// The thread safety must not come at a cost to the performance of the logMessage method.
-	// This method is likely called sporadically, while the logMessage method is called repeatedly.
-	// This means, the implementation of this method:
-	// - Must NOT require the logMessage method to acquire a lock.
-	// - Must NOT require the logMessage method to access an atomic property (also a lock of sorts).
-	// 
-	// Thread safety is ensured by executing access to the formatter variable on the logging thread/queue.
-	// This is the same thread/queue that the logMessage method operates on.
-	// 
-	// Note: The last time I benchmarked the performance of direct access vs atomic property access,
-	// direct access was over twice as fast on the desktop and over 6 times as fast on the iPhone.
-	
-		
-	// loggerQueue  : Our own private internal queue that the logMessage method runs on.
-	//                Operations are added to this queue from the global loggingQueue.
-	//
-	// loggingQueue : The queue that all log messages go through before they arrive in our loggerQueue.
-	// 
-	// It is important to note that, while the loggerQueue is used to create thread-safety for our formatter,
-	// changes to the formatter variable are queued on the loggingQueue.
-	// 
-	// Since this will obviously confuse the hell out of me later, here is a better description.
-	// Imagine the following code:
-	// 
-	// DDLogVerbose(@"log msg 1");
-	// DDLogVerbose(@"log msg 2");
-	// [logger setFormatter:myFormatter];
-	// DDLogVerbose(@"log msg 3");
-	// 
-	// Our intuitive requirement means that the new formatter will only apply to the 3rd log message.
-	// But notice what happens if we have asynchronous logging enabled for verbose mode.
-	// 
-	// Log msg 1 starts executing asynchronously on the loggingQueue.
-	// The loggingQueue executes the log statement on each logger concurrently.
-	// That means it executes log msg 1 on our loggerQueue.
-	// While log msg 1 is executing, log msg 2 gets added to the loggingQueue.
-	// Then the user requests that we change our formatter.
-	// So at this exact moment, our queues look like this:
-	// 
-	// loggerQueue  : executing log msg 1, nil
-	// loggingQueue : executing log msg 1, log msg 2, nil
-	// 
-	// So direct access to the formatter is only available if requested from the loggerQueue.
-	// In all other circumstances we need to go through the loggingQueue to get the proper value.
+	// The design of this method is documented extensively in the logFormatter message (above in code).
 	
 	dispatch_block_t block = ^{
-		if (formatter != logFormatter)
-		{
+		if (formatter != logFormatter) {
 			formatter = logFormatter;
 		}
 	};
 	
-	if (dispatch_get_current_queue() == loggerQueue)
+	dispatch_queue_t currentQueue = dispatch_get_current_queue();
+	if (currentQueue == loggerQueue)
+	{
 		block();
+	}
 	else
-		dispatch_async([DDLog loggingQueue], block);
+	{
+		dispatch_queue_t globalLoggingQueue = [DDLog loggingQueue];
+		NSAssert(currentQueue != globalLoggingQueue, @"Core architecture requirement failure");
+		
+		dispatch_async(globalLoggingQueue, ^{
+			dispatch_async(loggerQueue, block);
+		});
+	}
 }
 
 - (dispatch_queue_t)loggerQueue

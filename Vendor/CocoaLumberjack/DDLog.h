@@ -50,6 +50,7 @@
         file:__FILE__                                             \
     function:fnct                                                 \
         line:__LINE__                                             \
+         tag:nil                                                  \
       format:(frmt), ##__VA_ARGS__]
 
 
@@ -195,9 +196,9 @@
  * For example: DDLogWarn(@"%@: Unable to find thingy", THIS_FILE) -> @"MyViewController: Unable to find thingy"
 **/
 
-NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy);
+NSString *DDExtractFileNameWithoutExtension(const char *filePath, BOOL copy);
 
-#define THIS_FILE (ExtractFileNameWithoutExtension(__FILE__, NO))
+#define THIS_FILE (DDExtractFileNameWithoutExtension(__FILE__, NO))
 
 /**
  * The THIS_METHOD macro gives you the name of the current objective-c method.
@@ -238,6 +239,7 @@ NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy);
        file:(const char *)file
    function:(const char *)function
        line:(int)line
+        tag:(id)tag
      format:(NSString *)format, ...;
 
 /**
@@ -422,6 +424,7 @@ NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy);
 	mach_port_t machThreadID;
     char *queueLabel;
 	NSString *threadName;
+	id tag; // For 3rd party extensions to the framework, where flags and contexts aren't enough.
 
 // The private variables below are only calculated if needed.
 // You should use the public methods to access this information.
@@ -432,38 +435,40 @@ NSString *ExtractFileNameWithoutExtension(const char *filePath, BOOL copy);
 	NSString *methodName;
 }
 
-// The initializer is somewhat reserved for internal use.
-// However, if you find need to manually create logMessage objects,
-// there is one thing you should be aware of.
-// The initializer expects the file and function parameters to be string literals.
-// That is, it expects the given strings to exist for the duration of the object's lifetime,
-// and it expects the given strings to be immutable.
-// In other words, it does not copy these strings, it simply points to them.
-
+/**
+ * The initializer is somewhat reserved for internal use.
+ * However, if you find need to manually create logMessage objects, there is one thing you should be aware of:
+ * 
+ * The initializer expects the file and function parameters to be string literals.
+ * That is, it expects the given strings to exist for the duration of the object's lifetime,
+ * and it expects the given strings to be immutable.
+ * In other words, it does not copy these strings, it simply points to them.
+**/
 - (id)initWithLogMsg:(NSString *)logMsg
                level:(int)logLevel
                 flag:(int)logFlag
              context:(int)logContext
                 file:(const char *)file
             function:(const char *)function
-                line:(int)line;
+                line:(int)line
+                 tag:(id)tag;
 
 /**
  * Returns the threadID as it appears in NSLog.
  * That is, it is a hexadecimal value which is calculated from the machThreadID.
 **/
-- (NSString *)threadID;
+@property (nonatomic, readonly) NSString *threadID;
 
 /**
- * Convenience method to get just the file name, as the file variable is generally the full file path.
+ * Convenience property to get just the file name, as the file variable is generally the full file path.
  * This method does not include the file extension, which is generally unwanted for logging purposes.
 **/
-- (NSString *)fileName;
+@property (nonatomic, readonly) NSString *fileName;
 
 /**
  * Returns the function variable in NSString form.
 **/
-- (NSString *)methodName;
+@property (nonatomic, readonly) NSString *methodName;
 
 @end
 
