@@ -2579,7 +2579,18 @@ enum GCDAsyncSocketConfig
 		
 		accept6Source = NULL;
 	}
-	
+	if (!readSource && !writeSource) {
+		LogVerbose(@"manually closing close");
+
+		if (socket4FD) {
+			close(socket4FD);
+		}
+
+		if (socket6FD) {
+			close(socket6FD);
+		}
+	}
+
 	if (readSource)
 	{
 		LogVerbose(@"dispatch_source_cancel(readSource)");
