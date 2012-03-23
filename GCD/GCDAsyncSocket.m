@@ -4048,6 +4048,7 @@ enum GCDAsyncSocketConfig
 	unsigned long estimatedBytesAvailable;
 	
 	#if TARGET_OS_IPHONE
+	{
 		if (flags & kSocketSecure)
 		{
 			// Relegated to using CFStream... :( Boo! Give us SecureTransport Apple!
@@ -4064,8 +4065,9 @@ enum GCDAsyncSocketConfig
 			hasBytesAvailable = (estimatedBytesAvailable > 0);
 			
 		}
+	}
 	#else
-		
+	{	
 		estimatedBytesAvailable = socketFDBytesAvailable;
 		
 		if (flags & kSocketSecure)
@@ -4105,7 +4107,7 @@ enum GCDAsyncSocketConfig
 		}
 	
 		hasBytesAvailable = (estimatedBytesAvailable > 0);
-	
+	}
 	#endif
 	
 	if ((hasBytesAvailable == NO) && ([partialReadBuffer length] == 0))
@@ -4133,12 +4135,12 @@ enum GCDAsyncSocketConfig
 		if (flags & kStartingWriteTLS)
 		{
 			#if !TARGET_OS_IPHONE
-			
+			{
 				// We are in the process of a SSL Handshake.
 				// We were waiting for incoming data which has just arrived.
 				
 				[self continueSSLHandshake];
-			
+			}
 			#endif
 		}
 		else
@@ -4339,7 +4341,7 @@ enum GCDAsyncSocketConfig
 		if (flags & kSocketSecure)
 		{
 			#if TARGET_OS_IPHONE
-				
+			{	
 				CFIndex result = CFReadStreamRead(readStream, buffer, (CFIndex)bytesToRead);
 				LogVerbose(@"CFReadStreamRead(): result = %i", (int)result);
 				
@@ -4367,11 +4369,31 @@ enum GCDAsyncSocketConfig
 				// The actual number of bytes read was likely more due to the overhead of the encryption.
 				// So we reset our flag, and rely on the next callback to alert us of more data.
 				flags &= ~kSecureSocketHasBytesAvailable;
-				
+			}	
 			#else
+			{	
+				// The documentation from Apple states:
+				// 
+				//     "a read operation might return errSSLWouldBlock,
+				//      indicating that less data than requested was actually transferred"
+				// 
+				// However, starting around 10.7, the function will sometimes return noErr,
+				// even if it didn't read as much data as requested. So we need to watch out for that.
 				
-				OSStatus result = SSLRead(sslContext, buffer, (size_t)bytesToRead, &bytesRead);
-				LogVerbose(@"read from secure socket = %u", (unsigned)bytesRead);
+				OSStatus result;
+				do
+				{
+					void *loop_buffer = buffer + bytesRead;
+					size_t loop_bytesToRead = (size_t)bytesToRead - bytesRead;
+					size_t loop_bytesRead = 0;
+					
+					result = SSLRead(sslContext, loop_buffer, loop_bytesToRead, &loop_bytesRead);
+					LogVerbose(@"read from secure socket = %u", (unsigned)bytesRead);
+					
+					bytesRead += loop_bytesRead;
+					
+				} while ((result == noErr) && (bytesRead < bytesToRead));
+				
 				
 				if (result != noErr)
 				{
@@ -4395,7 +4417,7 @@ enum GCDAsyncSocketConfig
 				
 				// Do not modify socketFDBytesAvailable.
 				// It will be updated via the SSLReadFunction().
-				
+			}	
 			#endif
 		}
 		else
