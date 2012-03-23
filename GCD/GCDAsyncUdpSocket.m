@@ -204,6 +204,8 @@ enum GCDAsyncUdpSocketConfig
 
 - (void)closeWithError:(NSError *)error;
 
+- (BOOL)performMulticastRequest:(int)requestType forGroup:(NSString *)group onInterface:(NSString *)interface error:(NSError **)errPtr;
+
 #if TARGET_OS_IPHONE
 - (BOOL)createReadAndWriteStreams:(NSError **)errPtr;
 - (BOOL)registerForStreamCallbacks:(NSError **)errPtr;
@@ -217,6 +219,9 @@ enum GCDAsyncUdpSocketConfig
 + (NSString *)hostFromSockaddr6:(const struct sockaddr_in6 *)pSockaddr6;
 + (uint16_t)portFromSockaddr4:(const struct sockaddr_in *)pSockaddr4;
 + (uint16_t)portFromSockaddr6:(const struct sockaddr_in6 *)pSockaddr6;
+
+// Forward declaration
++ (void)listenerThread;
 
 @end
 
@@ -3243,6 +3248,24 @@ SetParamPtrsAndReturn:
 
 - (BOOL)joinMulticastGroup:(NSString *)group onInterface:(NSString *)interface error:(NSError **)errPtr
 {
+    // IP_ADD_MEMBERSHIP == IPV6_JOIN_GROUP
+    return [self performMulticastRequest:IP_ADD_MEMBERSHIP forGroup:group onInterface:interface error:errPtr];
+}
+
+
+- (BOOL)leaveMulticastGroup:(NSString *)group error:(NSError **)errPtr
+{
+	return [self leaveMulticastGroup:group onInterface:nil error:errPtr];
+}
+
+- (BOOL)leaveMulticastGroup:(NSString *)group onInterface:(NSString *)interface error:(NSError **)errPtr
+{
+    // IP_DROP_MEMBERSHIP == IPV6_LEAVE_GROUP
+    return [self performMulticastRequest:IP_DROP_MEMBERSHIP forGroup:group onInterface:interface error:errPtr];
+}
+
+- (BOOL)performMulticastRequest:(int)requestType forGroup:(NSString *)group onInterface:(NSString *)interface error:(NSError **)errPtr
+{
 	__block BOOL result = NO;
 	__block NSError *err = nil;
 	
@@ -3297,7 +3320,7 @@ SetParamPtrsAndReturn:
 			imreq.imr_multiaddr = nativeGroup->sin_addr;
 			imreq.imr_interface = nativeIface->sin_addr;
 			
-			int status = setsockopt(socket4FD, IPPROTO_IP, IP_ADD_MEMBERSHIP, (const void *)&imreq, sizeof(imreq));
+			int status = setsockopt(socket4FD, IPPROTO_IP, requestType, (const void *)&imreq, sizeof(imreq));
 			if (status != 0)
 			{
 				err = [[self errnoErrorWithReason:@"Error in setsockopt() function"] retain];
@@ -3319,7 +3342,7 @@ SetParamPtrsAndReturn:
 			imreq.ipv6mr_multiaddr = nativeGroup->sin6_addr;
 			imreq.ipv6mr_interface = [self indexOfInterfaceAddr6:interfaceAddr6];
 			
-			int status = setsockopt(socket6FD, IPPROTO_IP, IPV6_JOIN_GROUP, (const void *)&imreq, sizeof(imreq));
+			int status = setsockopt(socket6FD, IPPROTO_IP, requestType, (const void *)&imreq, sizeof(imreq));
 			if (status != 0)
 			{
 				err = [[self errnoErrorWithReason:@"Error in setsockopt() function"] retain];
@@ -3798,7 +3821,7 @@ SetParamPtrsAndReturn:
 			dispatch_release(theSendTimer);
 		});
 		
-		dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (timeout * NSEC_PER_SEC));
+		dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeout * NSEC_PER_SEC));
 		
 		dispatch_source_set_timer(sendTimer, tt, DISPATCH_TIME_FOREVER, 0);
 		dispatch_resume(sendTimer);
@@ -4006,12 +4029,12 @@ SetParamPtrsAndReturn:
 		
 		if (result > 0)
 		{
-			if (result >= socket4FDBytesAvailable)
+			if ((size_t)result >= socket4FDBytesAvailable)
 				socket4FDBytesAvailable = 0;
 			else
 				socket4FDBytesAvailable -= result;
 			
-			if (result != bufSize) {
+			if ((size_t)result != bufSize) {
 				buf = realloc(buf, result);
 			}
 			
@@ -4040,12 +4063,12 @@ SetParamPtrsAndReturn:
 		
 		if (result > 0)
 		{
-			if (result >= socket6FDBytesAvailable)
+			if ((size_t)result >= socket6FDBytesAvailable)
 				socket6FDBytesAvailable = 0;
 			else
 				socket6FDBytesAvailable -= result;
 			
-			if (result != bufSize) {
+			if ((size_t)result != bufSize) {
 				buf = realloc(buf, result);
 			}
 		
@@ -4219,6 +4242,9 @@ SetParamPtrsAndReturn:
 #if TARGET_OS_IPHONE
 
 static NSThread *listenerThread;
+
++ (void)ignore:(id)_
+{}
 
 + (void)startListenerThreadIfNeeded
 {
