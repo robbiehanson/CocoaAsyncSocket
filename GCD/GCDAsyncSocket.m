@@ -3859,25 +3859,26 @@ enum GCDAsyncSocketConfig
 		else if (flags & kSocketSecure)
 		{
 			[self flushSSLBuffers];
-			
-			// Edge case:
-			// 
-			// We just drained all data from the ssl buffers,
-			// and all known data from the socket (socketFDBytesAvailable).
-			// 
-			// If we didn't get any data from this process,
-			// then we may have reached the end of the TCP stream.
-			// 
-			// Be sure callbacks are enabled so we're notified about a disconnection.
-			
-			if ([partialReadBuffer length] == 0)
+		}
+
+		// Edge case:
+		//
+		// We just drained all data from the buffers,
+		// and all known data from the socket (socketFDBytesAvailable).
+		//
+		// If we didn't get any data from this process,
+		// then we may have reached the end of the TCP stream.
+		//
+		// Be sure callbacks are enabled so we're notified about a disconnection.
+
+		if ([partialReadBuffer length] == 0)
+		{
+			if ([self usingCFStream]) {
+				// Callbacks never disabled
+			}
+			else
 			{
-				if ([self usingCFStream]) {
-					// Callbacks never disabled
-				}
-				else {
-					[self resumeReadSource];
-				}
+				[self resumeReadSource];
 			}
 		}
 	}
