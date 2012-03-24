@@ -220,8 +220,10 @@ enum GCDAsyncUdpSocketConfig
 + (uint16_t)portFromSockaddr4:(const struct sockaddr_in *)pSockaddr4;
 + (uint16_t)portFromSockaddr6:(const struct sockaddr_in6 *)pSockaddr6;
 
+#if TARGET_OS_IPHONE
 // Forward declaration
 + (void)listenerThread;
+#endif
 
 @end
 
@@ -254,7 +256,7 @@ enum GCDAsyncUdpSocketConfig
 {
 	if ((self = [super init]))
 	{
-		buffer = [d retain];
+		buffer = d;
 		timeout = t;
 		tag = i;
 		
@@ -263,13 +265,6 @@ enum GCDAsyncUdpSocketConfig
 	return self;
 }
 
-- (void)dealloc
-{
-	[buffer release];
-	[addresses release];
-	[error release];
-	[super dealloc];
-}
 
 @end
 
@@ -299,12 +294,6 @@ enum GCDAsyncUdpSocketConfig
 	return self;
 }
 
-- (void)dealloc
-{
-	[addresses release];
-	[error release];
-	[super dealloc];
-}
 
 @end
 
@@ -413,12 +402,7 @@ enum GCDAsyncUdpSocketConfig
 		dispatch_release(socketQueue);
 	socketQueue = NULL;
 	
-	[sendQueue release];
-	[userData release];
-	
 	LogInfo(@"%@ - %@ (finish)", THIS_METHOD, self);
-	
-	[super dealloc];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -828,7 +812,7 @@ enum GCDAsyncUdpSocketConfig
 	
 	dispatch_block_t block = ^{
 		
-		result = [userData retain];
+		result = userData;
 	};
 	
 	if (dispatch_get_current_queue() == socketQueue)
@@ -836,7 +820,7 @@ enum GCDAsyncUdpSocketConfig
 	else
 		dispatch_sync(socketQueue, block);
 	
-	return [result autorelease];
+	return result;
 }
 
 - (void)setUserData:(id)arbitraryUserData
@@ -845,8 +829,7 @@ enum GCDAsyncUdpSocketConfig
 		
 		if (userData != arbitraryUserData)
 		{
-			[userData release];
-			userData = [arbitraryUserData retain];
+			userData = arbitraryUserData;
 		}
 	};
 	
@@ -867,7 +850,7 @@ enum GCDAsyncUdpSocketConfig
 	if (delegateQueue && [delegate respondsToSelector:@selector(udpSocket:didConnectToAddress:)])
 	{
 		id theDelegate = delegate;
-		NSData *address = [[anAddress copy] autorelease]; // In case param is NSMutableData
+		NSData *address = [anAddress copy]; // In case param is NSMutableData
 		
 		dispatch_async(delegateQueue, ^{ @autoreleasepool {
 			
@@ -1100,7 +1083,7 @@ enum GCDAsyncUdpSocketConfig
 	// So we want to copy it now, within this block that will be executed synchronously.
 	// This way the asynchronous lookup block below doesn't have to worry about it changing.
 	
-	NSString *host = [[aHost copy] autorelease];
+	NSString *host = [aHost copy];
 	
 	
 	dispatch_queue_t globalConcurrentQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
@@ -1225,7 +1208,10 @@ enum GCDAsyncUdpSocketConfig
 		NSString *msg = @"IPv4 has been disabled and DNS lookup found no IPv6 address(es).";
 		resultError = [self otherError:msg];
 		
-		goto SetParamPtrsAndReturn;
+		if (addressPtr) *addressPtr = resultAddress;
+		if (errorPtr) *errorPtr = resultError;
+		
+		return resultAF;
 	}
 	
 	if (isIPv6Disabled && !resolvedIPv4Address)
@@ -1233,7 +1219,10 @@ enum GCDAsyncUdpSocketConfig
 		NSString *msg = @"IPv6 has been disabled and DNS lookup found no IPv4 address(es).";
 		resultError = [self otherError:msg];
 		
-		goto SetParamPtrsAndReturn;
+		if (addressPtr) *addressPtr = resultAddress;
+		if (errorPtr) *errorPtr = resultError;
+		
+		return resultAF;
 	}
 	
 	BOOL isIPv4Deactivated = (flags & kIPv4Deactivated) ? YES : NO;
@@ -1244,7 +1233,10 @@ enum GCDAsyncUdpSocketConfig
 		NSString *msg = @"IPv4 has been deactivated due to bind/connect, and DNS lookup found no IPv6 address(es).";
 		resultError = [self otherError:msg];
 		
-		goto SetParamPtrsAndReturn;
+		if (addressPtr) *addressPtr = resultAddress;
+		if (errorPtr) *errorPtr = resultError;
+		
+		return resultAF;
 	}
 	
 	if (isIPv6Deactivated && !resolvedIPv4Address)
@@ -1252,7 +1244,10 @@ enum GCDAsyncUdpSocketConfig
 		NSString *msg = @"IPv6 has been deactivated due to bind/connect, and DNS lookup found no IPv4 address(es).";
 		resultError = [self otherError:msg];
 		
-		goto SetParamPtrsAndReturn;
+		if (addressPtr) *addressPtr = resultAddress;
+		if (errorPtr) *errorPtr = resultError;
+		
+		return resultAF;
 	}
 	
 	// Extract first IPv4 and IPv6 address in list
@@ -1313,16 +1308,8 @@ enum GCDAsyncUdpSocketConfig
 		resultAddress = address6;
 	}
 	
-	goto SetParamPtrsAndReturn;
-	
-	
-SetParamPtrsAndReturn:
-	
-	if (addressPtr)
-		*addressPtr = [[resultAddress retain] autorelease];
-	
-	if (errorPtr)
-		*errorPtr = resultError;
+	if (addressPtr) *addressPtr = resultAddress;
+	if (errorPtr) *errorPtr = resultError;
 		
 	return resultAF;
 }
@@ -2060,8 +2047,6 @@ SetParamPtrsAndReturn:
 		
 		// Clear cached info
 		
-		[cachedLocalAddress4 release];
-		[cachedLocalHost4 release];
 		
 		cachedLocalAddress4 = nil;
 		cachedLocalHost4 = nil;
@@ -2101,8 +2086,6 @@ SetParamPtrsAndReturn:
 		
 		// Clear cached info
 		
-		[cachedLocalAddress6 release];
-		[cachedLocalHost6 release];
 		
 		cachedLocalAddress6 = nil;
 		cachedLocalHost6 = nil;
@@ -2190,11 +2173,9 @@ SetParamPtrsAndReturn:
 		
 		if ([self getLocalAddress:&address host:&host port:&port forSocket:socket4FD withFamily:AF_INET])
 		{
-			[cachedLocalAddress4 release];
-			[cachedLocalHost4 release];
 			
-			cachedLocalAddress4 = [address retain];
-			cachedLocalHost4 = [host retain];
+			cachedLocalAddress4 = address;
+			cachedLocalHost4 = host;
 			cachedLocalPort4 = port;
 		}
 	}
@@ -2217,11 +2198,9 @@ SetParamPtrsAndReturn:
 		
 		if ([self getLocalAddress:&address host:&host port:&port forSocket:socket6FD withFamily:AF_INET6])
 		{
-			[cachedLocalAddress6 release];
-			[cachedLocalHost6 release];
 			
-			cachedLocalAddress6 = [address retain];
-			cachedLocalHost6 = [host retain];
+			cachedLocalAddress6 = address;
+			cachedLocalHost6 = host;
 			cachedLocalPort6 = port;
 		}
 	}
@@ -2234,9 +2213,9 @@ SetParamPtrsAndReturn:
 	dispatch_block_t block = ^{ @autoreleasepool {
 		
 		if (socket4FD != SOCKET_NULL)
-			result = [[self localAddress_IPv4] retain];
+			result = [self localAddress_IPv4];
 		else
-			result = [[self localAddress_IPv6] retain];
+			result = [self localAddress_IPv6];
 		
 	}};
 	
@@ -2245,7 +2224,7 @@ SetParamPtrsAndReturn:
 	else
 		dispatch_sync(socketQueue, block);
 	
-	return [result autorelease];
+	return result;
 }
 
 - (NSString *)localHost
@@ -2255,9 +2234,9 @@ SetParamPtrsAndReturn:
 	dispatch_block_t block = ^{ @autoreleasepool {
 		
 		if (socket4FD != SOCKET_NULL)
-			result = [[self localHost_IPv4] retain];
+			result = [self localHost_IPv4];
 		else
-			result = [[self localHost_IPv6] retain];
+			result = [self localHost_IPv6];
 		
 	}};
 	
@@ -2266,7 +2245,7 @@ SetParamPtrsAndReturn:
 	else
 		dispatch_sync(socketQueue, block);
 	
-	return [result autorelease];
+	return result;
 }
 
 - (uint16_t)localPort
@@ -2296,7 +2275,7 @@ SetParamPtrsAndReturn:
 	dispatch_block_t block = ^{
 		
 		[self maybeUpdateCachedLocalAddress4Info];
-		result = [cachedLocalAddress4 retain];
+		result = cachedLocalAddress4;
 	};
 	
 	if (dispatch_get_current_queue() == socketQueue)
@@ -2304,7 +2283,7 @@ SetParamPtrsAndReturn:
 	else
 		dispatch_sync(socketQueue, block);
 	
-	return [result autorelease];
+	return result;
 }
 
 - (NSString *)localHost_IPv4
@@ -2314,7 +2293,7 @@ SetParamPtrsAndReturn:
 	dispatch_block_t block = ^{
 		
 		[self maybeUpdateCachedLocalAddress4Info];
-		result = [cachedLocalHost4 retain];
+		result = cachedLocalHost4;
 	};
 	
 	if (dispatch_get_current_queue() == socketQueue)
@@ -2322,7 +2301,7 @@ SetParamPtrsAndReturn:
 	else
 		dispatch_sync(socketQueue, block);
 	
-	return [result autorelease];
+	return result;
 }
 
 - (uint16_t)localPort_IPv4
@@ -2350,7 +2329,7 @@ SetParamPtrsAndReturn:
 	dispatch_block_t block = ^{
 		
 		[self maybeUpdateCachedLocalAddress6Info];
-		result = [cachedLocalAddress6 retain];
+		result = cachedLocalAddress6;
 	};
 	
 	if (dispatch_get_current_queue() == socketQueue)
@@ -2358,7 +2337,7 @@ SetParamPtrsAndReturn:
 	else
 		dispatch_sync(socketQueue, block);
 	
-	return [result autorelease];
+	return result;
 }
 
 - (NSString *)localHost_IPv6
@@ -2368,7 +2347,7 @@ SetParamPtrsAndReturn:
 	dispatch_block_t block = ^{
 		
 		[self maybeUpdateCachedLocalAddress6Info];
-		result = [cachedLocalHost6 retain];
+		result = cachedLocalHost6;
 	};
 	
 	if (dispatch_get_current_queue() == socketQueue)
@@ -2376,7 +2355,7 @@ SetParamPtrsAndReturn:
 	else
 		dispatch_sync(socketQueue, block);
 	
-	return [result autorelease];
+	return result;
 }
 
 - (uint16_t)localPort_IPv6
@@ -2448,11 +2427,9 @@ SetParamPtrsAndReturn:
 			}
 		}
 		
-		[cachedConnectedAddress release];
-		[cachedConnectedHost release];
 		
-		cachedConnectedAddress = [data retain];
-		cachedConnectedHost    = [host retain];
+		cachedConnectedAddress = data;
+		cachedConnectedHost    = host;
 		cachedConnectedPort    = port;
 		cachedConnectedFamily  = family;
 	}
@@ -2465,7 +2442,7 @@ SetParamPtrsAndReturn:
 	dispatch_block_t block = ^{
 		
 		[self maybeUpdateCachedConnectedAddressInfo];
-		result = [cachedConnectedAddress retain];
+		result = cachedConnectedAddress;
 	};
 	
 	if (dispatch_get_current_queue() == socketQueue)
@@ -2473,7 +2450,7 @@ SetParamPtrsAndReturn:
 	else
 		dispatch_sync(socketQueue, block);
 	
-	return [result autorelease];
+	return result;
 }
 
 - (NSString *)connectedHost
@@ -2483,7 +2460,7 @@ SetParamPtrsAndReturn:
 	dispatch_block_t block = ^{
 		
 		[self maybeUpdateCachedConnectedAddressInfo];
-		result = [cachedConnectedHost retain];
+		result = cachedConnectedHost;
 	};
 	
 	if (dispatch_get_current_queue() == socketQueue)
@@ -2491,7 +2468,7 @@ SetParamPtrsAndReturn:
 	else
 		dispatch_sync(socketQueue, block);
 	
-	return [result autorelease];
+	return result;
 }
 
 - (uint16_t)connectedPort
@@ -2660,7 +2637,6 @@ SetParamPtrsAndReturn:
 		
 		if (![self preBind:&err])
 		{
-			[err retain];
 			return_from_block;
 		}
 		
@@ -2674,7 +2650,7 @@ SetParamPtrsAndReturn:
 		if ((interface4 == nil) && (interface6 == nil))
 		{
 			NSString *msg = @"Unknown interface. Specify valid interface by name (e.g. \"en1\") or IP address.";
-			err = [[self badParamError:msg] retain];
+			err = [self badParamError:msg];
 			
 			return_from_block;
 		}
@@ -2685,7 +2661,7 @@ SetParamPtrsAndReturn:
 		if (isIPv4Disabled && (interface6 == nil))
 		{
 			NSString *msg = @"IPv4 has been disabled and specified interface doesn't support IPv6.";
-			err = [[self badParamError:msg] retain];
+			err = [self badParamError:msg];
 			
 			return_from_block;
 		}
@@ -2693,7 +2669,7 @@ SetParamPtrsAndReturn:
 		if (isIPv6Disabled && (interface4 == nil))
 		{
 			NSString *msg = @"IPv6 has been disabled and specified interface doesn't support IPv4.";
-			err = [[self badParamError:msg] retain];
+			err = [self badParamError:msg];
 			
 			return_from_block;
 		}
@@ -2709,7 +2685,6 @@ SetParamPtrsAndReturn:
 		{
 			if (![self createSocket4:useIPv4 socket6:useIPv6 error:&err])
 			{
-				[err retain];
 				return_from_block;
 			}
 		}
@@ -2726,7 +2701,7 @@ SetParamPtrsAndReturn:
 				[self closeSockets];
 				
 				NSString *reason = @"Error in bind() function";
-				err = [[self errnoErrorWithReason:reason] retain];
+				err = [self errnoErrorWithReason:reason];
 				
 				return_from_block;
 			}
@@ -2740,7 +2715,7 @@ SetParamPtrsAndReturn:
 				[self closeSockets];
 				
 				NSString *reason = @"Error in bind() function";
-				err = [[self errnoErrorWithReason:reason] retain];
+				err = [self errnoErrorWithReason:reason];
 				
 				return_from_block;
 			}
@@ -2766,9 +2741,7 @@ SetParamPtrsAndReturn:
 		LogError(@"Error binding to port/interface: %@", err);
 	
 	if (errPtr)
-		*errPtr = [err autorelease];
-	else
-		[err release];
+		*errPtr = err;
 	
 	return result;
 }
@@ -2784,7 +2757,6 @@ SetParamPtrsAndReturn:
 		
 		if (![self preBind:&err])
 		{
-			[err retain];
 			return_from_block;
 		}
 		
@@ -2795,7 +2767,7 @@ SetParamPtrsAndReturn:
 		if (addressFamily == AF_UNSPEC)
 		{
 			NSString *msg = @"A valid IPv4 or IPv6 address was not given";
-			err = [[self badParamError:msg] retain];
+			err = [self badParamError:msg];
 			
 			return_from_block;
 		}
@@ -2809,7 +2781,7 @@ SetParamPtrsAndReturn:
 		if (isIPv4Disabled && localAddr4)
 		{
 			NSString *msg = @"IPv4 has been disabled and an IPv4 address was passed.";
-			err = [[self badParamError:msg] retain];
+			err = [self badParamError:msg];
 			
 			return_from_block;
 		}
@@ -2817,7 +2789,7 @@ SetParamPtrsAndReturn:
 		if (isIPv6Disabled && localAddr6)
 		{
 			NSString *msg = @"IPv6 has been disabled and an IPv6 address was passed.";
-			err = [[self badParamError:msg] retain];
+			err = [self badParamError:msg];
 			
 			return_from_block;
 		}
@@ -2833,7 +2805,6 @@ SetParamPtrsAndReturn:
 		{
 			if (![self createSocket4:useIPv4 socket6:useIPv6 error:&err])
 			{
-				[err retain];
 				return_from_block;
 			}
 		}
@@ -2852,7 +2823,7 @@ SetParamPtrsAndReturn:
 				[self closeSockets];
 				
 				NSString *reason = @"Error in bind() function";
-				err = [[self errnoErrorWithReason:reason] retain];
+				err = [self errnoErrorWithReason:reason];
 				
 				return_from_block;
 			}
@@ -2869,7 +2840,7 @@ SetParamPtrsAndReturn:
 				[self closeSockets];
 				
 				NSString *reason = @"Error in bind() function";
-				err = [[self errnoErrorWithReason:reason] retain];
+				err = [self errnoErrorWithReason:reason];
 				
 				return_from_block;
 			}
@@ -2895,9 +2866,7 @@ SetParamPtrsAndReturn:
 		LogError(@"Error binding to address: %@", err);
 	
 	if (errPtr)
-		*errPtr = [err autorelease];
-	else
-		[err release];
+		*errPtr = err;
 	
 	return result;
 }
@@ -2954,7 +2923,6 @@ SetParamPtrsAndReturn:
 		
 		if (![self preConnect:&err])
 		{
-			[err retain];
 			return_from_block;
 		}
 		
@@ -2963,7 +2931,7 @@ SetParamPtrsAndReturn:
 		if (host == nil)
 		{
 			NSString *msg = @"The host param is nil. Should be domain name or IP address string.";
-			err = [[self badParamError:msg] retain];
+			err = [self badParamError:msg];
 			
 			return_from_block;
 		}
@@ -2974,14 +2942,13 @@ SetParamPtrsAndReturn:
 		{
 			if (![self createSockets:&err])
 			{
-				[err retain];
 				return_from_block;
 			}
 		}
 		
 		// Create special connect packet
 		
-		GCDAsyncUdpSpecialPacket *packet = [[[GCDAsyncUdpSpecialPacket alloc] init] autorelease];
+		GCDAsyncUdpSpecialPacket *packet = [[GCDAsyncUdpSpecialPacket alloc] init];
 		packet->resolveInProgress = YES;
 		
 		// Start asynchronous DNS resolve for host:port on background queue
@@ -2996,8 +2963,8 @@ SetParamPtrsAndReturn:
 			
 			packet->resolveInProgress = NO;
 			
-			packet->addresses = [addresses retain];
-			packet->error = [error retain];
+			packet->addresses = addresses;
+			packet->error = error;
 			
 			[self maybeConnect];
 		}];
@@ -3021,9 +2988,7 @@ SetParamPtrsAndReturn:
 		LogError(@"Error connecting to host/port: %@", err);
 	
 	if (errPtr)
-		*errPtr = [err autorelease];
-	else
-		[err release];
+		*errPtr = err;
 	
 	return result;
 }
@@ -3039,7 +3004,6 @@ SetParamPtrsAndReturn:
 		
 		if (![self preConnect:&err])
 		{
-			[err retain];
 			return_from_block;
 		}
 		
@@ -3048,7 +3012,7 @@ SetParamPtrsAndReturn:
 		if (remoteAddr == nil)
 		{
 			NSString *msg = @"The address param is nil. Should be a valid address.";
-			err = [[self badParamError:msg] retain];
+			err = [self badParamError:msg];
 			
 			return_from_block;
 		}
@@ -3059,7 +3023,6 @@ SetParamPtrsAndReturn:
 		{
 			if (![self createSockets:&err])
 			{
-				[err retain];
 				return_from_block;
 			}
 		}
@@ -3067,11 +3030,11 @@ SetParamPtrsAndReturn:
 		// The remoteAddr parameter could be of type NSMutableData.
 		// So we copy it to be safe.
 		
-		NSData *address = [[remoteAddr copy] autorelease];
+		NSData *address = [remoteAddr copy];
 		NSArray *addresses = [NSArray arrayWithObject:address];
 		
-		GCDAsyncUdpSpecialPacket *packet = [[[GCDAsyncUdpSpecialPacket alloc] init] autorelease];
-		packet->addresses = [addresses retain];
+		GCDAsyncUdpSpecialPacket *packet = [[GCDAsyncUdpSpecialPacket alloc] init];
+		packet->addresses = addresses;
 		
 		// Updates flags, add connect packet to send queue, and pump send queue
 		
@@ -3092,9 +3055,7 @@ SetParamPtrsAndReturn:
 		LogError(@"Error connecting to address: %@", err);
 	
 	if (errPtr)
-		*errPtr = [err autorelease];
-	else
-		[err release];
+		*errPtr = err;
 	
 	return result;
 }
@@ -3143,11 +3104,9 @@ SetParamPtrsAndReturn:
 					flags |= kDidBind;
 					flags |= kDidConnect;
 					
-					[cachedConnectedAddress release];
-					[cachedConnectedHost release];
 					
-					cachedConnectedAddress = [address retain];
-					cachedConnectedHost = [[[self class] hostFromAddress:address] retain];
+					cachedConnectedAddress = address;
+					cachedConnectedHost = [[self class] hostFromAddress:address];
 					cachedConnectedPort = [[self class] portFromAddress:address];
 					cachedConnectedFamily = addressFamily;
 					
@@ -3275,7 +3234,6 @@ SetParamPtrsAndReturn:
 		
 		if (![self preJoin:&err])
 		{
-			[err retain];
 			return_from_block;
 		}
 		
@@ -3289,7 +3247,7 @@ SetParamPtrsAndReturn:
 		if ((groupAddr4 == nil) && (groupAddr6 == nil))
 		{
 			NSString *msg = @"Unknown group. Specify valid group IP address.";
-			err = [[self badParamError:msg] retain];
+			err = [self badParamError:msg];
 			
 			return_from_block;
 		}
@@ -3304,7 +3262,7 @@ SetParamPtrsAndReturn:
 		if ((interfaceAddr4 == nil) && (interfaceAddr6 == nil))
 		{
 			NSString *msg = @"Unknown interface. Specify valid interface by name (e.g. \"en1\") or IP address.";
-			err = [[self badParamError:msg] retain];
+			err = [self badParamError:msg];
 			
 			return_from_block;
 		}
@@ -3323,7 +3281,7 @@ SetParamPtrsAndReturn:
 			int status = setsockopt(socket4FD, IPPROTO_IP, requestType, (const void *)&imreq, sizeof(imreq));
 			if (status != 0)
 			{
-				err = [[self errnoErrorWithReason:@"Error in setsockopt() function"] retain];
+				err = [self errnoErrorWithReason:@"Error in setsockopt() function"];
 				
 				return_from_block;
 			}
@@ -3345,7 +3303,7 @@ SetParamPtrsAndReturn:
 			int status = setsockopt(socket6FD, IPPROTO_IP, requestType, (const void *)&imreq, sizeof(imreq));
 			if (status != 0)
 			{
-				err = [[self errnoErrorWithReason:@"Error in setsockopt() function"] retain];
+				err = [self errnoErrorWithReason:@"Error in setsockopt() function"];
 				
 				return_from_block;
 			}
@@ -3364,9 +3322,7 @@ SetParamPtrsAndReturn:
 		dispatch_sync(socketQueue, block);
 	
 	if (errPtr)
-		*errPtr = [err autorelease];
-	else
-		[err release];
+		*errPtr = err;
 	
 	return result;
 }
@@ -3384,7 +3340,6 @@ SetParamPtrsAndReturn:
 		
 		if (![self preOp:&err])
 		{
-			[err retain];
 			return_from_block;
 		}
 		
@@ -3392,7 +3347,6 @@ SetParamPtrsAndReturn:
 		{
 			if (![self createSockets:&err])
 			{
-				[err retain];
 				return_from_block;
 			}
 		}
@@ -3404,7 +3358,7 @@ SetParamPtrsAndReturn:
 			
 			if (error)
 			{
-				err = [[self errnoErrorWithReason:@"Error in setsockopt() function"] retain];
+				err = [self errnoErrorWithReason:@"Error in setsockopt() function"];
 				
 				return_from_block;
 			}
@@ -3422,9 +3376,7 @@ SetParamPtrsAndReturn:
 		dispatch_sync(socketQueue, block);
 	
 	if (errPtr)
-		*errPtr = [err autorelease];
-	else
-		[err release];
+		*errPtr = err;
 	
 	return result;
 }
@@ -3457,7 +3409,6 @@ SetParamPtrsAndReturn:
 		
 	}});
 	
-	[packet release];
 }
 
 - (void)sendData:(NSData *)data
@@ -3485,8 +3436,8 @@ SetParamPtrsAndReturn:
 		
 		packet->resolveInProgress = NO;
 		
-		packet->addresses = [addresses retain];
-		packet->error = [error retain];
+		packet->addresses = addresses;
+		packet->error = error;
 		
 		if (packet == currentSend)
 		{
@@ -3502,7 +3453,6 @@ SetParamPtrsAndReturn:
 		
 	}});
 	
-	[packet release];
 }
 
 - (void)sendData:(NSData *)data toAddress:(NSData *)remoteAddr withTimeout:(NSTimeInterval)timeout tag:(long)tag
@@ -3525,7 +3475,6 @@ SetParamPtrsAndReturn:
 		
 	}});
 	
-	[packet release];
 }
 
 - (void)maybeDequeueSend
@@ -3550,7 +3499,7 @@ SetParamPtrsAndReturn:
 		while ([sendQueue count] > 0)
 		{
 			// Dequeue the next object in the queue
-			currentSend = [[sendQueue objectAtIndex:0] retain];
+			currentSend = [sendQueue objectAtIndex:0];
 			[sendQueue removeObjectAtIndex:0];
 			
 			if ([currentSend isKindOfClass:[GCDAsyncUdpSpecialPacket class]])
@@ -3565,7 +3514,6 @@ SetParamPtrsAndReturn:
 				[self notifyDidNotSendDataWithTag:currentSend->tag dueToError:currentSend->error];
 				
 				// Clear currentSend
-				[currentSend release];
 				currentSend = nil;
 				
 				continue;
@@ -3787,7 +3735,6 @@ SetParamPtrsAndReturn:
 		sendTimer = NULL;
 	}
 	
-	[currentSend release];
 	currentSend = nil;
 }
 
@@ -3848,7 +3795,7 @@ SetParamPtrsAndReturn:
 				NSString *msg = @"Must bind socket before you can receive data. "
 								@"You can do this explicitly via bind, or implicitly via connect or by sending data.";
 				
-				err = [[self badConfigError:msg] retain];
+				err = [self badConfigError:msg];
 				return_from_block;
 			}
 			
@@ -3872,9 +3819,7 @@ SetParamPtrsAndReturn:
 		LogError(@"Error in beginReceiving: %@", err);
 	
 	if (errPtr)
-		*errPtr = [err autorelease];
-	else
-		[err release];
+		*errPtr = err;
 	
 	return result;
 }
@@ -3922,8 +3867,6 @@ SetParamPtrsAndReturn:
 	
 	dispatch_block_t block = ^{
 		
-		if (filterBlock)
-			[filterBlock release];
 		
 		if (filterQueue)
 			dispatch_release(filterQueue);
