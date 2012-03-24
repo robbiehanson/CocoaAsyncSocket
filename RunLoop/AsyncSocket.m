@@ -227,7 +227,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 	{
 		if (d)
 		{
-			buffer = [d retain];
+			buffer = d;
 			startOffset = s;
 			bufferOwner = NO;
 			originalBufferLength = [d length];
@@ -591,12 +591,6 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 	return -1;
 }
 
-- (void)dealloc
-{
-	[buffer release];
-	[term release];
-	[super dealloc];
-}
 
 @end
 
@@ -624,7 +618,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 {
 	if((self = [super init]))
 	{
-		buffer = [d retain];
+		buffer = d;
 		timeout = t;
 		tag = i;
 		bytesDone = 0;
@@ -632,11 +626,6 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 	return self;
 }
 
-- (void)dealloc
-{
-	[buffer release];
-	[super dealloc];
-}
 
 @end
 
@@ -667,11 +656,6 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 	return self;
 }
 
-- (void)dealloc
-{
-	[tlsSettings release];
-	[super dealloc];
-}
 
 @end
 
@@ -728,13 +712,13 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 		// Socket context
 		NSAssert(sizeof(CFSocketContext) == sizeof(CFStreamClientContext), @"CFSocketContext != CFStreamClientContext");
 		theContext.version = 0;
-		theContext.info = self;
+		theContext.info = (__bridge void *)(self);
 		theContext.retain = nil;
 		theContext.release = nil;
 		theContext.copyDescription = nil;
 		
 		// Default run loop modes
-		theRunLoopModes = [[NSArray arrayWithObject:NSDefaultRunLoopMode] retain];
+		theRunLoopModes = [NSArray arrayWithObject:NSDefaultRunLoopMode];
 	}
 	return self;
 }
@@ -743,12 +727,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 - (void)dealloc
 {
 	[self close];
-	[theReadQueue release];
-	[theWriteQueue release];
-	[theRunLoopModes release];
-	[partialReadBuffer release];
 	[NSObject cancelPreviousPerformRequestsWithTarget:self];
-	[super dealloc];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -931,7 +910,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 {
 	for (NSString *runLoopMode in theRunLoopModes)
 	{
-		CFRunLoopAddSource(theRunLoop, source, (CFStringRef)runLoopMode);
+		CFRunLoopAddSource(theRunLoop, source, (__bridge CFStringRef)runLoopMode);
 	}
 }
 
@@ -939,25 +918,25 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 {
 	for (NSString *runLoopMode in theRunLoopModes)
 	{
-		CFRunLoopRemoveSource(theRunLoop, source, (CFStringRef)runLoopMode);
+		CFRunLoopRemoveSource(theRunLoop, source, (__bridge CFStringRef)runLoopMode);
 	}
 }
 
 - (void)runLoopAddSource:(CFRunLoopSourceRef)source mode:(NSString *)runLoopMode
 {
-	CFRunLoopAddSource(theRunLoop, source, (CFStringRef)runLoopMode);
+	CFRunLoopAddSource(theRunLoop, source, (__bridge CFStringRef)runLoopMode);
 }
 
 - (void)runLoopRemoveSource:(CFRunLoopSourceRef)source mode:(NSString *)runLoopMode
 {
-	CFRunLoopRemoveSource(theRunLoop, source, (CFStringRef)runLoopMode);
+	CFRunLoopRemoveSource(theRunLoop, source, (__bridge CFStringRef)runLoopMode);
 }
 
 - (void)runLoopAddTimer:(NSTimer *)timer
 {
 	for (NSString *runLoopMode in theRunLoopModes)
 	{
-		CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)timer, (CFStringRef)runLoopMode);
+		CFRunLoopAddTimer(theRunLoop, (__bridge CFRunLoopTimerRef)timer, (__bridge CFStringRef)runLoopMode);
 	}
 }
 
@@ -965,25 +944,25 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 {
 	for (NSString *runLoopMode in theRunLoopModes)		
 	{
-		CFRunLoopRemoveTimer(theRunLoop, (CFRunLoopTimerRef)timer, (CFStringRef)runLoopMode);
+		CFRunLoopRemoveTimer(theRunLoop, (__bridge CFRunLoopTimerRef)timer, (__bridge CFStringRef)runLoopMode);
 	}
 }
 
 - (void)runLoopAddTimer:(NSTimer *)timer mode:(NSString *)runLoopMode
 {
-	CFRunLoopAddTimer(theRunLoop, (CFRunLoopTimerRef)timer, (CFStringRef)runLoopMode);
+	CFRunLoopAddTimer(theRunLoop, (__bridge CFRunLoopTimerRef)timer, (__bridge CFStringRef)runLoopMode);
 }
 
 - (void)runLoopRemoveTimer:(NSTimer *)timer mode:(NSString *)runLoopMode
 {
-	CFRunLoopRemoveTimer(theRunLoop, (CFRunLoopTimerRef)timer, (CFStringRef)runLoopMode);
+	CFRunLoopRemoveTimer(theRunLoop, (__bridge CFRunLoopTimerRef)timer, (__bridge CFStringRef)runLoopMode);
 }
 
 - (void)runLoopUnscheduleReadStream
 {
 	for (NSString *runLoopMode in theRunLoopModes)
 	{
-		CFReadStreamUnscheduleFromRunLoop(theReadStream, theRunLoop, (CFStringRef)runLoopMode);
+		CFReadStreamUnscheduleFromRunLoop(theReadStream, theRunLoop, (__bridge CFStringRef)runLoopMode);
 	}
 	CFReadStreamSetClient(theReadStream, kCFStreamEventNone, NULL, NULL);
 }
@@ -992,7 +971,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 {
 	for (NSString *runLoopMode in theRunLoopModes)
 	{
-		CFWriteStreamUnscheduleFromRunLoop(theWriteStream, theRunLoop, (CFStringRef)runLoopMode);
+		CFWriteStreamUnscheduleFromRunLoop(theWriteStream, theRunLoop, (__bridge CFStringRef)runLoopMode);
 	}
 	CFWriteStreamSetClient(theWriteStream, kCFStreamEventNone, NULL, NULL);
 }
@@ -1043,11 +1022,6 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
     
 	if(theSource4) [self runLoopRemoveSource:theSource4];
 	if(theSource6) [self runLoopRemoveSource:theSource6];
-    
-	// We do not retain the timers - they get retained by the runloop when we add them as a source.
-	// Since we're about to remove them as a source, we retain now, and release again below.
-	[theReadTimer retain];
-	[theWriteTimer retain];
 	
 	if(theReadTimer) [self runLoopRemoveTimer:theReadTimer];
 	if(theWriteTimer) [self runLoopRemoveTimer:theWriteTimer];
@@ -1056,10 +1030,6 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 	
 	if(theReadTimer) [self runLoopAddTimer:theReadTimer];
 	if(theWriteTimer) [self runLoopAddTimer:theWriteTimer];
-	
-	// Release timers since we retained them above
-	[theReadTimer release];
-	[theWriteTimer release];
 	
 	if(theSource4) [self runLoopAddSource:theSource4];
 	if(theSource6) [self runLoopAddSource:theSource6];
@@ -1108,24 +1078,14 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
     
 	if(theSource4) [self runLoopRemoveSource:theSource4];
 	if(theSource6) [self runLoopRemoveSource:theSource6];
-    
-	// We do not retain the timers - they get retained by the runloop when we add them as a source.
-	// Since we're about to remove them as a source, we retain now, and release again below.
-	[theReadTimer retain];
-	[theWriteTimer retain];
 	
 	if(theReadTimer) [self runLoopRemoveTimer:theReadTimer];
 	if(theWriteTimer) [self runLoopRemoveTimer:theWriteTimer];
 	
-	[theRunLoopModes release];
 	theRunLoopModes = [runLoopModes copy];
 	
 	if(theReadTimer) [self runLoopAddTimer:theReadTimer];
 	if(theWriteTimer) [self runLoopAddTimer:theWriteTimer];
-	
-	// Release timers since we retained them above
-	[theReadTimer release];
-	[theWriteTimer release];
 	
 	if(theSource4) [self runLoopAddSource:theSource4];
 	if(theSource6) [self runLoopAddSource:theSource6];
@@ -1168,8 +1128,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 	theFlags &= ~kDequeueWriteScheduled;
     
 	NSArray *newRunLoopModes = [theRunLoopModes arrayByAddingObject:runLoopMode];
-	[theRunLoopModes release];
-	theRunLoopModes = [newRunLoopModes retain];
+	theRunLoopModes = newRunLoopModes;
 	
 	if(theReadTimer)  [self runLoopAddTimer:theReadTimer  mode:runLoopMode];
 	if(theWriteTimer) [self runLoopAddTimer:theWriteTimer mode:runLoopMode];
@@ -1179,8 +1138,8 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
     
 	if(theReadStream && theWriteStream)
 	{
-		CFReadStreamScheduleWithRunLoop(theReadStream, CFRunLoopGetCurrent(), (CFStringRef)runLoopMode);
-		CFWriteStreamScheduleWithRunLoop(theWriteStream, CFRunLoopGetCurrent(), (CFStringRef)runLoopMode);
+		CFReadStreamScheduleWithRunLoop(theReadStream, CFRunLoopGetCurrent(), (__bridge CFStringRef)runLoopMode);
+		CFWriteStreamScheduleWithRunLoop(theWriteStream, CFRunLoopGetCurrent(), (__bridge CFStringRef)runLoopMode);
 	}
 	
 	[self performSelector:@selector(maybeDequeueRead) withObject:nil afterDelay:0 inModes:theRunLoopModes];
@@ -1204,7 +1163,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 		return YES;
 	}
 	
-	NSMutableArray *newRunLoopModes = [[theRunLoopModes mutableCopy] autorelease];
+	NSMutableArray *newRunLoopModes = [theRunLoopModes mutableCopy];
 	[newRunLoopModes removeObject:runLoopMode];
 	
 	if([newRunLoopModes count] == 0)
@@ -1216,7 +1175,6 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 	theFlags &= ~kDequeueReadScheduled;
 	theFlags &= ~kDequeueWriteScheduled;
 	
-	[theRunLoopModes release];
 	theRunLoopModes = [newRunLoopModes copy];
 	
 	if(theReadTimer)  [self runLoopRemoveTimer:theReadTimer  mode:runLoopMode];
@@ -1227,8 +1185,8 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
     
 	if(theReadStream && theWriteStream)
 	{
-		CFReadStreamScheduleWithRunLoop(theReadStream, CFRunLoopGetCurrent(), (CFStringRef)runLoopMode);
-		CFWriteStreamScheduleWithRunLoop(theWriteStream, CFRunLoopGetCurrent(), (CFStringRef)runLoopMode);
+		CFReadStreamScheduleWithRunLoop(theReadStream, CFRunLoopGetCurrent(), (__bridge CFStringRef)runLoopMode);
+		CFWriteStreamScheduleWithRunLoop(theWriteStream, CFRunLoopGetCurrent(), (__bridge CFStringRef)runLoopMode);
 	}
 	
 	[self performSelector:@selector(maybeDequeueRead) withObject:nil afterDelay:0 inModes:theRunLoopModes];
@@ -1244,7 +1202,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 	[self checkForThreadSafety];
 #endif
 	
-	return [[theRunLoopModes retain] autorelease];
+	return theRunLoopModes;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1406,7 +1364,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 	CFSocketError err;
 	if (theSocket4)
 	{
-		err = CFSocketSetAddress(theSocket4, (CFDataRef)address4);
+		err = CFSocketSetAddress(theSocket4, (__bridge CFDataRef)address4);
 		if (err != kCFSocketSuccess) goto Failed;
 		
 		//NSLog(@"theSocket4: %hu", [self localPortFromCFSocket4:theSocket4]);
@@ -1428,7 +1386,7 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 	
 	if (theSocket6)
 	{
-		err = CFSocketSetAddress(theSocket6, (CFDataRef)address6);
+		err = CFSocketSetAddress(theSocket6, (__bridge CFDataRef)address6);
 		if (err != kCFSocketSuccess) goto Failed;
 		
 		//NSLog(@"theSocket6: %hu", [self localPortFromCFSocket6:theSocket6]);
@@ -1761,7 +1719,7 @@ Failed:
 	// The MyCFSocketCallback method will be called when the connection succeeds or fails
 	if(theSocket4)
 	{
-		CFSocketError err = CFSocketConnectToAddress(theSocket4, (CFDataRef)remoteAddr, -1);
+		CFSocketError err = CFSocketConnectToAddress(theSocket4, (__bridge CFDataRef)remoteAddr, -1);
 		if(err != kCFSocketSuccess)
 		{
 			if (errPtr) *errPtr = [self getSocketError];
@@ -1770,7 +1728,7 @@ Failed:
 	}
 	else if(theSocket6)
 	{
-		CFSocketError err = CFSocketConnectToAddress(theSocket6, (CFDataRef)remoteAddr, -1);
+		CFSocketError err = CFSocketConnectToAddress(theSocket6, (__bridge CFDataRef)remoteAddr, -1);
 		if(err != kCFSocketSuccess)
 		{
 			if (errPtr) *errPtr = [self getSocketError];
@@ -1791,11 +1749,14 @@ Failed:
 	{
 		// New socket inherits same delegate and run loop modes.
 		// Note: We use [self class] to support subclassing AsyncSocket.
-		AsyncSocket *newSocket = [[[[self class] alloc] initWithDelegate:theDelegate] autorelease];
+		AsyncSocket *newSocket = [[[self class] alloc] initWithDelegate:theDelegate];
 		[newSocket setRunLoopModes:theRunLoopModes];
 		
-		if(![newSocket createStreamsFromNative:newNativeSocket error:nil])
-			goto Failed;
+		if (![newSocket createStreamsFromNative:newNativeSocket error:nil])
+		{
+			[newSocket close];
+			return;
+		}
 		
 		if (parentSocket == theSocket4)
 			newSocket->theNativeSocket4 = newNativeSocket;
@@ -1925,7 +1886,7 @@ Failed:
 - (BOOL)createStreamsToHost:(NSString *)hostname onPort:(UInt16)port error:(NSError **)errPtr
 {
 	// Create the socket & streams.
-	CFStreamCreatePairWithSocketToHost(kCFAllocatorDefault, (CFStringRef)hostname, port, &theReadStream, &theWriteStream);
+	CFStreamCreatePairWithSocketToHost(NULL, (__bridge CFStringRef)hostname, port, &theReadStream, &theWriteStream);
 	if (theReadStream == NULL || theWriteStream == NULL)
 	{
 		if (errPtr) *errPtr = [self getStreamError];
@@ -1990,8 +1951,8 @@ Failed:
 	
 	for (NSString *runLoopMode in theRunLoopModes)
 	{
-		CFReadStreamScheduleWithRunLoop(theReadStream, theRunLoop, (CFStringRef)runLoopMode);
-		CFWriteStreamScheduleWithRunLoop(theWriteStream, theRunLoop, (CFStringRef)runLoopMode);
+		CFReadStreamScheduleWithRunLoop(theReadStream, theRunLoop, (__bridge CFStringRef)runLoopMode);
+		CFWriteStreamScheduleWithRunLoop(theWriteStream, theRunLoop, (__bridge CFStringRef)runLoopMode);
 	}
 	
 	return YES;
@@ -3064,7 +3025,8 @@ Failed:
 		
 		if (peeraddr == NULL) return nil;
 		
-		return [(NSData *)NSMakeCollectable(peeraddr) autorelease];
+		NSData *result = (__bridge_transfer NSData *)peeraddr;
+		return result;
 	}
 	
 	// Extract address from CFSocketNativeHandle
@@ -3119,7 +3081,8 @@ Failed:
 		
 		if (selfaddr == NULL) return nil;
 		
-		return [(NSData *)NSMakeCollectable(selfaddr) autorelease];
+		NSData *result = (__bridge_transfer NSData *)selfaddr;
+		return result;
 	}
 	
 	// Extract address from CFSocketNativeHandle
@@ -3312,7 +3275,7 @@ Failed:
 
 	[ms appendString:@">"];
 
-	return [ms autorelease];
+	return ms;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3355,7 +3318,6 @@ Failed:
 	[theReadQueue addObject:packet];
 	[self scheduleDequeueRead];
 	
-	[packet release];
 }
 
 - (void)readDataToLength:(NSUInteger)length withTimeout:(NSTimeInterval)timeout tag:(long)tag
@@ -3387,7 +3349,6 @@ Failed:
 	[theReadQueue addObject:packet];
 	[self scheduleDequeueRead];
 	
-	[packet release];
 }
 
 - (void)readDataToData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag
@@ -3435,7 +3396,6 @@ Failed:
 	[theReadQueue addObject:packet];
 	[self scheduleDequeueRead];
 	
-	[packet release];
 }
 
 /**
@@ -3467,7 +3427,7 @@ Failed:
 		if([theReadQueue count] > 0)
 		{
 			// Dequeue the next object in the write queue
-			theCurrentRead = [[theReadQueue objectAtIndex:0] retain];
+			theCurrentRead = [theReadQueue objectAtIndex:0];
 			[theReadQueue removeObjectAtIndex:0];
 			
 			if([theCurrentRead isKindOfClass:[AsyncSpecialPacket class]])
@@ -3835,7 +3795,6 @@ Failed:
 	[theReadTimer invalidate];
 	theReadTimer = nil;
 	
-	[theCurrentRead release];
 	theCurrentRead = nil;
 }
 
@@ -3890,7 +3849,6 @@ Failed:
 	[theWriteQueue addObject:packet];
 	[self scheduleDequeueWrite];
 	
-	[packet release];
 }
 
 - (void)scheduleDequeueWrite
@@ -3922,7 +3880,7 @@ Failed:
 		if([theWriteQueue count] > 0)
 		{
 			// Dequeue the next object in the write queue
-			theCurrentWrite = [[theWriteQueue objectAtIndex:0] retain];
+			theCurrentWrite = [theWriteQueue objectAtIndex:0];
 			[theWriteQueue removeObjectAtIndex:0];
 			
 			if([theCurrentWrite isKindOfClass:[AsyncSpecialPacket class]])
@@ -4073,7 +4031,6 @@ Failed:
 	[theWriteTimer invalidate];
 	theWriteTimer = nil;
 	
-	[theCurrentWrite release];
 	theCurrentWrite = nil;
 }
 
@@ -4138,7 +4095,6 @@ Failed:
 	[theWriteQueue addObject:packet];
 	[self scheduleDequeueWrite];
 	
-	[packet release];
 }
 
 - (void)maybeStartTLS
@@ -4154,9 +4110,9 @@ Failed:
 		AsyncSpecialPacket *tlsPacket = (AsyncSpecialPacket *)theCurrentRead;
 		
 		BOOL didStartOnReadStream = CFReadStreamSetProperty(theReadStream, kCFStreamPropertySSLSettings,
-														   (CFDictionaryRef)tlsPacket->tlsSettings);
+														   (__bridge CFDictionaryRef)tlsPacket->tlsSettings);
 		BOOL didStartOnWriteStream = CFWriteStreamSetProperty(theWriteStream, kCFStreamPropertySSLSettings,
-															 (CFDictionaryRef)tlsPacket->tlsSettings);
+															 (__bridge CFDictionaryRef)tlsPacket->tlsSettings);
 		
 		if(!didStartOnReadStream || !didStartOnWriteStream)
 		{
@@ -4284,14 +4240,16 @@ Failed:
  * This is the callback we setup for CFSocket.
  * This method does nothing but forward the call to it's Objective-C counterpart
 **/
-static void MyCFSocketCallback (CFSocketRef sref, CFSocketCallBackType type, CFDataRef address, const void *pData, void *pInfo)
+static void MyCFSocketCallback (CFSocketRef sref, CFSocketCallBackType type, CFDataRef inAddress, const void *pData, void *pInfo)
 {
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	@autoreleasepool {
 	
-	AsyncSocket *theSocket = [[(AsyncSocket *)pInfo retain] autorelease];
-	[theSocket doCFSocketCallback:type forSocket:sref withAddress:(NSData *)address withData:pData];
+		AsyncSocket *theSocket = (__bridge AsyncSocket *)pInfo;
+		NSData *address = [(__bridge NSData *)inAddress copy];
+		
+		[theSocket doCFSocketCallback:type forSocket:sref withAddress:address withData:pData];
 	
-	[pool drain];
+	}
 }
 
 /**
@@ -4300,12 +4258,12 @@ static void MyCFSocketCallback (CFSocketRef sref, CFSocketCallBackType type, CFD
 **/
 static void MyCFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType type, void *pInfo)
 {
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	@autoreleasepool {
 	
-	AsyncSocket *theSocket = [[(AsyncSocket *)pInfo retain] autorelease];
-	[theSocket doCFReadStreamCallback:type forStream:stream];
+		AsyncSocket *theSocket = (__bridge AsyncSocket *)pInfo;
+		[theSocket doCFReadStreamCallback:type forStream:stream];
 	
-	[pool drain];
+	}
 }
 
 /**
@@ -4314,12 +4272,12 @@ static void MyCFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType ty
 **/
 static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType type, void *pInfo)
 {
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	@autoreleasepool {
 	
-	AsyncSocket *theSocket = [[(AsyncSocket *)pInfo retain] autorelease];
-	[theSocket doCFWriteStreamCallback:type forStream:stream];
+		AsyncSocket *theSocket = (__bridge AsyncSocket *)pInfo;
+		[theSocket doCFWriteStreamCallback:type forStream:stream];
 	
-	[pool drain];
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
