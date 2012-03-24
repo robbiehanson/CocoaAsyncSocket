@@ -7,6 +7,8 @@
 // Log levels: off, error, warn, info, verbose
 static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
+#define HOST @"google.com"
+
 #define USE_SECURE_CONNECTION    0
 #define READ_HEADER_LINE_BY_LINE 0
 
@@ -67,7 +69,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// When the asynchronous sockets connects, it will invoke the socket:didConnectToHost:port: delegate method.
 	
 	NSError *error = nil;
-	NSString *host = @"deusty.com";
+	NSString *host = HOST;
 	
 #if USE_SECURE_CONNECTION
 	uint16_t port = 443; // HTTPS
@@ -101,15 +103,23 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// There it will find, dequeue and execute our request to start the TLS security protocol.
 	// 
 	// The options passed to the startTLS method are fully documented in the GCDAsyncSocket header file.
-	// The deusty server only has a development (self-signed) X.509 certificate.
-	// So we tell it not to attempt to validate the cert (cause if it did it would fail).
+	// Some servers only have a development (self-signed) X.509 certificate.
+	// In this case we would tell it not to attempt to validate the cert (cause if it did it would fail).
 	
-	NSDictionary *options = [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:NO]
-	                                                    forKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
-	
-	DDLogVerbose(@"Requesting StartTLS with options:\n%@", options);
-	
-	[asyncSocket startTLS:options];
+	if (NO)
+	{
+		NSDictionary *options =
+		    [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:NO]
+		                                forKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
+		
+		DDLogVerbose(@"Requesting StartTLS with options:\n%@", options);
+		[asyncSocket startTLS:options];
+	}
+	else
+	{
+		DDLogVerbose(@"Requesting StartTLS with options: (nil)");
+		[asyncSocket startTLS:nil];
+	}
 	
 #endif
 	
@@ -132,7 +142,9 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// We're just going to tell the server to send us the metadata (essentially) about a particular resource.
 	// The server will send an http response, and then immediately close the connection.
 	
-	NSString *requestStr = @"HEAD / HTTP/1.0\r\nHost: deusty.com\r\n\r\n";
+	NSString *requestStrFrmt = @"HEAD / HTTP/1.0\r\nHost: %@\r\n\r\n";
+	
+	NSString *requestStr = [NSString stringWithFormat:requestStrFrmt, HOST];
 	NSData *requestData = [requestStr dataUsingEncoding:NSUTF8StringEncoding];
 	
 	[asyncSocket writeData:requestData withTimeout:-1.0 tag:0];
@@ -213,7 +225,6 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	
 #endif
 	
-	[httpResponse release];
 }
 
 - (void)socketDidDisconnect:(GCDAsyncSocket *)sock withError:(NSError *)err
@@ -223,11 +234,5 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	DDLogVerbose(@"socketDidDisconnect:withError: \"%@\"", err);
 }
 
-- (void)dealloc
-{
-	[_window release];
-	[_viewController release];
-    [super dealloc];
-}
 
 @end

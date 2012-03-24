@@ -9,12 +9,12 @@
 	GCDAsyncUdpSocket *udpSocket;
 }
 
-@property (assign) IBOutlet NSWindow    * window;
-@property (retain) IBOutlet NSTextField * addrField;
-@property (retain) IBOutlet NSTextField * portField;
-@property (retain) IBOutlet NSTextField * messageField;
-@property (retain) IBOutlet NSButton    * sendButton;
-@property (retain) IBOutlet NSTextView  * logView;
+@property (unsafe_unretained) IBOutlet NSWindow    * window;
+@property  IBOutlet NSTextField * addrField;
+@property  IBOutlet NSTextField * portField;
+@property  IBOutlet NSTextField * messageField;
+@property  IBOutlet NSButton    * sendButton;
+@property  IBOutlet NSTextView  * logView;
 
 - (IBAction)send:(id)sender;
 

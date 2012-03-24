@@ -8,10 +8,10 @@
 	BOOL isRunning;
 }
 
-@property (assign) IBOutlet NSWindow *window;
-@property (retain) IBOutlet NSTextField *portField;
-@property (retain) IBOutlet NSButton *startStopButton;
-@property (retain) IBOutlet NSTextView *logView;
+@property (unsafe_unretained) IBOutlet NSWindow *window;
+@property  IBOutlet NSTextField *portField;
+@property  IBOutlet NSButton *startStopButton;
+@property  IBOutlet NSTextView *logView;
 
 - (IBAction)startStopButtonPressed:(id)sender;
 

@@ -6,6 +6,8 @@
 // Log levels: off, error, warn, info, verbose
 static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
+#define HOST @"google.com"
+
 #define USE_SECURE_CONNECTION    0
 #define READ_HEADER_LINE_BY_LINE 0
 
@@ -73,7 +75,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	uint16_t port = 80;  // HTTP
 #endif
 	
-	if (![asyncSocket connectToHost:@"deusty.com" onPort:port error:&error])
+	if (![asyncSocket connectToHost:HOST onPort:port error:&error])
 	{
 		DDLogError(@"Unable to connect to due to invalid configuration: %@", error);
 	}
@@ -99,13 +101,22 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// There it will find, dequeue and execute our request to start the TLS security protocol.
 	// 
 	// The options passed to the startTLS method are fully documented in the GCDAsyncSocket header file.
-	// The deusty server only has a development (self-signed) X.509 certificate.
-	// So we tell it not to attempt to validate the cert (cause if it did it would fail).
 	
-	NSDictionary *options = [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:NO]
-	                                                    forKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
 	
-	[asyncSocket startTLS:options];
+	// Some servers only have a development (self-signed) X.509 certificate.
+	// In this case we could tell it not to attempt to validate the cert (cause if it did it would fail).
+	
+	if (NO)
+	{
+		NSDictionary *options =
+		    [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:NO]
+			                            forKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
+		[asyncSocket startTLS:options];
+	}
+	else
+	{
+		[asyncSocket startTLS:nil];
+	}
 	
 #endif
 }
@@ -122,7 +133,9 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// We're just going to tell the server to send us the metadata (essentially) about a particular resource.
 	// The server will send an http response, and then immediately close the connection.
 	
-	NSString *requestStr = @"HEAD / HTTP/1.0\r\nHost: deusty.com\r\nConnection: Close\r\n\r\n";
+	NSString *requestStrFrmt = @"HEAD / HTTP/1.0\r\nHost: %@\r\nConnection: Close\r\n\r\n";
+	
+	NSString *requestStr = [NSString stringWithFormat:requestStrFrmt, HOST];
 	NSData *requestData = [requestStr dataUsingEncoding:NSUTF8StringEncoding];
 	
 	[asyncSocket writeData:requestData withTimeout:-1.0 tag:0];
@@ -201,7 +214,6 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	
 #endif
 	
-	[httpResponse release];
 }
 
 - (void)socketDidDisconnect:(GCDAsyncSocket *)sock withError:(NSError *)err
