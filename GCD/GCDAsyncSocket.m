@@ -1236,7 +1236,7 @@ enum GCDAsyncSocketConfig
 	LogTrace();
 	
 	// Just in-case interface parameter is immutable.
-	NSString *interface = [[inInterface copy] autorelease];
+	NSString *interface = [inInterface copy];
 	
 	__block BOOL result = NO;
 	__block NSError *err = nil;
@@ -1753,8 +1753,8 @@ enum GCDAsyncSocketConfig
 	LogTrace();
 	
 	// Just in case immutable objects were passed
-	NSString *host = [[inHost copy] autorelease];
-	NSString *interface = [[inInterface copy] autorelease];
+	NSString *host = [inHost copy];
+	NSString *interface = [inInterface copy];
 	
 	__block BOOL result = NO;
 	__block NSError *err = nil;
@@ -1837,8 +1837,8 @@ enum GCDAsyncSocketConfig
 	LogTrace();
 	
 	// Just in case immutable objects were passed
-	NSData *remoteAddr = [[inRemoteAddr copy] autorelease];
-	NSString *interface = [[inInterface copy] autorelease];
+	NSData *remoteAddr = [inRemoteAddr copy];
+	NSString *interface = [inInterface copy];
 	
 	__block BOOL result = NO;
 	__block NSError *err = nil;
