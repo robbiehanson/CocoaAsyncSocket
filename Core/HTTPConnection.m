@@ -1120,9 +1120,9 @@ static NSMutableArray *recentNonces;
 
 - (void)sendResponseHeadersAndBody
 {
-	if ([httpResponse respondsToSelector:@selector(delayResponeHeaders)])
+	if ([httpResponse respondsToSelector:@selector(delayResponseHeaders)])
 	{
-		if ([httpResponse delayResponeHeaders])
+		if ([httpResponse delayResponseHeaders])
 		{
 			return;
 		}
