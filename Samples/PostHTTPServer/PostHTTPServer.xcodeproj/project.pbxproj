@@ -14,7 +14,7 @@
 		DC11284B0ED6116D00FA818C /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = DC11284A0ED6116D00FA818C /* AppDelegate.m */; };
 		DC1128750ED6127E00FA818C /* MyHTTPConnection.m in Sources */ = {isa = PBXBuildFile; fileRef = DC1128740ED6127E00FA818C /* MyHTTPConnection.m */; };
 		DC1128CA0ED61D2B00FA818C /* Web in CopyFiles */ = {isa = PBXBuildFile; fileRef = DC1128C50ED61C4600FA818C /* Web */; };
-		DC2E31841298FCAE009F096E /* GCDAsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = DC2E31831298FCAE009F096E /* GCDAsyncSocket.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
+		DC2E31841298FCAE009F096E /* GCDAsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = DC2E31831298FCAE009F096E /* GCDAsyncSocket.m */; };
 		DC2E318E1298FCE5009F096E /* DDASLLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC2E31871298FCE5009F096E /* DDASLLogger.m */; };
 		DC2E318F1298FCE5009F096E /* DDFileLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC2E31891298FCE5009F096E /* DDFileLogger.m */; };
 		DC2E31901298FCE5009F096E /* DDLog.m in Sources */ = {isa = PBXBuildFile; fileRef = DC2E318B1298FCE5009F096E /* DDLog.m */; };
@@ -408,10 +408,7 @@
 		C01FCF4B08A954540054247B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
-				CLANG_ENABLE_OBJC_ARC = YES;
 				GCC_PREFIX_HEADER = PostHTTPServer_Prefix.pch;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				INFOPLIST_FILE = Info.plist;
 				PRODUCT_NAME = PostHTTPServer;
 			};
@@ -420,10 +417,7 @@
 		C01FCF4C08A954540054247B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
-				CLANG_ENABLE_OBJC_ARC = YES;
 				GCC_PREFIX_HEADER = PostHTTPServer_Prefix.pch;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				INFOPLIST_FILE = Info.plist;
 				PRODUCT_NAME = PostHTTPServer;
 			};
@@ -433,6 +427,11 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = DC372E65139D4ABA00A8407D /* Debug.xcconfig */;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_OBJCPP_ARC_ABI = YES;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				SDKROOT = macosx;
 			};
 			name = Debug;
 		};
@@ -440,6 +439,11 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = DC372E67139D4ABA00A8407D /* Release.xcconfig */;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_OBJCPP_ARC_ABI = YES;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				SDKROOT = macosx;
 			};
 			name = Release;
 		};

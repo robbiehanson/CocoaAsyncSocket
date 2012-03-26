@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 45;
+	objectVersion = 46;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -32,7 +32,7 @@
 		DC5406D6129F5C9600195140 /* DDFileLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC5406D0129F5C9600195140 /* DDFileLogger.m */; };
 		DC5406D7129F5C9600195140 /* DDLog.m in Sources */ = {isa = PBXBuildFile; fileRef = DC5406D2129F5C9600195140 /* DDLog.m */; };
 		DC5406D8129F5C9600195140 /* DDTTYLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC5406D4129F5C9600195140 /* DDTTYLogger.m */; };
-		DC5406E0129F5CB700195140 /* GCDAsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = DC5406DF129F5CB700195140 /* GCDAsyncSocket.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
+		DC5406E0129F5CB700195140 /* GCDAsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = DC5406DF129F5CB700195140 /* GCDAsyncSocket.m */; };
 		DC5406E2129F5CC900195140 /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC5406E1129F5CC800195140 /* CFNetwork.framework */; };
 		DC540781129F638200195140 /* Web in Resources */ = {isa = PBXBuildFile; fileRef = DC54077E129F638200195140 /* Web */; };
 /* End PBXBuildFile section */
@@ -290,8 +290,11 @@
 /* Begin PBXProject section */
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0430;
+			};
 			buildConfigurationList = C01FCF4E08A954540054247B /* Build configuration list for PBXProject "iPhoneHTTPServer" */;
-			compatibilityVersion = "Xcode 3.1";
+			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 1;
 			knownRegions = (
@@ -357,10 +360,9 @@
 		1D6058940D05DD3E006BFB54 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CLANG_ENABLE_OBJC_ARC = YES;
 				GCC_PREFIX_HEADER = iPhoneHTTPServer_Prefix.pch;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				INFOPLIST_FILE = "iPhoneHTTPServer-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 5.0;
 				PRODUCT_NAME = iPhoneHTTPServer;
 			};
 			name = Debug;
@@ -368,10 +370,9 @@
 		1D6058950D05DD3E006BFB54 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CLANG_ENABLE_OBJC_ARC = YES;
 				GCC_PREFIX_HEADER = iPhoneHTTPServer_Prefix.pch;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				INFOPLIST_FILE = "iPhoneHTTPServer-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 5.0;
 				PRODUCT_NAME = iPhoneHTTPServer;
 			};
 			name = Release;
@@ -380,6 +381,10 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = DC372E49139D398400A8407D /* Debug.xcconfig */;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_OBJCPP_ARC_ABI = YES;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				SDKROOT = iphoneos;
 			};
 			name = Debug;
@@ -388,6 +393,10 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = DC372E4B139D398400A8407D /* Release.xcconfig */;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_OBJCPP_ARC_ABI = YES;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				SDKROOT = iphoneos;
 			};
 			name = Release;

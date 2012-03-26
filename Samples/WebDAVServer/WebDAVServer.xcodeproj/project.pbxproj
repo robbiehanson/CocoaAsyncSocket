@@ -32,7 +32,7 @@
 		DC37324E139F3E8500A8407D /* DELETEResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = DC373249139F3E8500A8407D /* DELETEResponse.m */; };
 		DC37324F139F3E8500A8407D /* PUTResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = DC37324B139F3E8500A8407D /* PUTResponse.m */; };
 		DC41D6D90C178D5700F8D00D /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = DC41D6D70C178D5700F8D00D /* AppDelegate.m */; };
-		DC9631E0129E2DBB003AC1CE /* GCDAsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = DC9631DF129E2DBB003AC1CE /* GCDAsyncSocket.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
+		DC9631E0129E2DBB003AC1CE /* GCDAsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = DC9631DF129E2DBB003AC1CE /* GCDAsyncSocket.m */; };
 		DC9631FD129E2E02003AC1CE /* HTTPDataResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = DC9631F7129E2E02003AC1CE /* HTTPDataResponse.m */; };
 		DC9631FE129E2E02003AC1CE /* HTTPFileResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = DC9631F9129E2E02003AC1CE /* HTTPFileResponse.m */; };
 		DC9631FF129E2E02003AC1CE /* HTTPRedirectResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = DC9631FC129E2E02003AC1CE /* HTTPRedirectResponse.m */; };
@@ -429,11 +429,8 @@
 		C01FCF4B08A954540054247B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
-				CLANG_ENABLE_OBJC_ARC = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = WebDAVServer_Prefix.pch;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = "${SDKROOT}/usr/include/libxml2";
 				INFOPLIST_FILE = Info.plist;
 				PRODUCT_NAME = WebDAVServer;
@@ -443,11 +440,8 @@
 		C01FCF4C08A954540054247B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
-				CLANG_ENABLE_OBJC_ARC = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = WebDAVServer_Prefix.pch;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = "${SDKROOT}/usr/include/libxml2";
 				INFOPLIST_FILE = Info.plist;
 				PRODUCT_NAME = WebDAVServer;
@@ -458,6 +452,10 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = E23C163F139F16CA009BFD22 /* Debug.xcconfig */;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_OBJCPP_ARC_ABI = YES;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -466,6 +464,10 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = E23C1641139F16CA009BFD22 /* Release.xcconfig */;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_OBJCPP_ARC_ABI = YES;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				SDKROOT = macosx;
 			};
 			name = Release;

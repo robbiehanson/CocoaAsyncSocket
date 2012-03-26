@@ -21,7 +21,7 @@
 		DC372DB8139969B600A8407D /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = DC372DB6139969B600A8407D /* Credits.rtf */; };
 		DC372DBB139969B600A8407D /* SecureWebSocketServerAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = DC372DBA139969B600A8407D /* SecureWebSocketServerAppDelegate.m */; };
 		DC372DBE139969B700A8407D /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = DC372DBC139969B700A8407D /* MainMenu.xib */; };
-		DC372DDF13996A1B00A8407D /* GCDAsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = DC372DDE13996A1B00A8407D /* GCDAsyncSocket.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
+		DC372DDF13996A1B00A8407D /* GCDAsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = DC372DDE13996A1B00A8407D /* GCDAsyncSocket.m */; };
 		DC372E1013996D3400A8407D /* MyHTTPConnection.m in Sources */ = {isa = PBXBuildFile; fileRef = DC372E0D13996D3400A8407D /* MyHTTPConnection.m */; };
 		DC372E1113996D3400A8407D /* MyWebSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = DC372E0F13996D3400A8407D /* MyWebSocket.m */; };
 		DC372E14139990C800A8407D /* DDKeychain.m in Sources */ = {isa = PBXBuildFile; fileRef = DC372E13139990C800A8407D /* DDKeychain.m */; };
@@ -430,6 +430,10 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = DC372E81139D50DA00A8407D /* Debug.xcconfig */;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_OBJCPP_ARC_ABI = YES;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -438,6 +442,10 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = DC372E83139D50DA00A8407D /* Release.xcconfig */;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_OBJCPP_ARC_ABI = YES;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -445,11 +453,7 @@
 		DC372DC2139969B700A8407D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
-				CLANG_ENABLE_OBJC_ARC = YES;
-				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_PREFIX_HEADER = "SecureWebSocketServer/SecureWebSocketServer-Prefix.pch";
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				INFOPLIST_FILE = "SecureWebSocketServer/SecureWebSocketServer-Info.plist";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
@@ -459,10 +463,7 @@
 		DC372DC3139969B700A8407D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
-				CLANG_ENABLE_OBJC_ARC = YES;
 				GCC_PREFIX_HEADER = "SecureWebSocketServer/SecureWebSocketServer-Prefix.pch";
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				INFOPLIST_FILE = "SecureWebSocketServer/SecureWebSocketServer-Info.plist";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
