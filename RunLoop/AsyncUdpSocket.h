@@ -349,7 +349,11 @@ typedef enum AsyncUdpSocketError AsyncUdpSocketError;
  * 
  * Under normal circumstances, you simply return YES from this method.
 **/
-- (BOOL)onUdpSocket:(AsyncUdpSocket *)sock didReceiveData:(NSData *)data withTag:(long)tag fromHost:(NSString *)host port:(UInt16)port;
+- (BOOL)onUdpSocket:(AsyncUdpSocket *)sock
+     didReceiveData:(NSData *)data
+            withTag:(long)tag
+           fromHost:(NSString *)host
+               port:(UInt16)port;
 
 /**
  * Called if an error occurs while trying to receive a requested datagram.
