@@ -18,6 +18,9 @@
 extern NSString *const GCDAsyncSocketException;
 extern NSString *const GCDAsyncSocketErrorDomain;
 
+extern NSString *const GCDAsyncSocketQueueName;
+extern NSString *const GCDAsyncSocketThreadName;
+
 #if !TARGET_OS_IPHONE
 extern NSString *const GCDAsyncSocketSSLCipherSuites;
 extern NSString *const GCDAsyncSocketSSLDiffieHellmanParameters;

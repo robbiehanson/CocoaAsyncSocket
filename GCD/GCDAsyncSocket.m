@@ -101,6 +101,9 @@ static const int logLevel = LOG_LEVEL_VERBOSE;
 NSString *const GCDAsyncSocketException = @"GCDAsyncSocketException";
 NSString *const GCDAsyncSocketErrorDomain = @"GCDAsyncSocketErrorDomain";
 
+NSString *const GCDAsyncSocketQueueName = @"GCDAsyncSocket";
+NSString *const GCDAsyncSocketThreadName = @"GCDAsyncSocket-CFStream";
+
 #if !TARGET_OS_IPHONE
 NSString *const GCDAsyncSocketSSLCipherSuites = @"GCDAsyncSocketSSLCipherSuites";
 NSString *const GCDAsyncSocketSSLDiffieHellmanParameters = @"GCDAsyncSocketSSLDiffieHellmanParameters";
@@ -831,7 +834,7 @@ enum GCDAsyncSocketConfig
 		}
 		else
 		{
-			socketQueue = dispatch_queue_create("GCDAsyncSocket", NULL);
+			socketQueue = dispatch_queue_create([GCDAsyncSocketQueueName UTF8String], NULL);
 		}
 		
 		readQueue = [[NSMutableArray alloc] initWithCapacity:5];
@@ -865,17 +868,11 @@ enum GCDAsyncSocketConfig
 		dispatch_release(delegateQueue);
 	delegateQueue = NULL;
 	
-	dispatch_release(socketQueue);
+	if (socketQueue)
+		dispatch_release(socketQueue);
 	socketQueue = NULL;
 	
-	
-	
-#if !TARGET_OS_IPHONE
-#endif
-	
-	
 	LogInfo(@"%@ - %@ (finish)", THIS_METHOD, self);
-	
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1506,8 +1503,6 @@ enum GCDAsyncSocketConfig
 		
 		if (errPtr)
 			*errPtr = err;
-		else
-			;
 	}
 	
 	return result;
@@ -1812,8 +1807,6 @@ enum GCDAsyncSocketConfig
 	{
 		if (errPtr)
 			*errPtr = err;
-		else
-			;
 	}
 	
 	return result;
@@ -1928,8 +1921,6 @@ enum GCDAsyncSocketConfig
 	{
 		if (errPtr)
 			*errPtr = err;
-		else
-			;
 	}
 	
 	return result;
@@ -3822,7 +3813,7 @@ enum GCDAsyncSocketConfig
 		// 
 		// socketFDBytesAvailable <- Number of encrypted bytes we haven't read from the bsd socket
 		// [sslReadBuffer length] <- Number of encrypted bytes we've buffered from bsd socket
-		// sslInternalBufSize     <- Number od decrypted bytes SecureTransport has buffered
+		// sslInternalBufSize     <- Number of decrypted bytes SecureTransport has buffered
 		// 
 		// We call the variable "estimated" because we don't know how many decrypted bytes we'll get
 		// from the encrypted bytes in the sslReadBuffer.
@@ -6173,6 +6164,8 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 
 + (void)listenerThread { @autoreleasepool
 {
+	[[NSThread currentThread] setName:GCDAsyncSocketThreadName];
+	
 	LogInfo(@"ListenerThread: Started");
 	
 	// We can't run the run loop unless it has an associated input source or a timer.
