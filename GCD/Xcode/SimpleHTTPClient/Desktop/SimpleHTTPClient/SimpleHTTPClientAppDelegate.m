@@ -2,6 +2,7 @@
 #import "GCDAsyncSocket.h"
 #import "DDLog.h"
 #import "DDTTYLogger.h"
+#import "DispatchQueueLogFormatter.h"
 
 // Log levels: off, error, warn, info, verbose
 static const int ddLogLevel = LOG_LEVEL_VERBOSE;
@@ -9,6 +10,8 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 #define HOST @"google.com"
 
 #define USE_SECURE_CONNECTION    0
+#define VALIDATE_SSL_CERTIFICATE 1
+
 #define READ_HEADER_LINE_BY_LINE 0
 
 
@@ -37,6 +40,24 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	
 	[DDLog addLogger:[DDTTYLogger sharedInstance]];
 	
+	// We're going to take advantage of some of Lumberjack's advanced features.
+	//
+	// Format log statements such that it outputs the queue/thread name.
+	// As opposed to the not-so-helpful mach thread id.
+	// 
+	// Old : 2011-12-05 19:54:08:161 [17894:f803] Connecting...
+	//       2011-12-05 19:54:08:161 [17894:11f03] GCDAsyncSocket: Dispatching DNS lookup...
+	//       2011-12-05 19:54:08:161 [17894:13303] GCDAsyncSocket: Creating IPv4 socket
+	// 
+	// New : 2011-12-05 19:54:08:161 [main] Connecting...
+	//       2011-12-05 19:54:08:161 [socket] GCDAsyncSocket: Dispatching DNS lookup...
+	//       2011-12-05 19:54:08:161 [socket] GCDAsyncSocket: Creating IPv4 socket
+	
+	DispatchQueueLogFormatter *formatter = [[DispatchQueueLogFormatter alloc] init];
+	[formatter setReplacementString:@"socket" forQueueLabel:GCDAsyncSocketQueueName];
+	[formatter setReplacementString:@"socket-cf" forQueueLabel:GCDAsyncSocketThreadName];
+	
+	[[DDTTYLogger sharedInstance] setLogFormatter:formatter];
 	
 	// Create our GCDAsyncSocket instance.
 	// 
@@ -106,17 +127,21 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// Some servers only have a development (self-signed) X.509 certificate.
 	// In this case we could tell it not to attempt to validate the cert (cause if it did it would fail).
 	
-	if (NO)
+	#if VALIDATE_SSL_CERTIFICATE
 	{
-		NSDictionary *options =
-		    [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:NO]
-			                            forKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
-		[asyncSocket startTLS:options];
-	}
-	else
-	{
+		DDLogVerbose(@"Requesting StartTLS with options: (nil)");
 		[asyncSocket startTLS:nil];
 	}
+	#else
+	{
+		NSDictionary *options =
+		[NSDictionary dictionaryWithObject:[NSNumber numberWithBool:NO]
+									forKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
+		
+		DDLogVerbose(@"Requesting StartTLS with options:\n%@", options);
+		[asyncSocket startTLS:options];
+	}
+	#endif
 	
 #endif
 }
