@@ -75,7 +75,6 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	[attributes setObject:[NSColor redColor] forKey:NSForegroundColorAttributeName];
 	
 	NSAttributedString *as = [[NSAttributedString alloc] initWithString:paragraph attributes:attributes];
-	[as autorelease];
 	
 	[[logView textStorage] appendAttributedString:as];
 	[self scrollToBottom];
@@ -89,7 +88,6 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	[attributes setObject:[NSColor purpleColor] forKey:NSForegroundColorAttributeName];
 	
 	NSAttributedString *as = [[NSAttributedString alloc] initWithString:paragraph attributes:attributes];
-	[as autorelease];
 	
 	[[logView textStorage] appendAttributedString:as];
 	[self scrollToBottom];
@@ -103,7 +101,6 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	[attributes setObject:[NSColor blackColor] forKey:NSForegroundColorAttributeName];
 	
 	NSAttributedString *as = [[NSAttributedString alloc] initWithString:paragraph attributes:attributes];
-	[as autorelease];
 	
 	[[logView textStorage] appendAttributedString:as];
 	[self scrollToBottom];
@@ -154,7 +151,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
                                                fromAddress:(NSData *)address
                                          withFilterContext:(id)filterContext
 {
-	NSString *msg = [[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] autorelease];
+	NSString *msg = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
 	if (msg)
 	{
 		[self logMessage:FORMAT(@"RECV: %@", msg)];

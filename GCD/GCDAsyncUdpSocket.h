@@ -382,6 +382,9 @@ typedef BOOL (^GCDAsyncUdpSocketReceiveFilterBlock)(NSData *data, NSData *addres
 **/
 - (BOOL)joinMulticastGroup:(NSString *)group onInterface:(NSString *)interface error:(NSError **)errPtr;
 
+- (BOOL)leaveMulticastGroup:(NSString *)group error:(NSError **)errPtr;
+- (BOOL)leaveMulticastGroup:(NSString *)group onInterface:(NSString *)interface error:(NSError **)errPtr;
+
 #pragma mark Broadcast
 
 /**

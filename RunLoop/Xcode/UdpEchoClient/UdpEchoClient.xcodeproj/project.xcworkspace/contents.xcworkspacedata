@@ -2,6 +2,6 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "self:CertTest.xcodeproj">
+      location = "self:UdpEchoClient.xcodeproj">
    </FileRef>
 </Workspace>

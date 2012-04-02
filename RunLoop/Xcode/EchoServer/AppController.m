@@ -65,7 +65,6 @@
 	[attributes setObject:[NSColor redColor] forKey:NSForegroundColorAttributeName];
 	
 	NSAttributedString *as = [[NSAttributedString alloc] initWithString:paragraph attributes:attributes];
-	[as autorelease];
 	
 	[[logView textStorage] appendAttributedString:as];
 	[self scrollToBottom];
@@ -79,7 +78,6 @@
 	[attributes setObject:[NSColor purpleColor] forKey:NSForegroundColorAttributeName];
 	
 	NSAttributedString *as = [[NSAttributedString alloc] initWithString:paragraph attributes:attributes];
-	[as autorelease];
 	
 	[[logView textStorage] appendAttributedString:as];
 	[self scrollToBottom];
@@ -93,7 +91,6 @@
 	[attributes setObject:[NSColor blackColor] forKey:NSForegroundColorAttributeName];
 	
 	NSAttributedString *as = [[NSAttributedString alloc] initWithString:paragraph attributes:attributes];
-	[as autorelease];
 	
 	[[logView textStorage] appendAttributedString:as];
 	[self scrollToBottom];
@@ -174,7 +171,7 @@
 - (void)onSocket:(AsyncSocket *)sock didReadData:(NSData *)data withTag:(long)tag
 {
 	NSData *strData = [data subdataWithRange:NSMakeRange(0, [data length] - 2)];
-	NSString *msg = [[[NSString alloc] initWithData:strData encoding:NSUTF8StringEncoding] autorelease];
+	NSString *msg = [[NSString alloc] initWithData:strData encoding:NSUTF8StringEncoding];
 	if(msg)
 	{
 		[self logMessage:msg];

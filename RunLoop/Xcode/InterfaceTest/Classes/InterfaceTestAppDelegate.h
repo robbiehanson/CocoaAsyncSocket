@@ -13,8 +13,8 @@
 	InterfaceTestViewController *viewController;
 }
 
-@property (nonatomic, retain) IBOutlet UIWindow *window;
-@property (nonatomic, retain) IBOutlet InterfaceTestViewController *viewController;
+@property (nonatomic) IBOutlet UIWindow *window;
+@property (nonatomic) IBOutlet InterfaceTestViewController *viewController;
 
 @end
 

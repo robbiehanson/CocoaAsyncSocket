@@ -19,7 +19,7 @@ extern NSString *const AsyncUdpSocketErrorDomain;
 enum AsyncUdpSocketError
 {
 	AsyncUdpSocketCFSocketError = kCFSocketError,	// From CFSocketError enum
-	AsyncUdpSocketNoError = 0,						// Never used
+	AsyncUdpSocketNoError = 0,                      // Never used
 	AsyncUdpSocketBadParameter,                     // Used if given a bad parameter (such as an improper address)
 	AsyncUdpSocketIPv4Unavailable,                  // Used if you bind/connect using IPv6 only
 	AsyncUdpSocketIPv6Unavailable,                  // Used if you bind/connect using IPv4 only (or iPhone)
@@ -349,7 +349,11 @@ typedef enum AsyncUdpSocketError AsyncUdpSocketError;
  * 
  * Under normal circumstances, you simply return YES from this method.
 **/
-- (BOOL)onUdpSocket:(AsyncUdpSocket *)sock didReceiveData:(NSData *)data withTag:(long)tag fromHost:(NSString *)host port:(UInt16)port;
+- (BOOL)onUdpSocket:(AsyncUdpSocket *)sock
+     didReceiveData:(NSData *)data
+            withTag:(long)tag
+           fromHost:(NSString *)host
+               port:(UInt16)port;
 
 /**
  * Called if an error occurs while trying to receive a requested datagram.

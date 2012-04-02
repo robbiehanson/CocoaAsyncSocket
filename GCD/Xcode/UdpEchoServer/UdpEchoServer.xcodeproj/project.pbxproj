@@ -13,12 +13,15 @@
 		DC34A1B8147DF0A8004F0A03 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = DC34A1B6147DF0A8004F0A03 /* Credits.rtf */; };
 		DC34A1BB147DF0A8004F0A03 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = DC34A1BA147DF0A8004F0A03 /* AppDelegate.m */; };
 		DC34A1BE147DF0A8004F0A03 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = DC34A1BC147DF0A8004F0A03 /* MainMenu.xib */; };
-		DC34A1D5147DF382004F0A03 /* DDAbstractDatabaseLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC34A1CC147DF382004F0A03 /* DDAbstractDatabaseLogger.m */; };
-		DC34A1D6147DF382004F0A03 /* DDASLLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC34A1CE147DF382004F0A03 /* DDASLLogger.m */; };
-		DC34A1D7147DF382004F0A03 /* DDFileLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC34A1D0147DF382004F0A03 /* DDFileLogger.m */; };
-		DC34A1D8147DF382004F0A03 /* DDLog.m in Sources */ = {isa = PBXBuildFile; fileRef = DC34A1D2147DF382004F0A03 /* DDLog.m */; };
-		DC34A1D9147DF382004F0A03 /* DDTTYLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC34A1D4147DF382004F0A03 /* DDTTYLogger.m */; };
 		DC34A1DC147DF3CA004F0A03 /* GCDAsyncUdpSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = DC34A1DB147DF3CA004F0A03 /* GCDAsyncUdpSocket.m */; };
+		DC4B0BEC151D4E5A000985E5 /* DDAbstractDatabaseLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC4B0BDD151D4E5A000985E5 /* DDAbstractDatabaseLogger.m */; };
+		DC4B0BED151D4E5A000985E5 /* DDASLLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC4B0BDF151D4E5A000985E5 /* DDASLLogger.m */; };
+		DC4B0BEE151D4E5A000985E5 /* DDFileLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC4B0BE1151D4E5A000985E5 /* DDFileLogger.m */; };
+		DC4B0BEF151D4E5A000985E5 /* DDLog.m in Sources */ = {isa = PBXBuildFile; fileRef = DC4B0BE3151D4E5A000985E5 /* DDLog.m */; };
+		DC4B0BF0151D4E5A000985E5 /* DDTTYLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC4B0BE5151D4E5A000985E5 /* DDTTYLogger.m */; };
+		DC4B0BF1151D4E5A000985E5 /* ContextFilterLogFormatter.m in Sources */ = {isa = PBXBuildFile; fileRef = DC4B0BE8151D4E5A000985E5 /* ContextFilterLogFormatter.m */; };
+		DC4B0BF2151D4E5A000985E5 /* DispatchQueueLogFormatter.m in Sources */ = {isa = PBXBuildFile; fileRef = DC4B0BEA151D4E5A000985E5 /* DispatchQueueLogFormatter.m */; };
+		DC4B0BF3151D4E5A000985E5 /* README.txt in Resources */ = {isa = PBXBuildFile; fileRef = DC4B0BEB151D4E5A000985E5 /* README.txt */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,18 +38,23 @@
 		DC34A1B9147DF0A8004F0A03 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		DC34A1BA147DF0A8004F0A03 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		DC34A1BD147DF0A8004F0A03 /* en */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = en; path = en.lproj/MainMenu.xib; sourceTree = "<group>"; };
-		DC34A1CB147DF382004F0A03 /* DDAbstractDatabaseLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDAbstractDatabaseLogger.h; path = ../../../Vendor/CocoaLumberjack/DDAbstractDatabaseLogger.h; sourceTree = "<group>"; };
-		DC34A1CC147DF382004F0A03 /* DDAbstractDatabaseLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDAbstractDatabaseLogger.m; path = ../../../Vendor/CocoaLumberjack/DDAbstractDatabaseLogger.m; sourceTree = "<group>"; };
-		DC34A1CD147DF382004F0A03 /* DDASLLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDASLLogger.h; path = ../../../Vendor/CocoaLumberjack/DDASLLogger.h; sourceTree = "<group>"; };
-		DC34A1CE147DF382004F0A03 /* DDASLLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDASLLogger.m; path = ../../../Vendor/CocoaLumberjack/DDASLLogger.m; sourceTree = "<group>"; };
-		DC34A1CF147DF382004F0A03 /* DDFileLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDFileLogger.h; path = ../../../Vendor/CocoaLumberjack/DDFileLogger.h; sourceTree = "<group>"; };
-		DC34A1D0147DF382004F0A03 /* DDFileLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDFileLogger.m; path = ../../../Vendor/CocoaLumberjack/DDFileLogger.m; sourceTree = "<group>"; };
-		DC34A1D1147DF382004F0A03 /* DDLog.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDLog.h; path = ../../../Vendor/CocoaLumberjack/DDLog.h; sourceTree = "<group>"; };
-		DC34A1D2147DF382004F0A03 /* DDLog.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDLog.m; path = ../../../Vendor/CocoaLumberjack/DDLog.m; sourceTree = "<group>"; };
-		DC34A1D3147DF382004F0A03 /* DDTTYLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDTTYLogger.h; path = ../../../Vendor/CocoaLumberjack/DDTTYLogger.h; sourceTree = "<group>"; };
-		DC34A1D4147DF382004F0A03 /* DDTTYLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDTTYLogger.m; path = ../../../Vendor/CocoaLumberjack/DDTTYLogger.m; sourceTree = "<group>"; };
 		DC34A1DA147DF3CA004F0A03 /* GCDAsyncUdpSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GCDAsyncUdpSocket.h; path = ../../GCDAsyncUdpSocket.h; sourceTree = "<group>"; };
 		DC34A1DB147DF3CA004F0A03 /* GCDAsyncUdpSocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GCDAsyncUdpSocket.m; path = ../../GCDAsyncUdpSocket.m; sourceTree = "<group>"; };
+		DC4B0BDC151D4E5A000985E5 /* DDAbstractDatabaseLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDAbstractDatabaseLogger.h; path = ../../../Vendor/CocoaLumberjack/DDAbstractDatabaseLogger.h; sourceTree = "<group>"; };
+		DC4B0BDD151D4E5A000985E5 /* DDAbstractDatabaseLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDAbstractDatabaseLogger.m; path = ../../../Vendor/CocoaLumberjack/DDAbstractDatabaseLogger.m; sourceTree = "<group>"; };
+		DC4B0BDE151D4E5A000985E5 /* DDASLLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDASLLogger.h; path = ../../../Vendor/CocoaLumberjack/DDASLLogger.h; sourceTree = "<group>"; };
+		DC4B0BDF151D4E5A000985E5 /* DDASLLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDASLLogger.m; path = ../../../Vendor/CocoaLumberjack/DDASLLogger.m; sourceTree = "<group>"; };
+		DC4B0BE0151D4E5A000985E5 /* DDFileLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDFileLogger.h; path = ../../../Vendor/CocoaLumberjack/DDFileLogger.h; sourceTree = "<group>"; };
+		DC4B0BE1151D4E5A000985E5 /* DDFileLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDFileLogger.m; path = ../../../Vendor/CocoaLumberjack/DDFileLogger.m; sourceTree = "<group>"; };
+		DC4B0BE2151D4E5A000985E5 /* DDLog.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDLog.h; path = ../../../Vendor/CocoaLumberjack/DDLog.h; sourceTree = "<group>"; };
+		DC4B0BE3151D4E5A000985E5 /* DDLog.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDLog.m; path = ../../../Vendor/CocoaLumberjack/DDLog.m; sourceTree = "<group>"; };
+		DC4B0BE4151D4E5A000985E5 /* DDTTYLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDTTYLogger.h; path = ../../../Vendor/CocoaLumberjack/DDTTYLogger.h; sourceTree = "<group>"; };
+		DC4B0BE5151D4E5A000985E5 /* DDTTYLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DDTTYLogger.m; path = ../../../Vendor/CocoaLumberjack/DDTTYLogger.m; sourceTree = "<group>"; };
+		DC4B0BE7151D4E5A000985E5 /* ContextFilterLogFormatter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ContextFilterLogFormatter.h; sourceTree = "<group>"; };
+		DC4B0BE8151D4E5A000985E5 /* ContextFilterLogFormatter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ContextFilterLogFormatter.m; sourceTree = "<group>"; };
+		DC4B0BE9151D4E5A000985E5 /* DispatchQueueLogFormatter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DispatchQueueLogFormatter.h; sourceTree = "<group>"; };
+		DC4B0BEA151D4E5A000985E5 /* DispatchQueueLogFormatter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DispatchQueueLogFormatter.m; sourceTree = "<group>"; };
+		DC4B0BEB151D4E5A000985E5 /* README.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -134,18 +142,32 @@
 		DC34A1CA147DF366004F0A03 /* Logging */ = {
 			isa = PBXGroup;
 			children = (
-				DC34A1CB147DF382004F0A03 /* DDAbstractDatabaseLogger.h */,
-				DC34A1CC147DF382004F0A03 /* DDAbstractDatabaseLogger.m */,
-				DC34A1CD147DF382004F0A03 /* DDASLLogger.h */,
-				DC34A1CE147DF382004F0A03 /* DDASLLogger.m */,
-				DC34A1CF147DF382004F0A03 /* DDFileLogger.h */,
-				DC34A1D0147DF382004F0A03 /* DDFileLogger.m */,
-				DC34A1D1147DF382004F0A03 /* DDLog.h */,
-				DC34A1D2147DF382004F0A03 /* DDLog.m */,
-				DC34A1D3147DF382004F0A03 /* DDTTYLogger.h */,
-				DC34A1D4147DF382004F0A03 /* DDTTYLogger.m */,
+				DC4B0BDC151D4E5A000985E5 /* DDAbstractDatabaseLogger.h */,
+				DC4B0BDD151D4E5A000985E5 /* DDAbstractDatabaseLogger.m */,
+				DC4B0BDE151D4E5A000985E5 /* DDASLLogger.h */,
+				DC4B0BDF151D4E5A000985E5 /* DDASLLogger.m */,
+				DC4B0BE0151D4E5A000985E5 /* DDFileLogger.h */,
+				DC4B0BE1151D4E5A000985E5 /* DDFileLogger.m */,
+				DC4B0BE2151D4E5A000985E5 /* DDLog.h */,
+				DC4B0BE3151D4E5A000985E5 /* DDLog.m */,
+				DC4B0BE4151D4E5A000985E5 /* DDTTYLogger.h */,
+				DC4B0BE5151D4E5A000985E5 /* DDTTYLogger.m */,
+				DC4B0BE6151D4E5A000985E5 /* Extensions */,
 			);
 			name = Logging;
+			sourceTree = "<group>";
+		};
+		DC4B0BE6151D4E5A000985E5 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				DC4B0BE7151D4E5A000985E5 /* ContextFilterLogFormatter.h */,
+				DC4B0BE8151D4E5A000985E5 /* ContextFilterLogFormatter.m */,
+				DC4B0BE9151D4E5A000985E5 /* DispatchQueueLogFormatter.h */,
+				DC4B0BEA151D4E5A000985E5 /* DispatchQueueLogFormatter.m */,
+				DC4B0BEB151D4E5A000985E5 /* README.txt */,
+			);
+			name = Extensions;
+			path = ../../../Vendor/CocoaLumberjack/Extensions;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -174,7 +196,7 @@
 		DC34A19A147DF0A8004F0A03 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0420;
+				LastUpgradeCheck = 0430;
 			};
 			buildConfigurationList = DC34A19D147DF0A8004F0A03 /* Build configuration list for PBXProject "UdpEchoServer" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -201,6 +223,7 @@
 				DC34A1B2147DF0A8004F0A03 /* InfoPlist.strings in Resources */,
 				DC34A1B8147DF0A8004F0A03 /* Credits.rtf in Resources */,
 				DC34A1BE147DF0A8004F0A03 /* MainMenu.xib in Resources */,
+				DC4B0BF3151D4E5A000985E5 /* README.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -213,12 +236,14 @@
 			files = (
 				DC34A1B4147DF0A8004F0A03 /* main.m in Sources */,
 				DC34A1BB147DF0A8004F0A03 /* AppDelegate.m in Sources */,
-				DC34A1D5147DF382004F0A03 /* DDAbstractDatabaseLogger.m in Sources */,
-				DC34A1D6147DF382004F0A03 /* DDASLLogger.m in Sources */,
-				DC34A1D7147DF382004F0A03 /* DDFileLogger.m in Sources */,
-				DC34A1D8147DF382004F0A03 /* DDLog.m in Sources */,
-				DC34A1D9147DF382004F0A03 /* DDTTYLogger.m in Sources */,
 				DC34A1DC147DF3CA004F0A03 /* GCDAsyncUdpSocket.m in Sources */,
+				DC4B0BEC151D4E5A000985E5 /* DDAbstractDatabaseLogger.m in Sources */,
+				DC4B0BED151D4E5A000985E5 /* DDASLLogger.m in Sources */,
+				DC4B0BEE151D4E5A000985E5 /* DDFileLogger.m in Sources */,
+				DC4B0BEF151D4E5A000985E5 /* DDLog.m in Sources */,
+				DC4B0BF0151D4E5A000985E5 /* DDTTYLogger.m in Sources */,
+				DC4B0BF1151D4E5A000985E5 /* ContextFilterLogFormatter.m in Sources */,
+				DC4B0BF2151D4E5A000985E5 /* DispatchQueueLogFormatter.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -300,6 +325,7 @@
 		DC34A1C2147DF0A8004F0A03 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_OBJC_ARC = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "UdpEchoServer/UdpEchoServer-Prefix.pch";
 				INFOPLIST_FILE = "UdpEchoServer/UdpEchoServer-Info.plist";
@@ -311,6 +337,7 @@
 		DC34A1C3147DF0A8004F0A03 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_OBJC_ARC = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "UdpEchoServer/UdpEchoServer-Prefix.pch";
 				INFOPLIST_FILE = "UdpEchoServer/UdpEchoServer-Info.plist";
@@ -338,6 +365,7 @@
 				DC34A1C3147DF0A8004F0A03 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

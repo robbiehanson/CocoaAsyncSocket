@@ -51,7 +51,7 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 	}
 	#else
 	{
-		NSString *host = @"deusty.com";
+		NSString *host = @"google.com";
 		uint16_t port = 80;
 	
 		

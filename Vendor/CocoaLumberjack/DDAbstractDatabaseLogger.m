@@ -1,4 +1,19 @@
 #import "DDAbstractDatabaseLogger.h"
+#import <math.h>
+
+/**
+ * Welcome to Cocoa Lumberjack!
+ * 
+ * The project page has a wealth of documentation if you have any questions.
+ * https://github.com/robbiehanson/CocoaLumberjack
+ * 
+ * If you're new to the project you may wish to read the "Getting Started" wiki.
+ * https://github.com/robbiehanson/CocoaLumberjack/wiki/GettingStarted
+**/
+
+#if ! __has_feature(objc_arc)
+#warning This file must be compiled with ARC. Use -fobjc-arc flag (or convert project to ARC).
+#endif
 
 /**
  * Welcome to Cocoa Lumberjack!
@@ -270,7 +285,10 @@
 {
 	dispatch_block_t block = ^{
 	
-		if (saveInterval != interval)
+		// C99 recommended floating point comparison macro
+		// Read: isLessThanOrGreaterThan(floatA, floatB)
+		
+		if (/* saveInterval != interval */ islessgreater(saveInterval, interval))
 		{
 			saveInterval = interval;
 			
@@ -350,7 +368,10 @@
 {
 	dispatch_block_t block = ^{
 		
-		if (maxAge != interval)
+		// C99 recommended floating point comparison macro
+		// Read: isLessThanOrGreaterThan(floatA, floatB)
+		
+		if (/* maxAge != interval */ islessgreater(maxAge, interval))
 		{
 			NSTimeInterval oldMaxAge = maxAge;
 			NSTimeInterval newMaxAge = interval;
@@ -436,7 +457,10 @@
 {
 	dispatch_block_t block = ^{
 		
-		if (deleteInterval != interval)
+		// C99 recommended floating point comparison macro
+		// Read: isLessThanOrGreaterThan(floatA, floatB)
+		
+		if (/* deleteInterval != interval */ islessgreater(deleteInterval, interval))
 		{
 			deleteInterval = interval;
 			

@@ -45,8 +45,8 @@
 		// Or we could use a dedicated dispatch queue, which could be helpful if we were doing a lot of processing.
 		// 
 		// The best approach for your application will depend upon convenience, requirements and performance.
-		// 
-		// For this simple example, we're just going to use the main thread.
+		
+		socketQueue = dispatch_queue_create("socketQueue", NULL);
 		
 		listenSocket = [[GCDAsyncSocket alloc] initWithDelegate:self delegateQueue:socketQueue];
 		
@@ -89,7 +89,6 @@
 	[attributes setObject:[NSColor redColor] forKey:NSForegroundColorAttributeName];
 	
 	NSAttributedString *as = [[NSAttributedString alloc] initWithString:paragraph attributes:attributes];
-	[as autorelease];
 	
 	[[logView textStorage] appendAttributedString:as];
 	[self scrollToBottom];
@@ -103,7 +102,6 @@
 	[attributes setObject:[NSColor purpleColor] forKey:NSForegroundColorAttributeName];
 	
 	NSAttributedString *as = [[NSAttributedString alloc] initWithString:paragraph attributes:attributes];
-	[as autorelease];
 	
 	[[logView textStorage] appendAttributedString:as];
 	[self scrollToBottom];
@@ -117,7 +115,6 @@
 	[attributes setObject:[NSColor blackColor] forKey:NSForegroundColorAttributeName];
 	
 	NSAttributedString *as = [[NSAttributedString alloc] initWithString:paragraph attributes:attributes];
-	[as autorelease];
 	
 	[[logView textStorage] appendAttributedString:as];
 	[self scrollToBottom];
@@ -187,11 +184,11 @@
 	UInt16 port = [newSocket connectedPort];
 	
 	dispatch_async(dispatch_get_main_queue(), ^{
-		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+		@autoreleasepool {
 		
-		[self logInfo:FORMAT(@"Accepted client %@:%hu", host, port)];
+			[self logInfo:FORMAT(@"Accepted client %@:%hu", host, port)];
 		
-		[pool release];
+		}
 	});
 	
 	NSString *welcomeMsg = @"Welcome to the AsyncSocket Echo Server\r\n";
@@ -204,6 +201,8 @@
 
 - (void)socket:(GCDAsyncSocket *)sock didWriteDataWithTag:(long)tag
 {
+	// This method is executed on the socketQueue (not the main thread)
+	
 	if (tag == ECHO_MSG)
 	{
 		[sock readDataToData:[GCDAsyncSocket CRLFData] withTimeout:READ_TIMEOUT tag:0];
@@ -212,21 +211,23 @@
 
 - (void)socket:(GCDAsyncSocket *)sock didReadData:(NSData *)data withTag:(long)tag
 {
+	// This method is executed on the socketQueue (not the main thread)
+	
 	dispatch_async(dispatch_get_main_queue(), ^{
-		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+		@autoreleasepool {
 		
-		NSData *strData = [data subdataWithRange:NSMakeRange(0, [data length] - 2)];
-		NSString *msg = [[[NSString alloc] initWithData:strData encoding:NSUTF8StringEncoding] autorelease];
-		if (msg)
-		{
-			[self logMessage:msg];
-		}
-		else
-		{
-			[self logError:@"Error converting received data into UTF-8 String"];
-		}
+			NSData *strData = [data subdataWithRange:NSMakeRange(0, [data length] - 2)];
+			NSString *msg = [[NSString alloc] initWithData:strData encoding:NSUTF8StringEncoding];
+			if (msg)
+			{
+				[self logMessage:msg];
+			}
+			else
+			{
+				[self logError:@"Error converting received data into UTF-8 String"];
+			}
 		
-		[pool release];
+		}
 	});
 	
 	// Echo message back to client
@@ -260,11 +261,11 @@
 	if (sock != listenSocket)
 	{
 		dispatch_async(dispatch_get_main_queue(), ^{
-			NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+			@autoreleasepool {
 			
-			[self logInfo:FORMAT(@"Client Disconnected")];
+				[self logInfo:FORMAT(@"Client Disconnected")];
 			
-			[pool release];
+			}
 		});
 		
 		@synchronized(connectedSockets)

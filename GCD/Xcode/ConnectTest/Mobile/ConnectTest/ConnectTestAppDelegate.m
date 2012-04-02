@@ -14,7 +14,7 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
   #define HOST @"www.paypal.com"
   #define PORT 443
 #else
-  #define HOST @"deusty.com";
+  #define HOST @"google.com";
   #define PORT 80
 #endif
 
@@ -243,7 +243,6 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
 	
 	DDLogInfo(@"HTTP Response:\n%@", httpResponse);
 	
-	[httpResponse release];
 }
 
 - (void)socketDidDisconnect:(GCDAsyncSocket *)sock withError:(NSError *)err

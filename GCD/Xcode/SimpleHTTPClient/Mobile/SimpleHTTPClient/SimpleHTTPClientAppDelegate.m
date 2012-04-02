@@ -3,13 +3,13 @@
 #import "GCDAsyncSocket.h"
 #import "DDLog.h"
 #import "DDTTYLogger.h"
-#import "DispatchQueueLogFormatter.h"
 
 // Log levels: off, error, warn, info, verbose
 static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
-#define TEST_SECURE_CONNECTION   1
-#define TEST_INVALID_CERTIFICATE 0
+#define HOST @"google.com"
+
+#define USE_SECURE_CONNECTION    0
 #define READ_HEADER_LINE_BY_LINE 0
 
 
@@ -33,27 +33,9 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// perfect for reducing interference with those pesky timing bugs in your code).
 	// 
 	// There is a massive amount of documentation on the Lumberjack project page:
-	// https://github.com/robbiehanson/CocoaLumberjack
-	
-	if (YES)
-	{
-		// Format log statements such that it outputs the queue/thread name.
-		// As opposed to the not-so-helpful mach thread id.
-		// 
-		// Old : 2011-12-05 19:54:08:161 [17894:f803] Connecting...
-		//       2011-12-05 19:54:08:161 [17894:11f03] GCDAsyncSocket: Dispatching DNS lookup...
-		//       2011-12-05 19:54:08:161 [17894:13303] GCDAsyncSocket: Creating IPv4 socket
-		// 
-		// New : 2011-12-05 19:54:08:161 [main] Connecting...
-		//       2011-12-05 19:54:08:161 [socket] GCDAsyncSocket: Dispatching DNS lookup...
-		//       2011-12-05 19:54:08:161 [socket] GCDAsyncSocket: Creating IPv4 socket
-		
-		DispatchQueueLogFormatter *formatter = [[DispatchQueueLogFormatter alloc] init];
-		[formatter setReplacementString:@"socket" forQueueLabel:GCDAsyncSocketQueueName];
-		[formatter setReplacementString:@"socket-cf" forQueueLabel:GCDAsyncSocketThreadName];
-	
-		[[DDTTYLogger sharedInstance] setLogFormatter:formatter];
-	}
+	// http://code.google.com/p/cocoalumberjack/
+	// 
+	// But this one line is all you need to instruct Lumberjack to spit out log statements to the Xcode console.
 	
 	[DDLog addLogger:[DDTTYLogger sharedInstance]];
 	
@@ -87,14 +69,9 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// When the asynchronous sockets connects, it will invoke the socket:didConnectToHost:port: delegate method.
 	
 	NSError *error = nil;
+	NSString *host = HOST;
 	
-#if TEST_SECURE_CONNECTION && !TEST_INVALID_CERTIFICATE
-	NSString *host = @"github.com";
-#else
-	NSString *host = @"deusty.com";
-#endif
-	
-#if TEST_SECURE_CONNECTION
+#if USE_SECURE_CONNECTION
 	uint16_t port = 443; // HTTPS
 #else
 	uint16_t port = 80;  // HTTP
@@ -109,7 +86,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 		DDLogVerbose(@"Connecting to \"%@\" on port %hu...", host, port);
 	}
 	
-#if TEST_SECURE_CONNECTION
+#if USE_SECURE_CONNECTION
 	
 	// The connect method above is asynchronous.
 	// At this point, the connection has been initiated, but hasn't completed.
@@ -126,23 +103,23 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// There it will find, dequeue and execute our request to start the TLS security protocol.
 	// 
 	// The options passed to the startTLS method are fully documented in the GCDAsyncSocket header file.
+	// Some servers only have a development (self-signed) X.509 certificate.
+	// In this case we would tell it not to attempt to validate the cert (cause if it did it would fail).
 	
-	NSMutableDictionary *options = [NSMutableDictionary dictionary];
-	
-	[options setObject:host
-	            forKey:(NSString *)kCFStreamSSLPeerName];
-	
-	#if TEST_INVALID_CERTIFICATE
-	
-	// The deusty server only has a development (self-signed) X.509 certificate.
-	// So we tell it not to attempt to validate the cert (cause if it did it would fail).
-	
-	[options setObject:[NSNumber numberWithBool:NO]
-	            forKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
-	
-	#endif
-	
-	[asyncSocket startTLS:options];
+	if (NO)
+	{
+		NSDictionary *options =
+		    [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:NO]
+		                                forKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
+		
+		DDLogVerbose(@"Requesting StartTLS with options:\n%@", options);
+		[asyncSocket startTLS:options];
+	}
+	else
+	{
+		DDLogVerbose(@"Requesting StartTLS with options: (nil)");
+		[asyncSocket startTLS:nil];
+	}
 	
 #endif
 	
@@ -165,10 +142,14 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// We're just going to tell the server to send us the metadata (essentially) about a particular resource.
 	// The server will send an http response, and then immediately close the connection.
 	
-	NSString *requestStr = @"HEAD / HTTP/1.0\r\nHost: deusty.com\r\n\r\n";
+	NSString *requestStrFrmt = @"HEAD / HTTP/1.0\r\nHost: %@\r\n\r\n";
+	
+	NSString *requestStr = [NSString stringWithFormat:requestStrFrmt, HOST];
 	NSData *requestData = [requestStr dataUsingEncoding:NSUTF8StringEncoding];
 	
 	[asyncSocket writeData:requestData withTimeout:-1.0 tag:0];
+	
+	DDLogVerbose(@"Sending HTTP Request:\n%@", requestStr);
 	
 	// Side Note:
 	// 
@@ -205,7 +186,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
 - (void)socketDidSecure:(GCDAsyncSocket *)sock
 {
-	// This method will be called if TEST_SECURE_CONNECTION is set
+	// This method will be called if USE_SECURE_CONNECTION is set
 	
 	DDLogVerbose(@"socketDidSecure:");
 }
@@ -240,7 +221,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	
 #else
 	
-	DDLogInfo(@"Full httpResponse: %@", httpResponse);
+	DDLogInfo(@"Full HTTP Response:\n%@", httpResponse);
 	
 #endif
 	

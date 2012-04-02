@@ -191,12 +191,12 @@
 
 static void DNSResolveCallBack(CFHostRef theHost, CFHostInfoType typeInfo, const CFStreamError *error, void *info)
 {
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	@autoreleasepool {
 	
-	InterfaceTestAppDelegate *instance = (InterfaceTestAppDelegate *)info;
-	[instance dnsResolveDidFinish];
+		InterfaceTestAppDelegate *instance = (__bridge InterfaceTestAppDelegate *)info;
+		[instance dnsResolveDidFinish];
 	
-	[pool release];
+	}
 }
 
 - (void)startDNSResolve
@@ -215,7 +215,7 @@ static void DNSResolveCallBack(CFHostRef theHost, CFHostInfoType typeInfo, const
 	
 	CFHostClientContext context;
 	context.version         = 0;
-	context.info            = self;
+	context.info            = (__bridge void *)(self);
 	context.retain          = NULL;
 	context.release         = NULL;
 	context.copyDescription = NULL;
@@ -266,12 +266,6 @@ static void DNSResolveCallBack(CFHostRef theHost, CFHostInfoType typeInfo, const
 	return YES;
 }
 
-- (void)dealloc
-{
-	[viewController release];
-	[window release];
-	[super dealloc];
-}
 
 
 @end
