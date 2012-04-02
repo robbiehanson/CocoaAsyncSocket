@@ -11,6 +11,8 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 #define HOST @"google.com"
 
 #define USE_SECURE_CONNECTION    0
+#define VALIDATE_SSL_CERTIFICATE 1
+
 #define READ_HEADER_LINE_BY_LINE 0
 
 
@@ -126,7 +128,12 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// Some servers only have a development (self-signed) X.509 certificate.
 	// In this case we would tell it not to attempt to validate the cert (cause if it did it would fail).
 	
-	if (NO)
+	#if VALIDATE_SSL_CERTIFICATE
+	{
+		DDLogVerbose(@"Requesting StartTLS with options: (nil)");
+		[asyncSocket startTLS:nil];
+	}
+	#else
 	{
 		NSDictionary *options =
 		    [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:NO]
@@ -135,11 +142,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 		DDLogVerbose(@"Requesting StartTLS with options:\n%@", options);
 		[asyncSocket startTLS:options];
 	}
-	else
-	{
-		DDLogVerbose(@"Requesting StartTLS with options: (nil)");
-		[asyncSocket startTLS:nil];
-	}
+	#endif
 	
 #endif
 	
