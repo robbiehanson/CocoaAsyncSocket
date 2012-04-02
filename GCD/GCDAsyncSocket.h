@@ -97,7 +97,11 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 	uint32_t flags;
 	uint16_t config;
 	
+#if __has_feature(objc_arc_weak)
 	__weak id delegate;
+#else
+	__unsafe_unretained id delegate;
+#endif
 	dispatch_queue_t delegateQueue;
 	
 	int socket4FD;

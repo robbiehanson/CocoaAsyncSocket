@@ -1595,7 +1595,7 @@ enum GCDAsyncSocketConfig
 			
 			// Create GCDAsyncSocket instance for accepted socket
 			
-			GCDAsyncSocket *acceptedSocket = [[GCDAsyncSocket alloc] initWithDelegate:delegate
+			GCDAsyncSocket *acceptedSocket = [[GCDAsyncSocket alloc] initWithDelegate:theDelegate
 			                                                            delegateQueue:delegateQueue
 			                                                              socketQueue:childSocketQueue];
 			
@@ -4766,7 +4766,7 @@ enum GCDAsyncSocketConfig
 	if (delegateQueue && [delegate respondsToSelector:@selector(socket:didReadData:withTag:)])
 	{
 		__strong id theDelegate = delegate;
-		GCDAsyncReadPacket *theRead = currentRead;
+		GCDAsyncReadPacket *theRead = currentRead; // Ensure currentRead retained since result may not own buffer
 		
 		dispatch_async(delegateQueue, ^{ @autoreleasepool {
 			
