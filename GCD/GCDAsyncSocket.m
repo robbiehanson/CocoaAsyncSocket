@@ -5004,6 +5004,10 @@ enum GCDAsyncSocketConfig
 	{
 		#if TARGET_OS_IPHONE
 			
+			// 
+			// Writing data using CFStream (over internal TLS)
+			// 
+			
 			const uint8_t *buffer = (const uint8_t *)[currentWrite->buffer bytes] + currentWrite->bytesDone;
 			
 			NSUInteger bytesToWrite = [currentWrite->buffer length] - currentWrite->bytesDone;
@@ -5055,10 +5059,11 @@ enum GCDAsyncSocketConfig
 			// 
 			// This sounds perfect, but when our SSLWriteFunction returns errSSLWouldBlock,
 			// then the SSLWrite method returns (with the proper errSSLWouldBlock return value),
-			// but it sets bytesWritten to bytesToWrite !!
+			// but it sets processed to dataLength !!
 			// 
 			// In other words, if the SSLWrite function doesn't completely write all the data we tell it to,
-			// then it doesn't tell us how many bytes were actually written.
+			// then it doesn't tell us how many bytes were actually written. So, for example, if we tell it to
+			// write 256 bytes then it might actually write 128 bytes, but then report 0 bytes written.
 			// 
 			// You might be wondering:
 			// If the SSLWrite function doesn't tell us how many bytes were written,
@@ -5089,7 +5094,7 @@ enum GCDAsyncSocketConfig
 					bytesWritten = sslWriteCachedLength;
 					sslWriteCachedLength = 0;
 					
-					if (currentWrite->bytesDone == [currentWrite->buffer length])
+					if ([currentWrite->buffer length] == (currentWrite->bytesDone + bytesWritten))
 					{
 						// We've written all data for the current write.
 						hasNewDataToWrite = NO;
@@ -5113,7 +5118,9 @@ enum GCDAsyncSocketConfig
 			
 			if (hasNewDataToWrite)
 			{
-				const uint8_t *buffer = (const uint8_t *)[currentWrite->buffer bytes] + currentWrite->bytesDone + bytesWritten;
+				const uint8_t *buffer = (const uint8_t *)[currentWrite->buffer bytes]
+				                                        + currentWrite->bytesDone
+				                                        + bytesWritten;
 				
 				NSUInteger bytesToWrite = [currentWrite->buffer length] - currentWrite->bytesDone - bytesWritten;
 				
@@ -5163,6 +5170,10 @@ enum GCDAsyncSocketConfig
 	}
 	else
 	{
+		// 
+		// Writing data directly over raw socket
+		// 
+		
 		int socketFD = (socket4FD == SOCKET_NULL) ? socket6FD : socket4FD;
 		
 		const uint8_t *buffer = (const uint8_t *)[currentWrite->buffer bytes] + currentWrite->bytesDone;
