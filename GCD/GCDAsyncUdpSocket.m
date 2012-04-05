@@ -4270,7 +4270,7 @@ static NSThread *listenerThread;
 static void CFReadStreamCallback(CFReadStreamRef stream, CFStreamEventType type, void *pInfo)
 {
 	@autoreleasepool {
-		GCDAsyncUdpSocket *asyncUdpSocket = [(GCDAsyncUdpSocket *)pInfo retain];
+		GCDAsyncUdpSocket *asyncUdpSocket = (__bridge GCDAsyncUdpSocket *)pInfo;
 	
 		switch(type)
 		{
@@ -4287,10 +4287,10 @@ static void CFReadStreamCallback(CFReadStreamRef stream, CFStreamEventType type,
 			case kCFStreamEventErrorOccurred:
 			case kCFStreamEventEndEncountered:
 			{
-				NSError *error = NSMakeCollectable(CFReadStreamCopyError(stream));
+				NSError *error = (__bridge_transfer NSError *)CFReadStreamCopyError(stream);
 				if (error == nil && type == kCFStreamEventEndEncountered)
 				{
-					error = [[asyncUdpSocket socketClosedError] retain];
+					error = [asyncUdpSocket socketClosedError];
 				}
 				
 				dispatch_async(asyncUdpSocket->socketQueue, ^{ @autoreleasepool {
@@ -4309,7 +4309,6 @@ static void CFReadStreamCallback(CFReadStreamRef stream, CFStreamEventType type,
 					
 				}});
 				
-				[error release];
 				break;
 			}
 			default:
@@ -4317,15 +4316,13 @@ static void CFReadStreamCallback(CFReadStreamRef stream, CFStreamEventType type,
 				LogCError(@"CFReadStreamCallback - UnknownType: %i", (int)type);
 			}
 		}
-		
-		[asyncUdpSocket release];
 	}
 }
 
 static void CFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType type, void *pInfo)
 {
 	@autoreleasepool {
-		GCDAsyncUdpSocket *asyncUdpSocket = [(GCDAsyncUdpSocket *)pInfo retain];
+		GCDAsyncUdpSocket *asyncUdpSocket = (__bridge GCDAsyncUdpSocket *)pInfo;
 		
 		switch(type)
 		{
@@ -4342,10 +4339,10 @@ static void CFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType typ
 			case kCFStreamEventErrorOccurred:
 			case kCFStreamEventEndEncountered:
 			{
-				NSError *error = NSMakeCollectable(CFWriteStreamCopyError(stream));
+				NSError *error = (__bridge_transfer NSError *)CFWriteStreamCopyError(stream);
 				if (error == nil && type == kCFStreamEventEndEncountered)
 				{
-					error = [[asyncUdpSocket socketClosedError] retain];
+					error = [asyncUdpSocket socketClosedError];
 				}
 				
 				dispatch_async(asyncUdpSocket->socketQueue, ^{ @autoreleasepool {
@@ -4364,7 +4361,6 @@ static void CFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType typ
 					
 				}});
 				
-				[error release];
 				break;
 			}
 			default:
@@ -4372,8 +4368,6 @@ static void CFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType typ
 				LogCError(@"CFWriteStreamCallback - UnknownType: %i", (int)type);
 			}
 		}
-		
-		[asyncUdpSocket release];
 	}
 }
 
@@ -4472,7 +4466,7 @@ Failed:
 	NSError *err = nil;
 	
 	streamContext.version = 0;
-	streamContext.info = self;
+	streamContext.info = (__bridge void *)self;
 	streamContext.retain = nil;
 	streamContext.release = nil;
 	streamContext.copyDescription = nil;
@@ -4776,6 +4770,9 @@ Failed:
 		return NO;
 	}
 	
+	// Why is this commented out?
+	// See comments below.
+	
 //	NSError *err = nil;
 //	if (![self createReadAndWriteStreams:&err])
 //	{
@@ -4818,7 +4815,7 @@ Failed:
 	// 
 	// One tiny problem: the sockets will still get closed when the app gets backgrounded.
 	// 
-	// Edit: Actually I forgot to set the voip flag in the Info.plist, so I need to test this again...
+	// Apple does not officially support backgrounding UDP sockets.
 	
 	return NO;
 }
