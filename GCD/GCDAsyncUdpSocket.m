@@ -4087,14 +4087,13 @@ enum GCDAsyncUdpSocketConfig
 	
 	if (waitingForSocket)
 	{
-		// Not enough room in the underlying OS socket send buffer.
-		// Wait for a notification.
+		// Wait for a notification of available data.
 		
-		if (!(flags & kSock4CanAcceptBytes)) {
-			[self resumeSend4Source];
+		if (socket4FDBytesAvailable == 0) {
+			[self resumeReceive4Source];
 		}
-		if (!(flags & kSock6CanAcceptBytes)) {
-			[self resumeSend6Source];
+		if (socket6FDBytesAvailable == 0) {
+			[self resumeReceive6Source];
 		}
 	}
 	else if (error)
