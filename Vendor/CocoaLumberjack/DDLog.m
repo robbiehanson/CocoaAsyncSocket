@@ -286,6 +286,33 @@ static unsigned int numProcessors;
 	}
 }
 
++ (void)log:(BOOL)asynchronous
+      level:(int)level
+       flag:(int)flag
+    context:(int)context
+       file:(const char *)file
+   function:(const char *)function
+       line:(int)line
+        tag:(id)tag
+     format:(NSString *)format
+       args:(va_list)args
+{
+	if (format)
+	{
+		NSString *logMsg = [[NSString alloc] initWithFormat:format arguments:args];
+		DDLogMessage *logMessage = [[DDLogMessage alloc] initWithLogMsg:logMsg
+		                                                          level:level
+		                                                           flag:flag
+		                                                        context:context
+		                                                           file:file
+		                                                       function:function
+		                                                           line:line
+		                                                            tag:tag];
+		
+		[self queueLogMessage:logMessage asynchronously:asynchronous];
+	}
+}
+
 + (void)flushLog
 {
 	dispatch_sync(loggingQueue, ^{ @autoreleasepool {
@@ -806,32 +833,20 @@ NSString *DDExtractFileNameWithoutExtension(const char *filePath, BOOL copy)
 
 - (NSString *)threadID
 {
-	if (threadID == nil)
-	{
-		threadID = [[NSString alloc] initWithFormat:@"%x", machThreadID];
-	}
-	
-	return threadID;
+	return [[NSString alloc] initWithFormat:@"%x", machThreadID];
 }
 
 - (NSString *)fileName
 {
-	if (fileName == nil && file != NULL)
-	{
-		fileName = DDExtractFileNameWithoutExtension(file, NO);
-	}
-	
-	return fileName;
+	return DDExtractFileNameWithoutExtension(file, NO);
 }
 
 - (NSString *)methodName
 {
-	if (methodName == nil && function != NULL)
-	{
-		methodName = [[NSString alloc] initWithUTF8String:function];
-	}
-	
-	return methodName;
+	if (function == NULL)
+		return nil;
+	else
+		return [[NSString alloc] initWithUTF8String:function];
 }
 
 - (void)dealloc
