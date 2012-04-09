@@ -26,7 +26,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// However, it will invoke the delegate methods on a specified GCD delegate dispatch queue.
 	// 
 	// Now we can configure the delegate dispatch queues however we want.
-	// We could simply use the main dispatc queue, so the delegate methods are invoked on the main thread.
+	// We could simply use the main dispatch queue, so the delegate methods are invoked on the main thread.
 	// Or we could use a dedicated dispatch queue, which could be helpful if we were doing a lot of processing.
 	// 
 	// The best approach for your application will depend upon convenience, requirements and performance.

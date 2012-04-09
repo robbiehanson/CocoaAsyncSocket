@@ -7,16 +7,16 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
 #define FORMAT(format, ...) [NSString stringWithFormat:(format), ##__VA_ARGS__]
 
+
 @interface ViewController ()
 {
-	long tag;
+	BOOL isRunning;
 	GCDAsyncUdpSocket *udpSocket;
 	
 	NSMutableString *log;
 }
 
 @end
-
 
 @implementation ViewController
 
@@ -25,50 +25,30 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	if ((self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil]))
 	{
 		log = [[NSMutableString alloc] init];
+		
+		// Setup our socket.
+		// The socket will invoke our delegate methods using the usual delegate paradigm.
+		// However, it will invoke the delegate methods on a specified GCD delegate dispatch queue.
+		// 
+		// Now we can configure the delegate dispatch queues however we want.
+		// We could simply use the main dispatch queue, so the delegate methods are invoked on the main thread.
+		// Or we could use a dedicated dispatch queue, which could be helpful if we were doing a lot of processing.
+		// 
+		// The best approach for your application will depend upon convenience, requirements and performance.
+		// 
+		// For this simple example, we're just going to use the main thread.
+		
+		udpSocket = [[GCDAsyncUdpSocket alloc] initWithDelegate:self delegateQueue:dispatch_get_main_queue()];
 	}
 	return self;
 }
 
-- (void)setupSocket
-{
-	// Setup our socket.
-	// The socket will invoke our delegate methods using the usual delegate paradigm.
-	// However, it will invoke the delegate methods on a specified GCD delegate dispatch queue.
-	// 
-	// Now we can configure the delegate dispatch queues however we want.
-	// We could simply use the main dispatc queue, so the delegate methods are invoked on the main thread.
-	// Or we could use a dedicated dispatch queue, which could be helpful if we were doing a lot of processing.
-	// 
-	// The best approach for your application will depend upon convenience, requirements and performance.
-	// 
-	// For this simple example, we're just going to use the main thread.
-	
-	udpSocket = [[GCDAsyncUdpSocket alloc] initWithDelegate:self delegateQueue:dispatch_get_main_queue()];
-	
-	NSError *error = nil;
-	
-	if (![udpSocket bindToPort:0 error:&error])
-	{
-		[self logError:FORMAT(@"Error binding: %@", error)];
-		return;
-	}
-	if (![udpSocket beginReceiving:&error])
-	{
-		[self logError:FORMAT(@"Error receiving: %@", error)];
-		return;
-	}
-	
-	[self logInfo:@"Ready"];
-}
 
 - (void)viewDidLoad
 {
-	[super viewDidLoad];
+    [super viewDidLoad];
 	
-	if (udpSocket == nil)
-	{
-		[self setupSocket];
-	}
+	webView.dataDetectorTypes = UIDataDetectorTypeNone;
 	
 	[[NSNotificationCenter defaultCenter] addObserver:self
 	                                         selector:@selector(keyboardWillShow:)
@@ -213,64 +193,79 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	[webView loadHTMLString:html baseURL:nil];
 }
 
-- (IBAction)send:(id)sender
+- (IBAction)startStop:(id)sender
 {
-	NSString *host = addrField.text;
-	if ([host length] == 0)
+	if (isRunning)
 	{
-		[self logError:@"Address required"];
-		return;
+		// STOP udp echo server
+		
+		[udpSocket close];
+		
+		[self logInfo:@"Stopped Udp Echo server"];
+		isRunning = false;
+		
+		[portField setEnabled:YES];
+		[startStopButton setTitle:@"Start" forState:UIControlStateNormal];
 	}
-	
-	int port = [portField.text intValue];
-	if (port <= 0 || port > 65535)
+	else
 	{
-		[self logError:@"Valid port required"];
-		return;
+		// START udp echo server
+		
+		int port = [portField.text intValue];
+		if (port < 0 || port > 65535)
+		{
+			portField.text = @"";
+			port = 0;
+		}
+		
+		NSError *error = nil;
+		
+		if (![udpSocket bindToPort:port error:&error])
+		{
+			[self logError:FORMAT(@"Error starting server (bind): %@", error)];
+			return;
+		}
+		if (![udpSocket beginReceiving:&error])
+		{
+			[udpSocket close];
+			
+			[self logError:FORMAT(@"Error starting server (recv): %@", error)];
+			return;
+		}
+		
+		[self logInfo:FORMAT(@"Udp Echo server started on port %hu", [udpSocket localPort])];
+		isRunning = YES;
+		
+		[portField setEnabled:NO];
+		[startStopButton setTitle:@"Stop" forState:UIControlStateNormal];
 	}
-	
-	NSString *msg = messageField.text;
-	if ([msg length] == 0)
-	{
-		[self logError:@"Message required"];
-		return;
-	}
-	
-	NSData *data = [msg dataUsingEncoding:NSUTF8StringEncoding];
-	[udpSocket sendData:data toHost:host port:port withTimeout:-1 tag:tag];
-	
-	[self logMessage:FORMAT(@"SENT (%i): %@", (int)tag, msg)];
-	
-	tag++;
-}
-
-- (void)udpSocket:(GCDAsyncUdpSocket *)sock didSendDataWithTag:(long)tag
-{
-	// You could add checks here
-}
-
-- (void)udpSocket:(GCDAsyncUdpSocket *)sock didNotSendDataWithTag:(long)tag dueToError:(NSError *)error
-{
-	// You could add checks here
 }
 
 - (void)udpSocket:(GCDAsyncUdpSocket *)sock didReceiveData:(NSData *)data
                                                fromAddress:(NSData *)address
                                          withFilterContext:(id)filterContext
 {
+	if (!isRunning) return;
+	
 	NSString *msg = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
 	if (msg)
 	{
-		[self logMessage:FORMAT(@"RECV: %@", msg)];
-	}
-	else
-	{
+		/* If you want to get a display friendly version of the IPv4 or IPv6 address, you could do this:
+		 
 		NSString *host = nil;
 		uint16_t port = 0;
 		[GCDAsyncUdpSocket getHost:&host port:&port fromAddress:address];
 		
-		[self logInfo:FORMAT(@"RECV: Unknown message from: %@:%hu", host, port)];
+		*/
+		
+		[self logMessage:msg];
 	}
+	else
+	{
+		[self logError:@"Error converting received data into UTF-8 String"];
+	}
+	
+	[udpSocket sendData:data toAddress:address withTimeout:-1 tag:0];
 }
 
 @end
