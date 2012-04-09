@@ -61,7 +61,7 @@ typedef enum GCDAsyncUdpSocketError GCDAsyncUdpSocketError;
  * 
  * GCDAsyncUdpSocketReceiveFilterBlock filter = ^BOOL (NSData *data, NSData *address, id *context) {
  * 
- *     MyProtocolMessage *msg = [MyProtocol parseMessage:msg];
+ *     MyProtocolMessage *msg = [MyProtocol parseMessage:data];
  *     
  *     *context = response;
  *     return (response != nil);
@@ -522,7 +522,7 @@ typedef BOOL (^GCDAsyncUdpSocketReceiveFilterBlock)(NSData *data, NSData *addres
  * 
  * GCDAsyncUdpSocketReceiveFilterBlock filter = ^BOOL (NSData *data, NSData *address, id *context) {
  * 
- *     MyProtocolMessage *msg = [MyProtocol parseMessage:msg];
+ *     MyProtocolMessage *msg = [MyProtocol parseMessage:data];
  *     
  *     *context = response;
  *     return (response != nil);
@@ -534,7 +534,21 @@ typedef BOOL (^GCDAsyncUdpSocketReceiveFilterBlock)(NSData *data, NSData *addres
 
 #pragma mark Closing
 
+/**
+ * Immediately closes the underlying socket.
+ * Any pending send operations are discarded.
+ * 
+ * The GCDAsyncUdpSocket instance may optionally be used again.
+ *   (it will setup/configure/use another unnderlying BSD socket).
+**/
 - (void)close;
+
+/**
+ * Closes the underlying socket after all pending send operations have been sent.
+ * 
+ * The GCDAsyncUdpSocket instance may optionally be used again.
+ *   (it will setup/configure/use another unnderlying BSD socket).
+**/
 - (void)closeAfterSending;
 
 #pragma mark Advanced

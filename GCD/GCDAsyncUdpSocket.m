@@ -93,6 +93,12 @@ static const int logLevel = LOG_LEVEL_VERBOSE;
 **/
 #define SOCKET_NULL -1
 
+/**
+ * Just to type less code.
+**/
+#define AutoreleasedBlock(block) ^{ @autoreleasepool { block(); }} 
+
+
 @class GCDAsyncUdpSendPacket;
 
 NSString *const GCDAsyncUdpSocketException = @"GCDAsyncUdpSocketException";
@@ -2169,19 +2175,16 @@ enum GCDAsyncUdpSocketConfig
 		return;
 	}
 	
-	@autoreleasepool {
+	NSData *address = nil;
+	NSString *host = nil;
+	uint16_t port = 0;
 	
-		NSData *address = nil;
-		NSString *host = nil;
-		uint16_t port = 0;
+	if ([self getLocalAddress:&address host:&host port:&port forSocket:socket4FD withFamily:AF_INET])
+	{
 		
-		if ([self getLocalAddress:&address host:&host port:&port forSocket:socket4FD withFamily:AF_INET])
-		{
-			
-			cachedLocalAddress4 = address;
-			cachedLocalHost4 = host;
-			cachedLocalPort4 = port;
-		}
+		cachedLocalAddress4 = address;
+		cachedLocalHost4 = host;
+		cachedLocalPort4 = port;
 	}
 }
 
@@ -2194,19 +2197,16 @@ enum GCDAsyncUdpSocketConfig
 		return;
 	}
 	
-	@autoreleasepool {
+	NSData *address = nil;
+	NSString *host = nil;
+	uint16_t port = 0;
 	
-		NSData *address = nil;
-		NSString *host = nil;
-		uint16_t port = 0;
+	if ([self getLocalAddress:&address host:&host port:&port forSocket:socket6FD withFamily:AF_INET6])
+	{
 		
-		if ([self getLocalAddress:&address host:&host port:&port forSocket:socket6FD withFamily:AF_INET6])
-		{
-			
-			cachedLocalAddress6 = address;
-			cachedLocalHost6 = host;
-			cachedLocalPort6 = port;
-		}
+		cachedLocalAddress6 = address;
+		cachedLocalHost6 = host;
+		cachedLocalPort6 = port;
 	}
 }
 
@@ -2214,19 +2214,25 @@ enum GCDAsyncUdpSocketConfig
 {
 	__block NSData *result = nil;
 	
-	dispatch_block_t block = ^{ @autoreleasepool {
+	dispatch_block_t block = ^{
 		
 		if (socket4FD != SOCKET_NULL)
-			result = [self localAddress_IPv4];
+		{
+			[self maybeUpdateCachedLocalAddress4Info];
+			result = cachedLocalAddress4;
+		}
 		else
-			result = [self localAddress_IPv6];
+		{
+			[self maybeUpdateCachedLocalAddress6Info];
+			result = cachedLocalAddress6;
+		}
 		
-	}};
+	};
 	
 	if (dispatch_get_current_queue() == socketQueue)
 		block();
 	else
-		dispatch_sync(socketQueue, block);
+		dispatch_sync(socketQueue, AutoreleasedBlock(block));
 	
 	return result;
 }
@@ -2235,19 +2241,24 @@ enum GCDAsyncUdpSocketConfig
 {
 	__block NSString *result = nil;
 	
-	dispatch_block_t block = ^{ @autoreleasepool {
+	dispatch_block_t block = ^{
 		
 		if (socket4FD != SOCKET_NULL)
-			result = [self localHost_IPv4];
+		{
+			[self maybeUpdateCachedLocalAddress4Info];
+			result = cachedLocalHost4;
+		}
 		else
-			result = [self localHost_IPv6];
-		
-	}};
+		{
+			[self maybeUpdateCachedLocalAddress6Info];
+			result = cachedLocalHost6;
+		}
+	};
 	
 	if (dispatch_get_current_queue() == socketQueue)
 		block();
 	else
-		dispatch_sync(socketQueue, block);
+		dispatch_sync(socketQueue, AutoreleasedBlock(block));
 	
 	return result;
 }
@@ -2259,15 +2270,21 @@ enum GCDAsyncUdpSocketConfig
 	dispatch_block_t block = ^{
 		
 		if (socket4FD != SOCKET_NULL)
-			result = [self localPort_IPv4];
+		{
+			[self maybeUpdateCachedLocalAddress4Info];
+			result = cachedLocalPort4;
+		}
 		else
-			result = [self localPort_IPv6];
+		{
+			[self maybeUpdateCachedLocalAddress6Info];
+			result = cachedLocalPort6;
+		}
 	};
 	
 	if (dispatch_get_current_queue() == socketQueue)
 		block();
 	else
-		dispatch_sync(socketQueue, block);
+		dispatch_sync(socketQueue, AutoreleasedBlock(block));
 	
 	return result;
 }
@@ -2285,7 +2302,7 @@ enum GCDAsyncUdpSocketConfig
 	if (dispatch_get_current_queue() == socketQueue)
 		block();
 	else
-		dispatch_sync(socketQueue, block);
+		dispatch_sync(socketQueue, AutoreleasedBlock(block));
 	
 	return result;
 }
@@ -2303,7 +2320,7 @@ enum GCDAsyncUdpSocketConfig
 	if (dispatch_get_current_queue() == socketQueue)
 		block();
 	else
-		dispatch_sync(socketQueue, block);
+		dispatch_sync(socketQueue, AutoreleasedBlock(block));
 	
 	return result;
 }
@@ -2321,7 +2338,7 @@ enum GCDAsyncUdpSocketConfig
 	if (dispatch_get_current_queue() == socketQueue)
 		block();
 	else
-		dispatch_sync(socketQueue, block);
+		dispatch_sync(socketQueue, AutoreleasedBlock(block));
 	
 	return result;
 }
@@ -2339,7 +2356,7 @@ enum GCDAsyncUdpSocketConfig
 	if (dispatch_get_current_queue() == socketQueue)
 		block();
 	else
-		dispatch_sync(socketQueue, block);
+		dispatch_sync(socketQueue, AutoreleasedBlock(block));
 	
 	return result;
 }
@@ -2357,7 +2374,7 @@ enum GCDAsyncUdpSocketConfig
 	if (dispatch_get_current_queue() == socketQueue)
 		block();
 	else
-		dispatch_sync(socketQueue, block);
+		dispatch_sync(socketQueue, AutoreleasedBlock(block));
 	
 	return result;
 }
@@ -2375,7 +2392,7 @@ enum GCDAsyncUdpSocketConfig
 	if (dispatch_get_current_queue() == socketQueue)
 		block();
 	else
-		dispatch_sync(socketQueue, block);
+		dispatch_sync(socketQueue, AutoreleasedBlock(block));
 	
 	return result;
 }
@@ -2389,54 +2406,51 @@ enum GCDAsyncUdpSocketConfig
 		return;
 	}
 	
-	@autoreleasepool {
+	NSData *data = nil;
+	NSString *host = nil;
+	uint16_t port = 0;
+	int family = AF_UNSPEC;
 	
-		NSData *data = nil;
-		NSString *host = nil;
-		uint16_t port = 0;
-		int family = AF_UNSPEC;
+	if (socket4FD != SOCKET_NULL)
+	{
+		struct sockaddr_in sockaddr4;
+		socklen_t sockaddr4len = sizeof(sockaddr4);
 		
-		if (socket4FD != SOCKET_NULL)
+		if (getpeername(socket4FD, (struct sockaddr *)&sockaddr4, &sockaddr4len) == 0)
 		{
-			struct sockaddr_in sockaddr4;
-			socklen_t sockaddr4len = sizeof(sockaddr4);
-			
-			if (getpeername(socket4FD, (struct sockaddr *)&sockaddr4, &sockaddr4len) == 0)
-			{
-				data = [NSData dataWithBytes:&sockaddr4 length:sockaddr4len];
-				host = [[self class] hostFromSockaddr4:&sockaddr4];
-				port = [[self class] portFromSockaddr4:&sockaddr4];
-				family = AF_INET;
-			}
-			else
-			{
-				LogWarn(@"Error in getpeername: %@", [self errnoError]);
-			}
+			data = [NSData dataWithBytes:&sockaddr4 length:sockaddr4len];
+			host = [[self class] hostFromSockaddr4:&sockaddr4];
+			port = [[self class] portFromSockaddr4:&sockaddr4];
+			family = AF_INET;
 		}
-		else if (socket6FD != SOCKET_NULL)
+		else
 		{
-			struct sockaddr_in6 sockaddr6;
-			socklen_t sockaddr6len = sizeof(sockaddr6);
-			
-			if (getpeername(socket6FD, (struct sockaddr *)&sockaddr6, &sockaddr6len) == 0)
-			{
-				data = [NSData dataWithBytes:&sockaddr6 length:sockaddr6len];
-				host = [[self class] hostFromSockaddr6:&sockaddr6];
-				port = [[self class] portFromSockaddr6:&sockaddr6];
-				family = AF_INET6;
-			}
-			else
-			{
-				LogWarn(@"Error in getpeername: %@", [self errnoError]);
-			}
+			LogWarn(@"Error in getpeername: %@", [self errnoError]);
 		}
-		
-		
-		cachedConnectedAddress = data;
-		cachedConnectedHost    = host;
-		cachedConnectedPort    = port;
-		cachedConnectedFamily  = family;
 	}
+	else if (socket6FD != SOCKET_NULL)
+	{
+		struct sockaddr_in6 sockaddr6;
+		socklen_t sockaddr6len = sizeof(sockaddr6);
+		
+		if (getpeername(socket6FD, (struct sockaddr *)&sockaddr6, &sockaddr6len) == 0)
+		{
+			data = [NSData dataWithBytes:&sockaddr6 length:sockaddr6len];
+			host = [[self class] hostFromSockaddr6:&sockaddr6];
+			port = [[self class] portFromSockaddr6:&sockaddr6];
+			family = AF_INET6;
+		}
+		else
+		{
+			LogWarn(@"Error in getpeername: %@", [self errnoError]);
+		}
+	}
+	
+	
+	cachedConnectedAddress = data;
+	cachedConnectedHost    = host;
+	cachedConnectedPort    = port;
+	cachedConnectedFamily  = family;
 }
 
 - (NSData *)connectedAddress
@@ -2452,7 +2466,7 @@ enum GCDAsyncUdpSocketConfig
 	if (dispatch_get_current_queue() == socketQueue)
 		block();
 	else
-		dispatch_sync(socketQueue, block);
+		dispatch_sync(socketQueue, AutoreleasedBlock(block));
 	
 	return result;
 }
@@ -2470,7 +2484,7 @@ enum GCDAsyncUdpSocketConfig
 	if (dispatch_get_current_queue() == socketQueue)
 		block();
 	else
-		dispatch_sync(socketQueue, block);
+		dispatch_sync(socketQueue, AutoreleasedBlock(block));
 	
 	return result;
 }
@@ -2488,7 +2502,7 @@ enum GCDAsyncUdpSocketConfig
 	if (dispatch_get_current_queue() == socketQueue)
 		block();
 	else
-		dispatch_sync(socketQueue, block);
+		dispatch_sync(socketQueue, AutoreleasedBlock(block));
 	
 	return result;
 }
@@ -3215,7 +3229,6 @@ enum GCDAsyncUdpSocketConfig
     return [self performMulticastRequest:IP_ADD_MEMBERSHIP forGroup:group onInterface:interface error:errPtr];
 }
 
-
 - (BOOL)leaveMulticastGroup:(NSString *)group error:(NSError **)errPtr
 {
 	return [self leaveMulticastGroup:group onInterface:nil error:errPtr];
@@ -3227,7 +3240,10 @@ enum GCDAsyncUdpSocketConfig
     return [self performMulticastRequest:IP_DROP_MEMBERSHIP forGroup:group onInterface:interface error:errPtr];
 }
 
-- (BOOL)performMulticastRequest:(int)requestType forGroup:(NSString *)group onInterface:(NSString *)interface error:(NSError **)errPtr
+- (BOOL)performMulticastRequest:(int)requestType
+                       forGroup:(NSString *)group
+                    onInterface:(NSString *)interface
+                          error:(NSError **)errPtr
 {
 	__block BOOL result = NO;
 	__block NSError *err = nil;
@@ -3295,8 +3311,7 @@ enum GCDAsyncUdpSocketConfig
 			
 			result = YES;
 		}
-		
-		if ((socket6FD != SOCKET_NULL) && groupAddr6 && interfaceAddr6)
+		else if ((socket6FD != SOCKET_NULL) && groupAddr6 && interfaceAddr6)
 		{
 			const struct sockaddr_in6 *nativeGroup = (struct sockaddr_in6 *)[groupAddr6 bytes];
 			
@@ -3316,6 +3331,13 @@ enum GCDAsyncUdpSocketConfig
 			[self closeSocket4];
 			
 			result = YES;
+		}
+		else
+		{
+			NSString *msg = @"Socket, group, and interface do not have matching IP versions";
+			err = [self badParamError:msg];
+			
+			return_from_block;
 		}
 		
 	}};
@@ -4670,7 +4692,10 @@ Failed:
 
 - (void)performBlock:(dispatch_block_t)block
 {
-	dispatch_sync(socketQueue, block);
+	if (dispatch_get_current_queue() == socketQueue)
+		block();
+	else
+		dispatch_sync(socketQueue, block);
 }
 
 - (int)socketFD
