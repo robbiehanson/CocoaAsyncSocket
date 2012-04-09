@@ -469,14 +469,54 @@ typedef BOOL (^GCDAsyncUdpSocketReceiveFilterBlock)(NSData *data, NSData *addres
 #pragma mark Receiving
 
 /**
- * Begins receiving udp packets on the socket.
- * It will continue to receive packets until the socket is closed, or until pauseReceiving is called.
+ * There are two modes of operation for receiving packets: one-at-a-time & continuous.
+ * 
+ * In one-at-a-time mode, you call receiveOnce everytime your delegate is ready to process an incoming udp packet.
+ * Receiving packets one-at-a-time may be better suited for implementing certain state machine code,
+ * where your state machine may not always be ready to process incoming packets.
+ * 
+ * In continuous mode, the delegate is invoked immediately everytime incoming udp packets are received.
+ * Receiving packets continuously is better suited to real-time streaming applications.
+ * 
+ * You may switch back and forth between one-at-a-time mode and continuous mode.
+ * If the socket is currently in continuous mode, calling this method will switch it to one-at-a-time mode.
+ * 
+ * When a packet is received (and not filtered by the optional receive filter),
+ * the delegate method (udpSocket:didReceiveData:fromAddress:withFilterContext:) is invoked.
+ * 
+ * If the socket is able to begin receiving packets, this method returns YES.
+ * Otherwise it returns NO, and sets the errPtr with appropriate error information.
+ * 
+ * An example error:
+ * You created a udp socket to act as a server, and immediately called receive.
+ * You forgot to first bind the socket to a port number, and received a error with a message like:
+ * "Must bind socket before you can receive data."
+**/
+- (BOOL)receiveOnce:(NSError **)errPtr;
+
+/**
+ * There are two modes of operation for receiving packets: one-at-a-time & continuous.
+ * 
+ * In one-at-a-time mode, you call receiveOnce everytime your delegate is ready to process an incoming udp packet.
+ * Receiving packets one-at-a-time may be better suited for implementing certain state machine code,
+ * where your state machine may not always be ready to process incoming packets.
+ * 
+ * In continuous mode, the delegate is invoked immediately everytime incoming udp packets are received.
+ * Receiving packets continuously is better suited to real-time streaming applications.
+ * 
+ * You may switch back and forth between one-at-a-time mode and continuous mode.
+ * If the socket is currently in one-at-a-time mode, calling this method will switch it to continuous mode.
  * 
  * For every received packet (not filtered by the optional receive filter),
  * the delegate method (udpSocket:didReceiveData:fromAddress:withFilterContext:) is invoked.
  * 
  * If the socket is able to begin receiving packets, this method returns YES.
  * Otherwise it returns NO, and sets the errPtr with appropriate error information.
+ * 
+ * An example error:
+ * You created a udp socket to act as a server, and immediately called receive.
+ * You forgot to first bind the socket to a port number, and received a error with a message like:
+ * "Must bind socket before you can receive data."
 **/
 - (BOOL)beginReceiving:(NSError **)errPtr;
 

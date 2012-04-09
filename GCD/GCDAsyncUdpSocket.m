@@ -110,20 +110,21 @@ enum GCDAsyncUdpSocketFlags
 	kDidBind                 = 1 <<  1,  // If set, bind has been called.
 	kConnecting              = 1 <<  2,  // If set, a connection attempt is in progress.
 	kDidConnect              = 1 <<  3,  // If set, socket is connected.
-	kReceive                 = 1 <<  4,  // If set, receive is enabled
-	kIPv4Deactivated         = 1 <<  5,  // If set, socket4 was closed due to bind or connect on IPv6.
-	kIPv6Deactivated         = 1 <<  6,  // If set, socket6 was closed due to bind or connect on IPv4.
-	kSend4SourceSuspended    = 1 <<  7,  // If set, send4Source is suspended.
-	kSend6SourceSuspended    = 1 <<  8,  // If set, send6Source is suspended.
-	kReceive4SourceSuspended = 1 <<  9,  // If set, receive4Source is suspended.
-	kReceive6SourceSuspended = 1 << 10,  // If set, receive6Source is suspended.
-	kSock4CanAcceptBytes     = 1 << 11,  // If set, we know socket4 can accept bytes. If unset, it's unknown.
-	kSock6CanAcceptBytes     = 1 << 12,  // If set, we know socket6 can accept bytes. If unset, it's unknown.
-	kForbidSendReceive       = 1 << 13,  // If set, no new send or receive operations are allowed to be queued.
-	kCloseAfterSends         = 1 << 14,  // If set, close as soon as no more sends are queued.
-	kFlipFlop                = 1 << 15,  // Used to alternate between IPv4 and IPv6 sockets.
+	kReceiveOnce             = 1 <<  4,  // If set, one-at-a-time receive is enabled
+	kReceiveContinuous       = 1 <<  5,  // If set, continuous receive is enabled
+	kIPv4Deactivated         = 1 <<  6,  // If set, socket4 was closed due to bind or connect on IPv6.
+	kIPv6Deactivated         = 1 <<  7,  // If set, socket6 was closed due to bind or connect on IPv4.
+	kSend4SourceSuspended    = 1 <<  8,  // If set, send4Source is suspended.
+	kSend6SourceSuspended    = 1 <<  9,  // If set, send6Source is suspended.
+	kReceive4SourceSuspended = 1 << 10,  // If set, receive4Source is suspended.
+	kReceive6SourceSuspended = 1 << 11,  // If set, receive6Source is suspended.
+	kSock4CanAcceptBytes     = 1 << 12,  // If set, we know socket4 can accept bytes. If unset, it's unknown.
+	kSock6CanAcceptBytes     = 1 << 13,  // If set, we know socket6 can accept bytes. If unset, it's unknown.
+	kForbidSendReceive       = 1 << 14,  // If set, no new send or receive operations are allowed to be queued.
+	kCloseAfterSends         = 1 << 15,  // If set, close as soon as no more sends are queued.
+	kFlipFlop                = 1 << 16,  // Used to alternate between IPv4 and IPv6 sockets.
 #if TARGET_OS_IPHONE
-	kAddedStreamListener     = 1 << 16,  // If set, CFStreams have been added to listener thread
+	kAddedStreamListener     = 1 << 17,  // If set, CFStreams have been added to listener thread
 #endif
 };
 
@@ -169,6 +170,8 @@ enum GCDAsyncUdpSocketConfig
 	
 	unsigned long socket4FDBytesAvailable;
 	unsigned long socket6FDBytesAvailable;
+	
+	uint32_t pendingFilterOperations;
 	
 	NSData   *cachedLocalAddress4;
 	NSString *cachedLocalHost4;
@@ -3805,6 +3808,52 @@ enum GCDAsyncUdpSocketConfig
 #pragma mark Receiving
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+- (BOOL)receiveOnce:(NSError **)errPtr
+{
+	LogTrace();
+	
+	__block BOOL result = NO;
+	__block NSError *err = nil;
+	
+	dispatch_block_t block = ^{
+		
+		if ((flags & kReceiveOnce) == 0)
+		{
+			if ((flags & kDidCreateSockets) == 0)
+			{
+				NSString *msg = @"Must bind socket before you can receive data. "
+				@"You can do this explicitly via bind, or implicitly via connect or by sending data.";
+				
+				err = [self badConfigError:msg];
+				return_from_block;
+			}
+			
+			flags |=  kReceiveOnce;       // Enable
+			flags &= ~kReceiveContinuous; // Disable
+			
+			dispatch_async(socketQueue, ^{ @autoreleasepool {
+				
+				[self doReceive];
+			}});
+		}
+		
+		result = YES;
+	};
+	
+	if (dispatch_get_current_queue() == socketQueue)
+		block();
+	else
+		dispatch_sync(socketQueue, block);
+	
+	if (err)
+		LogError(@"Error in beginReceiving: %@", err);
+	
+	if (errPtr)
+		*errPtr = err;
+	
+	return result;
+}
+
 - (BOOL)beginReceiving:(NSError **)errPtr
 {
 	LogTrace();
@@ -3814,7 +3863,7 @@ enum GCDAsyncUdpSocketConfig
 	
 	dispatch_block_t block = ^{
 		
-		if ((flags & kReceive) == 0)
+		if ((flags & kReceiveContinuous) == 0)
 		{
 			if ((flags & kDidCreateSockets) == 0)
 			{
@@ -3825,7 +3874,8 @@ enum GCDAsyncUdpSocketConfig
 				return_from_block;
 			}
 			
-			flags |= kReceive;
+			flags |= kReceiveContinuous; // Enable
+			flags &= ~kReceiveOnce;      // Disable
 			
 			dispatch_async(socketQueue, ^{ @autoreleasepool {
 				
@@ -3856,7 +3906,8 @@ enum GCDAsyncUdpSocketConfig
 	
 	dispatch_block_t block = ^{
 		
-		flags &= ~kReceive;
+		flags &= ~kReceiveOnce;       // Disable
+		flags &= ~kReceiveContinuous; // Disable
 		
 		if (socket4FDBytesAvailable > 0) {
 			[self suspendReceive4Source];
@@ -3911,9 +3962,23 @@ enum GCDAsyncUdpSocketConfig
 {
 	LogTrace();
 	
-	if ((flags & kReceive) == 0)
+	if ((flags & (kReceiveOnce | kReceiveContinuous)) == 0)
 	{
 		LogVerbose(@"Receiving is paused...");
+		
+		if (socket4FDBytesAvailable > 0) {
+			[self suspendReceive4Source];
+		}
+		if (socket6FDBytesAvailable > 0) {
+			[self suspendReceive6Source];
+		}
+		
+		return;
+	}
+	
+	if ((flags & kReceiveOnce) && (pendingFilterOperations > 0))
+	{
+		LogVerbose(@"Receiving is temporarily paused (pending filter operations)...");
 		
 		if (socket4FDBytesAvailable > 0) {
 			[self suspendReceive4Source];
@@ -4053,6 +4118,8 @@ enum GCDAsyncUdpSocketConfig
 	
 	
 	BOOL waitingForSocket = NO;
+	BOOL ignoredDueToAddress = NO;
+	
 	NSError *error = nil;
 	
 	if (result == 0)
@@ -4068,34 +4135,56 @@ enum GCDAsyncUdpSocketConfig
 	}
 	else
 	{
-		BOOL ignored = NO;
-		
 		if (flags & kDidConnect)
 		{
 			if (addr4 && ![self isConnectedToAddress4:addr4])
-				ignored = YES;
+				ignoredDueToAddress = YES;
 			if (addr6 && ![self isConnectedToAddress6:addr6])
-				ignored = YES;
+				ignoredDueToAddress = YES;
 		}
 		
 		NSData *addr = (addr4 != nil) ? addr4 : addr6;
 		
-		if (!ignored)
+		if (!ignoredDueToAddress)
 		{
 			if (filterBlock && filterQueue)
 			{
 				// Run data through filter, and if approved, notify delegate
+				pendingFilterOperations++;
+				
 				dispatch_async(filterQueue, ^{ @autoreleasepool {
 					
 					id filterContext = nil;
+					BOOL allowed = filterBlock(data, addr, &filterContext);
 					
-					if (filterBlock(data, addr, &filterContext))
-					{
-						// Transition back to socketQueue to get the current delegate / delegateQueue
-						dispatch_async(socketQueue, ^{
+					// Transition back to socketQueue to get the current delegate / delegateQueue
+					
+					dispatch_async(socketQueue, ^{ @autoreleasepool {
+						
+						pendingFilterOperations--;
+						
+						if (allowed)
+						{
 							[self notifyDidReceiveData:data fromAddress:addr withFilterContext:filterContext];
-						});
-					}
+						}
+						
+						if (flags & kReceiveOnce)
+						{
+							if (allowed)
+							{
+								// The delegate has been notified,
+								// so our receive once operation has completed.
+								flags &= ~kReceiveOnce;
+							}
+							else if (pendingFilterOperations == 0)
+							{
+								// All pending filter operations have completed,
+								// and none were allowed through.
+								// Our receive once operation hasn't completed yet.
+								[self doReceive];
+							}
+						}
+					}});
 					
 				}});
 			}
@@ -4124,7 +4213,25 @@ enum GCDAsyncUdpSocketConfig
 	}
 	else
 	{
-		[self doReceive];
+		if (flags & kReceiveContinuous)
+		{
+			// Continuous receive mode
+			[self doReceive];
+		}
+		else
+		{
+			// One-at-a-time receive mode
+			if (ignoredDueToAddress)
+			{
+				[self doReceive];
+			}
+			else if (pendingFilterOperations == 0)
+			{
+				// The delegate has been notified (no set filter).
+				// So our receive once operation has completed.
+				flags &= ~kReceiveOnce;
+			}
+		}
 	}
 }
 
