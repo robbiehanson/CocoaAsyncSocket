@@ -122,9 +122,14 @@
 {
 	NSLogVerbose(@"DDLogFileManagerDefault: deleteOldLogFiles");
 	
-	NSArray *sortedLogFileInfos = [self sortedLogFileInfos];
-	
 	NSUInteger maxNumLogFiles = self.maximumNumberOfLogFiles;
+	if (maxNumLogFiles == 0)
+	{
+		// Unlimited - don't delete any log files
+		return;
+	}
+	
+	NSArray *sortedLogFileInfos = [self sortedLogFileInfos];
 	
 	// Do we consider the first file?
 	// We are only supposed to be deleting archived files.
@@ -413,11 +418,23 @@
 
 - (id)init
 {
-	if((self = [super init]))
+	return [self initWithDateFormatter:nil];
+}
+
+- (id)initWithDateFormatter:(NSDateFormatter *)aDateFormatter
+{
+	if ((self = [super init]))
 	{
-		dateFormatter = [[NSDateFormatter alloc] init];
-		[dateFormatter setFormatterBehavior:NSDateFormatterBehavior10_4];
-		[dateFormatter setDateFormat:@"yyyy/MM/dd HH:mm:ss:SSS"];
+		if (aDateFormatter)
+		{
+			dateFormatter = aDateFormatter;
+		}
+		else
+		{
+			dateFormatter = [[NSDateFormatter alloc] init];
+			[dateFormatter setFormatterBehavior:NSDateFormatterBehavior10_4]; // 10.4+ style
+			[dateFormatter setDateFormat:@"yyyy/MM/dd HH:mm:ss:SSS"];
+		}
 	}
 	return self;
 }
@@ -606,7 +623,7 @@
 		rollingTimer = NULL;
 	}
 	
-	if (currentLogFileInfo == nil)
+	if (currentLogFileInfo == nil || rollingFrequency <= 0.0)
 	{
 		return;
 	}
@@ -697,7 +714,7 @@
 
 - (void)maybeRollLogFileDueToAge
 {
-	if (currentLogFileInfo.age >= rollingFrequency)
+	if (rollingFrequency > 0.0 && currentLogFileInfo.age >= rollingFrequency)
 	{
 		NSLogVerbose(@"DDFileLogger: Rolling log file due to age...");
 		
@@ -714,16 +731,19 @@
 	// This method is called from logMessage.
 	// Keep it FAST.
 	
-	unsigned long long fileSize = [currentLogFileHandle offsetInFile];
-	
 	// Note: Use direct access to maximumFileSize variable.
 	// We specifically wrote our own getter/setter method to allow us to do this (for performance reasons).
 	
-	if (fileSize >= maximumFileSize) // YES, we are using direct access. Read note above.
+	if (maximumFileSize > 0)
 	{
-		NSLogVerbose(@"DDFileLogger: Rolling log file due to size...");
+		unsigned long long fileSize = [currentLogFileHandle offsetInFile];
 		
-		[self rollLogFileNow];
+		if (fileSize >= maximumFileSize)
+		{
+			NSLogVerbose(@"DDFileLogger: Rolling log file due to size (%qu)...", fileSize);
+			
+			[self rollLogFileNow];
+		}
 	}
 }
 
@@ -756,12 +776,12 @@
 				useExistingLogFile = NO;
 				shouldArchiveMostRecent = NO;
 			}
-			else if (mostRecentLogFileInfo.fileSize >= maximumFileSize)
+			else if (maximumFileSize > 0 && mostRecentLogFileInfo.fileSize >= maximumFileSize)
 			{
 				useExistingLogFile = NO;
 				shouldArchiveMostRecent = YES;
 			}
-			else if (mostRecentLogFileInfo.age >= rollingFrequency)
+			else if (rollingFrequency > 0.0 && mostRecentLogFileInfo.age >= rollingFrequency)
 			{
 				useExistingLogFile = NO;
 				shouldArchiveMostRecent = YES;

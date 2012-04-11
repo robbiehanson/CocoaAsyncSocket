@@ -240,7 +240,24 @@ NSString *DDExtractFileNameWithoutExtension(const char *filePath, BOOL copy);
    function:(const char *)function
        line:(int)line
         tag:(id)tag
-     format:(NSString *)format, ...;
+     // format:(NSString *)format, ...;
+     format:(NSString *)format, ... __attribute__ ((format (__NSString__, 9, 10)));
+
+/**
+ * Logging Primitive.
+ * 
+ * This method can be used if you have a prepared va_list.
+ */
++ (void)log:(BOOL)asynchronous
+      level:(int)level
+       flag:(int)flag
+    context:(int)context
+       file:(const char *)file
+   function:(const char *)function
+       line:(int)line
+        tag:(id)tag
+     format:(NSString *)format
+       args:(va_list)argList;
 
 /**
  * Since logging can be asynchronous, there may be times when you want to flush the logs.
@@ -435,14 +452,15 @@ NSString *DDExtractFileNameWithoutExtension(const char *filePath, BOOL copy);
 	NSString *methodName;
 }
 
-// The initializer is somewhat reserved for internal use.
-// However, if you find need to manually create logMessage objects,
-// there is one thing you should be aware of.
-// The initializer expects the file and function parameters to be string literals.
-// That is, it expects the given strings to exist for the duration of the object's lifetime,
-// and it expects the given strings to be immutable.
-// In other words, it does not copy these strings, it simply points to them.
-
+/**
+ * The initializer is somewhat reserved for internal use.
+ * However, if you find need to manually create logMessage objects, there is one thing you should be aware of:
+ * 
+ * The initializer expects the file and function parameters to be string literals.
+ * That is, it expects the given strings to exist for the duration of the object's lifetime,
+ * and it expects the given strings to be immutable.
+ * In other words, it does not copy these strings, it simply points to them.
+**/
 - (id)initWithLogMsg:(NSString *)logMsg
                level:(int)logLevel
                 flag:(int)logFlag
