@@ -4371,10 +4371,20 @@ enum GCDAsyncSocketConfig
 			{
 				bytesRead = result;
 				
-				if (socketFDBytesAvailable <= bytesRead)
+				if (bytesRead < bytesToRead)
+				{
+					// The read returned less data than requested.
+					// This means socketFDBytesAvailable was a bit off due to timing,
+					// because we read from the socket right when the readSource event was firing.
 					socketFDBytesAvailable = 0;
+				}
 				else
-					socketFDBytesAvailable -= bytesRead;
+				{
+					if (socketFDBytesAvailable <= bytesRead)
+						socketFDBytesAvailable = 0;
+					else
+						socketFDBytesAvailable -= bytesRead;
+				}
 				
 				if (socketFDBytesAvailable == 0)
 				{
