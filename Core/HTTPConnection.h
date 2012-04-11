@@ -33,6 +33,8 @@
 #pragma mark -
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+extern const id kSSLAcceptableClientCertificatesFromKeychain;
+
 @interface HTTPConnection : NSObject
 {
 	dispatch_queue_t connectionQueue;
@@ -74,8 +76,52 @@
 - (BOOL)supportsMethod:(NSString *)method atPath:(NSString *)path;
 - (BOOL)expectsRequestBodyFromMethod:(NSString *)method atPath:(NSString *)path;
 
+// SSL and Server Authentication *to* the client.
+//
 - (BOOL)isSecureServer;
 - (NSArray *)sslIdentityAndCertificates;
+
+// clientAuthentication - (optional) authentication of the client to the server. This function is
+// only called for an isSecureServer. The default is no client authentication.
+//
+//  kNeverAuthenticate      skip client authentication; sslAcceptableClientCertificates not called.
+//  kAlwaysAuthenticate     require it - and check against list returned by sslAcceptableClientCertificates;
+//  kTryAuthenticate        try to authenticate against the list provided by sslAcceptableClientCertificates;
+//                          but not an error if client doesn't have a cert.
+// 
+// The default is to return kNeverAuthenticate. I.e. no Client authentication.
+//
+- (SSLAuthenticate)clientAuthentication;
+
+// List of acceptable certificate (authorities) for client authentication. Called when
+// clientAuthentication returns kAlwaysAuthenticate or kTryAuthenticate. Use the constant
+// kSSLAcceptableClientCertificatesFromKeychain to indicate that any Certificate (Authority)
+// marked as 'trusted' in the keychain is acceptable. In this case or when the array
+// returned is empty or nil, no list of acceptable authorities is revealed to the client
+// during the initial handshake. When an explicit list of 1 or more certificates is returned
+// then this  list is presented to the client, in the order provided. It is an error to
+// return nil or an empty array when clientAuthentication is not set to kTryAuthenticate.
+//
+// The default is to return kSSLAcceptableClientCertificatesFromKeychain
+//
+- (NSArray *)sslAcceptableClientCertificates;
+
+// Called post SSL negotiation. Can be used to further refine access based on the elements
+// of the distingished name (e.g. the CN or Email address in the certificate) or any otehr
+// aspect of the certificate and its issuer chain.
+//
+// If clientAuthentication has returned kAlwaysAuthenticate or kTryAuthenticate and an 
+// sslAcceptableClientCertificates was non-nil/empty; then the certificate has already 
+// been cryptographically verified against the chain specified. 
+// 
+// This is not the case when clientAuthentication returned kTryAuthenticate and 
+// sslAcceptableClientCertificates was nil/empty. In that case any cryptographic verification
+// is left to the implementor of isAcceptableClientCertificate.
+//
+// The default is to return YES when any sslAcceptableClientCertificates have been specified
+// and NO when sslAcceptableClientCertificates returned nil or an empty array.
+//
+- (BOOL)isAcceptableClientCertificate:(SecCertificateRef *)certificate;
 
 - (BOOL)isPasswordProtected:(NSString *)path;
 - (BOOL)useDigestAccessAuthentication;

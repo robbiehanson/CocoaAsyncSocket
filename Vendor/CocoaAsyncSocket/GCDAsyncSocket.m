@@ -13,6 +13,9 @@
 #endif
 
 #import "GCDAsyncSocket.h"
+#import "SSLError.h"
+#import <Security/SecCertificateOIDs.h>
+#import "DDData.h"
 
 #if TARGET_OS_IPHONE
   #import <CFNetwork/CFNetwork.h>
@@ -101,6 +104,11 @@ static const int logLevel = LOG_LEVEL_VERBOSE;
 NSString *const GCDAsyncSocketException = @"GCDAsyncSocketException";
 NSString *const GCDAsyncSocketErrorDomain = @"GCDAsyncSocketErrorDomain";
 
+NSString *const kSSLPeersAsTrustedInKeychain = @"kSSLPeersAsTrustedInKeychain";
+NSString *const kSSLPeerSideAuthenticate = @"kSSLPeerSideAuthenticate";
+NSString *const kSSLPeerCertificates = @"kSSLPeerCertificates";
+
+
 #if !TARGET_OS_IPHONE
 NSString *const GCDAsyncSocketSSLCipherSuites = @"GCDAsyncSocketSSLCipherSuites";
 NSString *const GCDAsyncSocketSSLDiffieHellmanParameters = @"GCDAsyncSocketSSLDiffieHellmanParameters";
@@ -141,6 +149,7 @@ enum GCDAsyncSocketConfig
 #if TARGET_OS_IPHONE
   static NSThread *listenerThread;  // Used for CFStreams
 #endif
+
 
 @interface GCDAsyncSocket (Private)
 
@@ -5718,13 +5727,13 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		OSStatus status;
 		
 		GCDAsyncSpecialPacket *tlsPacket = (GCDAsyncSpecialPacket *)currentRead;
-		NSDictionary *tlsSettings = tlsPacket->tlsSettings;
+		_tlsSettings = tlsPacket->tlsSettings;
 		
 		// Create SSLContext, and setup IO callbacks and connection ref
 		
-		BOOL isServer = [[tlsSettings objectForKey:(NSString *)kCFStreamSSLIsServer] boolValue];
+		_isServer = [[_tlsSettings objectForKey:(NSString *)kCFStreamSSLIsServer] boolValue];
 		
-		status = SSLNewContext(isServer, &sslContext);
+		status = SSLNewContext(_isServer, &sslContext);
 		if (status != noErr)
 		{
 			[self closeWithError:[self otherError:@"Error in SSLNewContext"]];
@@ -5762,7 +5771,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		
 		// 1. kCFStreamSSLPeerName
 		
-		value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLPeerName];
+		value = [_tlsSettings objectForKey:(NSString *)kCFStreamSSLPeerName];
 		if ([value isKindOfClass:[NSString class]])
 		{
 			NSString *peerName = (NSString *)value;
@@ -5780,7 +5789,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		
 		// 2. kCFStreamSSLAllowsAnyRoot
 		
-		value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsAnyRoot];
+		value = [_tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsAnyRoot];
 		if (value)
 		{
 			BOOL allowsAnyRoot = [value boolValue];
@@ -5795,7 +5804,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		
 		// 3. kCFStreamSSLAllowsExpiredRoots
 		
-		value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredRoots];
+		value = [_tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredRoots];
 		if (value)
 		{
 			BOOL allowsExpiredRoots = [value boolValue];
@@ -5810,7 +5819,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		
 		// 4. kCFStreamSSLValidatesCertificateChain
 		
-		value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
+		value = [_tlsSettings objectForKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
 		if (value)
 		{
 			BOOL validatesCertChain = [value boolValue];
@@ -5825,7 +5834,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		
 		// 5. kCFStreamSSLAllowsExpiredCertificates
 		
-		value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredCertificates];
+		value = [_tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredCertificates];
 		if (value)
 		{
 			BOOL allowsExpiredCerts = [value boolValue];
@@ -5840,7 +5849,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		
 		// 6. kCFStreamSSLCertificates
 		
-		value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLCertificates];
+		value = [_tlsSettings objectForKey:(NSString *)kCFStreamSSLCertificates];
 		if (value)
 		{
 			CFArrayRef certs = (__bridge CFArrayRef)value;
@@ -5855,7 +5864,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		
 		// 7. kCFStreamSSLLevel
 		
-		value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLLevel];
+		value = [_tlsSettings objectForKey:(NSString *)kCFStreamSSLLevel];
 		if (value)
 		{
 			NSString *sslLevel = (NSString *)value;
@@ -5901,7 +5910,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		
 		// 8. GCDAsyncSocketSSLCipherSuites
 		
-		value = [tlsSettings objectForKey:GCDAsyncSocketSSLCipherSuites];
+		value = [_tlsSettings objectForKey:GCDAsyncSocketSSLCipherSuites];
 		if (value)
 		{
 			NSArray *cipherSuites = (NSArray *)value;
@@ -5925,7 +5934,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		
 		// 9. GCDAsyncSocketSSLDiffieHellmanParameters
 		
-		value = [tlsSettings objectForKey:GCDAsyncSocketSSLDiffieHellmanParameters];
+		value = [_tlsSettings objectForKey:GCDAsyncSocketSSLDiffieHellmanParameters];
 		if (value)
 		{
 			NSData *diffieHellmanData = (NSData *)value;
@@ -5937,7 +5946,54 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 				return;
 			}
 		}
-		
+        
+        // 10. Verification of connecting peer (in the case of a server)
+        //     or of the thing we connect to (in case of a client).
+        //
+        value = [_tlsSettings objectForKey:kSSLPeerSideAuthenticate];
+        if (value ) {
+            if (_isServer) {
+                status = SSLSetClientSideAuthenticate(sslContext,[value intValue]);
+                if (status != noErr)
+                {
+                    [self closeWithError:[self otherError:@"Error in SSLSetClientSideAuthenticate"]];
+                    return;
+                }
+            } else {
+                NSLog(@"Does this make sense??");
+            }
+        }
+    
+        // 11. Certificates to trust for the peer we're connecting to
+        //     or (when we're a client) the peer connecting to us 
+        //     (server). When we're a server - also advertize the
+        //     list we're willing to trust (except when we're
+        //     trusting the default keychain).
+        //
+        value = [_tlsSettings objectForKey:kSSLPeerCertificates];
+        if (value && value != kSSLPeersAsTrustedInKeychain) 
+        {
+            NSArray * acceptablePeerCerts = (NSArray *)value;
+            // really only applies to a server - certs to list 
+            // as acceptable.
+            status = SSLSetCertificateAuthorities(sslContext,
+                                         (__bridge CFArrayRef) acceptablePeerCerts,
+                                         YES);
+			if (status != noErr)
+			{
+				[self closeWithError:[self otherError:@"Error in SSLSetCertificateAuthorities"]];
+				return;
+			}
+            status = SSLSetTrustedRoots(sslContext,
+                               (__bridge CFArrayRef) acceptablePeerCerts,
+                               YES);
+			if (status != noErr)
+			{
+				[self closeWithError:[self otherError:@"Error in SSLSetTrustedRoots"]];
+				return;
+			}
+        };
+
 		// Setup the sslReadBuffer
 		// 
 		// If there is any data in the partialReadBuffer,
@@ -5965,45 +6021,228 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	// If the return value is noErr, the session is ready for normal secure communication.
 	// If the return value is errSSLWouldBlock, the SSLHandshake function must be called again.
 	// Otherwise, the return value indicates an error code.
-	
+    //	
 	OSStatus status = SSLHandshake(sslContext);
 	
-	if (status == noErr)
-	{
-		LogVerbose(@"SSLHandshake complete");
-		
-		flags &= ~kStartingReadTLS;
-		flags &= ~kStartingWriteTLS;
-		
-		flags |=  kSocketSecure;
-		
-		if (delegateQueue && [delegate respondsToSelector:@selector(socketDidSecure:)])
-		{
-			__strong id theDelegate = delegate;
-			
-			dispatch_async(delegateQueue, ^{ @autoreleasepool {
-				
-				[theDelegate socketDidSecure:self];
-			}});
-		}
-		
-		[self endCurrentRead];
-		[self endCurrentWrite];
-		
-		[self maybeDequeueRead];
-		[self maybeDequeueWrite];
-	}
-	else if (status == errSSLWouldBlock)
-	{
-		LogVerbose(@"SSLHandshake continues...");
-		
-		// Handshake continues...
-		// 
-		// This method will be called again from doReadData or doWriteData.
-	}
-	else
-	{
-		[self closeWithError:[self sslError:status]];
+    switch (status) {
+        case noErr:
+            LogVerbose(@"SSLHandshake complete");
+            
+            SSLClientCertificateState state;
+            SSLGetClientCertificateState(sslContext, &state);
+            
+            if (state == kSSLClientCertRequested) {
+                // not yet quite clear.
+            }
+            else if (state == kSSLClientCertRejected) {
+                // when we're a server - a cert was requested, something
+                // was presented - but it was not to our liking.
+                //
+                // when we're a client - what we presented was rejected by
+                // the server.
+                //
+                [self closeWithError:[self sslError:status]];
+                return;
+            }
+            else if (state == kSSLClientCertSent) {
+                
+                if (delegateQueue && [delegate respondsToSelector:@selector(socket:isAcceptablePeerCertificate:)]) 
+                {
+                    __strong id theDelegate = delegate;
+                    
+                    CFArrayRef arrayRef;
+                    OSStatus status2;
+                    status2 = SSLCopyPeerCertificates(sslContext, &arrayRef);
+                    NSArray * peerCertificates = (__bridge_transfer NSArray *)arrayRef;
+                    //                CFRelease(arrayRef);
+                    
+                    if (status2 != noErr) {
+                        [self closeWithError:[self sslError:status]];
+                        return;
+                    }
+                    
+                    if (![theDelegate socket:self isAcceptablePeerCertificate:peerCertificates]) {
+                        NSLog(@"Drat!");
+                        [self closeWithError:[self sslError:kSSLClientCertRejected]];
+                        return;
+                    }
+                } else {
+                    // If we're a client - we can only get to this point if either the server we're 
+                    // connecting to has been verified or we've had sufficient laxness thanks to 
+                    // kCFStreamSSLValidatesCertificateChain, kCFStreamSSLAllowsExpiredRoots,
+                    // kCFStreamSSLAllowsAnyRoot or kCFStreamSSLAllowsExpiredCertificates.
+                    //
+                    // So in this case we're done.
+                    //
+                    // If we're the server - then reject when no verification has been done
+                    // at all; and let it pass in all other cases.
+                    //
+                    if (_isServer) {
+                        id certs = [_tlsSettings objectForKey:(NSString *)kSSLPeerCertificates];
+                        if ((certs != kSSLPeersAsTrustedInKeychain) && 
+                            (certs == nil || [(NSArray *)certs count] == 0))
+                        {
+                            [self closeWithError:[self sslError:kSSLClientCertRejected]];
+                            return;
+                        }
+                    };
+                }
+            } else {
+                assert(@"unexpected code" == NULL);
+            }
+            
+            flags &= ~kStartingReadTLS;
+            flags &= ~kStartingWriteTLS;
+            
+            flags |=  kSocketSecure;
+            
+            if (delegateQueue && [delegate respondsToSelector:@selector(socketDidSecure:)])
+            {
+                __strong id theDelegate = delegate;
+                
+                dispatch_async(delegateQueue, ^{ @autoreleasepool {
+                    
+                    [theDelegate socketDidSecure:self];
+                }});
+            }
+            
+            [self endCurrentRead];
+            [self endCurrentWrite];
+            
+            [self maybeDequeueRead];
+            [self maybeDequeueWrite];
+            break;
+            
+        // Certificate related errors dectected by *us* during the handshake. These may
+        // be of value/meaning to an end-user or administrator as they can be corrected
+        // as a matter of routine.
+        //
+        case errSSLXCertChainInvalid:   // also called when no cert is presented while we are 
+                                        // kAlwaysAuthenticate expecting a cert.
+        case errSSLUnknownRootCert:     // we can validate up to a self-signed - but do not know it.
+        case errSSLNoRootCert:          // we cannot validate up to a known/self-signed cert in our
+                                        // locally known trust store or those supplied by the peer.
+        case errSSLCertExpired:
+        case errSSLCertNotYetValid:
+            if (delegateQueue && [delegate respondsToSelector:@selector(socket:peerCredentialRejectedWith:)])
+            {
+                __strong id theDelegate = delegate;
+                
+                dispatch_async(delegateQueue, ^{ @autoreleasepool {
+                    
+                    [theDelegate socket:self peerCredentialRejectedWith:status];
+                }});
+            } else {
+                [self closeWithError:[self sslError:status]];
+            }
+            break;
+            
+        // Likewise the errors dected by the Peer - and passed to us by the peer (usually along
+        // with the peer aparting the connection). Note that access denied is somewhat an odd
+        // one in this list.
+        //
+        case errSSLPeerCertExpired:
+        case errSSLPeerCertUnknown:
+        case errSSLPeerCertRevoked:
+        case errSSLPeerUnknownCA:
+        case errSSLPeerAccessDenied:
+            if (delegateQueue && [delegate respondsToSelector:@selector(socket:credentialRejectedByPeerWith:)])
+            {
+                __strong id theDelegate = delegate;
+                
+                dispatch_async(delegateQueue, ^{ @autoreleasepool {
+                    
+                    [theDelegate socket:self credentialRejectedByPeerWith:status];
+                }});
+            } else {
+                [self closeWithError:[self sslError:status]];
+            }
+            break;            
+            
+        // Normal errors detected by/about us during the handshake which likely
+        // require significant reconfiguration outside the real of routine
+        // site and user management.
+        //
+        case errSSLProtocol:         /* SSL protocol error */
+        case errSSLNegotiation:		/* Cipher Suite negotiation failure */
+        case errSSLFatalAlert:		/* Fatal alert */
+        case errSSLBadCert:			/* bad certificate format */
+        case errSSLCrypto:			/* underlying cryptographic error */
+        case errSSLInternal:		/* Internal error */
+        case errSSLModuleAttach:	/* module attach failure */
+        case errSSLBufferOverflow:	/* insufficient buffer provided */
+        case errSSLBadCipherSuite:	/* bad SSLCipherSuite */
+            if (delegateQueue && [delegate respondsToSelector:@selector(socket:connectionToPeerFailedWith:)])
+            {
+                __strong id theDelegate = delegate;
+                
+                dispatch_async(delegateQueue, ^{ @autoreleasepool {
+                    
+                    [theDelegate socket:self connectionToPeerFailedWith:status];
+                }});
+            } else {
+                [self closeWithError:[self sslError:status]];
+            }
+            break;
+            
+        case errSSLPeerUnexpectedMsg:       /* unexpected message received */
+        case errSSLPeerBadRecordMac:        /* bad MAC */
+        case errSSLPeerDecryptionFail:      /* decryption failed */
+        case errSSLPeerRecordOverflow:      /* record overflow */
+        case errSSLPeerDecompressFail:      /* decompression failure */
+        case errSSLPeerHandshakeFail:       /* handshake failure */
+        case errSSLIllegalParam:            /* illegal parameter */
+        case errSSLPeerDecodeError:         /* decoding error */
+        case errSSLPeerDecryptError:        /* decryption error */
+        case errSSLPeerExportRestriction:  	/* export restriction */
+        case errSSLPeerProtocolVersion:  	/* bad protocol version */
+        case errSSLPeerInsufficientSecurity:/* insufficient security */
+        case errSSLPeerInternalError:       /* internal error */
+        case errSSLPeerNoRenegotiation:  	/* no renegotiation allowed */            
+            if (delegateQueue && [delegate respondsToSelector:@selector(socket:peerRejectedConnectionWith:)])
+            {
+                __strong id theDelegate = delegate;
+                
+                dispatch_async(delegateQueue, ^{ @autoreleasepool {
+                    
+                    [theDelegate socket:self peerRejectedConnectionWith:status];
+                }});
+            } else {
+                [self closeWithError:[self sslError:status]];
+            }
+            break;
+
+        case errSSLWouldBlock:
+            // Handshake continues...
+            // 
+            // This method will be called again from doReadData or doWriteData.
+            //
+            LogVerbose(@"SSLHandshake continues...");            
+            break;
+            
+        // Transient errors - possibly fixed by a retry.
+        //
+        case errSSLClosedGraceful: 	/* connection closed gracefully */
+        case errSSLClosedAbort:		/* connection closed via error */
+        case errSSLSessionNotFound: /* attempt to restore an unknown session */
+        case errSSLClosedNoNotify:	/* server closed session with no notification */
+        case errSSLPeerUserCancelled:       /* user canceled */
+            if (delegateQueue && [delegate respondsToSelector:@selector(socket:lostConnectionWith:)])
+            {
+                __strong id theDelegate = delegate;
+                
+                dispatch_async(delegateQueue, ^{ @autoreleasepool {
+                    
+                    [theDelegate socket:self lostConnectionWith:status];
+                }});
+            } else {
+                [self closeWithError:[self sslError:status]];
+            }
+            break;
+            
+        default:
+            NSLog(@"Unhandled SSLHandshake() %d/%@", status, [SSLError msgForError:status]);
+            [self closeWithError:[self sslError:status]];
 	}
 }
 
@@ -6019,6 +6258,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 {
 	LogTrace();
 	
+    NSLog(@"finishSSLHandshake");
 	if ((flags & kStartingReadTLS) && (flags & kStartingWriteTLS))
 	{
 		flags &= ~kStartingReadTLS;

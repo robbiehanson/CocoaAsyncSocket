@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		1DDD58160DA1D0A300B32029 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1DDD58140DA1D0A300B32029 /* MainMenu.xib */; };
+		326779BE152DE736004929D0 /* SSLError.m in Sources */ = {isa = PBXBuildFile; fileRef = 326779BD152DE736004929D0 /* SSLError.m */; };
+		32F90D35152F8D1D002AA30B /* SimpleCertificate.m in Sources */ = {isa = PBXBuildFile; fileRef = 32819881152F46EF00AA22DB /* SimpleCertificate.m */; };
 		8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
 		8D11072D0486CEB800E47090 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 29B97316FDCFA39411CA2CEA /* main.m */; settings = {ATTRIBUTES = (); }; };
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
@@ -48,6 +50,10 @@
 		29B97316FDCFA39411CA2CEA /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
+		326779BC152DE736004929D0 /* SSLError.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SSLError.h; sourceTree = "<group>"; };
+		326779BD152DE736004929D0 /* SSLError.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SSLError.m; sourceTree = "<group>"; };
+		32819880152F46EF00AA22DB /* SimpleCertificate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SimpleCertificate.h; path = ../../Vendor/CocoaAsyncSocket/SimpleCertificate.h; sourceTree = "<group>"; };
+		32819881152F46EF00AA22DB /* SimpleCertificate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = SimpleCertificate.m; path = ../../Vendor/CocoaAsyncSocket/SimpleCertificate.m; sourceTree = "<group>"; };
 		32CA4F630368D1EE00C91783 /* SecureHTTPServer_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SecureHTTPServer_Prefix.pch; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8D1107320486CEB800E47090 /* SecureHTTPServer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SecureHTTPServer.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -286,6 +292,10 @@
 			children = (
 				DC2E323C1299A3C1009F096E /* GCDAsyncSocket.h */,
 				DC2E323D1299A3C1009F096E /* GCDAsyncSocket.m */,
+				326779BC152DE736004929D0 /* SSLError.h */,
+				326779BD152DE736004929D0 /* SSLError.m */,
+				32819880152F46EF00AA22DB /* SimpleCertificate.h */,
+				32819881152F46EF00AA22DB /* SimpleCertificate.m */,
 			);
 			name = TCP;
 			sourceTree = "<group>";
@@ -411,6 +421,8 @@
 				DC1283C714A66996006112AB /* DDTTYLogger.m in Sources */,
 				DC1283C814A66996006112AB /* ContextFilterLogFormatter.m in Sources */,
 				DC1283C914A66996006112AB /* DispatchQueueLogFormatter.m in Sources */,
+				326779BE152DE736004929D0 /* SSLError.m in Sources */,
+				32F90D35152F8D1D002AA30B /* SimpleCertificate.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

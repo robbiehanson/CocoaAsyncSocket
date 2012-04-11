@@ -23,6 +23,10 @@ extern NSString *const GCDAsyncSocketSSLCipherSuites;
 extern NSString *const GCDAsyncSocketSSLDiffieHellmanParameters;
 #endif
 
+extern id const kSSLPeersAsTrustedInKeychain;
+extern id const kSSLPeerSideAuthenticate;
+extern id const kSSLPeerCertificates;
+
 enum GCDAsyncSocketError
 {
 	GCDAsyncSocketNoError = 0,           // Never used
@@ -86,6 +90,9 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 #endif
 	
 	id userData;
+@private
+    NSDictionary * _tlsSettings;    
+    BOOL _isServer;
 }
 
 /**
@@ -668,7 +675,6 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 - (void)writeData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag;
 
 #pragma mark Security
-
 /**
  * Secures the connection using SSL/TLS.
  * 
@@ -687,8 +693,12 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * - kCFStreamSSLPeerName
  * - kCFStreamSSLCertificates
  * - kCFStreamSSLIsServer
- * 
+ *
  * Please refer to Apple's documentation for associated values, as well as other possible keys.
+ *
+ * - kSSLPeerSideAuthenticate     set to any of the values of the SSLAuthenticate enum.
+ * - kSSLPeerCertificates         Array of acceptable peer certificates or kSSLPeersAsTrustedInKeychain
+ *                                to trust the default keychain.
  * 
  * If you pass in nil or an empty dictionary, the default settings will be used.
  * 
@@ -960,4 +970,64 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 **/
 - (void)socketDidSecure:(GCDAsyncSocket *)sock;
 
+/**
+ * Called after a SSL/TLS session has been negotiated successfully and:
+ *
+ * 1) kAlwaysAuthenticate or kTryAuthenticate has been set on the socket when in server mode.
+ *    The default is YES when any PeerCertificate(Authorities) have been defined (as an 
+ *    explicit list or as the keychain. Otherwise the defualt is NO.
+ * 2) Always called when in client mode. In this case the default is YES.
+ * 
+ * The first entry in the array is the peer its certificate (i.e. the sever we're connecting
+ * to when we're a client; or the client connecting to us when we're a server); the other
+ * certificates are those making up the (known) chain. This chain can be incomplete when
+ * the peer did not pass a complete chain and the server does not have the missing chain
+ * elements but was set to be willing to kTryAuthenticate.
+ */
+-(BOOL)socket:(GCDAsyncSocket *)sock isAcceptablePeerCertificate:(NSArray *)peerCertificates;
+
+/***
+ * Called when a SSL/TLS session hits an error. When not defined then the default
+ * is to closeWithError:. Virtually all implementations of these delegates will
+ * have to call closeWithError: or some other form of connection abort unless they
+ * (re)set enough of the the SSL stage engine/context.
+ *
+ * The first two peerCredentialRejectedWith: and credentialRejectedByPeerWith: may
+ * be resolved by reviewing and adjusting the SSL credentials and trust chains and
+ * then retrying.
+ *
+ * The connectionToPeerFailedWith: and peerRejectedConnectionWith: methods generally
+ * imply a serious misconfigration, interoperability issue or fault which is not 
+ * easily resolved.
+ *
+ * Unlike above two classes the lostConnectionWith: method points to a transient
+ * error; where a retry without any change may make sense.
+ */
+// kGCDAsyncSocketUserRemediableError and kGCDAsyncSocketMisconfigurationError
+//
+-(void)socket:(GCDAsyncSocket *)sock peerCredentialRejectedWith:(OSStatus)err;
+-(void)socket:(GCDAsyncSocket *)sock credentialRejectedByPeerWith:(OSStatus)err;
+// kGCDAsyncSocketInteroperabilityError 
+-(void)socket:(GCDAsyncSocket *)sock connectionToPeerFailedWith:(OSStatus)err;
+-(void)socket:(GCDAsyncSocket *)sock peerRejectedConnectionWith:(OSStatus)err;
+// kGCDAsyncSocketTransientError 
+-(void)socket:(GCDAsyncSocket *)sock lostConnectionWith:(OSStatus)err;
+
+@end
+
+typedef enum {
+    kGCDAsyncSocketNoError = 0,
+    kGCDAsyncSocketTransientError,          // a retry may fix this - propably something on the network.
+    kGCDAsyncSocketUserRemediableError,     // a retry after editing a setting, getting access makes sense.
+    kGCDAsyncSocketMisconfigurationError,   // significant administrator intervention beyond helpdesk likely.
+    kGCDAsyncSocketInteroperabilityError,   // expert/developer assistance will be needed to resolve this.
+    kGCDAsyncSocketSystemError,             // a system error - perhaps a full reset/reboot.
+} GCDAsyncSocketSimpleErrorType;
+
+@interface GCDError : NSError {
+    GCDAsyncSocketSimpleErrorType simplifiedError;
+}
+@property (readonly) GCDAsyncSocketSimpleErrorType simplifiedError;
+
+-(id)initWithError:(NSError *)error simplifiedError:(GCDAsyncSocketSimpleErrorType)simplifiedError;
 @end

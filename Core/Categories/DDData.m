@@ -41,6 +41,30 @@ static char encodingTable[64] = {
     return [stringBuffer copy];
 }
 
+
+- (NSString *)hexColonSeperatedStringValue
+{
+    return [self hexColonSeperatedStringValueWithCapitals:YES];
+}
+
+- (NSString *)hexColonSeperatedStringValueWithCapitals:(BOOL)capitalize {
+	NSMutableString *stringBuffer = [NSMutableString stringWithCapacity:([self length] * 3)];
+	
+    const unsigned char *dataBuffer = [self bytes];
+    NSString * format = capitalize ? @"%02X" : @"%02x";
+    int i;
+    
+    for (i = 0; i < [self length]; ++i)
+	{
+        if (i) 
+            [stringBuffer appendString:@":"];
+        [stringBuffer appendFormat:format, (unsigned long)dataBuffer[i]];
+	}
+    
+    return [stringBuffer copy];
+}
+
+
 - (NSString *)base64Encoded
 {
 	const unsigned char	*bytes = [self bytes];

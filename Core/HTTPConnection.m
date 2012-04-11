@@ -11,6 +11,7 @@
 #import "HTTPAsyncFileResponse.h"
 #import "WebSocket.h"
 #import "HTTPLogging.h"
+#import "SimpleCertificate.h"
 
 #if ! __has_feature(objc_arc)
 #warning This file must be compiled with ARC. Use -fobjc-arc flag (or convert project to ARC).
@@ -90,6 +91,8 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark -
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+const id kSSLAcceptableClientCertificatesFromKeychain = @"kSSLAcceptableClientCertificatesFromKeychain";
 
 @implementation HTTPConnection
 
@@ -329,6 +332,59 @@ static NSMutableArray *recentNonces;
 	// Override me to provide the proper required SSL identity.
 	
 	return nil;
+}
+
+// clientAuthentication - (optional) authentication of the client to the server. This function is
+// only called for an isSecureServer. The default is no client authentication.
+//
+//  kNeverAuthenticate      skip client authentication; sslAcceptableClientCertificates not called.
+//  kAlwaysAuthenticate     require it - and check against list returned by sslAcceptableClientCertificates;
+//  kTryAuthenticate        try to authenticate against the list provided by sslAcceptableClientCertificates;
+//                          but not an error if client doesn't have a cert.
+// 
+// The default is to return kNeverAuthenticate. I.e. no Client authentication.
+//
+- (SSLAuthenticate)clientAuthentication {
+    return kNeverAuthenticate;
+}
+
+// List of acceptable certificate (authorities) for client authentication. Called when
+// clientAuthentication returns kAlwaysAuthenticate or kTryAuthenticate. Use the constant
+// kSSLAcceptableClientCertificatesFromKeychain to indicate that any Certificate (Authority)
+// marked as 'trusted' in the keychain is acceptable. In this case or when the array
+// returned is empty or nil, no list of acceptable authorities is revealed to the client
+// during the initial handshake. When an explicit list of 1 or more certificates is returned
+// then this  list is presented to the client, in the order provided. It is an error to
+// return nil or an empty array when clientAuthentication is not set to kTryAuthenticate.
+//
+// The default is to return kSSLAcceptableClientCertificatesFromKeychain. May be called
+// more than once in a single SSL/Connection context.
+//
+- (NSArray *)sslAcceptableClientCertificates {
+    return kSSLAcceptableClientCertificatesFromKeychain;
+}
+
+// Called post SSL negotiation. Can be used to further refine access based on the elements
+// of the distingished name (e.g. the CN or Email address in the certificate) or any otehr
+// aspect of the certificate and its issuer chain.
+//
+// If clientAuthentication has returned kAlwaysAuthenticate or kTryAuthenticate and an 
+// sslAcceptableClientCertificates was non-nil/empty; then the certificate has already 
+// been cryptographically verified against the chain specified. 
+// 
+// This is not the case when clientAuthentication returned kTryAuthenticate and 
+// sslAcceptableClientCertificates was nil/empty. In that case any cryptographic verification
+// is left to the implementor of isAcceptableClientCertificate.
+//
+// The default is to return YES when any sslAcceptableClientCertificates have been specified
+// and NO when sslAcceptableClientCertificates returned nil or an empty array. May be called 
+// more than once in a single SSL/Connection context.
+//
+- (BOOL)isAcceptableClientCertificate:(SecCertificateRef *)certificate {
+    NSArray * acceptable = [self sslAcceptableClientCertificates];
+    if (acceptable == kSSLAcceptableClientCertificatesFromKeychain || [acceptable count])
+        return YES;
+    return NO;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -625,12 +681,38 @@ static NSMutableArray *recentNonces;
 			// Configure this connection to use the highest possible SSL level
 			[settings setObject:(NSString *)kCFStreamSocketSecurityLevelNegotiatedSSL
 						 forKey:(NSString *)kCFStreamSSLLevel];
-			
-			[asyncSocket startTLS:settings];
+
+            // XX dirkx for testing
+#if 1
+            if (0)
+			[settings setObject:[NSNumber numberWithBool:YES]
+						 forKey:(NSString *)kCFStreamSSLAllowsAnyRoot];
+
+//            [settings setObject:[NSNumber numberWithInt:kTryAuthenticate]
+            [settings setObject:[NSNumber numberWithInt:kAlwaysAuthenticate]
+						 forKey:(NSString *)kSSLPeerSideAuthenticate];
+
+#endif
+            NSLog(@"Calling startTLS");
+			[asyncSocket startTLS:settings];            
 		}
 	}
 	
 	[self startReadingRequest];
+}
+
+-(BOOL)socket:(GCDAsyncSocket *)sock isAcceptablePeerCertificate:(NSArray *)peerCertificates 
+{
+    SecCertificateRef cert = (__bridge_retained SecCertificateRef)[peerCertificates objectAtIndex:0];
+
+    NSLog(@"We are saying OK to a cert with %@, fingerprint %@, Serial #%llu",
+          [SimpleCertificate distinguishedName:cert],
+          [SimpleCertificate sha1fingerprint:cert],
+          [SimpleCertificate serialNumber:cert]
+          );
+    
+    CFRelease(cert);
+    return YES;
 }
 
 /**
