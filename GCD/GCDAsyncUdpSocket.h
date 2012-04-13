@@ -28,24 +28,29 @@ typedef enum GCDAsyncUdpSocketError GCDAsyncUdpSocketError;
 
 /**
  * You may optionally set a receive filter for the socket.
- * This receive filter may be set to run in its own queue (independent of delegate queue).
+ * A filter can provide several useful features:
+ *    
+ * 1. Many times udp packets need to be parsed.
+ *    Since the filter can run in its own independent queue, you can parallelize this parsing quite easily.
+ *    The end result is a parallel socket io, datagram parsing, and packet processing.
  * 
- * A filter can provide several useful features.
- * 
- * 1. Many times udp packets are discarded because they are duplicate/unneeded/unsolicited.
+ * 2. Many times udp packets are discarded because they are duplicate/unneeded/unsolicited.
  *    The filter can prevent such packets from arriving at the delegate.
  *    And because the filter can run in its own independent queue, this doesn't slow down the delegate.
  * 
- *    - Since the udp protocol does not guarnatee delivery, udp packets may be lost.
+ *    - Since the udp protocol does not guarantee delivery, udp packets may be lost.
  *      Many protocols built atop udp thus provide various resend/re-request algorithms.
  *      This sometimes results in duplicate packets arriving.
+ *      A filter may allow you to architect the duplicate detection code to run in parallel to normal processing.
  *    
  *    - Since the udp socket may be connectionless, its possible for unsolicited packets to arrive.
  *      Such packets need to be ignored.
- *    
- * 2. Many times udp packets need to be parsed.
- *    Since the filter can run in its own independent queue, you can parallelize this parsing quite easily.
  * 
+ * 3. Sometimes traffic shapers are needed to simulate real world environments.
+ *    A filter allows you to write custom code to simulate such environments.
+ *    The ability to code this yourself is especially helpful when your simulated environment
+ *    is more complicated than simple traffic shaping (e.g. simulating a cone port restricted router),
+ *    or the system tools to handle this aren't available (e.g. on a mobile device).
  * 
  * @param data    - The packet that was received.
  * @param address - The address the data was received from.
@@ -403,32 +408,90 @@ typedef BOOL (^GCDAsyncUdpSocketReceiveFilterBlock)(NSData *data, NSData *addres
 /**
  * Asynchronously sends the given data, with the given timeout and tag.
  * 
- * If the timeout value is negative, the receive operation will not use a timeout.
- * 
- * 
- * 
  * This method may only be used with a connected socket.
  * Recall that connecting is optional for a UDP socket.
  * For connected sockets, data can only be sent to the connected address.
  * For non-connected sockets, the remote destination is specified for each packet.
+ * For more information about optionally connecting udp sockets, see the documentation for the connect methods above.
  * 
- * If data is nil or zero-length this method does nothing.
- * Otherwise the result is reported via the delegate methods.
+ * @param data
+ *     The data to send.
+ *     If data is nil or zero-length, this method does nothing.
+ *     If passing NSMutableData, please read the thread-safety notice below.
+ * 
+ * @param timeout
+ *    The timeout for the send opeartion.
+ *    If the timeout value is negative, the send operation will not use a timeout.
+ * 
+ * @param tag
+ *    The tag is for your convenience.
+ *    It is not sent or received over the socket in any manner what-so-ever.
+ *    It is reported back as a parameter in the udpSocket:didSendDataWithTag:
+ *    or udpSocket:didNotSendDataWithTag:dueToError: methods.
+ *    You can use it as an array index, state id, type constant, etc.
+ * 
+ * 
+ * Thread-Safety Note:
+ * If the given data parameter is mutable (NSMutableData) then you MUST NOT alter the data while
+ * the socket is sending it. In other words, it's not safe to alter the data until after the delegate method
+ * udpSocket:didSendDataWithTag: or udpSocket:didNotSendDataWithTag:dueToError: is invoked signifying
+ * that this particular send operation has completed.
+ * This is due to the fact that GCDAsyncUdpSocket does NOT copy the data.
+ * It simply retains it for performance reasons.
+ * Often times, if NSMutableData is passed, it is because a request/response was built up in memory.
+ * Copying this data adds an unwanted/unneeded overhead.
+ * If you need to write data from an immutable buffer, and you need to alter the buffer before the socket
+ * completes sending the bytes (which is NOT immediately after this method returns, but rather at a later time
+ * when the delegate method notifies you), then you should first copy the bytes, and pass the copy to this method.
 **/
 - (void)sendData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag;
 
 /**
  * Asynchronously sends the given data, with the given timeout and tag, to the given host and port.
  * 
- * If the timeout value is negative, the receive operation will not use a timeout.
- * 
  * This method cannot be used with a connected socket.
  * Recall that connecting is optional for a UDP socket.
  * For connected sockets, data can only be sent to the connected address.
  * For non-connected sockets, the remote destination is specified for each packet.
+ * For more information about optionally connecting udp sockets, see the documentation for the connect methods above.
  * 
- * If data is nil or zero-length this method does nothing.
- * Otherwise the result is reported via the delegate methods.
+ * @param data
+ *     The data to send.
+ *     If data is nil or zero-length, this method does nothing.
+ *     If passing NSMutableData, please read the thread-safety notice below.
+ * 
+ * @param host
+ *     The destination to send the udp packet to.
+ *     May be specified as a domain name (e.g. "deusty.com") or an IP address string (e.g. "192.168.0.2").
+ *     You may also use the convenience strings of "loopback" or "localhost".
+ * 
+ * @param port
+ *    The port of the host to send to.
+ * 
+ * @param timeout
+ *    The timeout for the send opeartion.
+ *    If the timeout value is negative, the send operation will not use a timeout.
+ * 
+ * @param tag
+ *    The tag is for your convenience.
+ *    It is not sent or received over the socket in any manner what-so-ever.
+ *    It is reported back as a parameter in the udpSocket:didSendDataWithTag:
+ *    or udpSocket:didNotSendDataWithTag:dueToError: methods.
+ *    You can use it as an array index, state id, type constant, etc.
+ * 
+ * 
+ * Thread-Safety Note:
+ * If the given data parameter is mutable (NSMutableData) then you MUST NOT alter the data while
+ * the socket is sending it. In other words, it's not safe to alter the data until after the delegate method
+ * udpSocket:didSendDataWithTag: or udpSocket:didNotSendDataWithTag:dueToError: is invoked signifying
+ * that this particular send operation has completed.
+ * This is due to the fact that GCDAsyncUdpSocket does NOT copy the data.
+ * It simply retains it for performance reasons.
+ * Often times, if NSMutableData is passed, it is because a request/response was built up in memory.
+ * Copying this data adds an unwanted/unneeded overhead.
+ * If you need to write data from an immutable buffer, and you need to alter the buffer before the socket
+ * completes sending the bytes (which is NOT immediately after this method returns, but rather at a later time
+ * when the delegate method notifies you), then you should first copy the bytes, and pass the copy to this method.
 **/
 - (void)sendData:(NSData *)data
           toHost:(NSString *)host
@@ -443,10 +506,12 @@ typedef BOOL (^GCDAsyncUdpSocketReceiveFilterBlock)(NSData *data, NSData *addres
  * Recall that connecting is optional for a UDP socket.
  * For connected sockets, data can only be sent to the connected address.
  * For non-connected sockets, the remote destination is specified for each packet.
+ * For more information about optionally connecting udp sockets, see the documentation for the connect methods above.
  * 
  * @param data
  *     The data to send.
  *     If data is nil or zero-length, this method does nothing.
+ *     If passing NSMutableData, please read the thread-safety notice below.
  * 
  * @param address
  *     The address to send the data to (specified as a sockaddr structure wrapped in a NSData object).
@@ -458,11 +523,23 @@ typedef BOOL (^GCDAsyncUdpSocketReceiveFilterBlock)(NSData *data, NSData *addres
  * @param tag
  *    The tag is for your convenience.
  *    It is not sent or received over the socket in any manner what-so-ever.
- *    It is reported back as a parameter in the delegate methods.
+ *    It is reported back as a parameter in the udpSocket:didSendDataWithTag:
+ *    or udpSocket:didNotSendDataWithTag:dueToError: methods.
  *    You can use it as an array index, state id, type constant, etc.
  * 
- * If data is nil or zero-length, this method does nothing.
- * Otherwise the result is reported via the delegate methods.
+ * 
+ * Thread-Safety Note:
+ * If the given data parameter is mutable (NSMutableData) then you MUST NOT alter the data while
+ * the socket is sending it. In other words, it's not safe to alter the data until after the delegate method
+ * udpSocket:didSendDataWithTag: or udpSocket:didNotSendDataWithTag:dueToError: is invoked signifying
+ * that this particular send operation has completed.
+ * This is due to the fact that GCDAsyncUdpSocket does NOT copy the data.
+ * It simply retains it for performance reasons.
+ * Often times, if NSMutableData is passed, it is because a request/response was built up in memory.
+ * Copying this data adds an unwanted/unneeded overhead.
+ * If you need to write data from an immutable buffer, and you need to alter the buffer before the socket
+ * completes sending the bytes (which is NOT immediately after this method returns, but rather at a later time
+ * when the delegate method notifies you), then you should first copy the bytes, and pass the copy to this method.
 **/
 - (void)sendData:(NSData *)data toAddress:(NSData *)remoteAddr withTimeout:(NSTimeInterval)timeout tag:(long)tag;
 
@@ -540,23 +617,27 @@ typedef BOOL (^GCDAsyncUdpSocketReceiveFilterBlock)(NSData *data, NSData *addres
  * 
  * A filter can provide several useful features.
  * 
- * 1. Many times udp packets are discarded because they are duplicate/unneeded/unsolicited.
+ * 1. Many times udp packets need to be parsed.
+ *    Since the filter can run in its own independent queue, you can parallelize this parsing quite easily.
+ *    The end result is a parallel socket io, datagram parsing, and packet processing.
+ * 
+ * 2. Many times udp packets are discarded because they are duplicate/unneeded/unsolicited.
  *    The filter can prevent such packets from arriving at the delegate.
  *    And because the filter can run in its own independent queue, this doesn't slow down the delegate.
  * 
- *    - Since the udp protocol does not guarnatee delivery, udp packets may be lost.
+ *    - Since the udp protocol does not guarantee delivery, udp packets may be lost.
  *      Many protocols built atop udp thus provide various resend/re-request algorithms.
  *      This sometimes results in duplicate packets arriving.
+ *      A filter may allow you to architect the duplicate detection code to run in parallel to normal processing.
  *    
  *    - Since the udp socket may be connectionless, its possible for unsolicited packets to arrive.
  *      Such packets need to be ignored.
- *    
- * 2. Many times udp packets need to be parsed.
- *    Since the filter can run in its own independent queue, you can parallelize this parsing quite easily.
  * 
- * 
- * For more information about GCDAsyncUdpSocketReceiveFilterBlock, see the documentation for its typedef.
- * To remove a previously set filter, invoke this method and pass a nil filterBlock and NULL filterQueue.
+ * 3. Sometimes traffic shapers are needed to simulate real world environments.
+ *    A filter allows you to write custom code to simulate such environments.
+ *    The ability to code this yourself is especially helpful when your simulated environment
+ *    is more complicated than simple traffic shaping (e.g. simulating a cone port restricted router),
+ *    or the system tools to handle this aren't available (e.g. on a mobile device).
  * 
  * Example:
  * 
@@ -569,6 +650,8 @@ typedef BOOL (^GCDAsyncUdpSocketReceiveFilterBlock)(NSData *data, NSData *addres
  * };
  * [udpSocket setReceiveFilter:filter withQueue:myParsingQueue];
  * 
+ * For more information about GCDAsyncUdpSocketReceiveFilterBlock, see the documentation for its typedef.
+ * To remove a previously set filter, invoke this method and pass a nil filterBlock and NULL filterQueue.
 **/
 - (void)setReceiveFilter:(GCDAsyncUdpSocketReceiveFilterBlock)filterBlock withQueue:(dispatch_queue_t)filterQueue;
 

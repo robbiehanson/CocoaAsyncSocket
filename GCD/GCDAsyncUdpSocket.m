@@ -3126,7 +3126,6 @@ enum GCDAsyncUdpSocketConfig
 					flags |= kDidBind;
 					flags |= kDidConnect;
 					
-					
 					cachedConnectedAddress = address;
 					cachedConnectedHost = [[self class] hostFromAddress:address];
 					cachedConnectedPort = [[self class] portFromAddress:address];
@@ -3502,9 +3501,7 @@ enum GCDAsyncUdpSocketConfig
 		
 		[sendQueue addObject:packet];
 		[self maybeDequeueSend];
-		
 	}});
-	
 }
 
 - (void)maybeDequeueSend
