@@ -3589,18 +3589,17 @@ enum GCDAsyncUdpSocketConfig
 		return;
 	}
 	
-	ssize_t result = 0;
+	NSData *addr = nil;
+	int af;
+	
+	// 1. Check for problems
 	
 	BOOL waitingForResolve = NO;
-	BOOL waitingForSocket = NO;
-	BOOL checkResult = NO;
 	BOOL done = NO;
 	
 	if (flags & kDidConnect)
 	{
-		// 
 		// Connected socket
-		// 
 		
 		if (currentSend->resolveInProgress || currentSend->addresses || currentSend->error)
 		{
@@ -3612,24 +3611,13 @@ enum GCDAsyncUdpSocketConfig
 		}
 		else
 		{
-			const void *buffer = [currentSend->buffer bytes];
-			size_t length = (size_t)[currentSend->buffer length];
-			
-			if (socket4FD != SOCKET_NULL)
-				result = send(socket4FD, buffer, length, 0);
-			else
-				result = send(socket6FD, buffer, length, 0);
-				
-			LogVerbose(@"send(socket%@FD) = %i (connected)", (socket4FD != SOCKET_NULL ? @"4" : @"6"), (int)result);
-			
-			checkResult = YES;
+			af = cachedConnectedFamily;
+			addr = cachedConnectedAddress;
 		}
 	}
 	else
 	{
-		// 
 		// Non-Connected socket
-		// 
 		
 		if (currentSend->resolveInProgress)
 		{
@@ -3651,40 +3639,58 @@ enum GCDAsyncUdpSocketConfig
 		}
 		else
 		{
-			NSData *addr = nil;
 			NSError *err = nil;
-			
-			int af = [self getAddress:&addr error:&err fromAddresses:currentSend->addresses];
+			af = [self getAddress:&addr error:&err fromAddresses:currentSend->addresses];
 			
 			if (err)
 			{
 				[self notifyDidNotSendDataWithTag:currentSend->tag dueToError:err];
 				done = YES;
 			}
-			else
-			{
-				const void *buffer = [currentSend->buffer bytes];
-				size_t length = (size_t)[currentSend->buffer length];
-				
-				const void *dst  = [addr bytes];
-				socklen_t dstSize = (socklen_t)[addr length];
-				
-				if (af == AF_INET)
-					result = sendto(socket4FD, buffer, length, 0, dst, dstSize);
-				else
-					result = sendto(socket6FD, buffer, length, 0, dst, dstSize);
-				
-				LogVerbose(@"send(socket%@FD) = %i (non-connected)", (af == AF_INET ? @"4" : @"6"), (int)result);
-				
-				checkResult = YES;
-			}
 		}
 	}
 	
-	NSError *error = nil;
+	// 2. Perform the send (if no problems)
 	
-	if (checkResult)
+	NSError *error = nil;
+	BOOL waitingForSocket = NO;
+	
+	if (!waitingForResolve && !done)
 	{
+		ssize_t result = 0;
+		
+		if (flags & kDidConnect)
+		{
+			// Connected socket
+			
+			const void *buffer = [currentSend->buffer bytes];
+			size_t length = (size_t)[currentSend->buffer length];
+			
+			if (socket4FD != SOCKET_NULL)
+				result = send(socket4FD, buffer, length, 0);
+			else
+				result = send(socket6FD, buffer, length, 0);
+				
+			LogVerbose(@"send(socket%@FD) = %i (connected)", (socket4FD != SOCKET_NULL ? @"4" : @"6"), (int)result);
+		}
+		else
+		{
+			// Non-Connected socket
+			
+			const void *buffer = [currentSend->buffer bytes];
+			size_t length = (size_t)[currentSend->buffer length];
+			
+			const void *dst  = [addr bytes];
+			socklen_t dstSize = (socklen_t)[addr length];
+			
+			if (af == AF_INET)
+				result = sendto(socket4FD, buffer, length, 0, dst, dstSize);
+			else
+				result = sendto(socket6FD, buffer, length, 0, dst, dstSize);
+			
+			LogVerbose(@"send(socket%@FD) = %i (non-connected)", (af == AF_INET ? @"4" : @"6"), (int)result);
+		}
+		
 		// If the socket wasn't bound before, it is now
 		
 		if ((flags & kDidBind) == 0)
@@ -3716,6 +3722,8 @@ enum GCDAsyncUdpSocketConfig
 			done = YES;
 		}
 	}
+	
+	// 3. Process results of 1 & 2
 	
 	if (waitingForResolve)
 	{
