@@ -146,8 +146,9 @@ enum GCDAsyncUdpSocketConfig
 	id delegate;
 	dispatch_queue_t delegateQueue;
 	
-	GCDAsyncUdpSocketReceiveFilterBlock filterBlock;
-	dispatch_queue_t filterQueue;
+	GCDAsyncUdpSocketReceiveFilterBlock receiveFilterBlock;
+	dispatch_queue_t receiveFilterQueue;
+	BOOL receiveFilterAsync;
 	
 	uint32_t flags;
 	uint16_t config;
@@ -3921,33 +3922,35 @@ enum GCDAsyncUdpSocketConfig
 		dispatch_async(socketQueue, block);
 }
 
-- (void)setReceiveFilter:(GCDAsyncUdpSocketReceiveFilterBlock)inFilterBlock withQueue:(dispatch_queue_t)inFilterQueue
+- (void)setReceiveFilter:(GCDAsyncUdpSocketReceiveFilterBlock)filterBlock withQueue:(dispatch_queue_t)filterQueue
 {
-	GCDAsyncUdpSocketReceiveFilterBlock newFilterBlock;
-	dispatch_queue_t newFilterQueue;
+	[self setReceiveFilter:filterBlock withQueue:filterQueue isAsynchronous:YES];
+}
+
+- (void)setReceiveFilter:(GCDAsyncUdpSocketReceiveFilterBlock)filterBlock
+               withQueue:(dispatch_queue_t)filterQueue
+          isAsynchronous:(BOOL)isAsynchronous
+{
+	GCDAsyncUdpSocketReceiveFilterBlock newFilterBlock = NULL;
+	dispatch_queue_t newFilterQueue = NULL;
 	
-	if (inFilterBlock)
+	if (filterBlock)
 	{
-		NSAssert(inFilterQueue, @"Must provide a dispatch_queue in which to run the filter block.");
+		NSAssert(filterQueue, @"Must provide a dispatch_queue in which to run the filter block.");
 		
-		newFilterBlock = [inFilterBlock copy];
-		newFilterQueue = inFilterQueue;
+		newFilterBlock = [filterBlock copy];
+		newFilterQueue = filterQueue;
 		dispatch_retain(newFilterQueue);
-	}
-	else
-	{
-		newFilterBlock = NULL;
-		newFilterQueue = NULL;
 	}
 	
 	dispatch_block_t block = ^{
 		
+		if (receiveFilterQueue)
+			dispatch_release(receiveFilterQueue);
 		
-		if (filterQueue)
-			dispatch_release(filterQueue);
-		
-		filterBlock = newFilterBlock;
-		filterQueue = newFilterQueue;
+		receiveFilterBlock = newFilterBlock;
+		receiveFilterQueue = newFilterQueue;
+		receiveFilterAsync = isAsynchronous;
 	};
 	
 	if (dispatch_get_current_queue() == socketQueue)
@@ -4116,7 +4119,8 @@ enum GCDAsyncUdpSocketConfig
 	
 	
 	BOOL waitingForSocket = NO;
-	BOOL ignoredDueToAddress = NO;
+	BOOL notifiedDelegate = NO;
+	BOOL ignored = NO;
 	
 	NSError *error = nil;
 	
@@ -4136,60 +4140,78 @@ enum GCDAsyncUdpSocketConfig
 		if (flags & kDidConnect)
 		{
 			if (addr4 && ![self isConnectedToAddress4:addr4])
-				ignoredDueToAddress = YES;
+				ignored = YES;
 			if (addr6 && ![self isConnectedToAddress6:addr6])
-				ignoredDueToAddress = YES;
+				ignored = YES;
 		}
 		
 		NSData *addr = (addr4 != nil) ? addr4 : addr6;
 		
-		if (!ignoredDueToAddress)
+		if (!ignored)
 		{
-			if (filterBlock && filterQueue)
+			if (receiveFilterBlock && receiveFilterQueue)
 			{
 				// Run data through filter, and if approved, notify delegate
-				pendingFilterOperations++;
 				
-				dispatch_async(filterQueue, ^{ @autoreleasepool {
-					
-					id filterContext = nil;
-					BOOL allowed = filterBlock(data, addr, &filterContext);
-					
-					// Transition back to socketQueue to get the current delegate / delegateQueue
-					
-					dispatch_async(socketQueue, ^{ @autoreleasepool {
+				__block id filterContext = nil;
+				__block BOOL allowed = NO;
+				
+				if (receiveFilterAsync)
+				{
+					pendingFilterOperations++;
+					dispatch_async(receiveFilterQueue, ^{ @autoreleasepool {
 						
-						pendingFilterOperations--;
+						allowed = receiveFilterBlock(data, addr, &filterContext);
 						
-						if (allowed)
-						{
-							[self notifyDidReceiveData:data fromAddress:addr withFilterContext:filterContext];
-						}
-						
-						if (flags & kReceiveOnce)
-						{
+						// Transition back to socketQueue to get the current delegate / delegateQueue
+						dispatch_async(socketQueue, ^{ @autoreleasepool {
+							
+							pendingFilterOperations--;
+							
 							if (allowed)
 							{
-								// The delegate has been notified,
-								// so our receive once operation has completed.
-								flags &= ~kReceiveOnce;
+								[self notifyDidReceiveData:data fromAddress:addr withFilterContext:filterContext];
 							}
-							else if (pendingFilterOperations == 0)
+							
+							if (flags & kReceiveOnce)
 							{
-								// All pending filter operations have completed,
-								// and none were allowed through.
-								// Our receive once operation hasn't completed yet.
-								[self doReceive];
+								if (allowed)
+								{
+									// The delegate has been notified,
+									// so our receive once operation has completed.
+									flags &= ~kReceiveOnce;
+								}
+								else if (pendingFilterOperations == 0)
+								{
+									// All pending filter operations have completed,
+									// and none were allowed through.
+									// Our receive once operation hasn't completed yet.
+									[self doReceive];
+								}
 							}
-						}
+						}});
+					}});
+				}
+				else // if (!receiveFilterAsync)
+				{
+					dispatch_sync(receiveFilterQueue, ^{ @autoreleasepool {
+						
+						allowed = receiveFilterBlock(data, addr, &filterContext);
 					}});
 					
-				}});
+					if (allowed) {
+						[self notifyDidReceiveData:data fromAddress:addr withFilterContext:filterContext];
+						notifiedDelegate = YES;
+					}
+					else {
+						ignored = YES;
+					}
+				}
 			}
-			else
+			else // if (!receiveFilterBlock || !receiveFilterQueue)
 			{
-				// Notify delegate
 				[self notifyDidReceiveData:data fromAddress:addr withFilterContext:nil];
+				notifiedDelegate = YES;
 			}
 		}
 	}
@@ -4219,15 +4241,19 @@ enum GCDAsyncUdpSocketConfig
 		else
 		{
 			// One-at-a-time receive mode
-			if (ignoredDueToAddress)
-			{
-				[self doReceive];
-			}
-			else if (pendingFilterOperations == 0)
+			if (notifiedDelegate)
 			{
 				// The delegate has been notified (no set filter).
 				// So our receive once operation has completed.
 				flags &= ~kReceiveOnce;
+			}
+			else if (ignored)
+			{
+				[self doReceive];
+			}
+			else
+			{
+				// Waiting on asynchronous receive filter...
 			}
 		}
 	}

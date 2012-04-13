@@ -652,8 +652,28 @@ typedef BOOL (^GCDAsyncUdpSocketReceiveFilterBlock)(NSData *data, NSData *addres
  * 
  * For more information about GCDAsyncUdpSocketReceiveFilterBlock, see the documentation for its typedef.
  * To remove a previously set filter, invoke this method and pass a nil filterBlock and NULL filterQueue.
+ * 
+ * Note: This method invokes setReceiveFilter:withQueue:isAsynchronous: (documented below),
+ *       passing YES for the isAsynchronous parameter.
 **/
 - (void)setReceiveFilter:(GCDAsyncUdpSocketReceiveFilterBlock)filterBlock withQueue:(dispatch_queue_t)filterQueue;
+
+/**
+ * The receive filter can be run via dispatch_async or dispatch_sync.
+ * Most typical situations call for asynchronous operation.
+ * 
+ * However, there are a few situations in which synchronous operation is preferred.
+ * Such is the case when the filter is extremely minimal and fast.
+ * This is because dispatch_sync is faster than dispatch_async.
+ * 
+ * If you choose synchronous operation, be aware of possible deadlock conditions.
+ * Since the socket queue is executing your block via dispatch_sync,
+ * then you cannot perform any tasks which may invoke dispatch_sync on the socket queue.
+ * For example, you can't query properties on the socket.
+**/
+- (void)setReceiveFilter:(GCDAsyncUdpSocketReceiveFilterBlock)filterBlock
+               withQueue:(dispatch_queue_t)filterQueue
+          isAsynchronous:(BOOL)isAsynchronous;
 
 #pragma mark Closing
 
