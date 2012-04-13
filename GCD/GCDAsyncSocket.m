@@ -3,9 +3,9 @@
 //  
 //  This class is in the public domain.
 //  Originally created by Robbie Hanson in Q4 2010.
-//  Updated and maintained by Deusty LLC and the Mac development community.
+//  Updated and maintained by Deusty LLC and the Apple development community.
 //
-//  http://code.google.com/p/cocoaasyncsocket/
+//  https://github.com/robbiehanson/CocoaAsyncSocket
 //
 
 #if ! __has_feature(objc_arc)
