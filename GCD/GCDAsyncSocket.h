@@ -702,6 +702,12 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
              maxLength:(NSUInteger)length
                    tag:(long)tag;
 
+/**
+ * Returns progress of the current read, from 0.0 to 1.0, or NaN if no current read (use isnan() to check).
+ * The parameters "tag", "done" and "total" will be filled in if they aren't NULL.
+**/
+- (float)progressOfReadReturningTag:(long *)tagPtr bytesDone:(NSUInteger *)donePtr total:(NSUInteger *)totalPtr;
+
 #pragma mark Writing
 
 /**
@@ -722,6 +728,12 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * when the delegate method notifies you), then you should first copy the bytes, and pass the copy to this method.
 **/
 - (void)writeData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag;
+
+/**
+ * Returns progress of the current write, from 0.0 to 1.0, or NaN if no current write (use isnan() to check).
+ * The parameters "tag", "done" and "total" will be filled in if they aren't NULL.
+**/
+- (float)progressOfWriteReturningTag:(long *)tagPtr bytesDone:(NSUInteger *)donePtr total:(NSUInteger *)totalPtr;
 
 #pragma mark Security
 

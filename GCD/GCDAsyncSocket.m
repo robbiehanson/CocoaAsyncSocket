@@ -3703,6 +3703,50 @@ enum GCDAsyncSocketConfig
 	// as the queue might get released without the block completing.
 }
 
+- (float)progressOfReadReturningTag:(long *)tagPtr bytesDone:(NSUInteger *)donePtr total:(NSUInteger *)totalPtr
+{
+	__block float result = 0.0F;
+	
+	dispatch_block_t block = ^{
+		
+		if (!currentRead || ![currentRead isKindOfClass:[GCDAsyncReadPacket class]])
+		{
+			// We're not reading anything right now.
+			
+			if (tagPtr != NULL)   *tagPtr = 0;
+			if (donePtr != NULL)  *donePtr = 0;
+			if (totalPtr != NULL) *totalPtr = 0;
+			
+			result = NAN;
+		}
+		else
+		{
+			// It's only possible to know the progress of our read if we're reading to a certain length.
+			// If we're reading to data, we of course have no idea when the data will arrive.
+			// If we're reading to timeout, then we have no idea when the next chunk of data will arrive.
+			
+			NSUInteger done = currentRead->bytesDone;
+			NSUInteger total = currentRead->readLength;
+			
+			if (tagPtr != NULL)   *tagPtr = currentRead->tag;
+			if (donePtr != NULL)  *donePtr = done;
+			if (totalPtr != NULL) *totalPtr = total;
+			
+			if (total > 0)
+				result = (float)done / (float)total;
+			else
+				result = 1.0F;
+		}
+	};
+	
+	if (dispatch_get_current_queue() == socketQueue)
+		block();
+	else
+		dispatch_sync(socketQueue, block);
+	
+	return result;
+}
+
 /**
  * This method starts a new read, if needed.
  * 
@@ -4907,6 +4951,43 @@ enum GCDAsyncSocketConfig
 	// as the queue might get released without the block completing.
 }
 
+- (float)progressOfWriteReturningTag:(long *)tagPtr bytesDone:(NSUInteger *)donePtr total:(NSUInteger *)totalPtr
+{
+	__block float result = 0.0F;
+	
+	dispatch_block_t block = ^{
+		
+		if (!currentWrite || ![currentWrite isKindOfClass:[GCDAsyncWritePacket class]])
+		{
+			// We're not writing anything right now.
+			
+			if (tagPtr != NULL)   *tagPtr = 0;
+			if (donePtr != NULL)  *donePtr = 0;
+			if (totalPtr != NULL) *totalPtr = 0;
+			
+			result = NAN;
+		}
+		else
+		{
+			NSUInteger done = currentWrite->bytesDone;
+			NSUInteger total = [currentWrite->buffer length];
+			
+			if (tagPtr != NULL)   *tagPtr = currentWrite->tag;
+			if (donePtr != NULL)  *donePtr = done;
+			if (totalPtr != NULL) *totalPtr = total;
+			
+			result = (float)done / (float)total;
+		}
+	};
+	
+	if (dispatch_get_current_queue() == socketQueue)
+		block();
+	else
+		dispatch_sync(socketQueue, block);
+	
+	return result;
+}
+
 /**
  * Conditionally starts a new write.
  * 
@@ -5053,7 +5134,7 @@ enum GCDAsyncSocketConfig
 		return;
 	}
 	
-	// Note: This method is not called if theCurrentWrite is an GCDAsyncSpecialPacket (startTLS packet)
+	// Note: This method is not called if currentWrite is a GCDAsyncSpecialPacket (startTLS packet)
 	
 	BOOL waiting = NO;
 	NSError *error = nil;
