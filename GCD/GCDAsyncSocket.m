@@ -1274,6 +1274,7 @@ enum GCDAsyncSocketConfig
 			NSString *reason = @"Error enabling non-blocking IO on socket (fcntl)";
 			err = [self errnoErrorWithReason:reason];
 			
+			LogVerbose(@"close(socketFD)");
 			close(socketFD);
 			return SOCKET_NULL;
 		}
@@ -1285,6 +1286,7 @@ enum GCDAsyncSocketConfig
 			NSString *reason = @"Error enabling address reuse (setsockopt)";
 			err = [self errnoErrorWithReason:reason];
 			
+			LogVerbose(@"close(socketFD)");
 			close(socketFD);
 			return SOCKET_NULL;
 		}
@@ -1297,6 +1299,7 @@ enum GCDAsyncSocketConfig
 			NSString *reason = @"Error in bind() function";
 			err = [self errnoErrorWithReason:reason];
 			
+			LogVerbose(@"close(socketFD)");
 			close(socketFD);
 			return SOCKET_NULL;
 		}
@@ -1309,6 +1312,7 @@ enum GCDAsyncSocketConfig
 			NSString *reason = @"Error in listen() function";
 			err = [self errnoErrorWithReason:reason];
 			
+			LogVerbose(@"close(socketFD)");
 			close(socketFD);
 			return SOCKET_NULL;
 		}
@@ -1425,6 +1429,7 @@ enum GCDAsyncSocketConfig
 			{
 				if (socket4FD != SOCKET_NULL)
 				{
+					LogVerbose(@"close(socket4FD)");
 					close(socket4FD);
 				}
 				
@@ -2362,7 +2367,6 @@ enum GCDAsyncSocketConfig
 		return;
 	}
 	
-	[self endConnectTimeout];
 	[self closeWithError:error];
 }
 
@@ -2495,61 +2499,71 @@ enum GCDAsyncSocketConfig
 	// So we have to unpause the source if needed.
 	// This allows the cancel handler to be run, which in turn releases the source and closes the socket.
 	
-	if (accept4Source)
+	if (!accept4Source && !accept6Source && !readSource && !writeSource)
 	{
-		LogVerbose(@"dispatch_source_cancel(accept4Source)");
-		dispatch_source_cancel(accept4Source);
-		
-		// We never suspend accept4Source
-		
-		accept4Source = NULL;
-	}
-	
-	if (accept6Source)
-	{
-		LogVerbose(@"dispatch_source_cancel(accept6Source)");
-		dispatch_source_cancel(accept6Source);
-		
-		// We never suspend accept6Source
-		
-		accept6Source = NULL;
-	}
-	if (!readSource && !writeSource) {
 		LogVerbose(@"manually closing close");
 
-		if (socket4FD) {
+		if (socket4FD != SOCKET_NULL)
+		{
+			LogVerbose(@"close(socket4FD)");
 			close(socket4FD);
+			socket4FD = SOCKET_NULL;
 		}
 
-		if (socket6FD) {
+		if (socket6FD != SOCKET_NULL)
+		{
+			LogVerbose(@"close(socket6FD)");
 			close(socket6FD);
+			socket6FD = SOCKET_NULL;
 		}
 	}
-
-	if (readSource)
+	else
 	{
-		LogVerbose(@"dispatch_source_cancel(readSource)");
-		dispatch_source_cancel(readSource);
+		if (accept4Source)
+		{
+			LogVerbose(@"dispatch_source_cancel(accept4Source)");
+			dispatch_source_cancel(accept4Source);
+			
+			// We never suspend accept4Source
+			
+			accept4Source = NULL;
+		}
 		
-		[self resumeReadSource];
+		if (accept6Source)
+		{
+			LogVerbose(@"dispatch_source_cancel(accept6Source)");
+			dispatch_source_cancel(accept6Source);
+			
+			// We never suspend accept6Source
+			
+			accept6Source = NULL;
+		}
+	
+		if (readSource)
+		{
+			LogVerbose(@"dispatch_source_cancel(readSource)");
+			dispatch_source_cancel(readSource);
+			
+			[self resumeReadSource];
+			
+			readSource = NULL;
+		}
 		
-		readSource = NULL;
+		if (writeSource)
+		{
+			LogVerbose(@"dispatch_source_cancel(writeSource)");
+			dispatch_source_cancel(writeSource);
+			
+			[self resumeWriteSource];
+			
+			writeSource = NULL;
+		}
+		
+		// The sockets will be closed by the cancel handlers of the corresponding source
+		
+		socket4FD = SOCKET_NULL;
+		socket6FD = SOCKET_NULL;
 	}
-	
-	if (writeSource)
-	{
-		LogVerbose(@"dispatch_source_cancel(writeSource)");
-		dispatch_source_cancel(writeSource);
-		
-		[self resumeWriteSource];
-		
-		writeSource = NULL;
-	}
-	
-	// The sockets will be closed by the cancel handlers of the corresponding source
-	
-	socket4FD = SOCKET_NULL;
-	socket6FD = SOCKET_NULL;
 	
 	// If the client has passed the connect/accept method, then the connection has at least begun.
 	// Notify delegate that it is now ending.
