@@ -15,6 +15,9 @@
 extern NSString *const GCDAsyncUdpSocketException;
 extern NSString *const GCDAsyncUdpSocketErrorDomain;
 
+extern NSString *const GCDAsyncUdpSocketQueueName;
+extern NSString *const GCDAsyncUdpSocketThreadName;
+
 enum GCDAsyncUdpSocketError
 {
 	GCDAsyncUdpSocketNoError = 0,          // Never used

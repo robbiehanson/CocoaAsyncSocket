@@ -105,6 +105,9 @@ static const int logLevel = LOG_LEVEL_VERBOSE;
 NSString *const GCDAsyncUdpSocketException = @"GCDAsyncUdpSocketException";
 NSString *const GCDAsyncUdpSocketErrorDomain = @"GCDAsyncUdpSocketErrorDomain";
 
+NSString *const GCDAsyncUdpSocketQueueName = @"GCDAsyncUdpSocket";
+NSString *const GCDAsyncUdpSocketThreadName = @"GCDAsyncUdpSocket-CFStream";
+
 enum GCDAsyncUdpSocketFlags
 {
 	kDidCreateSockets        = 1 <<  0,  // If set, the sockets have been created.
@@ -373,7 +376,7 @@ enum GCDAsyncUdpSocketConfig
 		}
 		else
 		{
-			socketQueue = dispatch_queue_create("GCDAsyncUdpSocket", NULL);
+			socketQueue = dispatch_queue_create([GCDAsyncUdpSocketQueueName UTF8String], NULL);
 		}
 		
 		sendQueue = [[NSMutableArray alloc] initWithCapacity:5];
@@ -2062,7 +2065,6 @@ enum GCDAsyncUdpSocketConfig
 		
 		// Clear cached info
 		
-		
 		cachedLocalAddress4 = nil;
 		cachedLocalHost4 = nil;
 		cachedLocalPort4 = 0;
@@ -2100,7 +2102,6 @@ enum GCDAsyncUdpSocketConfig
 		flags &= ~kSock6CanAcceptBytes;
 		
 		// Clear cached info
-		
 		
 		cachedLocalAddress6 = nil;
 		cachedLocalHost6 = nil;
@@ -3436,7 +3437,6 @@ enum GCDAsyncUdpSocketConfig
 		
 		[sendQueue addObject:packet];
 		[self maybeDequeueSend];
-		
 	}});
 	
 }
@@ -4369,7 +4369,7 @@ static NSThread *listenerThread;
 {
 	@autoreleasepool {
 	
-		[[NSThread currentThread] setName:@"GCDAsyncUdpSocket-CFStream"];
+		[[NSThread currentThread] setName:GCDAsyncUdpSocketThreadName];
 		
 		LogInfo(@"ListenerThread: Started");
 		
