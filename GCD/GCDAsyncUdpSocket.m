@@ -153,6 +153,10 @@ enum GCDAsyncUdpSocketConfig
 	dispatch_queue_t receiveFilterQueue;
 	BOOL receiveFilterAsync;
 	
+	GCDAsyncUdpSocketSendFilterBlock sendFilterBlock;
+	dispatch_queue_t sendFilterQueue;
+	BOOL sendFilterAsync;
+	
 	uint32_t flags;
 	uint16_t config;
 	
@@ -213,6 +217,7 @@ enum GCDAsyncUdpSocketConfig
 - (BOOL)connectWithAddress6:(NSData *)address6 error:(NSError **)errPtr;
 
 - (void)maybeDequeueSend;
+- (void)doPreSend;
 - (void)doSend;
 - (void)endCurrentSend;
 - (void)setupSendTimerWithTimeout:(NSTimeInterval)timeout;
@@ -259,9 +264,13 @@ enum GCDAsyncUdpSocketConfig
 	long tag;
 	
 	BOOL resolveInProgress;
+	BOOL filterInProgress;
 	
-	NSArray *addresses;
-	NSError *error;
+	NSArray *resolvedAddresses;
+	NSError *resolveError;
+	
+	NSData *address;
+	int addressFamily;
 }
 
 - (id)initWithData:(NSData *)d timeout:(NSTimeInterval)t tag:(long)i;
@@ -379,8 +388,8 @@ enum GCDAsyncUdpSocketConfig
 			socketQueue = dispatch_queue_create([GCDAsyncUdpSocketQueueName UTF8String], NULL);
 		}
 		
-		sendQueue = [[NSMutableArray alloc] initWithCapacity:5];
 		currentSend = nil;
+		sendQueue = [[NSMutableArray alloc] initWithCapacity:5];
 		
 		#if TARGET_OS_IPHONE
 		[[NSNotificationCenter defaultCenter] addObserver:self
@@ -1675,11 +1684,32 @@ enum GCDAsyncUdpSocketConfig
 	dispatch_source_set_event_handler(send4Source, ^{ @autoreleasepool {
 		
 		LogVerbose(@"send4EventBlock");
-		
 		LogVerbose(@"dispatch_source_get_data(send4Source) = %lu", dispatch_source_get_data(send4Source));
 		
 		flags |= kSock4CanAcceptBytes;
-		[self doSend];
+		
+		// If we're ready to send data, do so immediately.
+		// Otherwise pause the send source or it will continue to fire over and over again.
+		
+		if (currentSend == nil)
+		{
+			LogVerbose(@"Nothing to send");
+			[self suspendSend4Source];
+		}
+		else if (currentSend->resolveInProgress)
+		{
+			LogVerbose(@"currentSend - waiting for address resolve");
+			[self suspendSend4Source];
+		}
+		else if (currentSend->filterInProgress)
+		{
+			LogVerbose(@"currentSend - waiting on sendFilter");
+			[self suspendSend4Source];
+		}
+		else
+		{
+			[self doSend];
+		}
 		
 	}});
 	
@@ -1759,11 +1789,32 @@ enum GCDAsyncUdpSocketConfig
 	dispatch_source_set_event_handler(send6Source, ^{ @autoreleasepool {
 		
 		LogVerbose(@"send6EventBlock");
-		
 		LogVerbose(@"dispatch_source_get_data(send6Source) = %lu", dispatch_source_get_data(send6Source));
 		
 		flags |= kSock6CanAcceptBytes;
-		[self doSend];
+		
+		// If we're ready to send data, do so immediately.
+		// Otherwise pause the send source or it will continue to fire over and over again.
+		
+		if (currentSend == nil)
+		{
+			LogVerbose(@"Nothing to send");
+			[self suspendSend6Source];
+		}
+		else if (currentSend->resolveInProgress)
+		{
+			LogVerbose(@"currentSend - waiting for address resolve");
+			[self suspendSend6Source];
+		}
+		else if (currentSend->filterInProgress)
+		{
+			LogVerbose(@"currentSend - waiting on sendFilter");
+			[self suspendSend6Source];
+		}
+		else
+		{
+			[self doSend];
+		}
 		
 	}});
 	
@@ -3466,13 +3517,13 @@ enum GCDAsyncUdpSocketConfig
 		
 		packet->resolveInProgress = NO;
 		
-		packet->addresses = addresses;
-		packet->error = error;
+		packet->resolvedAddresses = addresses;
+		packet->resolveError = error;
 		
 		if (packet == currentSend)
 		{
 			LogVerbose(@"currentSend - address resolved");
-			[self doSend];
+			[self doPreSend];
 		}
 	}];
 	
@@ -3496,13 +3547,51 @@ enum GCDAsyncUdpSocketConfig
 	}
 	
 	GCDAsyncUdpSendPacket *packet = [[GCDAsyncUdpSendPacket alloc] initWithData:data timeout:timeout tag:tag];
-	packet->addresses = [[NSArray alloc] initWithObjects:remoteAddr, nil];
+	packet->addressFamily = [GCDAsyncUdpSocket familyFromAddress:remoteAddr];
+	packet->address = remoteAddr;
 	
 	dispatch_async(socketQueue, ^{ @autoreleasepool {
 		
 		[sendQueue addObject:packet];
 		[self maybeDequeueSend];
 	}});
+}
+
+- (void)setSendFilter:(GCDAsyncUdpSocketSendFilterBlock)filterBlock withQueue:(dispatch_queue_t)filterQueue
+{
+	[self setSendFilter:filterBlock withQueue:filterQueue isAsynchronous:YES];
+}
+
+- (void)setSendFilter:(GCDAsyncUdpSocketSendFilterBlock)filterBlock
+            withQueue:(dispatch_queue_t)filterQueue
+       isAsynchronous:(BOOL)isAsynchronous
+{
+	GCDAsyncUdpSocketSendFilterBlock newFilterBlock = NULL;
+	dispatch_queue_t newFilterQueue = NULL;
+	
+	if (filterBlock)
+	{
+		NSAssert(filterQueue, @"Must provide a dispatch_queue in which to run the filter block.");
+		
+		newFilterBlock = [filterBlock copy];
+		newFilterQueue = filterQueue;
+		dispatch_retain(newFilterQueue);
+	}
+	
+	dispatch_block_t block = ^{
+		
+		if (sendFilterQueue)
+			dispatch_release(sendFilterQueue);
+		
+		sendFilterBlock = newFilterBlock;
+		sendFilterQueue = newFilterQueue;
+		sendFilterAsync = isAsynchronous;
+	};
+	
+	if (dispatch_get_current_queue() == socketQueue)
+		block();
+	else
+		dispatch_async(socketQueue, block);
 }
 
 - (void)maybeDequeueSend
@@ -3536,10 +3625,10 @@ enum GCDAsyncUdpSocketConfig
 				
 				return; // The maybeConnect method, if it connects, will invoke this method again
 			}
-			else if (currentSend->error)
+			else if (currentSend->resolveError)
 			{
 				// Notify delegate
-				[self notifyDidNotSendDataWithTag:currentSend->tag dueToError:currentSend->error];
+				[self notifyDidNotSendDataWithTag:currentSend->tag dueToError:currentSend->resolveError];
 				
 				// Clear currentSend
 				currentSend = nil;
@@ -3548,11 +3637,8 @@ enum GCDAsyncUdpSocketConfig
 			}
 			else
 			{
-				// Setup send timer (if needed)
-				[self setupSendTimerWithTimeout:currentSend->timeout];
-				
-				// Immediately send (if possible)
-				[self doSend];
+				// Start preprocessing checks on the send packet
+				[self doPreSend];
 				
 				break;
 			}
@@ -3565,54 +3651,37 @@ enum GCDAsyncUdpSocketConfig
 	}
 }
 
-- (void)doSend
+/**
+ * This method is called after a sendPacket has been dequeued.
+ * It performs various preprocessing checks on the packet,
+ * and queries the sendFilter (if set) to determine if the packet can be sent.
+ * 
+ * If the packet passes all checks, it will be passed on to the doSend method.
+**/
+- (void)doPreSend
 {
 	LogTrace();
 	
-	if (currentSend == nil)
-	{
-		// If the sendXSource is firing, we need to pause it
-		// or else it will continue to fire over and over again.
-		// 
-		// If the sendXSource is not firing,
-		// we want it to continue monitoring the socket.
-		
-		LogVerbose(@"Nothing to send");
-		
-		if (flags & kSock4CanAcceptBytes) {
-			[self suspendSend4Source];
-		}
-		if (flags & kSock6CanAcceptBytes) {
-			[self suspendSend6Source];
-		}
-		
-		return;
-	}
-	
-	NSData *addr = nil;
-	int af;
-	
-	// 1. Check for problems
+	// 
+	// 1. Check for problems with send packet
+	// 
 	
 	BOOL waitingForResolve = NO;
-	BOOL done = NO;
+	NSError *error = nil;
 	
 	if (flags & kDidConnect)
 	{
 		// Connected socket
 		
-		if (currentSend->resolveInProgress || currentSend->addresses || currentSend->error)
+		if (currentSend->resolveInProgress || currentSend->resolvedAddresses || currentSend->resolveError)
 		{
 			NSString *msg = @"Cannot specify destination of packet for connected socket";
-			NSError *error = [self badConfigError:msg];
-			
-			[self notifyDidNotSendDataWithTag:currentSend->tag dueToError:error];
-			done = YES;
+			error = [self badConfigError:msg];
 		}
 		else
 		{
-			af = cachedConnectedFamily;
-			addr = cachedConnectedAddress;
+			currentSend->address = cachedConnectedAddress;
+			currentSend->addressFamily = cachedConnectedFamily;
 		}
 	}
 	else
@@ -3624,106 +3693,31 @@ enum GCDAsyncUdpSocketConfig
 			// We're waiting for the packet's destination to be resolved.
 			waitingForResolve = YES;
 		}
-		else if (currentSend->error)
+		else if (currentSend->resolveError)
 		{
-			[self notifyDidNotSendDataWithTag:currentSend->tag dueToError:currentSend->error];
-			done = YES;
+			error = currentSend->resolveError;
 		}
-		else if (currentSend->addresses == nil)
+		else if (currentSend->address == nil)
 		{
-			NSString *msg = @"You must specify destination of packet for a non-connected socket";
-			NSError *error = [self badConfigError:msg];
-			
-			[self notifyDidNotSendDataWithTag:currentSend->tag dueToError:error];
-			done = YES;
-		}
-		else
-		{
-			NSError *err = nil;
-			af = [self getAddress:&addr error:&err fromAddresses:currentSend->addresses];
-			
-			if (err)
+			if (currentSend->resolvedAddresses == nil)
 			{
-				[self notifyDidNotSendDataWithTag:currentSend->tag dueToError:err];
-				done = YES;
+				NSString *msg = @"You must specify destination of packet for a non-connected socket";
+				error = [self badConfigError:msg];
 			}
-		}
-	}
-	
-	// 2. Perform the send (if no problems)
-	
-	NSError *error = nil;
-	BOOL waitingForSocket = NO;
-	
-	if (!waitingForResolve && !done)
-	{
-		ssize_t result = 0;
-		
-		if (flags & kDidConnect)
-		{
-			// Connected socket
-			
-			const void *buffer = [currentSend->buffer bytes];
-			size_t length = (size_t)[currentSend->buffer length];
-			
-			if (socket4FD != SOCKET_NULL)
-				result = send(socket4FD, buffer, length, 0);
 			else
-				result = send(socket6FD, buffer, length, 0);
+			{
+				// Pick the proper address to use (out of possibly several resolved addresses)
 				
-			LogVerbose(@"send(socket%@FD) = %i (connected)", (socket4FD != SOCKET_NULL ? @"4" : @"6"), (int)result);
-		}
-		else
-		{
-			// Non-Connected socket
-			
-			const void *buffer = [currentSend->buffer bytes];
-			size_t length = (size_t)[currentSend->buffer length];
-			
-			const void *dst  = [addr bytes];
-			socklen_t dstSize = (socklen_t)[addr length];
-			
-			if (af == AF_INET)
-				result = sendto(socket4FD, buffer, length, 0, dst, dstSize);
-			else
-				result = sendto(socket6FD, buffer, length, 0, dst, dstSize);
-			
-			LogVerbose(@"send(socket%@FD) = %i (non-connected)", (af == AF_INET ? @"4" : @"6"), (int)result);
-		}
-		
-		// If the socket wasn't bound before, it is now
-		
-		if ((flags & kDidBind) == 0)
-		{
-			flags |= kDidBind;
-		}
-		
-		// From the send() & sendto() manpage:
-		// 
-		// Upon successful completion, the number of bytes which were sent is returned.
-		// Otherwise, -1 is returned and the global variable errno is set to indicate the error.
-		
-		if (result == 0)
-		{
-			waitingForSocket = YES;
-		}
-		else if (result < 0)
-		{
-			if (errno == EAGAIN) {
-				waitingForSocket = YES;
+				NSData *address = nil;
+				int addressFamily = AF_UNSPEC;
+				
+				addressFamily = [self getAddress:&address error:&error fromAddresses:currentSend->resolvedAddresses];
+				
+				currentSend->address = address;
+				currentSend->addressFamily = addressFamily;
 			}
-			else {
-				error = [self errnoErrorWithReason:@"Error in send() function."];
-			}
-		}
-		else
-		{
-			[self notifyDidSendDataWithTag:currentSend->tag];
-			done = YES;
 		}
 	}
-	
-	// 3. Process results of 1 & 2
 	
 	if (waitingForResolve)
 	{
@@ -3737,11 +3731,182 @@ enum GCDAsyncUdpSocketConfig
 		if (flags & kSock6CanAcceptBytes) {
 			[self suspendSend6Source];
 		}
+		
+		return;
 	}
-	else if (waitingForSocket)
+	
+	if (error)
+	{
+		// Unable to send packet due to some error.
+		// Notify delegate and move on.
+		
+		[self notifyDidNotSendDataWithTag:currentSend->tag dueToError:error];
+		[self endCurrentSend];
+		[self maybeDequeueSend];
+		
+		return;
+	}
+	
+	// 
+	// 2. Query sendFilter (if applicable)
+	// 
+	
+	if (sendFilterBlock && sendFilterQueue)
+	{
+		// Query sendFilter
+		
+		if (sendFilterAsync)
+		{
+			// Scenario 1 of 3 - Need to asynchronously query sendFilter
+			
+			currentSend->filterInProgress = YES;
+			GCDAsyncUdpSendPacket *sendPacket = currentSend;
+			
+			dispatch_async(sendFilterQueue, ^{ @autoreleasepool {
+				
+				BOOL allowed = sendFilterBlock(sendPacket->buffer, sendPacket->address, sendPacket->tag);
+				
+				dispatch_async(socketQueue, ^{ @autoreleasepool {
+					
+					sendPacket->filterInProgress = NO;
+					if (sendPacket == currentSend)
+					{
+						if (allowed)
+						{
+							[self doSend];
+						}
+						else
+						{
+							LogVerbose(@"currentSend - silently dropped by sendFilter");
+							
+							[self notifyDidSendDataWithTag:currentSend->tag];
+							[self endCurrentSend];
+							[self maybeDequeueSend];
+						}
+					}
+				}});
+			}});
+		}
+		else
+		{
+			// Scenario 2 of 3 - Need to synchronously query sendFilter
+			
+			__block BOOL allowed = YES;
+			
+			dispatch_sync(sendFilterQueue, ^{ @autoreleasepool {
+				
+				allowed = sendFilterBlock(currentSend->buffer, currentSend->address, currentSend->tag);
+			}});
+			
+			if (allowed)
+			{
+				[self doSend];
+			}
+			else
+			{
+				LogVerbose(@"currentSend - silently dropped by sendFilter");
+				
+				[self notifyDidSendDataWithTag:currentSend->tag];
+				[self endCurrentSend];
+				[self maybeDequeueSend];
+			}
+		}
+	}
+	else // if (!sendFilterBlock || !sendFilterQueue)
+	{
+		// Scenario 3 of 3 - No sendFilter. Just go straight into sending.
+		
+		[self doSend];
+	}
+}
+
+/**
+ * This method performs the actual sending of data in the currentSend packet.
+ * It should only be called if the 
+**/
+- (void)doSend
+{
+	LogTrace();
+	
+	NSAssert(currentSend != nil, @"Invalid logic");
+	
+	// Perform the actual send
+	
+	ssize_t result = 0;
+	
+	if (flags & kDidConnect)
+	{
+		// Connected socket
+		
+		const void *buffer = [currentSend->buffer bytes];
+		size_t length = (size_t)[currentSend->buffer length];
+		
+		if (currentSend->addressFamily == AF_INET)
+		{
+			result = send(socket4FD, buffer, length, 0);
+			LogVerbose(@"send(socket4FD) = %d", result);
+		}
+		else
+		{
+			result = send(socket6FD, buffer, length, 0);
+			LogVerbose(@"send(socket6FD) = %d", result);
+		}
+	}
+	else
+	{
+		// Non-Connected socket
+		
+		const void *buffer = [currentSend->buffer bytes];
+		size_t length = (size_t)[currentSend->buffer length];
+		
+		const void *dst  = [currentSend->address bytes];
+		socklen_t dstSize = (socklen_t)[currentSend->address length];
+		
+		if (currentSend->addressFamily == AF_INET)
+		{
+			result = sendto(socket4FD, buffer, length, 0, dst, dstSize);
+			LogVerbose(@"sendto(socket4FD) = %d", result);
+		}
+		else
+		{
+			result = sendto(socket6FD, buffer, length, 0, dst, dstSize);
+			LogVerbose(@"sendto(socket6FD) = %d", result);
+		}
+	}
+	
+	// If the socket wasn't bound before, it is now
+	
+	if ((flags & kDidBind) == 0)
+	{
+		flags |= kDidBind;
+	}
+	
+	// Check the results.
+	// 
+	// From the send() & sendto() manpage:
+	// 
+	// Upon successful completion, the number of bytes which were sent is returned.
+	// Otherwise, -1 is returned and the global variable errno is set to indicate the error.
+	
+	BOOL waitingForSocket = NO;
+	NSError *socketError = nil;
+	
+	if (result == 0)
+	{
+		waitingForSocket = YES;
+	}
+	else if (result < 0)
+	{
+		if (errno == EAGAIN)
+			waitingForSocket = YES;
+		else
+			socketError = [self errnoErrorWithReason:@"Error in send() function."];
+	}
+	
+	if (waitingForSocket)
 	{
 		// Not enough room in the underlying OS socket send buffer.
-		// Waiting for a notification.
+		// Wait for a notification of available space.
 		
 		LogVerbose(@"currentSend - waiting for socket");
 		
@@ -3751,29 +3916,45 @@ enum GCDAsyncUdpSocketConfig
 		if (!(flags & kSock6CanAcceptBytes)) {
 			[self resumeSend6Source];
 		}
+		
+		if ((sendTimer == NULL) && (currentSend->timeout >= 0.0))
+		{
+			// Unable to send packet right away.
+			// Start timer to timeout the send operation.
+			
+			[self setupSendTimerWithTimeout:currentSend->timeout];
+		}
 	}
-	else if (error)
+	else if (socketError)
 	{
-		[self closeWithError:error];
+		[self closeWithError:socketError];
 	}
-	else if (done)
+	else // done
 	{
+		[self notifyDidSendDataWithTag:currentSend->tag];
 		[self endCurrentSend];
 		[self maybeDequeueSend];
 	}
 }
 
+/**
+ * Releases all resources associated with the currentSend.
+**/
 - (void)endCurrentSend
 {
 	if (sendTimer)
 	{
 		dispatch_source_cancel(sendTimer);
+		dispatch_release(sendTimer);
 		sendTimer = NULL;
 	}
 	
 	currentSend = nil;
 }
 
+/**
+ * Performs the operations to timeout the current send operation, and move on.
+**/
 - (void)doSendTimeout
 {
 	LogTrace();
@@ -3783,32 +3964,28 @@ enum GCDAsyncUdpSocketConfig
 	[self maybeDequeueSend];
 }
 
+/**
+ * Sets up a timer that fires to timeout the current send operation.
+ * This method should only be called once per send packet.
+**/
 - (void)setupSendTimerWithTimeout:(NSTimeInterval)timeout
 {
 	NSAssert(sendTimer == NULL, @"Invalid logic");
+	NSAssert(timeout >= 0.0, @"Invalid logic");
 	
-	if (timeout >= 0.0)
-	{
-		LogTrace();
+	LogTrace();
+	
+	sendTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, socketQueue);
+	
+	dispatch_source_set_event_handler(sendTimer, ^{ @autoreleasepool {
 		
-		sendTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, socketQueue);
-		
-		dispatch_source_set_event_handler(sendTimer, ^{ @autoreleasepool {
-			
-			[self doSendTimeout];
-		}});
-		
-		dispatch_source_t theSendTimer = sendTimer;
-		dispatch_source_set_cancel_handler(sendTimer, ^{
-			LogVerbose(@"dispatch_release(sendTimer)");
-			dispatch_release(theSendTimer);
-		});
-		
-		dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeout * NSEC_PER_SEC));
-		
-		dispatch_source_set_timer(sendTimer, tt, DISPATCH_TIME_FOREVER, 0);
-		dispatch_resume(sendTimer);
-	}
+		[self doSendTimeout];
+	}});
+	
+	dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeout * NSEC_PER_SEC));
+	
+	dispatch_source_set_timer(sendTimer, tt, DISPATCH_TIME_FOREVER, 0);
+	dispatch_resume(sendTimer);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -4087,6 +4264,7 @@ enum GCDAsyncUdpSocketConfig
 		else
 		{
 			LogVerbose(@"recvfrom(socket4FD) = %@", [self errnoError]);
+			socket4FDBytesAvailable = 0;
 			free(buf);
 		}
 	}
@@ -4121,6 +4299,7 @@ enum GCDAsyncUdpSocketConfig
 		else
 		{
 			LogVerbose(@"recvfrom(socket6FD) = %@", [self errnoError]);
+			socket6FDBytesAvailable = 0;
 			free(buf);
 		}
 	}
@@ -4130,7 +4309,7 @@ enum GCDAsyncUdpSocketConfig
 	BOOL notifiedDelegate = NO;
 	BOOL ignored = NO;
 	
-	NSError *error = nil;
+	NSError *socketError = nil;
 	
 	if (result == 0)
 	{
@@ -4141,7 +4320,7 @@ enum GCDAsyncUdpSocketConfig
 		if (errno == EAGAIN)
 			waitingForSocket = YES;
 		else
-			error = [self errnoErrorWithReason:@"Error in recvfrom() function"];
+			socketError = [self errnoErrorWithReason:@"Error in recvfrom() function"];
 	}
 	else
 	{
@@ -4180,6 +4359,10 @@ enum GCDAsyncUdpSocketConfig
 							{
 								[self notifyDidReceiveData:data fromAddress:addr withFilterContext:filterContext];
 							}
+							else
+							{
+								LogVerbose(@"received packet silently dropped by receiveFilter");
+							}
 							
 							if (flags & kReceiveOnce)
 							{
@@ -4207,11 +4390,14 @@ enum GCDAsyncUdpSocketConfig
 						allowed = receiveFilterBlock(data, addr, &filterContext);
 					}});
 					
-					if (allowed) {
+					if (allowed)
+					{
 						[self notifyDidReceiveData:data fromAddress:addr withFilterContext:filterContext];
 						notifiedDelegate = YES;
 					}
-					else {
+					else
+					{
+						LogVerbose(@"received packet silently dropped by receiveFilter");
 						ignored = YES;
 					}
 				}
@@ -4235,9 +4421,9 @@ enum GCDAsyncUdpSocketConfig
 			[self resumeReceive6Source];
 		}
 	}
-	else if (error)
+	else if (socketError)
 	{
-		[self closeWithError:error];
+		[self closeWithError:socketError];
 	}
 	else
 	{

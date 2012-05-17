@@ -79,6 +79,34 @@ typedef enum GCDAsyncUdpSocketError GCDAsyncUdpSocketError;
 **/
 typedef BOOL (^GCDAsyncUdpSocketReceiveFilterBlock)(NSData *data, NSData *address, id *context);
 
+/**
+ * You may optionally set a send filter for the socket.
+ * A filter can provide several interesting possibilities:
+ * 
+ * 1. Optional caching of resolved addresses for domain names.
+ *    The cache could later be consulted, resulting in fewer system calls to getaddrinfo.
+ * 
+ * 2. Reusable modules of code for bandwidth monitoring.
+ * 
+ * 3. Sometimes traffic shapers are needed to simulate real world environments.
+ *    A filter allows you to write custom code to simulate such environments.
+ *    The ability to code this yourself is especially helpful when your simulated environment
+ *    is more complicated than simple traffic shaping (e.g. simulating a cone port restricted router),
+ *    or the system tools to handle this aren't available (e.g. on a mobile device).
+ * 
+ * @param data    - The packet that was received.
+ * @param address - The address the data was received from.
+ *                  See utilities section for methods to extract info from address.
+ * @param tag     - The tag that was passed in the send method.
+ * 
+ * @returns - YES if the packet should actually be sent over the socket.
+ *            NO if the packet should be silently dropped (not sent over the socket).
+ * 
+ * Regardless of the return value, the delegate will be informed that the packet was successfully sent.
+ *
+**/
+typedef BOOL (^GCDAsyncUdpSocketSendFilterBlock)(NSData *data, NSData *address, long tag);
+
 
 @interface GCDAsyncUdpSocket : NSObject
 
@@ -545,6 +573,46 @@ typedef BOOL (^GCDAsyncUdpSocketReceiveFilterBlock)(NSData *data, NSData *addres
  * when the delegate method notifies you), then you should first copy the bytes, and pass the copy to this method.
 **/
 - (void)sendData:(NSData *)data toAddress:(NSData *)remoteAddr withTimeout:(NSTimeInterval)timeout tag:(long)tag;
+
+/**
+ * You may optionally set a send filter for the socket.
+ * A filter can provide several interesting possibilities:
+ * 
+ * 1. Optional caching of resolved addresses for domain names.
+ *    The cache could later be consulted, resulting in fewer system calls to getaddrinfo.
+ * 
+ * 2. Reusable modules of code for bandwidth monitoring.
+ * 
+ * 3. Sometimes traffic shapers are needed to simulate real world environments.
+ *    A filter allows you to write custom code to simulate such environments.
+ *    The ability to code this yourself is especially helpful when your simulated environment
+ *    is more complicated than simple traffic shaping (e.g. simulating a cone port restricted router),
+ *    or the system tools to handle this aren't available (e.g. on a mobile device).
+ * 
+ * For more information about GCDAsyncUdpSocketSendFilterBlock, see the documentation for its typedef.
+ * To remove a previously set filter, invoke this method and pass a nil filterBlock and NULL filterQueue.
+ * 
+ * Note: This method invokes setSendFilter:withQueue:isAsynchronous: (documented below),
+ *       passing YES for the isAsynchronous parameter.
+**/
+- (void)setSendFilter:(GCDAsyncUdpSocketSendFilterBlock)filterBlock withQueue:(dispatch_queue_t)filterQueue;
+
+/**
+ * The receive filter can be run via dispatch_async or dispatch_sync.
+ * Most typical situations call for asynchronous operation.
+ * 
+ * However, there are a few situations in which synchronous operation is preferred.
+ * Such is the case when the filter is extremely minimal and fast.
+ * This is because dispatch_sync is faster than dispatch_async.
+ * 
+ * If you choose synchronous operation, be aware of possible deadlock conditions.
+ * Since the socket queue is executing your block via dispatch_sync,
+ * then you cannot perform any tasks which may invoke dispatch_sync on the socket queue.
+ * For example, you can't query properties on the socket.
+**/
+- (void)setSendFilter:(GCDAsyncUdpSocketSendFilterBlock)filterBlock
+            withQueue:(dispatch_queue_t)filterQueue
+       isAsynchronous:(BOOL)isAsynchronous;
 
 #pragma mark Receiving
 
