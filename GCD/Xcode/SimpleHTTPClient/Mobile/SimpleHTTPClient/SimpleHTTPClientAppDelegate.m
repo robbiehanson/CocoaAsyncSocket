@@ -8,7 +8,7 @@
 // Log levels: off, error, warn, info, verbose
 static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
-#define HOST @"google.com"
+#define HOST @"www.apple.com"
 
 #define USE_SECURE_CONNECTION    0
 #define VALIDATE_SSL_CERTIFICATE 1
