@@ -850,7 +850,7 @@ static void allocate_ring_buffer(uint8_t **ringBufferPtr, size_t ringBufferSize)
 	
 	NSUInteger loopCount = bufLen + maxPreBufferLength - termLength + 1; // Plus one. See example above.
 	
-	NSUInteger result = preBufferLength;
+	NSUInteger result = maxPreBufferLength;
 	
 	NSUInteger i;
 	for (i = 0; i < loopCount; i++)
