@@ -60,3 +60,11 @@ CocoaAsyncSocket provides easy-to-use and powerful asynchronous socket libraries
 
 - Fully Run-loop based<br/>
   _Use it on the main thread or a worker thread. It plugs into the NSRunLoop with configurable modes._
+
+***
+
+Can't find the answer to your question in any of the [wiki](https://github.com/robbiehanson/CocoaAsyncSocket/wiki) articles? Try the **[mailing list](http://groups.google.com/group/cocoaasyncsocket)**.
+<br/>
+<br/>
+Love the project? Wanna buy me a coffee? (or a beer :D) [![donation](http://www.paypal.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=2M8C699FQ8AW2)
+
