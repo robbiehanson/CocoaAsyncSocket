@@ -19,8 +19,6 @@
   #import <CFNetwork/CFNetwork.h>
 #endif
 
-#import <mach/mach.h>
-
 #import <arpa/inet.h>
 #import <fcntl.h>
 #import <ifaddrs.h>
@@ -265,10 +263,28 @@ enum GCDAsyncSocketConfig
 #pragma mark -
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-@interface GCDAsyncSocketRingBuffer : NSObject
+/**
+ * A PreBuffer is used when there is more data available on the socket
+ * than is being requested by current read request.
+ * In this case we slurp up all data from the socket (to minimize sys calls),
+ * and store additional yet unread data in a "prebuffer".
+ * 
+ * The prebuffer is entirely drained before we read from the socket again.
+ * In other words, a large chunk of data is written is written to the prebuffer.
+ * The prebuffer is then drained via a series of one or more reads (for subsequent read request(s)).
+ * 
+ * A ring buffer was once used for this purpose.
+ * But a ring buffer takes up twice as much memory as needed (double the size for mirroring).
+ * In fact, it generally takes up more than twice the needed size as everything has to be rounded up to vm_page_size.
+ * And since the prebuffer is always completely drained after being written to, a full ring buffer isn't needed.
+ * 
+ * The current design is very simple and straight-forward, while also keeping memory requirements lower.
+**/
+
+@interface GCDAsyncSocketPreBuffer : NSObject
 {
-	uint8_t *ringBuffer;
-	size_t ringBufferSize;
+	uint8_t *preBuffer;
+	size_t preBufferSize;
 	
 	uint8_t *readPointer;
 	uint8_t *writePointer;
@@ -295,127 +311,46 @@ enum GCDAsyncSocketConfig
 
 @end
 
-@implementation GCDAsyncSocketRingBuffer
-
-static void allocate_ring_buffer(uint8_t **ringBufferPtr, size_t ringBufferSize)
-{
-	uint8_t *ringBuffer = NULL;
-	
-	do
-	{
-		kern_return_t result;
-		
-		vm_address_t buffer;
-		vm_size_t bufferSize = ringBufferSize;
-		
-		result = vm_allocate(mach_task_self(), &buffer, (bufferSize*2), VM_FLAGS_ANYWHERE);
-		if (result != ERR_SUCCESS)
-		{
-			LogCError(@"vm_allocate error: %d", result);
-			
-			continue;
-		}
-		
-		result = vm_deallocate(mach_task_self(), (buffer+bufferSize), bufferSize);
-		if (result != ERR_SUCCESS)
-		{
-			LogCError(@"vm_deallocate error: %d", result);
-			
-			vm_deallocate(mach_task_self(), buffer, (bufferSize*2));
-			continue;
-		}
-		
-		vm_address_t bufferMirror = buffer + bufferSize;
-		vm_prot_t cur_protection;
-		vm_prot_t max_protection;
-		
-		result = vm_remap(mach_task_self(),
-		                  &bufferMirror,       // target address
-		                  bufferSize,          // target address size
-		                  0,                   // target address alignment mask
-		                  FALSE,               // target address placement indicator
-		                  mach_task_self(),  
-		                  buffer,              // source address
-		                  0,                   // copy
-		                  &cur_protection,     // unused
-		                  &max_protection,     // unused
-		                  VM_INHERIT_DEFAULT);
-		
-		if (result != ERR_SUCCESS)
-		{
-			// Race condition we're prepared for.
-			// This may occasionally happen, which is why we do this in a loop.
-			LogCInfo(@"vm_remap error: %d", result);
-			
-			vm_deallocate(mach_task_self(), buffer, bufferSize);
-		}
-		else
-		{
-			ringBuffer = (uint8_t *)buffer;
-		}
-		
-		
-	} while (ringBuffer == NULL);
-	
-	*ringBufferPtr = ringBuffer;
-}
+@implementation GCDAsyncSocketPreBuffer
 
 - (id)initWithCapacity:(size_t)numBytes
 {
 	if ((self = [super init]))
 	{
-		// Round up to nearest vm_page_size
-		ringBufferSize = round_page(numBytes);
+		preBufferSize = numBytes;
+		preBuffer = malloc(preBufferSize);
 		
-		allocate_ring_buffer(&ringBuffer, ringBufferSize);
-		
-		readPointer = ringBuffer;
-		writePointer = ringBuffer;
+		readPointer = preBuffer;
+		writePointer = preBuffer;
 	}
 	return self;
 }
 
 - (void)dealloc
 {
-	kern_return_t result =
-	    vm_deallocate(mach_task_self(), (vm_address_t)ringBuffer, (vm_size_t)(ringBufferSize*2));
-	
-	if (result != ERR_SUCCESS)
-	{
-		LogError(@"vm_deallocate error: %d", result);
-	}
+	if (preBuffer)
+		free(preBuffer);
 }
 
 - (void)ensureCapacityForWrite:(size_t)numBytes
 {
-	size_t availableSpace = ringBufferSize - (writePointer - readPointer);
+	size_t availableSpace = preBufferSize - (writePointer - readPointer);
 	
 	if (numBytes > availableSpace)
 	{
 		size_t additionalBytes = numBytes - availableSpace;
 		
-		uint8_t *newRingBuffer = NULL;
-		size_t newRingBufferSize = round_page(ringBufferSize + additionalBytes);
+		size_t newPreBufferSize = preBufferSize + additionalBytes;
+		uint8_t *newPreBuffer = realloc(preBuffer, newPreBufferSize);
 		
-		allocate_ring_buffer(&newRingBuffer, newRingBufferSize);
+		size_t readPointerOffset = readPointer - preBuffer;
+		size_t writePointerOffset = writePointer - preBuffer;
 		
-		size_t availableBytes = writePointer - readPointer;
+		preBuffer = newPreBuffer;
+		preBufferSize = newPreBufferSize;
 		
-		memcpy((void *)newRingBuffer, (const void *)readPointer, (unsigned long)(availableBytes));
-		
-		kern_return_t result =
-		    vm_deallocate(mach_task_self(), (vm_address_t)ringBuffer, (vm_size_t)(ringBufferSize*2));
-		
-		if (result != ERR_SUCCESS)
-		{
-			LogError(@"vm_deallocate error: %d", result);
-		}
-		
-		ringBuffer = newRingBuffer;
-		ringBufferSize = newRingBufferSize;
-		
-		readPointer = ringBuffer;
-		writePointer = ringBuffer + availableBytes;
+		readPointer = preBuffer + readPointerOffset;
+		writePointer = preBuffer + writePointerOffset;
 	}
 }
 
@@ -435,9 +370,21 @@ static void allocate_ring_buffer(uint8_t **ringBufferPtr, size_t ringBufferSize)
 	if (availableBytesPtr) *availableBytesPtr = writePointer - readPointer;
 }
 
+- (void)didRead:(size_t)bytesRead
+{
+	readPointer += bytesRead;
+	
+	if (readPointer == writePointer)
+	{
+		// The prebuffer has been drained. Reset pointers.
+		readPointer  = preBuffer;
+		writePointer = preBuffer;
+	}
+}
+
 - (size_t)availableSpace
 {
-	return ringBufferSize - (writePointer - readPointer);
+	return preBufferSize - (writePointer - readPointer);
 }
 
 - (uint8_t *)writeBuffer
@@ -448,18 +395,7 @@ static void allocate_ring_buffer(uint8_t **ringBufferPtr, size_t ringBufferSize)
 - (void)getWriteBuffer:(uint8_t **)bufferPtr availableSpace:(size_t *)availableSpacePtr
 {
 	if (bufferPtr) *bufferPtr = writePointer;
-	if (availableSpacePtr) *availableSpacePtr = ringBufferSize - (writePointer - readPointer);
-}
-
-- (void)didRead:(size_t)bytesRead
-{
-	readPointer += bytesRead;
-	
-	if (readPointer >= (ringBuffer + ringBufferSize))
-	{
-		readPointer  -= ringBufferSize;
-		writePointer -= ringBufferSize;
-	}
+	if (availableSpacePtr) *availableSpacePtr = preBufferSize - (writePointer - readPointer);
 }
 
 - (void)didWrite:(size_t)bytesWritten
@@ -469,8 +405,8 @@ static void allocate_ring_buffer(uint8_t **ringBufferPtr, size_t ringBufferSize)
 
 - (void)reset
 {
-	readPointer = ringBuffer;
-	writePointer = ringBuffer;
+	readPointer  = preBuffer;
+	writePointer = preBuffer;
 }
 
 @end
@@ -514,7 +450,7 @@ static void allocate_ring_buffer(uint8_t **ringBufferPtr, size_t ringBufferSize)
 
 - (NSUInteger)readLengthForNonTermWithHint:(NSUInteger)bytesAvailable;
 - (NSUInteger)readLengthForTermWithHint:(NSUInteger)bytesAvailable shouldPreBuffer:(BOOL *)shouldPreBufferPtr;
-- (NSUInteger)readLengthForTermWithPreBuffer:(GCDAsyncSocketRingBuffer *)preBuffer found:(BOOL *)foundPtr;
+- (NSUInteger)readLengthForTermWithPreBuffer:(GCDAsyncSocketPreBuffer *)preBuffer found:(BOOL *)foundPtr;
 
 - (NSInteger)searchForTermAfterPreBuffering:(ssize_t)numBytes;
 
@@ -778,7 +714,7 @@ static void allocate_ring_buffer(uint8_t **ringBufferPtr, size_t ringBufferSize)
  * 
  * It is assumed the terminator has not already been read.
 **/
-- (NSUInteger)readLengthForTermWithPreBuffer:(GCDAsyncSocketRingBuffer *)preBuffer found:(BOOL *)foundPtr
+- (NSUInteger)readLengthForTermWithPreBuffer:(GCDAsyncSocketPreBuffer *)preBuffer found:(BOOL *)foundPtr
 {
 	NSAssert(term != nil, @"This method does not apply to non-term reads");
 	NSAssert([preBuffer availableBytes] > 0, @"Invoked with empty pre buffer!");
@@ -1070,7 +1006,7 @@ static void allocate_ring_buffer(uint8_t **ringBufferPtr, size_t ringBufferSize)
 		writeQueue = [[NSMutableArray alloc] initWithCapacity:5];
 		currentWrite = nil;
 		
-		preBuffer = [[GCDAsyncSocketRingBuffer alloc] initWithCapacity:vm_page_size];
+		preBuffer = [[GCDAsyncSocketPreBuffer alloc] initWithCapacity:(1024 * 4)];
 	}
 	return self;
 }

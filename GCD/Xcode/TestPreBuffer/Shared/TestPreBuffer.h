@@ -1,7 +1,7 @@
 #import <Foundation/Foundation.h>
 
 
-@interface TestRingBuffer : NSObject
+@interface TestPreBuffer : NSObject
 
 + (void)start;
 

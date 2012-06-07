@@ -1,6 +1,6 @@
-#import "TestRingBuffer.h"
+#import "TestPreBuffer.h"
 #import <Security/SecRandom.h>
-#import <mach/mach.h>
+
 
 #define COUNT 25000
 
@@ -10,7 +10,7 @@
  * The implementation itself remains within GCDAsyncSocket.m
 **/
 
-@interface GCDAsyncSocketRingBuffer : NSObject
+@interface GCDAsyncSocketPreBuffer : NSObject
 
 - (id)initWithCapacity:(size_t)numBytes;
 
@@ -37,17 +37,17 @@
 #pragma mark -
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-@interface TestRingBuffer ()
+@interface TestPreBuffer ()
 
-+ (void)test_ringBuffer;
++ (void)test_preBuffer;
 
 + (void)benchmark_mutableData;
-+ (void)benchmark_ringBuffer;
++ (void)benchmark_preBuffer;
 
 @end
 
 
-@implementation TestRingBuffer
+@implementation TestPreBuffer
 
 static size_t bufferSize;
 
@@ -58,7 +58,7 @@ static int randomSize2;
 {
 	// Run unit tests
 	
-	[self test_ringBuffer];
+	[self test_preBuffer];
 	
 	// Setup benchmarks.
 	// 
@@ -67,7 +67,7 @@ static int randomSize2;
 	// - read a chunk of data out of the preBuffer
 	// - read another chunk of data out of the preBuffer
 	
-	bufferSize = vm_page_size * 2;
+	bufferSize = 1024 * 4;
 	
 	randomSize1 = (arc4random() % (bufferSize / 2));
 	randomSize2 = (arc4random() % (bufferSize / 2));
@@ -75,61 +75,71 @@ static int randomSize2;
 	// Run benchmarks (on different runloop cycles to be fair)
 	
 	[self performSelector:@selector(benchmark_mutableData) withObject:nil afterDelay:2.0];
-	[self performSelector:@selector(benchmark_ringBuffer)  withObject:nil afterDelay:4.0];
+	[self performSelector:@selector(benchmark_preBuffer)   withObject:nil afterDelay:4.0];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Unit Tests
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-+ (void)test_ringBuffer
++ (void)test_preBuffer
 {
-	GCDAsyncSocketRingBuffer *ringBuffer = [[GCDAsyncSocketRingBuffer alloc] initWithCapacity:1024];
+	GCDAsyncSocketPreBuffer *preBuffer = [[GCDAsyncSocketPreBuffer alloc] initWithCapacity:1024];
 	
-	size_t capacity = [ringBuffer availableSpace];
+	// Test capacity, and initial size methods
 	
-	NSAssert([ringBuffer availableSpace] >= 1024, @"1A");
-	NSAssert([ringBuffer availableBytes] == 0, @"1B");
+	size_t capacity = [preBuffer availableSpace];
+	
+	NSAssert([preBuffer availableSpace] >= 1024, @"1A");
+	NSAssert([preBuffer availableBytes] == 0, @"1B");
+	
+	// Test write pointer
 	
 	uint8_t *writePointer1;
 	uint8_t *writePointer2;
 	
-	writePointer1 = [ringBuffer writeBuffer];
-	[ringBuffer didWrite:512];
-	writePointer2 = [ringBuffer writeBuffer];
+	writePointer1 = [preBuffer writeBuffer];
+	[preBuffer didWrite:512];
+	writePointer2 = [preBuffer writeBuffer];
 	
 	NSAssert(writePointer2 - writePointer1 == 512, @"2A");
-	NSAssert([ringBuffer availableBytes] == 512, @"2B");
+	NSAssert([preBuffer availableBytes] == 512, @"2B");
+	
+	// Test read pointer
 	
 	uint8_t *readPointer1;
 	uint8_t *readPointer2;
 	
-	readPointer1 = [ringBuffer readBuffer];
-	[ringBuffer didRead:256];
-	readPointer2 = [ringBuffer readBuffer];
+	readPointer1 = [preBuffer readBuffer];
+	[preBuffer didRead:256];
+	readPointer2 = [preBuffer readBuffer];
 	
 	NSAssert(readPointer2 - readPointer1 == 256, @"3A");
-	NSAssert([ringBuffer availableBytes] == 256, @"3B");
+	NSAssert([preBuffer availableBytes] == 256, @"3B");
 	
-	[ringBuffer didRead:256];
+	[preBuffer didRead:256];
 	
-	NSAssert([ringBuffer availableBytes] == 0, @"4A");
-	NSAssert([ringBuffer availableSpace] == capacity, @"4B");
+	NSAssert([preBuffer availableBytes] == 0, @"4A");
+	NSAssert([preBuffer availableSpace] == capacity, @"4B");
+	
+	// Test write and read
 	
 	char *str = "test";
 	size_t strLen = strlen(str);
 	
-	memcpy([ringBuffer writeBuffer], str, strLen);
-	[ringBuffer didWrite:strLen];
+	memcpy([preBuffer writeBuffer], str, strLen);
+	[preBuffer didWrite:strLen];
 	
-	NSAssert([ringBuffer availableBytes] == strLen, @"5A");
-	NSAssert(memcmp([ringBuffer readBuffer], str, strLen) == 0, @"5B");
+	NSAssert([preBuffer availableBytes] == strLen, @"5A");
+	NSAssert(memcmp([preBuffer readBuffer], str, strLen) == 0, @"5B");
 	
-	[ringBuffer ensureCapacityForWrite:(capacity * 2)];
+	// Test realloc
 	
-	NSAssert([ringBuffer availableSpace] >= (capacity * 2), @"6A");
-	NSAssert([ringBuffer availableBytes] == strLen, @"6B");
-	NSAssert(memcmp([ringBuffer readBuffer], str, strLen) == 0, @"6C");
+	[preBuffer ensureCapacityForWrite:(capacity * 2)];
+	
+	NSAssert([preBuffer availableSpace] >= (capacity * 2), @"6A");
+	NSAssert([preBuffer availableBytes] == strLen, @"6B");
+	NSAssert(memcmp([preBuffer readBuffer], str, strLen) == 0, @"6C");
 	
 	NSLog(@"%@: passed", NSStringFromSelector(_cmd));
 }
@@ -177,20 +187,14 @@ static int randomSize2;
 	free(writeBuffer);
 }
 
-+ (void)benchmark_ringBuffer
++ (void)benchmark_preBuffer
 {
-	GCDAsyncSocketRingBuffer *ringBuffer = [[GCDAsyncSocketRingBuffer alloc] initWithCapacity:bufferSize];
+	GCDAsyncSocketPreBuffer *preBuffer = [[GCDAsyncSocketPreBuffer alloc] initWithCapacity:bufferSize];
 	
 	void *readBuffer  = malloc(bufferSize);
 	void *writeBuffer = malloc(bufferSize);
 	
 	SecRandomCopyBytes(kSecRandomDefault, (randomSize1+randomSize2), writeBuffer);
-	
-	uint8_t *ringWriteBuffer;
-	size_t availableSpace;
-	
-	uint8_t *ringReadBuffer;
-	size_t availableBytes;
 	
 	NSDate *start = [NSDate date];
 	
@@ -200,34 +204,27 @@ static int randomSize2;
 		// Copy data into buffer.
 		// Simulate reading from socket into preBuffer.
 		
-		[ringBuffer getWriteBuffer:&ringWriteBuffer availableSpace:&availableSpace];
-		
-		memcpy(ringWriteBuffer, writeBuffer, randomSize1+randomSize2);
-		[ringBuffer didWrite:(randomSize1+randomSize2)];
+		memcpy([preBuffer writeBuffer], writeBuffer, randomSize1+randomSize2);
+		[preBuffer didWrite:(randomSize1+randomSize2)];
 		
 		// Read 1st chunk.
 		// Simulate reading partial data out of preBuffer.
 		
-		[ringBuffer getReadBuffer:&ringReadBuffer availableBytes:&availableBytes];
-		
-		memcpy(readBuffer, ringReadBuffer, randomSize1);
-		[ringBuffer didRead:randomSize1];
+		memcpy(readBuffer, [preBuffer readBuffer], randomSize1);
+		[preBuffer didRead:randomSize1];
 		
 		// Read 2nd chunk.
 		// Simulate draining preBuffer.
 		
-		[ringBuffer getReadBuffer:&ringReadBuffer availableBytes:&availableBytes];
-		
-		memcpy(readBuffer+randomSize1, ringReadBuffer, randomSize2);
-		[ringBuffer didRead:randomSize2];
+		memcpy(readBuffer+randomSize1, [preBuffer readBuffer], randomSize2);
+		[preBuffer didRead:randomSize2];
 	}
 	
 	NSTimeInterval elapsed = [start timeIntervalSinceNow] * -1.0;
-	NSLog(@"%@ : elapsed = %.6f", NSStringFromSelector(_cmd), elapsed);
+	NSLog(@"%@  : elapsed = %.6f", NSStringFromSelector(_cmd), elapsed);
 	
 	free(readBuffer);
 	free(writeBuffer);
 }
-
 
 @end

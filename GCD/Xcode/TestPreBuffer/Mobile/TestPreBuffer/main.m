@@ -1,8 +1,8 @@
 //
 //  main.m
-//  TestRingBuffer
+//  TestPreBuffer
 //
-//  Created by Robbie Hanson on 5/27/12.
+//  Created by Robbie Hanson on 6/7/12.
 //  Copyright (c) 2012 __MyCompanyName__. All rights reserved.
 //
 

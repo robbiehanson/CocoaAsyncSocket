@@ -1,5 +1,5 @@
 //
-// Prefix header for all source files of the 'TestRingBuffer' target in the 'TestRingBuffer' project
+// Prefix header for all source files of the 'TestPreBuffer' target in the 'TestPreBuffer' project
 //
 
 #import <Availability.h>

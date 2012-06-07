@@ -1,7 +1,0 @@
-//
-// Prefix header for all source files of the 'TestRingBuffer' target in the 'TestRingBuffer' project
-//
-
-#ifdef __OBJC__
-	#import <Cocoa/Cocoa.h>
-#endif

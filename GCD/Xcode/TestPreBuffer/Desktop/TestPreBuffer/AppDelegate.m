@@ -1,5 +1,5 @@
 #import "AppDelegate.h"
-#import "TestRingBuffer.h"
+#import "TestPreBuffer.h"
 
 
 @implementation AppDelegate
@@ -8,7 +8,7 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
-	[TestRingBuffer start];
+	[TestPreBuffer start];
 }
 
 @end

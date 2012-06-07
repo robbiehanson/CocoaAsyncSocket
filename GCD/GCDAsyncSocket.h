@@ -15,7 +15,7 @@
 
 @class GCDAsyncReadPacket;
 @class GCDAsyncWritePacket;
-@class GCDAsyncSocketRingBuffer;
+@class GCDAsyncSocketPreBuffer;
 
 #if TARGET_OS_IPHONE
 
@@ -129,7 +129,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 	
 	unsigned long socketFDBytesAvailable;
 	
-	GCDAsyncSocketRingBuffer *preBuffer;
+	GCDAsyncSocketPreBuffer *preBuffer;
 		
 #if TARGET_OS_IPHONE
 	CFStreamClientContext streamContext;
