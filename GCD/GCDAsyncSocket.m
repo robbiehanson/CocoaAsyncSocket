@@ -2313,6 +2313,9 @@ enum GCDAsyncSocketConfig
 		return NO;
 	}
 	
+	int nosigpipe = 1;
+	setsockopt(socketFD, SOL_SOCKET, SO_NOSIGPIPE, &nosigpipe, sizeof(nosigpipe));
+	
 	// Bind the socket to the desired interface (if needed)
 	
 	if (connectInterface)
