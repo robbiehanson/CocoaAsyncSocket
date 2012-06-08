@@ -138,8 +138,9 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 #endif
 #if SECURE_TRANSPORT_MAYBE_AVAILABLE
 	SSLContextRef sslContext;
-	NSMutableData *sslReadBuffer;
+	GCDAsyncSocketPreBuffer *sslPreBuffer;
 	size_t sslWriteCachedLength;
+	OSStatus sslErrCode;
 #endif
 	
 	id userData;

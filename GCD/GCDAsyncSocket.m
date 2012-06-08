@@ -2629,6 +2629,7 @@ enum GCDAsyncSocketConfig
 	#if SECURE_TRANSPORT_MAYBE_AVAILABLE
 	{
 		[sslPreBuffer reset];
+		sslErrCode = noErr;
 		
 		if (sslContext)
 		{
@@ -4517,8 +4518,19 @@ enum GCDAsyncSocketConfig
 					if (result == errSSLWouldBlock)
 						waiting = YES;
 					else
-						error = [self sslError:result];
-					
+					{
+						if (result == errSSLClosedGraceful || result == errSSLClosedAbort)
+						{
+							// We've reached the end of the stream.
+							// Handle this the same way we would an EOF from the socket.
+							socketEOF = YES;
+							sslErrCode = result;
+						}
+						else
+						{
+							error = [self sslError:result];
+						}
+					}
 					// It's possible that bytesRead > 0, even if the result was errSSLWouldBlock.
 					// This happens when the SSLRead function is able to read some data,
 					// but not the entire amount we requested.
@@ -4910,7 +4922,23 @@ enum GCDAsyncSocketConfig
 	{
 		if (error == nil)
 		{
-			error = [self connectionClosedError];
+			if ([self usingSecureTransportForTLS])
+			{
+				#if SECURE_TRANSPORT_MAYBE_AVAILABLE
+				if (sslErrCode != noErr && sslErrCode != errSSLClosedGraceful)
+				{
+					error = [self sslError:sslErrCode];
+				}
+				else
+				{
+					error = [self connectionClosedError];
+				}
+				#endif
+			}
+			else
+			{
+				error = [self connectionClosedError];
+			}
 		}
 		[self closeWithError:error];
 	}
@@ -6401,6 +6429,8 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		[preBuffer didRead:preBufferLength];
 		[sslPreBuffer didWrite:preBufferLength];
 	}
+	
+	sslErrCode = noErr;
 	
 	// Start the SSL Handshake process
 	
