@@ -2628,7 +2628,8 @@ enum GCDAsyncSocketConfig
 	#endif
 	#if SECURE_TRANSPORT_MAYBE_AVAILABLE
 	{
-		[sslReadBuffer setLength:0];
+		[sslPreBuffer reset];
+		
 		if (sslContext)
 		{
 			// Getting a linker error here about the SSLx() functions?
@@ -4051,15 +4052,15 @@ enum GCDAsyncSocketConfig
 		
 		// Figure out if there is any data available to be read
 		// 
-		// socketFDBytesAvailable <- Number of encrypted bytes we haven't read from the bsd socket
-		// [sslReadBuffer length] <- Number of encrypted bytes we've buffered from bsd socket
-		// sslInternalBufSize     <- Number of decrypted bytes SecureTransport has buffered
+		// socketFDBytesAvailable        <- Number of encrypted bytes we haven't read from the bsd socket
+		// [sslPreBuffer availableBytes] <- Number of encrypted bytes we've buffered from bsd socket
+		// sslInternalBufSize            <- Number of decrypted bytes SecureTransport has buffered
 		// 
 		// We call the variable "estimated" because we don't know how many decrypted bytes we'll get
-		// from the encrypted bytes in the sslReadBuffer.
+		// from the encrypted bytes in the sslPreBuffer.
 		// However, we do know this is an upper bound on the estimation.
 		
-		estimatedBytesAvailable = socketFDBytesAvailable + [sslReadBuffer length];
+		estimatedBytesAvailable = socketFDBytesAvailable + [sslPreBuffer availableBytes];
 		
 		size_t sslInternalBufSize = 0;
 		SSLGetBufferedReadSize(sslContext, &sslInternalBufSize);
@@ -4095,7 +4096,7 @@ enum GCDAsyncSocketConfig
 				[preBuffer didWrite:bytesRead];
 			}
 			
-			LogVerbose(@"%@ - prebuffer.length = %lu", THIS_METHOD, (unsigned long)[ringBuffer availableBytes]);
+			LogVerbose(@"%@ - prebuffer.length = %zu", THIS_METHOD, [preBuffer availableBytes]);
 			
 			if (result != noErr)
 			{
@@ -4202,9 +4203,9 @@ enum GCDAsyncSocketConfig
 			// This has to do with the encypted packets that are coming across the TCP stream.
 			// But it's non-optimal to do a bunch of small reads from the BSD socket.
 			// So our SSLReadFunction reads all available data from the socket (optimizing the sys call)
-			// and may store excess in the sslReadBuffer.
+			// and may store excess in the sslPreBuffer.
 			
-			estimatedBytesAvailable += [sslReadBuffer length];
+			estimatedBytesAvailable += [sslPreBuffer availableBytes];
 			
 			// The second buffer is within SecureTransport.
 			// As mentioned earlier, there are encrypted packets coming across the TCP stream.
@@ -4327,7 +4328,7 @@ enum GCDAsyncSocketConfig
 		// Remove the copied bytes from the preBuffer
 		[preBuffer didRead:bytesToCopy];
 		
-		LogVerbose(@"copied(%lu) preBufferLength(%lu)", bytesToCopy, [preBuffer availableBytes]);
+		LogVerbose(@"copied(%lu) preBufferLength(%zu)", (unsigned long)bytesToCopy, [preBuffer availableBytes]);
 		
 		// Update totals
 		
@@ -4607,10 +4608,12 @@ enum GCDAsyncSocketConfig
 					// We just read a big chunk of data into the preBuffer
 					
 					[preBuffer didWrite:bytesRead];
+					LogVerbose(@"read data into preBuffer - preBuffer.length = %zu", [preBuffer availableBytes]);
 					
 					// Search for the terminating sequence
 					
 					bytesToRead = [currentRead readLengthForTermWithPreBuffer:preBuffer found:&done];
+					LogVerbose(@"copying %lu bytes from preBuffer", (unsigned long)bytesToRead);
 					
 					// Ensure there's room on the read packet's buffer
 					
@@ -4625,6 +4628,7 @@ enum GCDAsyncSocketConfig
 					
 					// Remove the copied bytes from the prebuffer
 					[preBuffer didRead:bytesToRead];
+					LogVerbose(@"preBuffer.length = %zu", [preBuffer availableBytes]);
 					
 					// Update totals
 					currentRead->bytesDone += bytesToRead;
@@ -4659,12 +4663,14 @@ enum GCDAsyncSocketConfig
 						
 						// Copy excess data into preBuffer
 						
+						LogVerbose(@"copying %ld overflow bytes into preBuffer", (long)overflow);
 						[preBuffer ensureCapacityForWrite:overflow];
 						
 						uint8_t *overflowBuffer = buffer + underflow;
 						memcpy([preBuffer writeBuffer], overflowBuffer, overflow);
 						
 						[preBuffer didWrite:overflow];
+						LogVerbose(@"preBuffer.length = %zu", [preBuffer availableBytes]);
 						
 						// Note: The completeCurrentRead method will trim the buffer for us.
 						
@@ -5794,7 +5800,7 @@ enum GCDAsyncSocketConfig
 {
 	LogVerbose(@"sslReadWithBuffer:%p length:%lu", buffer, (unsigned long)*bufferLength);
 	
-	if ((socketFDBytesAvailable == 0) && ([sslReadBuffer length] == 0))
+	if ((socketFDBytesAvailable == 0) && ([sslPreBuffer availableBytes] == 0))
 	{
 		LogVerbose(@"%@ - No data available to read...", THIS_METHOD);
 		
@@ -5819,25 +5825,24 @@ enum GCDAsyncSocketConfig
 	// STEP 1 : READ FROM SSL PRE BUFFER
 	// 
 	
-	NSUInteger sslReadBufferLength = [sslReadBuffer length];
+	size_t sslPreBufferLength = [sslPreBuffer availableBytes];
 	
-	if (sslReadBufferLength > 0)
+	if (sslPreBufferLength > 0)
 	{
 		LogVerbose(@"%@: Reading from SSL pre buffer...", THIS_METHOD);
 		
 		size_t bytesToCopy;
-		if (sslReadBufferLength > totalBytesLeftToBeRead)
+		if (sslPreBufferLength > totalBytesLeftToBeRead)
 			bytesToCopy = totalBytesLeftToBeRead;
 		else
-			bytesToCopy = (size_t)sslReadBufferLength;
+			bytesToCopy = sslPreBufferLength;
 		
-		LogVerbose(@"%@: Copying %zu bytes from sslReadBuffer", THIS_METHOD, bytesToCopy);
+		LogVerbose(@"%@: Copying %zu bytes from sslPreBuffer", THIS_METHOD, bytesToCopy);
 		
-		memcpy(buffer, [sslReadBuffer mutableBytes], bytesToCopy);
+		memcpy(buffer, [sslPreBuffer readBuffer], bytesToCopy);
+		[sslPreBuffer didRead:bytesToCopy];
 		
-		[sslReadBuffer replaceBytesInRange:NSMakeRange(0, bytesToCopy) withBytes:NULL length:0];
-		
-		LogVerbose(@"%@: sslReadBuffer.length = %lu", THIS_METHOD, (unsigned long)[sslReadBuffer length]);
+		LogVerbose(@"%@: sslPreBuffer.length = %zu", THIS_METHOD, [sslPreBuffer availableBytes]);
 		
 		totalBytesRead += bytesToCopy;
 		totalBytesLeftToBeRead -= bytesToCopy;
@@ -5863,19 +5868,16 @@ enum GCDAsyncSocketConfig
 		
 		if (socketFDBytesAvailable > totalBytesLeftToBeRead)
 		{
-			// Read all available data from socket into sslReadBuffer.
+			// Read all available data from socket into sslPreBuffer.
 			// Then copy requested amount into dataBuffer.
 			
-			LogVerbose(@"%@: Reading into sslReadBuffer...", THIS_METHOD);
+			LogVerbose(@"%@: Reading into sslPreBuffer...", THIS_METHOD);
 			
-			if ([sslReadBuffer length] < socketFDBytesAvailable)
-			{
-				[sslReadBuffer setLength:socketFDBytesAvailable];
-			}
+			[sslPreBuffer ensureCapacityForWrite:socketFDBytesAvailable];
 			
 			readIntoPreBuffer = YES;
 			bytesToRead = (size_t)socketFDBytesAvailable;
-			buf = [sslReadBuffer mutableBytes];
+			buf = [sslPreBuffer writeBuffer];
 		}
 		else
 		{
@@ -5901,11 +5903,6 @@ enum GCDAsyncSocketConfig
 			}
 			
 			socketFDBytesAvailable = 0;
-			
-			if (readIntoPreBuffer)
-			{
-				[sslReadBuffer setLength:0];
-			}
 		}
 		else if (result == 0)
 		{
@@ -5913,11 +5910,6 @@ enum GCDAsyncSocketConfig
 			
 			socketError = YES;
 			socketFDBytesAvailable = 0;
-			
-			if (readIntoPreBuffer)
-			{
-				[sslReadBuffer setLength:0];
-			}
 		}
 		else
 		{
@@ -5930,19 +5922,19 @@ enum GCDAsyncSocketConfig
 			
 			if (readIntoPreBuffer)
 			{
+				[sslPreBuffer didWrite:bytesReadFromSocket];
+				
 				size_t bytesToCopy = MIN(totalBytesLeftToBeRead, bytesReadFromSocket);
 				
-				LogVerbose(@"%@: Copying %zu bytes out of sslReadBuffer", THIS_METHOD, bytesToCopy);
+				LogVerbose(@"%@: Copying %zu bytes out of sslPreBuffer", THIS_METHOD, bytesToCopy);
 				
-				memcpy((uint8_t *)buffer + totalBytesRead, [sslReadBuffer bytes], bytesToCopy);
-				
-				[sslReadBuffer setLength:bytesReadFromSocket];
-				[sslReadBuffer replaceBytesInRange:NSMakeRange(0, bytesToCopy) withBytes:NULL length:0];
+				memcpy((uint8_t *)buffer + totalBytesRead, [sslPreBuffer readBuffer], bytesToCopy);
+				[sslPreBuffer didRead:bytesToCopy];
 				
 				totalBytesRead += bytesToCopy;
 				totalBytesLeftToBeRead -= bytesToCopy;
 				
-				LogVerbose(@"%@: sslReadBuffer.length = %lu", THIS_METHOD, (unsigned long)[sslReadBuffer length]);
+				LogVerbose(@"%@: sslPreBuffer.length = %zu", THIS_METHOD, [sslPreBuffer availableBytes]);
 			}
 			else
 			{
@@ -6392,22 +6384,22 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	}
 	#endif
 	
-	// Setup the sslReadBuffer
+	// Setup the sslPreBuffer
 	// 
-	// Any data in the preBuffer needs to be moved into the sslReadBuffer,
+	// Any data in the preBuffer needs to be moved into the sslPreBuffer,
 	// as this data is now part of the secure read stream.
 	
-	sslReadBuffer = [[NSMutableData alloc] init];
+	sslPreBuffer = [[GCDAsyncSocketPreBuffer alloc] initWithCapacity:(1024 * 4)];
 	
-	uint8_t *preBuf;
-	size_t preBufLen;
+	size_t preBufferLength  = [preBuffer availableBytes];
 	
-	[preBuffer getReadBuffer:&preBuf availableBytes:&preBufLen];
-	
-	if (preBufLen > 0)
+	if (preBufferLength > 0)
 	{
-		[sslReadBuffer appendBytes:preBuf length:preBufLen];
-		[preBuffer didRead:preBufLen];
+		[sslPreBuffer ensureCapacityForWrite:preBufferLength];
+		
+		memcpy([sslPreBuffer writeBuffer], [preBuffer readBuffer], preBufferLength);
+		[preBuffer didRead:preBufferLength];
+		[sslPreBuffer didWrite:preBufferLength];
 	}
 	
 	// Start the SSL Handshake process
