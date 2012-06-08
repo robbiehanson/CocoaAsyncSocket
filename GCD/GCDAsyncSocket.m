@@ -2340,6 +2340,11 @@ enum GCDAsyncSocketConfig
 		}
 	}
 	
+	// Prevent SIGPIPE signals
+	
+	int nosigpipe = 1;
+	setsockopt(socketFD, SOL_SOCKET, SO_NOSIGPIPE, &nosigpipe, sizeof(nosigpipe));
+	
 	// Start the connection process in a background queue
 	
 	int aConnectIndex = connectIndex;
@@ -2487,11 +2492,6 @@ enum GCDAsyncSocketConfig
 		
 		return;
 	}
-	
-	// Prevent SIGPIPE signals
-	
-	int nosigpipe = 1;
-	setsockopt(socketFD, SOL_SOCKET, SO_NOSIGPIPE, &nosigpipe, sizeof(nosigpipe));
 	
 	// Setup our read/write sources
 	
