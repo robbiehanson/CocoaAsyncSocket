@@ -2638,8 +2638,9 @@ enum GCDAsyncSocketConfig
 			
 			SSLClose(sslContext);
 			
-			#if !TARGET_OS_IPHONE
-			// SSLDisposeContext doesn't exist in iOS for some odd reason.
+			#if TARGET_OS_IPHONE
+            CFRelease(sslContext);
+            #else
 			SSLDisposeContext(sslContext);
 			#endif
 			
