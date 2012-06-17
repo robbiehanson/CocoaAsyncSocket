@@ -2673,8 +2673,9 @@ enum GCDAsyncSocketConfig
 			
 			SSLClose(sslContext);
 			
-			#if !TARGET_OS_IPHONE
-			// SSLDisposeContext doesn't exist in iOS for some odd reason.
+			#if TARGET_OS_IPHONE
+            CFRelease(sslContext);
+            #else
 			SSLDisposeContext(sslContext);
 			#endif
 			
@@ -7285,22 +7286,42 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 
 + (NSData *)CRLFData
 {
-	return [NSData dataWithBytes:"\x0D\x0A" length:2];
+    static NSData *data;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        data = [NSData dataWithBytes:"\x0D\x0A" length:2];
+    });
+	return data;
 }
 
 + (NSData *)CRData
 {
-	return [NSData dataWithBytes:"\x0D" length:1];
+    static NSData *data;    
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        data = [NSData dataWithBytes:"\x0D" length:1];
+    });
+	return data;
 }
 
 + (NSData *)LFData
 {
-	return [NSData dataWithBytes:"\x0A" length:1];
+    static NSData *data;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        data = [NSData dataWithBytes:"\x0A" length:1];
+    });
+	return data;
 }
 
 + (NSData *)ZeroData
 {
-	return [NSData dataWithBytes:"" length:1];
+    static NSData *data;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        data = [NSData dataWithBytes:"" length:1];
+    });
+	return data;
 }
 
-@end	
+@end
