@@ -13,6 +13,32 @@
 // For more information see: https://github.com/robbiehanson/CocoaAsyncSocket/wiki/ARC
 #endif
 
+/**
+ * Does ARC support support GCD objects?
+ * It does if the minimum deployment target is iOS 6+ or Mac OS X 8+
+**/
+#if TARGET_OS_IPHONE
+
+  // Compiling for iOS
+
+  #if __IPHONE_OS_VERSION_MIN_REQUIRED >= 60000 // iOS 6.0 or later
+    #define NEEDS_DISPATCH_RETAIN_RELEASE 0
+  #else                                         // iOS 5.X or earlier
+    #define NEEDS_DISPATCH_RETAIN_RELEASE 1
+  #endif
+
+#else
+
+  // Compiling for Mac OS X
+
+  #if MAC_OS_X_VERSION_MIN_REQUIRED >= 1080     // Mac OS X 10.8 or later
+    #define NEEDS_DISPATCH_RETAIN_RELEASE 0
+  #else
+    #define NEEDS_DISPATCH_RETAIN_RELEASE 1     // Mac OS X 10.7 or earlier
+  #endif
+
+#endif
+
 #import "GCDAsyncUdpSocket.h"
 
 #if TARGET_OS_IPHONE
@@ -361,8 +387,10 @@ enum GCDAsyncUdpSocketConfig
 		
 		if (dq)
 		{
-			dispatch_retain(dq);
 			delegateQueue = dq;
+			#if NEEDS_DISPATCH_RETAIN_RELEASE
+			dispatch_retain(delegateQueue);
+			#endif
 		}
 		
 		max4ReceiveSize = 9216;
@@ -380,8 +408,10 @@ enum GCDAsyncUdpSocketConfig
 			NSAssert(sq != dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
 			         @"The given socketQueue parameter must not be a concurrent queue.");
 			
-			dispatch_retain(sq);
 			socketQueue = sq;
+			#if NEEDS_DISPATCH_RETAIN_RELEASE
+			dispatch_retain(socketQueue);
+			#endif
 		}
 		else
 		{
@@ -421,12 +451,14 @@ enum GCDAsyncUdpSocketConfig
 	}
 	
 	delegate = nil;
-	if (delegateQueue)
-		dispatch_release(delegateQueue);
+	#if NEEDS_DISPATCH_RETAIN_RELEASE
+	if (delegateQueue) dispatch_release(delegateQueue);
+	#endif
 	delegateQueue = NULL;
 	
-	if (socketQueue)
-		dispatch_release(socketQueue);
+	#if NEEDS_DISPATCH_RETAIN_RELEASE
+	if (socketQueue) dispatch_release(socketQueue);
+	#endif
 	socketQueue = NULL;
 	
 	LogInfo(@"%@ - %@ (finish)", THIS_METHOD, self);
@@ -503,11 +535,10 @@ enum GCDAsyncUdpSocketConfig
 {
 	dispatch_block_t block = ^{
 		
-		if (delegateQueue)
-			dispatch_release(delegateQueue);
-		
-		if (newDelegateQueue)
-			dispatch_retain(newDelegateQueue);
+		#if NEEDS_DISPATCH_RETAIN_RELEASE
+		if (delegateQueue) dispatch_release(delegateQueue);
+		if (newDelegateQueue) dispatch_retain(newDelegateQueue);
+		#endif
 		
 		delegateQueue = newDelegateQueue;
 	};
@@ -561,11 +592,10 @@ enum GCDAsyncUdpSocketConfig
 		
 		delegate = newDelegate;
 		
-		if (delegateQueue)
-			dispatch_release(delegateQueue);
-		
-		if (newDelegateQueue)
-			dispatch_retain(newDelegateQueue);
+		#if NEEDS_DISPATCH_RETAIN_RELEASE
+		if (delegateQueue) dispatch_release(delegateQueue);
+		if (newDelegateQueue) dispatch_retain(newDelegateQueue);
+		#endif
 		
 		delegateQueue = newDelegateQueue;
 	};
@@ -1733,15 +1763,19 @@ enum GCDAsyncUdpSocketConfig
 	
 	int theSocketFD = socket4FD;
 	
+	#if NEEDS_DISPATCH_RETAIN_RELEASE
 	dispatch_source_t theSendSource = send4Source;
 	dispatch_source_t theReceiveSource = receive4Source;
+	#endif
 	
 	dispatch_source_set_cancel_handler(send4Source, ^{
 		
 		LogVerbose(@"send4CancelBlock");
 		
+		#if NEEDS_DISPATCH_RETAIN_RELEASE
 		LogVerbose(@"dispatch_release(send4Source)");
 		dispatch_release(theSendSource);
+		#endif
 		
 		if (--socketFDRefCount == 0)
 		{
@@ -1754,8 +1788,10 @@ enum GCDAsyncUdpSocketConfig
 		
 		LogVerbose(@"receive4CancelBlock");
 		
+		#if NEEDS_DISPATCH_RETAIN_RELEASE
 		LogVerbose(@"dispatch_release(receive4Source)");
 		dispatch_release(theReceiveSource);
+		#endif
 		
 		if (--socketFDRefCount == 0)
 		{
@@ -1838,15 +1874,19 @@ enum GCDAsyncUdpSocketConfig
 	
 	int theSocketFD = socket6FD;
 	
+	#if NEEDS_DISPATCH_RETAIN_RELEASE
 	dispatch_source_t theSendSource = send6Source;
 	dispatch_source_t theReceiveSource = receive6Source;
+	#endif
 	
 	dispatch_source_set_cancel_handler(send6Source, ^{
 		
 		LogVerbose(@"send6CancelBlock");
 		
+		#if NEEDS_DISPATCH_RETAIN_RELEASE
 		LogVerbose(@"dispatch_release(send6Source)");
 		dispatch_release(theSendSource);
+		#endif
 		
 		if (--socketFDRefCount == 0)
 		{
@@ -1859,8 +1899,10 @@ enum GCDAsyncUdpSocketConfig
 		
 		LogVerbose(@"receive6CancelBlock");
 		
+		#if NEEDS_DISPATCH_RETAIN_RELEASE
 		LogVerbose(@"dispatch_release(receive6Source)");
 		dispatch_release(theReceiveSource);
+		#endif
 		
 		if (--socketFDRefCount == 0)
 		{
@@ -3575,13 +3617,16 @@ enum GCDAsyncUdpSocketConfig
 		
 		newFilterBlock = [filterBlock copy];
 		newFilterQueue = filterQueue;
+		#if NEEDS_DISPATCH_RETAIN_RELEASE
 		dispatch_retain(newFilterQueue);
+		#endif
 	}
 	
 	dispatch_block_t block = ^{
 		
-		if (sendFilterQueue)
-			dispatch_release(sendFilterQueue);
+		#if NEEDS_DISPATCH_RETAIN_RELEASE
+		if (sendFilterQueue) dispatch_release(sendFilterQueue);
+		#endif
 		
 		sendFilterBlock = newFilterBlock;
 		sendFilterQueue = newFilterQueue;
@@ -3945,7 +3990,9 @@ enum GCDAsyncUdpSocketConfig
 	if (sendTimer)
 	{
 		dispatch_source_cancel(sendTimer);
+		#if NEEDS_DISPATCH_RETAIN_RELEASE
 		dispatch_release(sendTimer);
+		#endif
 		sendTimer = NULL;
 	}
 	
@@ -4125,13 +4172,16 @@ enum GCDAsyncUdpSocketConfig
 		
 		newFilterBlock = [filterBlock copy];
 		newFilterQueue = filterQueue;
+		#if NEEDS_DISPATCH_RETAIN_RELEASE
 		dispatch_retain(newFilterQueue);
+		#endif
 	}
 	
 	dispatch_block_t block = ^{
 		
-		if (receiveFilterQueue)
-			dispatch_release(receiveFilterQueue);
+		#if NEEDS_DISPATCH_RETAIN_RELEASE
+		if (receiveFilterQueue) dispatch_release(receiveFilterQueue);
+		#endif
 		
 		receiveFilterBlock = newFilterBlock;
 		receiveFilterQueue = newFilterQueue;
