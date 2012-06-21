@@ -3191,7 +3191,7 @@ enum GCDAsyncUdpSocketConfig
 		
 		if (connectPacket->resolveInProgress)
 		{
-			LogVerbose(@"%@: Waiting for DNS resolve...");
+			LogVerbose(@"Waiting for DNS resolve...");
 		}
 		else
 		{
