@@ -464,6 +464,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 **/
 - (NSString *)connectedHost;
 - (uint16_t)connectedPort;
+- (NSURL *)connectedUrl;
 
 - (NSString *)localHost;
 - (uint16_t)localPort;
@@ -980,6 +981,12 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * The host parameter will be an IP address, not a DNS name.
 **/
 - (void)socket:(GCDAsyncSocket *)sock didConnectToHost:(NSString *)host port:(uint16_t)port;
+
+/**
+ * Called when a socket connects and is ready for reading and writing.
+ * The host parameter will be an IP address, not a DNS name.
+ **/
+- (void)socket:(GCDAsyncSocket *)sock didConnectToUrl:(NSURL *)url;
 
 /**
  * Called when a socket has completed reading the requested data into memory.

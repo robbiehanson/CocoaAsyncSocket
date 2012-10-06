@@ -30,8 +30,9 @@
 	self.inputView.stringValue = @"";
 }
 
-- (void)socket:(GCDAsyncSocket *)sock didConnectToHost:(NSString *)host port:(uint16_t)port;
+- (void)socket:(GCDAsyncSocket *)sock didConnectToUrl:(NSURL *)url;
 {
+	NSLog(@"[Client] Connected to %@", url);
 	[sock readDataWithTimeout:-1 tag:0];
 }
 

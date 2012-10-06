@@ -223,6 +223,7 @@ enum GCDAsyncSocketConfig
 - (NSString *)connectedHostFromSocket6:(int)socketFD;
 - (uint16_t)connectedPortFromSocket4:(int)socketFD;
 - (uint16_t)connectedPortFromSocket6:(int)socketFD;
+- (NSURL *)connectedUrlFromSocketUN:(int)socketFD;
 - (NSString *)localHostFromSocket4:(int)socketFD;
 - (NSString *)localHostFromSocket6:(int)socketFD;
 - (uint16_t)localPortFromSocket4:(int)socketFD;
@@ -285,6 +286,7 @@ enum GCDAsyncSocketConfig
 + (NSString *)hostFromSockaddr6:(const struct sockaddr_in6 *)pSockaddr6;
 + (uint16_t)portFromSockaddr4:(const struct sockaddr_in *)pSockaddr4;
 + (uint16_t)portFromSockaddr6:(const struct sockaddr_in6 *)pSockaddr6;
++ (NSURL *)urlFromSockaddrUN:(const struct sockaddr_un *)pSockaddr;
 
 @end
 
@@ -2910,8 +2912,9 @@ enum GCDAsyncSocketConfig
 	
 	NSString *host = [self connectedHost];
 	uint16_t port = [self connectedPort];
+	NSURL *url = [self connectedUrl];
 	
-	if (delegateQueue && [delegate respondsToSelector:@selector(socket:didConnectToHost:port:)])
+	if (delegateQueue && host != nil && [delegate respondsToSelector:@selector(socket:didConnectToHost:port:)])
 	{
 		SetupStreamsPart1();
 		
@@ -2920,6 +2923,22 @@ enum GCDAsyncSocketConfig
 		dispatch_async(delegateQueue, ^{ @autoreleasepool {
 			
 			[theDelegate socket:self didConnectToHost:host port:port];
+			
+			dispatch_async(socketQueue, ^{ @autoreleasepool {
+				
+				SetupStreamsPart2();
+			}});
+		}});
+	}
+	else if (delegateQueue && url != nil && [delegate respondsToSelector:@selector(socket:didConnectToUrl:)])
+	{
+		SetupStreamsPart1();
+		
+		__strong id theDelegate = delegate;
+		
+		dispatch_async(delegateQueue, ^{ @autoreleasepool {
+			
+			[theDelegate socket:self didConnectToUrl:url];
 			
 			dispatch_async(socketQueue, ^{ @autoreleasepool {
 				
@@ -3528,6 +3547,29 @@ enum GCDAsyncSocketConfig
 	}
 }
 
+- (NSURL *)connectedUrl
+{
+	if (dispatch_get_current_queue() == socketQueue)
+	{
+		if (socketUN != SOCKET_NULL)
+			return [self connectedUrlFromSocketUN:socketUN];
+		
+		return nil;
+	}
+	else
+	{
+		__block NSURL *result = nil;
+		
+		dispatch_sync(socketQueue, ^{ @autoreleasepool {
+			
+			if (socketUN != SOCKET_NULL)
+				result = [self connectedUrlFromSocketUN:socketUN];
+		}});
+		
+		return result;
+	}
+}
+
 - (NSString *)localHost
 {
 	if (dispatch_get_current_queue() == socketQueue)
@@ -3693,6 +3735,18 @@ enum GCDAsyncSocketConfig
 		return 0;
 	}
 	return [[self class] portFromSockaddr6:&sockaddr6];
+}
+
+- (NSURL *)connectedUrlFromSocketUN:(int)socketFD
+{
+	struct sockaddr_un sockaddr;
+	socklen_t sockaddrlen = sizeof(sockaddr);
+	
+	if (getpeername(socketFD, (struct sockaddr *)&sockaddr, &sockaddrlen) < 0)
+	{
+		return 0;
+	}
+	return [[self class] urlFromSockaddrUN:&sockaddr];
 }
 
 - (NSString *)localHostFromSocket4:(int)socketFD
@@ -7683,6 +7737,12 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 + (uint16_t)portFromSockaddr6:(const struct sockaddr_in6 *)pSockaddr6
 {
 	return ntohs(pSockaddr6->sin6_port);
+}
+
++ (NSURL *)urlFromSockaddrUN:(const struct sockaddr_un *)pSockaddr
+{
+	NSString *string = [NSString stringWithUTF8String:pSockaddr->sun_path];
+	return [NSURL URLWithString:string];
 }
 
 + (NSString *)hostFromAddress:(NSData *)address
