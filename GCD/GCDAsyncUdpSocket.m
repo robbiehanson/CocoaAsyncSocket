@@ -1701,6 +1701,28 @@ enum GCDAsyncUdpSocketConfig
 	return result;
 }
 
+- (void)suspendSend4Source
+{
+	if (send4Source && !(flags & kSend4SourceSuspended))
+	{
+		LogVerbose(@"dispatch_suspend(send4Source)");
+		
+		dispatch_suspend(send4Source);
+		flags |= kSend4SourceSuspended;
+	}
+}
+
+- (void)suspendSend6Source
+{
+	if (send6Source && !(flags & kSend6SourceSuspended))
+	{
+		LogVerbose(@"dispatch_suspend(send6Source)");
+		
+		dispatch_suspend(send6Source);
+		flags |= kSend6SourceSuspended;
+	}
+}
+
 - (void)setupSendAndReceiveSourcesForSocket4
 {
 	LogTrace();
@@ -2036,28 +2058,6 @@ enum GCDAsyncUdpSocketConfig
 	BOOL useIPv6 = [self isIPv6Enabled];
 	
 	return [self createSocket4:useIPv4 socket6:useIPv6 error:errPtr];
-}
-
-- (void)suspendSend4Source
-{
-	if (send4Source && !(flags & kSend4SourceSuspended))
-	{
-		LogVerbose(@"dispatch_suspend(send4Source)");
-		
-		dispatch_suspend(send4Source);
-		flags |= kSend4SourceSuspended;
-	}
-}
-
-- (void)suspendSend6Source
-{
-	if (send6Source && !(flags & kSend6SourceSuspended))
-	{
-		LogVerbose(@"dispatch_suspend(send6Source)");
-		
-		dispatch_suspend(send6Source);
-		flags |= kSend6SourceSuspended;
-	}
 }
 
 - (void)resumeSend4Source
