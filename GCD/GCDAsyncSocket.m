@@ -7174,7 +7174,9 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	return [self enableBackgroundingOnSocketWithCaveat:YES];
 }
 
-#else
+#endif
+
+#if SECURE_TRANSPORT_MAYBE_AVAILABLE
 
 - (SSLContextRef)sslContext
 {

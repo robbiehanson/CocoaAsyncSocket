@@ -888,7 +888,9 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 **/
 - (BOOL)enableBackgroundingOnSocket;
 
-#else
+#endif
+
+#if SECURE_TRANSPORT_MAYBE_AVAILABLE
 
 /**
  * This method is only available from within the context of a performBlock: invocation.
