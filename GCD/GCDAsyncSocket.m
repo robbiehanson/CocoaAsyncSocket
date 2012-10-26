@@ -7042,11 +7042,17 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 #pragma mark Advanced
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/**
+ * See header file for big discussion of this method.
+**/
 - (void)performBlock:(dispatch_block_t)block
 {
 	dispatch_sync(socketQueue, block);
 }
 
+/**
+ * Questions? Have you read the header file?
+**/
 - (int)socketFD
 {
 	if (dispatch_get_current_queue() != socketQueue)
@@ -7061,6 +7067,9 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 		return socket6FD;
 }
 
+/**
+ * Questions? Have you read the header file?
+**/
 - (int)socket4FD
 {
 	if (dispatch_get_current_queue() != socketQueue)
@@ -7072,6 +7081,9 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	return socket4FD;
 }
 
+/**
+ * Questions? Have you read the header file?
+**/
 - (int)socket6FD
 {
 	if (dispatch_get_current_queue() != socketQueue)
@@ -7085,6 +7097,9 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 
 #if TARGET_OS_IPHONE
 
+/**
+ * Questions? Have you read the header file?
+**/
 - (CFReadStreamRef)readStream
 {
 	if (dispatch_get_current_queue() != socketQueue)
@@ -7099,6 +7114,9 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	return readStream;
 }
 
+/**
+ * Questions? Have you read the header file?
+**/
 - (CFWriteStreamRef)writeStream
 {
 	if (dispatch_get_current_queue() != socketQueue)
@@ -7144,6 +7162,9 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	return YES;
 }
 
+/**
+ * Questions? Have you read the header file?
+**/
 - (BOOL)enableBackgroundingOnSocket
 {
 	LogTrace();
