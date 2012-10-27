@@ -129,39 +129,6 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 - (void)synchronouslySetDelegate:(id)delegate delegateQueue:(dispatch_queue_t)delegateQueue;
 
 /**
- * Traditionally sockets are not closed until the conversation is over.
- * However, it is technically possible for the remote enpoint to close its write stream.
- * Our socket would then be notified that there is no more data to be read,
- * but our socket would still be writeable and the remote endpoint could continue to receive our data.
- * 
- * The argument for this confusing functionality stems from the idea that a client could shut down its
- * write stream after sending a request to the server, thus notifying the server there are to be no further requests.
- * In practice, however, this technique did little to help server developers.
- * 
- * To make matters worse, from a TCP perspective there is no way to tell the difference from a read stream close
- * and a full socket close. They both result in the TCP stack receiving a FIN packet. The only way to tell
- * is by continuing to write to the socket. If it was only a read stream close, then writes will continue to work.
- * Otherwise an error will be occur shortly (when the remote end sends us a RST packet).
- * 
- * In addition to the technical challenges and confusion, many high level socket/stream API's provide
- * no support for dealing with the problem. If the read stream is closed, the API immediately declares the
- * socket to be closed, and shuts down the write stream as well. In fact, this is what Apple's CFStream API does.
- * It might sound like poor design at first, but in fact it simplifies development.
- * 
- * The vast majority of the time if the read stream is closed it's because the remote endpoint closed its socket.
- * Thus it actually makes sense to close the socket at this point.
- * And in fact this is what most networking developers want and expect to happen.
- * However, if you are writing a server that interacts with a plethora of clients,
- * you might encounter a client that uses the discouraged technique of shutting down its write stream.
- * If this is the case, you can set this property to NO,
- * and make use of the socketDidCloseReadStream delegate method.
- * 
- * The default value is YES.
-**/
-- (BOOL)autoDisconnectOnClosedReadStream;
-- (void)setAutoDisconnectOnClosedReadStream:(BOOL)flag;
-
-/**
  * By default, both IPv4 and IPv6 are enabled.
  * 
  * For accepting incoming connections, this means GCDAsyncSocket automatically supports both protocols,
@@ -743,6 +710,39 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 - (void)startTLS:(NSDictionary *)tlsSettings;
 
 #pragma mark Advanced
+
+/**
+ * Traditionally sockets are not closed until the conversation is over.
+ * However, it is technically possible for the remote enpoint to close its write stream.
+ * Our socket would then be notified that there is no more data to be read,
+ * but our socket would still be writeable and the remote endpoint could continue to receive our data.
+ * 
+ * The argument for this confusing functionality stems from the idea that a client could shut down its
+ * write stream after sending a request to the server, thus notifying the server there are to be no further requests.
+ * In practice, however, this technique did little to help server developers.
+ * 
+ * To make matters worse, from a TCP perspective there is no way to tell the difference from a read stream close
+ * and a full socket close. They both result in the TCP stack receiving a FIN packet. The only way to tell
+ * is by continuing to write to the socket. If it was only a read stream close, then writes will continue to work.
+ * Otherwise an error will be occur shortly (when the remote end sends us a RST packet).
+ * 
+ * In addition to the technical challenges and confusion, many high level socket/stream API's provide
+ * no support for dealing with the problem. If the read stream is closed, the API immediately declares the
+ * socket to be closed, and shuts down the write stream as well. In fact, this is what Apple's CFStream API does.
+ * It might sound like poor design at first, but in fact it simplifies development.
+ * 
+ * The vast majority of the time if the read stream is closed it's because the remote endpoint closed its socket.
+ * Thus it actually makes sense to close the socket at this point.
+ * And in fact this is what most networking developers want and expect to happen.
+ * However, if you are writing a server that interacts with a plethora of clients,
+ * you might encounter a client that uses the discouraged technique of shutting down its write stream.
+ * If this is the case, you can set this property to NO,
+ * and make use of the socketDidCloseReadStream delegate method.
+ * 
+ * The default value is YES.
+**/
+- (BOOL)autoDisconnectOnClosedReadStream;
+- (void)setAutoDisconnectOnClosedReadStream:(BOOL)flag;
 
 /**
  * It's not thread-safe to access certain variables from outside the socket's internal queue.
