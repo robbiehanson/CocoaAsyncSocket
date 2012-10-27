@@ -246,7 +246,6 @@ enum GCDAsyncSocketConfig
 
 // Disconnect
 - (void)closeWithError:(NSError *)error;
-- (void)close;
 - (void)maybeClose;
 
 // Errors
