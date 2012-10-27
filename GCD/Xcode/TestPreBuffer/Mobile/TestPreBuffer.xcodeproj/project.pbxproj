@@ -28,6 +28,7 @@
 		DC71D37A15816C2000A8A249 /* TestPreBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = DC71D37915816C2000A8A249 /* TestPreBuffer.m */; };
 		DC71D37C15816C3700A8A249 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC71D37B15816C3700A8A249 /* Security.framework */; };
 		DC71D37E15816C5300A8A249 /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC71D37D15816C5300A8A249 /* CFNetwork.framework */; };
+		DCCE5060163B6A0D0000C729 /* Default-568h@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = DCCE505F163B6A0D0000C729 /* Default-568h@2x.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -66,6 +67,7 @@
 		DC71D37915816C2000A8A249 /* TestPreBuffer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = TestPreBuffer.m; path = ../../Shared/TestPreBuffer.m; sourceTree = "<group>"; };
 		DC71D37B15816C3700A8A249 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		DC71D37D15816C5300A8A249 /* CFNetwork.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CFNetwork.framework; path = System/Library/Frameworks/CFNetwork.framework; sourceTree = SDKROOT; };
+		DCCE505F163B6A0D0000C729 /* Default-568h@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "Default-568h@2x.png"; path = "../Default-568h@2x.png"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -134,6 +136,7 @@
 		DC71D33D15816B5300A8A249 /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
+				DCCE505F163B6A0D0000C729 /* Default-568h@2x.png */,
 				DC71D33E15816B5300A8A249 /* TestPreBuffer-Info.plist */,
 				DC71D33F15816B5300A8A249 /* InfoPlist.strings */,
 				DC71D34215816B5300A8A249 /* main.m */,
@@ -236,6 +239,7 @@
 				DC71D34D15816B5300A8A249 /* ViewController_iPhone.xib in Resources */,
 				DC71D35015816B5300A8A249 /* ViewController_iPad.xib in Resources */,
 				DC71D37215816BFC00A8A249 /* README.txt in Resources */,
+				DCCE5060163B6A0D0000C729 /* Default-568h@2x.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
