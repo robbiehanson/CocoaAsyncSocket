@@ -318,7 +318,7 @@ enum GCDAsyncSocketConfig
 
 - (id)initWithCapacity:(size_t)numBytes;
 
-- (void)ensureCapacityForWrite:(size_t)numBytes;
+- (BOOL)ensureCapacityForWrite:(size_t)numBytes;
 
 - (size_t)availableBytes;
 - (uint8_t *)readBuffer;
@@ -358,8 +358,9 @@ enum GCDAsyncSocketConfig
 		free(preBuffer);
 }
 
-- (void)ensureCapacityForWrite:(size_t)numBytes
+- (BOOL)ensureCapacityForWrite:(size_t)numBytes
 {
+	BOOL success;
 	size_t availableSpace = preBufferSize - (writePointer - readPointer);
 	
 	if (numBytes > availableSpace)
@@ -368,16 +369,26 @@ enum GCDAsyncSocketConfig
 		
 		size_t newPreBufferSize = preBufferSize + additionalBytes;
 		uint8_t *newPreBuffer = realloc(preBuffer, newPreBufferSize);
-		
-		size_t readPointerOffset = readPointer - preBuffer;
-		size_t writePointerOffset = writePointer - preBuffer;
-		
-		preBuffer = newPreBuffer;
-		preBufferSize = newPreBufferSize;
-		
-		readPointer = preBuffer + readPointerOffset;
-		writePointer = preBuffer + writePointerOffset;
+		if (newPreBuffer)
+		{
+			size_t readPointerOffset = readPointer - preBuffer;
+			size_t writePointerOffset = writePointer - preBuffer;
+			
+			preBuffer = newPreBuffer;
+			preBufferSize = newPreBufferSize;
+			
+			readPointer = preBuffer + readPointerOffset;
+			writePointer = preBuffer + writePointerOffset;
+			
+			success = YES;
+		}
+		else
+			success = NO;
 	}
+	else
+		success = YES;
+
+	return success;
 }
 
 - (size_t)availableBytes
@@ -2988,6 +2999,17 @@ enum GCDAsyncSocketConfig
 	return [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketClosedError userInfo:userInfo];
 }
 
+- (NSError *)outOfMemoryError
+{
+	NSString *errMsg = NSLocalizedStringWithDefaultValue(@"GCDAsyncSocketOutOfMemoryError",
+	                                                     @"GCDAsyncSocket", [NSBundle mainBundle],
+	                                                     @"Out of memory", nil);
+	
+	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+
+	return [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketOtherError userInfo:userInfo];
+}
+
 - (NSError *)otherError:(NSString *)errMsg
 {
 	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
@@ -4068,19 +4090,20 @@ enum GCDAsyncSocketConfig
 			
 			CFIndex defaultBytesToRead = (1024 * 4);
 			
-			[preBuffer ensureCapacityForWrite:defaultBytesToRead];
-			
-			uint8_t *buffer = [preBuffer writeBuffer];
-			
-			CFIndex result = CFReadStreamRead(readStream, buffer, defaultBytesToRead);
-			LogVerbose(@"%@ - CFReadStreamRead(): result = %i", THIS_METHOD, (int)result);
-			
-			if (result > 0)
+			if ([preBuffer ensureCapacityForWrite:defaultBytesToRead])
 			{
-				[preBuffer didWrite:result];
+				uint8_t *buffer = [preBuffer writeBuffer];
+
+				CFIndex result = CFReadStreamRead(readStream, buffer, defaultBytesToRead);
+				LogVerbose(@"%@ - CFReadStreamRead(): result = %i", THIS_METHOD, (int)result);
+				
+				if (result > 0)
+				{
+					[preBuffer didWrite:result];
+				}
+				
+				flags &= ~kSecureSocketHasBytesAvailable;
 			}
-			
-			flags &= ~kSecureSocketHasBytesAvailable;
 		}
 		
 		return;
@@ -4124,32 +4147,33 @@ enum GCDAsyncSocketConfig
 			
 			// Make sure there's enough room in the prebuffer
 			
-			[preBuffer ensureCapacityForWrite:estimatedBytesAvailable];
-			
-			// Read data into prebuffer
-			
-			uint8_t *buffer = [preBuffer writeBuffer];
-			size_t bytesRead = 0;
-			
-			OSStatus result = SSLRead(sslContext, buffer, (size_t)estimatedBytesAvailable, &bytesRead);
-			LogVerbose(@"%@ - read from secure socket = %u", THIS_METHOD, (unsigned)bytesRead);
-			
-			if (bytesRead > 0)
+			if ([preBuffer ensureCapacityForWrite:estimatedBytesAvailable])
 			{
-				[preBuffer didWrite:bytesRead];
-			}
-			
-			LogVerbose(@"%@ - prebuffer.length = %zu", THIS_METHOD, [preBuffer availableBytes]);
-			
-			if (result != noErr)
-			{
+				// Read data into prebuffer
+				
+				uint8_t *buffer = [preBuffer writeBuffer];
+				size_t bytesRead = 0;
+				
+				OSStatus result = SSLRead(sslContext, buffer, (size_t)estimatedBytesAvailable, &bytesRead);
+				LogVerbose(@"%@ - read from secure socket = %u", THIS_METHOD, (unsigned)bytesRead);
+				
+				if (bytesRead > 0)
+				{
+					[preBuffer didWrite:bytesRead];
+				}
+				
+				LogVerbose(@"%@ - prebuffer.length = %zu", THIS_METHOD, [preBuffer availableBytes]);
+				
+				if (result != noErr)
+				{
+					done = YES;
+				}
+				else
+				{
+					updateEstimatedBytesAvailable();
+				}
+			} else
 				done = YES;
-			}
-			else
-			{
-				updateEstimatedBytesAvailable();
-			}
-			
 		} while (!done && estimatedBytesAvailable > 0);
 	}
 	
@@ -4483,9 +4507,14 @@ enum GCDAsyncSocketConfig
 		
 		if (readIntoPreBuffer)
 		{
-			[preBuffer ensureCapacityForWrite:bytesToRead];
-						
-			buffer = [preBuffer writeBuffer];
+			if ([preBuffer ensureCapacityForWrite:bytesToRead])
+				buffer = [preBuffer writeBuffer];
+			else
+			{
+				error = [self outOfMemoryError];
+				[self closeWithError:error];
+				return;
+			}
 		}
 		else
 		{
@@ -4718,19 +4747,26 @@ enum GCDAsyncSocketConfig
 						// Copy excess data into preBuffer
 						
 						LogVerbose(@"copying %ld overflow bytes into preBuffer", (long)overflow);
-						[preBuffer ensureCapacityForWrite:overflow];
-						
-						uint8_t *overflowBuffer = buffer + underflow;
-						memcpy([preBuffer writeBuffer], overflowBuffer, overflow);
-						
-						[preBuffer didWrite:overflow];
-						LogVerbose(@"preBuffer.length = %zu", [preBuffer availableBytes]);
-						
-						// Note: The completeCurrentRead method will trim the buffer for us.
-						
-						currentRead->bytesDone += underflow;
-						totalBytesReadForCurrentRead += underflow;
-						done = YES;
+						if ([preBuffer ensureCapacityForWrite:overflow])
+						{
+							uint8_t *overflowBuffer = buffer + underflow;
+							memcpy([preBuffer writeBuffer], overflowBuffer, overflow);
+							
+							[preBuffer didWrite:overflow];
+							LogVerbose(@"preBuffer.length = %zu", [preBuffer availableBytes]);
+							
+							// Note: The completeCurrentRead method will trim the buffer for us.
+							
+							currentRead->bytesDone += underflow;
+							totalBytesReadForCurrentRead += underflow;
+							done = YES;
+						}
+						else
+						{
+							error = [self outOfMemoryError];
+							[self closeWithError:error];
+							return;
+						}
 					}
 					else
 					{
@@ -5947,11 +5983,17 @@ enum GCDAsyncSocketConfig
 			
 			LogVerbose(@"%@: Reading into sslPreBuffer...", THIS_METHOD);
 			
-			[sslPreBuffer ensureCapacityForWrite:socketFDBytesAvailable];
-			
-			readIntoPreBuffer = YES;
-			bytesToRead = (size_t)socketFDBytesAvailable;
-			buf = [sslPreBuffer writeBuffer];
+			if ([sslPreBuffer ensureCapacityForWrite:socketFDBytesAvailable])
+			{
+				readIntoPreBuffer = YES;
+				bytesToRead = (size_t)socketFDBytesAvailable;
+				buf = [sslPreBuffer writeBuffer];
+			}
+			else
+			{
+				socketFDBytesAvailable = 0;
+				return errSSLClosedAbort;
+			}
 		}
 		else
 		{
@@ -6469,14 +6511,18 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	if (preBufferLength > 0)
 	{
-		[sslPreBuffer ensureCapacityForWrite:preBufferLength];
-		
-		memcpy([sslPreBuffer writeBuffer], [preBuffer readBuffer], preBufferLength);
-		[preBuffer didRead:preBufferLength];
-		[sslPreBuffer didWrite:preBufferLength];
+		if ([sslPreBuffer ensureCapacityForWrite:preBufferLength])
+		{
+			memcpy([sslPreBuffer writeBuffer], [preBuffer readBuffer], preBufferLength);
+			[preBuffer didRead:preBufferLength];
+			[sslPreBuffer didWrite:preBufferLength];
+			sslErrCode = noErr;
+		}
+		else
+			sslErrCode = errSSLClosedAbort;
 	}
-	
-	sslErrCode = noErr;
+	else
+		sslErrCode = noErr;
 	
 	// Start the SSL Handshake process
 	
@@ -6697,11 +6743,14 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	// We can't run the run loop unless it has an associated input source or a timer.
 	// So we'll just create a timer that will never fire - unless the server runs for decades.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wundeclared-selector"
 	[NSTimer scheduledTimerWithTimeInterval:[[NSDate distantFuture] timeIntervalSinceNow]
 	                                 target:self
 	                               selector:@selector(doNothingAtAll:)
 	                               userInfo:nil
 	                                repeats:YES];
+#pragma clang diagnostic pop
 	
 	[[NSRunLoop currentRunLoop] run];
 	
