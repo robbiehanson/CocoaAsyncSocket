@@ -396,7 +396,9 @@ enum GCDAsyncSocketConfig
 	{
 		preBufferSize = numBytes;
 		preBuffer = malloc(preBufferSize);
-		
+		if (!preBuffer)
+			return nil;
+
 		readPointer = preBuffer;
 		writePointer = preBuffer;
 	}
