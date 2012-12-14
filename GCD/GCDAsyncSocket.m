@@ -5644,7 +5644,9 @@ enum GCDAsyncSocketConfig
 		
 		if (!error)
 		{
-			[self maybeDequeueWrite];
+			dispatch_async(socketQueue, ^{
+				[self maybeDequeueWrite];
+			});
 		}
 	}
 	else
