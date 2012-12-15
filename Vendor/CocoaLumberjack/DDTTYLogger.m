@@ -55,14 +55,7 @@
 // To reset the foreground and background color (to default values) in one operation:
 // Insert the ESCAPE_SEQ into your string, followed by ";"
 
-#define XCODE_COLORS_ESCAPE_SEQ_MAC "\033["
-#define XCODE_COLORS_ESCAPE_SEQ_IOS "\xC2\xA0["
-
-#if TARGET_OS_IPHONE
-  #define XCODE_COLORS_ESCAPE_SEQ  XCODE_COLORS_ESCAPE_SEQ_IOS
-#else
-  #define XCODE_COLORS_ESCAPE_SEQ  XCODE_COLORS_ESCAPE_SEQ_MAC
-#endif
+#define XCODE_COLORS_ESCAPE_SEQ "\033["
 
 #define XCODE_COLORS_RESET_FG  XCODE_COLORS_ESCAPE_SEQ "fg;" // Clear any foreground color
 #define XCODE_COLORS_RESET_BG  XCODE_COLORS_ESCAPE_SEQ "bg;" // Clear any background color
@@ -122,7 +115,6 @@
 	size_t resetCodeLen;
 }
 
-- (id)initWithForegroundColor:(OSColor *)fgColor backgroundColor:(OSColor *)bgColor flag:(int)mask;
 - (id)initWithForegroundColor:(OSColor *)fgColor backgroundColor:(OSColor *)bgColor flag:(int)mask context:(int)ctxt;
 
 @end
@@ -863,7 +855,8 @@ static DDTTYLogger *sharedInstance;
 			// Initialize color stuff
 			
 			colorsEnabled = NO;
-			colorProfiles = [[NSMutableArray alloc] init];
+			colorProfilesArray = [[NSMutableArray alloc] initWithCapacity:8];
+			colorProfilesDict = [[NSMutableDictionary alloc] initWithCapacity:8];
 		}
 	}
 	return self;
@@ -908,7 +901,7 @@ static DDTTYLogger *sharedInstance;
 		
 		colorsEnabled = newColorsEnabled;
 		
-		if ([colorProfiles count] == 0) {
+		if ([colorProfilesArray count] == 0) {
 			[self loadDefaultColorProfiles];
 		}
 	}};
@@ -950,7 +943,7 @@ static DDTTYLogger *sharedInstance;
 		NSLogInfo(@"DDTTYLogger: newColorProfile: %@", newColorProfile);
 		
 		NSUInteger i = 0;
-		for (DDTTYLoggerColorProfile *colorProfile in colorProfiles)
+		for (DDTTYLoggerColorProfile *colorProfile in colorProfilesArray)
 		{
 			if ((colorProfile->mask == mask) && (colorProfile->context == ctxt))
 			{
@@ -960,10 +953,46 @@ static DDTTYLogger *sharedInstance;
 			i++;
 		}
 		
-		if (i < [colorProfiles count])
-			[colorProfiles replaceObjectAtIndex:i withObject:newColorProfile];
+		if (i < [colorProfilesArray count])
+			[colorProfilesArray replaceObjectAtIndex:i withObject:newColorProfile];
 		else
-			[colorProfiles addObject:newColorProfile];
+			[colorProfilesArray addObject:newColorProfile];
+	}};
+	
+	// The design of the setter logic below is taken from the DDAbstractLogger implementation.
+	// For documentation please refer to the DDAbstractLogger implementation.
+	
+	dispatch_queue_t currentQueue = dispatch_get_current_queue();
+	if (currentQueue == loggerQueue)
+	{
+		block();
+	}
+	else
+	{
+		dispatch_queue_t globalLoggingQueue = [DDLog loggingQueue];
+		NSAssert(currentQueue != globalLoggingQueue, @"Core architecture requirement failure");
+		
+		dispatch_async(globalLoggingQueue, ^{
+			dispatch_async(loggerQueue, block);
+		});
+	}
+}
+
+- (void)setForegroundColor:(OSColor *)txtColor backgroundColor:(OSColor *)bgColor forTag:(id <NSCopying>)tag
+{
+	NSAssert([(id <NSObject>)tag conformsToProtocol:@protocol(NSCopying)], @"Invalid tag");
+	
+	dispatch_block_t block = ^{ @autoreleasepool {
+		
+		DDTTYLoggerColorProfile *newColorProfile =
+		    [[DDTTYLoggerColorProfile alloc] initWithForegroundColor:txtColor
+		                                             backgroundColor:bgColor
+		                                                        flag:0
+		                                                     context:0];
+		
+		NSLogInfo(@"DDTTYLogger: newColorProfile: %@", newColorProfile);
+		
+		[colorProfilesDict setObject:newColorProfile forKey:tag];
 	}};
 	
 	// The design of the setter logic below is taken from the DDAbstractLogger implementation.
@@ -995,7 +1024,7 @@ static DDTTYLogger *sharedInstance;
 	dispatch_block_t block = ^{ @autoreleasepool {
 		
 		NSUInteger i = 0;
-		for (DDTTYLoggerColorProfile *colorProfile in colorProfiles)
+		for (DDTTYLoggerColorProfile *colorProfile in colorProfilesArray)
 		{
 			if ((colorProfile->mask == mask) && (colorProfile->context == context))
 			{
@@ -1005,10 +1034,38 @@ static DDTTYLogger *sharedInstance;
 			i++;
 		}
 		
-		if (i < [colorProfiles count])
+		if (i < [colorProfilesArray count])
 		{
-			[colorProfiles removeObjectAtIndex:i];
+			[colorProfilesArray removeObjectAtIndex:i];
 		}
+	}};
+	
+	// The design of the setter logic below is taken from the DDAbstractLogger implementation.
+	// For documentation please refer to the DDAbstractLogger implementation.
+	
+	dispatch_queue_t currentQueue = dispatch_get_current_queue();
+	if (currentQueue == loggerQueue)
+	{
+		block();
+	}
+	else
+	{
+		dispatch_queue_t globalLoggingQueue = [DDLog loggingQueue];
+		NSAssert(currentQueue != globalLoggingQueue, @"Core architecture requirement failure");
+		
+		dispatch_async(globalLoggingQueue, ^{
+			dispatch_async(loggerQueue, block);
+		});
+	}
+}
+
+- (void)clearColorsForTag:(id <NSCopying>)tag
+{
+	NSAssert([(id <NSObject>)tag conformsToProtocol:@protocol(NSCopying)], @"Invalid tag");
+	
+	dispatch_block_t block = ^{ @autoreleasepool {
+		
+		[colorProfilesDict removeObjectForKey:tag];
 	}};
 	
 	// The design of the setter logic below is taken from the DDAbstractLogger implementation.
@@ -1034,7 +1091,60 @@ static DDTTYLogger *sharedInstance;
 {
 	dispatch_block_t block = ^{ @autoreleasepool {
 		
-		[colorProfiles removeAllObjects];
+		[colorProfilesArray removeAllObjects];
+	}};
+	
+	// The design of the setter logic below is taken from the DDAbstractLogger implementation.
+	// For documentation please refer to the DDAbstractLogger implementation.
+	
+	dispatch_queue_t currentQueue = dispatch_get_current_queue();
+	if (currentQueue == loggerQueue)
+	{
+		block();
+	}
+	else
+	{
+		dispatch_queue_t globalLoggingQueue = [DDLog loggingQueue];
+		NSAssert(currentQueue != globalLoggingQueue, @"Core architecture requirement failure");
+		
+		dispatch_async(globalLoggingQueue, ^{
+			dispatch_async(loggerQueue, block);
+		});
+	}
+}
+
+- (void)clearColorsForAllTags
+{
+	dispatch_block_t block = ^{ @autoreleasepool {
+		
+		[colorProfilesDict removeAllObjects];
+	}};
+	
+	// The design of the setter logic below is taken from the DDAbstractLogger implementation.
+	// For documentation please refer to the DDAbstractLogger implementation.
+	
+	dispatch_queue_t currentQueue = dispatch_get_current_queue();
+	if (currentQueue == loggerQueue)
+	{
+		block();
+	}
+	else
+	{
+		dispatch_queue_t globalLoggingQueue = [DDLog loggingQueue];
+		NSAssert(currentQueue != globalLoggingQueue, @"Core architecture requirement failure");
+		
+		dispatch_async(globalLoggingQueue, ^{
+			dispatch_async(loggerQueue, block);
+		});
+	}
+}
+
+- (void)clearAllColors
+{
+	dispatch_block_t block = ^{ @autoreleasepool {
+		
+		[colorProfilesArray removeAllObjects];
+		[colorProfilesDict removeAllObjects];
 	}};
 	
 	// The design of the setter logic below is taken from the DDAbstractLogger implementation.
@@ -1077,21 +1187,33 @@ static DDTTYLogger *sharedInstance;
 		
 		if (colorsEnabled)
 		{
-			for (DDTTYLoggerColorProfile *cp in colorProfiles)
+			if (logMessage->tag)
 			{
-				if ((logMessage->logFlag & cp->mask) && (logMessage->logContext == cp->context))
+				colorProfile = [colorProfilesDict objectForKey:logMessage->tag];
+			}
+			if (colorProfile == nil)
+			{
+				for (DDTTYLoggerColorProfile *cp in colorProfilesArray)
 				{
-					colorProfile = cp;
-					break;
+					if ((logMessage->logFlag & cp->mask) && (logMessage->logContext == cp->context))
+					{
+						colorProfile = cp;
+						break;
+					}
 				}
 			}
 		}
 		
 		// Convert log message to C string.
-		// The technique below is faster than using the UTF8String method.
+		// 
+		// We use the stack instead of the heap for speed if possible.
+		// But we're extra cautious to avoid a stack overflow.
 		
 		NSUInteger msgLen = [logMsg lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-		char msg[msgLen + 1];
+		const BOOL useStack = msgLen < (1024 * 4);
+		
+		char msgStack[useStack ? (msgLen + 1) : 1]; // Analyzer doesn't like zero-size array, hence the 1
+		char *msg = useStack ? msgStack : (char *)malloc(msgLen + 1);
 		
 		[logMsg getCString:msg maxLength:(msgLen + 1) encoding:NSUTF8StringEncoding];
 		
@@ -1219,6 +1341,10 @@ static DDTTYLogger *sharedInstance;
 			
 			writev(STDERR_FILENO, v, 12);
 		}
+		
+		if (!useStack) {
+			free(msg);
+		}
 	}
 }
 
@@ -1232,11 +1358,6 @@ static DDTTYLogger *sharedInstance;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 @implementation DDTTYLoggerColorProfile
-
-- (id)initWithForegroundColor:(OSColor *)fgColor backgroundColor:(OSColor *)bgColor flag:(int)aMask
-{
-	return [self initWithForegroundColor:fgColor backgroundColor:bgColor flag:aMask context:0];
-}
 
 - (id)initWithForegroundColor:(OSColor *)fgColor backgroundColor:(OSColor *)bgColor flag:(int)aMask context:(int)ctxt
 {
@@ -1352,7 +1473,7 @@ static DDTTYLogger *sharedInstance;
 - (NSString *)description
 {
 	return [NSString stringWithFormat:
-			@"<DDTTYLoggerColorProfile: %x mask:%i ctxt:%i fg:%u,%u,%u bg:%u,%u,%u fgCode:%@ bgCode:%@>",
+			@"<DDTTYLoggerColorProfile: %p mask:%i ctxt:%i fg:%u,%u,%u bg:%u,%u,%u fgCode:%@ bgCode:%@>",
 			self, mask, context, fg_r, fg_g, fg_b, bg_r, bg_g, bg_b, fgCodeRaw, bgCodeRaw];
 }
 
