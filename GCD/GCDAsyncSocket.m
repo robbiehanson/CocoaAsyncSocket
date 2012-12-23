@@ -4288,8 +4288,8 @@ enum GCDAsyncSocketConfig : uint32_t
 		return;
 	}
 	
-	BOOL hasBytesAvailable;
-	unsigned long estimatedBytesAvailable;
+	BOOL hasBytesAvailable = NO;
+	unsigned long estimatedBytesAvailable = 0;
 	
 	if ([self usingCFStreamForTLS])
 	{
@@ -6219,7 +6219,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	// Create SSLContext, and setup IO callbacks and connection ref
 	
-	BOOL isServer = [[tlsSettings objectForKey:(NSString *)kCFStreamSSLIsServer] boolValue];
+	Boolean isServer = (Boolean)[[tlsSettings objectForKey:(NSString *)kCFStreamSSLIsServer] boolValue];
 	
 	#if TARGET_OS_IPHONE
 	{
@@ -6301,7 +6301,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		NSAssert(NO, @"Security option unavailable via SecureTransport in iOS - kCFStreamSSLAllowsAnyRoot");
 		#else
 		
-		BOOL allowsAnyRoot = [value boolValue];
+		Boolean allowsAnyRoot = (Boolean)[value boolValue];
 		
 		status = SSLSetAllowsAnyRoot(sslContext, allowsAnyRoot);
 		if (status != noErr)
@@ -6322,7 +6322,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		NSAssert(NO, @"Security option unavailable via SecureTransport in iOS - kCFStreamSSLAllowsExpiredRoots");
 		#else
 		
-		BOOL allowsExpiredRoots = [value boolValue];
+		Boolean allowsExpiredRoots = (Boolean)[value boolValue];
 		
 		status = SSLSetAllowsExpiredRoots(sslContext, allowsExpiredRoots);
 		if (status != noErr)
@@ -6343,7 +6343,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		NSAssert(NO, @"Security option unavailable via SecureTransport in iOS - kCFStreamSSLValidatesCertificateChain");
 		#else
 		
-		BOOL validatesCertChain = [value boolValue];
+		Boolean validatesCertChain = (Boolean)[value boolValue];
 		
 		status = SSLSetEnableCertVerify(sslContext, validatesCertChain);
 		if (status != noErr)
@@ -6364,7 +6364,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		NSAssert(NO, @"Security option unavailable via SecureTransport in iOS - kCFStreamSSLAllowsExpiredCertificates");
 		#else
 		
-		BOOL allowsExpiredCerts = [value boolValue];
+		Boolean allowsExpiredCerts = (Boolean)[value boolValue];
 		
 		status = SSLSetAllowsExpiredCerts(sslContext, allowsExpiredCerts);
 		if (status != noErr)
