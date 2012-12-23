@@ -19,6 +19,7 @@
 #import <ifaddrs.h>
 #import <netdb.h>
 #import <netinet/in.h>
+#import <netinet/tcp.h>
 #import <net/if.h>
 #import <sys/socket.h>
 #import <sys/types.h>
@@ -142,7 +143,7 @@ NSString *const GCDAsyncSocketSSLDiffieHellmanParameters = @"GCDAsyncSocketSSLDi
 #endif
 #endif
 
-enum GCDAsyncSocketFlags
+enum GCDAsyncSocketFlags : uint32_t
 {
 	kSocketStarted                 = 1 <<  0,  // If set, socket has been started (accepting/connecting)
 	kConnected                     = 1 <<  1,  // If set, the socket is connected
@@ -167,7 +168,7 @@ enum GCDAsyncSocketFlags
 #endif
 };
 
-enum GCDAsyncSocketConfig
+enum GCDAsyncSocketConfig : uint32_t
 {
 	kIPv4Disabled              = 1 << 0,  // If set, IPv4 is disabled
 	kIPv6Disabled              = 1 << 1,  // If set, IPv6 is disabled
@@ -415,7 +416,7 @@ enum GCDAsyncSocketConfig
 - (BOOL)ensureCapacityForWrite:(size_t)numBytes
 {
 	BOOL success;
-	size_t availableSpace = preBufferSize - (writePointer - readPointer);
+	size_t availableSpace = preBufferSize - (uintptr_t)(writePointer - readPointer);
 	
 	if (numBytes > availableSpace)
 	{
@@ -425,8 +426,8 @@ enum GCDAsyncSocketConfig
 		uint8_t *newPreBuffer = realloc(preBuffer, newPreBufferSize);
 		if (newPreBuffer)
 		{
-			size_t readPointerOffset = readPointer - preBuffer;
-			size_t writePointerOffset = writePointer - preBuffer;
+			size_t readPointerOffset = (uintptr_t)(readPointer - preBuffer);
+			size_t writePointerOffset = (uintptr_t)(writePointer - preBuffer);
 			
 			preBuffer = newPreBuffer;
 			preBufferSize = newPreBufferSize;
@@ -447,7 +448,7 @@ enum GCDAsyncSocketConfig
 
 - (size_t)availableBytes
 {
-	return writePointer - readPointer;
+	return (uintptr_t)(writePointer - readPointer);
 }
 
 - (uint8_t *)readBuffer
@@ -458,7 +459,7 @@ enum GCDAsyncSocketConfig
 - (void)getReadBuffer:(uint8_t **)bufferPtr availableBytes:(size_t *)availableBytesPtr
 {
 	if (bufferPtr) *bufferPtr = readPointer;
-	if (availableBytesPtr) *availableBytesPtr = writePointer - readPointer;
+	if (availableBytesPtr) *availableBytesPtr = (uintptr_t)(writePointer - readPointer);
 }
 
 - (void)didRead:(size_t)bytesRead
@@ -475,7 +476,7 @@ enum GCDAsyncSocketConfig
 
 - (size_t)availableSpace
 {
-	return preBufferSize - (writePointer - readPointer);
+	return preBufferSize - (uintptr_t)(writePointer - readPointer);
 }
 
 - (uint8_t *)writeBuffer
@@ -486,7 +487,7 @@ enum GCDAsyncSocketConfig
 - (void)getWriteBuffer:(uint8_t **)bufferPtr availableSpace:(size_t *)availableSpacePtr
 {
 	if (bufferPtr) *bufferPtr = writePointer;
-	if (availableSpacePtr) *availableSpacePtr = preBufferSize - (writePointer - readPointer);
+	if (availableSpacePtr) *availableSpacePtr = preBufferSize - (uintptr_t)(writePointer - readPointer);
 }
 
 - (void)didWrite:(size_t)bytesWritten
@@ -543,7 +544,7 @@ enum GCDAsyncSocketConfig
 - (NSUInteger)readLengthForTermWithHint:(NSUInteger)bytesAvailable shouldPreBuffer:(BOOL *)shouldPreBufferPtr;
 - (NSUInteger)readLengthForTermWithPreBuffer:(GCDAsyncSocketPreBuffer *)preBuffer found:(BOOL *)foundPtr;
 
-- (NSInteger)searchForTermAfterPreBuffering:(ssize_t)numBytes;
+- (NSInteger)searchForTermAfterPreBuffering:(size_t)numBytes;
 
 @end
 
@@ -906,7 +907,7 @@ enum GCDAsyncSocketConfig
 			
 			if (memcmp(pre, termBuf, termLength) == 0)
 			{
-				NSUInteger preOffset = pre - [preBuffer readBuffer]; // pointer arithmetic
+				NSUInteger preOffset = (uintptr_t)(pre - [preBuffer readBuffer]); // pointer arithmetic
 				
 				result = preOffset + termLength;
 				found = YES;
@@ -936,7 +937,7 @@ enum GCDAsyncSocketConfig
  * The given number of bytes have been added to the end of our buffer.
  * Our bytesDone variable has NOT been changed due to the prebuffered bytes.
 **/
-- (NSInteger)searchForTermAfterPreBuffering:(ssize_t)numBytes
+- (NSInteger)searchForTermAfterPreBuffering:(size_t)numBytes
 {
 	NSAssert(term != nil, @"This method does not apply to non-term reads");
 	
@@ -960,7 +961,7 @@ enum GCDAsyncSocketConfig
 		
 		if (memcmp(subBuffer, termBuff, termLength) == 0)
 		{
-			return buffLength - (i + termLength);
+			return (NSInteger)(buffLength - (i + termLength));
 		}
 		
 		i++;
@@ -1670,7 +1671,7 @@ enum GCDAsyncSocketConfig
 		
 		if (enableIPv4)
 		{
-			accept4Source = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, socket4FD, 0, socketQueue);
+			accept4Source = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, (uintptr_t)socket4FD, 0, socketQueue);
 			
 			int socketFD = socket4FD;
 			dispatch_source_t acceptSource = accept4Source;
@@ -1704,7 +1705,7 @@ enum GCDAsyncSocketConfig
 		
 		if (enableIPv6)
 		{
-			accept6Source = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, socket6FD, 0, socketQueue);
+			accept6Source = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, (uintptr_t)socket6FD, 0, socketQueue);
 			
 			int socketFD = socket6FD;
 			dispatch_source_t acceptSource = accept6Source;
@@ -2439,8 +2440,8 @@ enum GCDAsyncSocketConfig
 	
 	int keepalive = 1;
 	int keepidle = CONN_KEEPIDLE;
-	if (setsockopt(childSocketFD, SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive)) == noErr) {
-		setsockopt(childSocketFD, IPPROTO_TCP, TCP_KEEPALIVE, &keepidle, sizeof(keepidle));
+	if (setsockopt(socketFD, SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive)) == noErr) {
+		setsockopt(socketFD, IPPROTO_TCP, TCP_KEEPALIVE, &keepidle, sizeof(keepidle));
 	}
 	
 	// Start the connection process in a background queue
@@ -3679,8 +3680,8 @@ enum GCDAsyncSocketConfig
 
 - (void)setupReadAndWriteSourcesForNewlyConnectedSocket:(int)socketFD
 {
-	readSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, socketFD, 0, socketQueue);
-	writeSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_WRITE, socketFD, 0, socketQueue);
+	readSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, (uintptr_t)socketFD, 0, socketQueue);
+	writeSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_WRITE, (uintptr_t)socketFD, 0, socketQueue);
 	
 	// Setup event handlers
 	
@@ -4144,7 +4145,7 @@ enum GCDAsyncSocketConfig
 			
 			CFIndex defaultBytesToRead = (1024 * 4);
 			
-			if ([preBuffer ensureCapacityForWrite:defaultBytesToRead])
+			if ([preBuffer ensureCapacityForWrite:(size_t)defaultBytesToRead])
 			{
 				uint8_t *buffer = [preBuffer writeBuffer];
 
@@ -4153,7 +4154,7 @@ enum GCDAsyncSocketConfig
 				
 				if (result > 0)
 				{
-					[preBuffer didWrite:result];
+					[preBuffer didWrite:(size_t)result];
 				}
 				
 				flags &= ~kSecureSocketHasBytesAvailable;
@@ -4695,7 +4696,7 @@ enum GCDAsyncSocketConfig
 			}
 			else
 			{
-				bytesRead = result;
+				bytesRead = (size_t)result;
 				
 				if (bytesRead < bytesToRead)
 				{
@@ -4796,23 +4797,23 @@ enum GCDAsyncSocketConfig
 						// and there are extra bytes that extend past the end of the term.
 						// We need to move these excess bytes out of the read packet and into the prebuffer.
 						
-						NSInteger underflow = bytesRead - overflow;
+						NSInteger underflow = (NSInteger)bytesRead - overflow;
 						
 						// Copy excess data into preBuffer
 						
 						LogVerbose(@"copying %ld overflow bytes into preBuffer", (long)overflow);
-						if ([preBuffer ensureCapacityForWrite:overflow])
+						if ([preBuffer ensureCapacityForWrite:(size_t)overflow])
 						{
 							uint8_t *overflowBuffer = buffer + underflow;
 							memcpy([preBuffer writeBuffer], overflowBuffer, overflow);
 							
-							[preBuffer didWrite:overflow];
+							[preBuffer didWrite:(size_t)overflow];
 							LogVerbose(@"preBuffer.length = %zu", [preBuffer availableBytes]);
 							
 							// Note: The completeCurrentRead method will trim the buffer for us.
 							
-							currentRead->bytesDone += underflow;
-							totalBytesReadForCurrentRead += underflow;
+							currentRead->bytesDone += (NSUInteger)underflow;
+							totalBytesReadForCurrentRead += (NSUInteger)underflow;
 							done = YES;
 						}
 						else
@@ -5587,7 +5588,7 @@ enum GCDAsyncSocketConfig
 				BOOL keepLooping = YES;
 				while (keepLooping)
 				{
-					size_t sslBytesToWrite = MIN(bytesRemaining, 32768);
+					size_t sslBytesToWrite = MIN(bytesRemaining, 32768UL);
 					size_t sslBytesWritten = 0;
 					
 					result = SSLWrite(sslContext, buffer, sslBytesToWrite, &sslBytesWritten);
@@ -5656,7 +5657,7 @@ enum GCDAsyncSocketConfig
 		}
 		else
 		{
-			bytesWritten = result;
+			bytesWritten = (size_t)result;
 		}
 	}
 	
@@ -6085,7 +6086,7 @@ enum GCDAsyncSocketConfig
 		}
 		else
 		{
-			size_t bytesReadFromSocket = result;
+			size_t bytesReadFromSocket = (size_t)result;
 			
 			if (socketFDBytesAvailable > bytesReadFromSocket)
 				socketFDBytesAvailable -= bytesReadFromSocket;
@@ -6171,7 +6172,7 @@ enum GCDAsyncSocketConfig
 	}
 	else
 	{
-		bytesWritten = result;
+		bytesWritten = (size_t)result;
 		
 		done = (bytesWritten == bytesToWrite);
 	}
@@ -6528,7 +6529,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		for (cipherIndex = 0; cipherIndex < numberCiphers; cipherIndex++)
 		{
 			NSNumber *cipherObject = [cipherSuites objectAtIndex:cipherIndex];
-			ciphers[cipherIndex] = [cipherObject shortValue];
+			ciphers[cipherIndex] = [cipherObject unsignedShortValue];
 		}
 		
 		status = SSLSetEnabledCiphers(sslContext, ciphers, numberCiphers);
@@ -6734,8 +6735,8 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	// Getting an error concerning kCFStreamPropertySSLSettings ?
 	// You need to add the CFNetwork framework to your iOS application.
 	
-	BOOL r1 = CFReadStreamSetProperty(readStream, kCFStreamPropertySSLSettings, tlsSettings);
-	BOOL r2 = CFWriteStreamSetProperty(writeStream, kCFStreamPropertySSLSettings, tlsSettings);
+	Boolean r1 = CFReadStreamSetProperty(readStream, kCFStreamPropertySSLSettings, tlsSettings);
+	Boolean r2 = CFWriteStreamSetProperty(writeStream, kCFStreamPropertySSLSettings, tlsSettings);
 	
 	// For some reason, starting around the time of iOS 4.3,
 	// the first call to set the kCFStreamPropertySSLSettings will return true,
@@ -7128,8 +7129,8 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	{
 		LogVerbose(@"Opening read and write stream...");
 		
-		BOOL r1 = CFReadStreamOpen(readStream);
-		BOOL r2 = CFWriteStreamOpen(writeStream);
+		Boolean r1 = CFReadStreamOpen(readStream);
+		Boolean r2 = CFWriteStreamOpen(writeStream);
 		
 		if (!r1 || !r2)
 		{
@@ -7309,7 +7310,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 		return NO;
 	}
 	
-	BOOL r1, r2;
+	Boolean r1, r2;
 	
 	LogVerbose(@"Enabling backgrouding on socket");
 	
