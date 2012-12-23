@@ -1063,13 +1063,6 @@ enum GCDAsyncSocketConfig : uint32_t
 {
 	if((self = [super init]))
 	{
-		delegate = aDelegate;
-		delegateQueue = dq;
-		
-		#if NEEDS_DISPATCH_RETAIN_RELEASE
-		if (dq) dispatch_retain(dq);
-		#endif
-		
 		socket4FD = SOCKET_NULL;
 		socket6FD = SOCKET_NULL;
 		connectIndex = 0;
@@ -1092,6 +1085,13 @@ enum GCDAsyncSocketConfig : uint32_t
 		{
 			socketQueue = dispatch_queue_create([GCDAsyncSocketQueueName UTF8String], NULL);
 		}
+		
+		delegate = aDelegate;
+		delegateQueue = dq ?: (aDelegate ? socketQueue : NULL);
+		
+		#if NEEDS_DISPATCH_RETAIN_RELEASE
+		if (dq) dispatch_retain(dq);
+		#endif
 		
 		// The dispatch_queue_set_specific() and dispatch_get_specific() functions take a "void *key" parameter.
 		// From the documentation:
