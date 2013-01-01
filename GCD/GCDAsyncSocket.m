@@ -60,6 +60,9 @@
 #endif
 
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-macros"
+
 #if 0
 
 // Logging Enabled - See log level below
@@ -110,6 +113,8 @@ static const int logLevel = LOG_LEVEL_VERBOSE;
 #define LogCTrace(frmt, ...)    {}
 
 #endif
+
+#pragma clang diagnostic pop
 
 /**
  * Seeing a return statements within an inner block
@@ -2555,26 +2560,28 @@ enum GCDAsyncSocketConfig : uint32_t
 	NSString *host = [self connectedHost];
 	uint16_t port = [self connectedPort];
 	
-	if (delegateQueue && [delegate respondsToSelector:@selector(socket:didConnectToHost:port:)])
 	{
-		SetupStreamsPart1();
-		
 		__strong id theDelegate = delegate;
-		
-		dispatch_async(delegateQueue, ^{ @autoreleasepool {
 			
-			[theDelegate socket:self didConnectToHost:host port:port];
+		if (delegateQueue && [theDelegate respondsToSelector:@selector(socket:didConnectToHost:port:)])
+		{
+			SetupStreamsPart1();
 			
-			dispatch_async(socketQueue, ^{ @autoreleasepool {
+			dispatch_async(delegateQueue, ^{ @autoreleasepool {
 				
-				SetupStreamsPart2();
+				[theDelegate socket:self didConnectToHost:host port:port];
+				
+				dispatch_async(socketQueue, ^{ @autoreleasepool {
+					
+					SetupStreamsPart2();
+				}});
 			}});
-		}});
-	}
-	else
-	{
-		SetupStreamsPart1();
-		SetupStreamsPart2();
+		}
+		else
+		{
+			SetupStreamsPart1();
+			SetupStreamsPart2();
+		}
 	}
 		
 	// Get the connected socket
@@ -2640,7 +2647,7 @@ enum GCDAsyncSocketConfig : uint32_t
 		});
 		#endif
 		
-		dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (timeout * NSEC_PER_SEC));
+		dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (int64_t)((uint64_t)timeout * NSEC_PER_SEC));
 		dispatch_source_set_timer(connectTimer, tt, DISPATCH_TIME_FOREVER, 0);
 		
 		dispatch_resume(connectTimer);
@@ -2831,10 +2838,10 @@ enum GCDAsyncSocketConfig : uint32_t
 	
 	if (shouldCallDelegate)
 	{
-		if (delegateQueue && [delegate respondsToSelector: @selector(socketDidDisconnect:withError:)])
-		{
-			__strong id theDelegate = delegate;
+		__strong id theDelegate = delegate;
 			
+		if (delegateQueue && [theDelegate respondsToSelector: @selector(socketDidDisconnect:withError:)])
+		{
 			dispatch_async(delegateQueue, ^{ @autoreleasepool {
 				
 				[theDelegate socketDidDisconnect:self withError:error];
@@ -4914,10 +4921,10 @@ enum GCDAsyncSocketConfig : uint32_t
 	else if (totalBytesReadForCurrentRead > 0)
 	{
 		// We're not done read type #2 or #3 yet, but we have read in some bytes
+		__strong id theDelegate = delegate;
 		
-		if (delegateQueue && [delegate respondsToSelector:@selector(socket:didReadPartialDataOfLength:tag:)])
+		if (delegateQueue && [theDelegate respondsToSelector:@selector(socket:didReadPartialDataOfLength:tag:)])
 		{
-			__strong id theDelegate = delegate;
 			long theReadTag = currentRead->tag;
 			
 			dispatch_async(delegateQueue, ^{ @autoreleasepool {
@@ -5029,11 +5036,10 @@ enum GCDAsyncSocketConfig : uint32_t
 			flags |= kReadStreamClosed;
 			
 			// Notify the delegate that we're going half-duplex
+			__strong id theDelegate = delegate;
 			
-			if (delegateQueue && [delegate respondsToSelector:@selector(socketDidCloseReadStream:)])
+			if (delegateQueue && [theDelegate respondsToSelector:@selector(socketDidCloseReadStream:)])
 			{
-				__strong id theDelegate = delegate;
-				
 				dispatch_async(delegateQueue, ^{ @autoreleasepool {
 					
 					[theDelegate socketDidCloseReadStream:self];
@@ -5124,15 +5130,18 @@ enum GCDAsyncSocketConfig : uint32_t
 		result = [NSData dataWithBytesNoCopy:buffer length:currentRead->bytesDone freeWhenDone:NO];
 	}
 	
-	if (delegateQueue && [delegate respondsToSelector:@selector(socket:didReadData:withTag:)])
 	{
 		__strong id theDelegate = delegate;
-		GCDAsyncReadPacket *theRead = currentRead; // Ensure currentRead retained since result may not own buffer
-		
-		dispatch_async(delegateQueue, ^{ @autoreleasepool {
+
+		if (delegateQueue && [theDelegate respondsToSelector:@selector(socket:didReadData:withTag:)])
+		{
+			GCDAsyncReadPacket *theRead = currentRead; // Ensure currentRead retained since result may not own buffer
 			
-			[theDelegate socket:self didReadData:result withTag:theRead->tag];
-		}});
+			dispatch_async(delegateQueue, ^{ @autoreleasepool {
+				
+				[theDelegate socket:self didReadData:result withTag:theRead->tag];
+			}});
+		}
 	}
 	
 	[self endCurrentRead];
@@ -5168,7 +5177,7 @@ enum GCDAsyncSocketConfig : uint32_t
 		});
 		#endif
 		
-		dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (timeout * NSEC_PER_SEC));
+		dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (int64_t)((uint64_t)timeout * NSEC_PER_SEC));
 		
 		dispatch_source_set_timer(readTimer, tt, DISPATCH_TIME_FOREVER, 0);
 		dispatch_resume(readTimer);
@@ -5184,9 +5193,10 @@ enum GCDAsyncSocketConfig : uint32_t
 	
 	flags |= kReadsPaused;
 	
-	if (delegateQueue && [delegate respondsToSelector:@selector(socket:shouldTimeoutReadWithTag:elapsed:bytesDone:)])
+	__strong id theDelegate = delegate;
+
+	if (delegateQueue && [theDelegate respondsToSelector:@selector(socket:shouldTimeoutReadWithTag:elapsed:bytesDone:)])
 	{
-		__strong id theDelegate = delegate;
 		GCDAsyncReadPacket *theRead = currentRead;
 		
 		dispatch_async(delegateQueue, ^{ @autoreleasepool {
@@ -5218,7 +5228,7 @@ enum GCDAsyncSocketConfig : uint32_t
 			currentRead->timeout += timeoutExtension;
 			
 			// Reschedule the timer
-			dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (timeoutExtension * NSEC_PER_SEC));
+			dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (int64_t)((uint64_t)timeoutExtension * NSEC_PER_SEC));
 			dispatch_source_set_timer(readTimer, tt, DISPATCH_TIME_FOREVER, 0);
 			
 			// Unpause reads, and continue
@@ -5725,10 +5735,10 @@ enum GCDAsyncSocketConfig : uint32_t
 		if (bytesWritten > 0)
 		{
 			// We're not done with the entire write, but we have written some bytes
+			__strong id theDelegate = delegate;
 			
-			if (delegateQueue && [delegate respondsToSelector:@selector(socket:didWritePartialDataOfLength:tag:)])
+			if (delegateQueue && [theDelegate respondsToSelector:@selector(socket:didWritePartialDataOfLength:tag:)])
 			{
-				__strong id theDelegate = delegate;
 				long theWriteTag = currentWrite->tag;
 				
 				dispatch_async(delegateQueue, ^{ @autoreleasepool {
@@ -5755,10 +5765,10 @@ enum GCDAsyncSocketConfig : uint32_t
 	
 	NSAssert(currentWrite, @"Trying to complete current write when there is no current write.");
 	
+	__strong id theDelegate = delegate;
 	
-	if (delegateQueue && [delegate respondsToSelector:@selector(socket:didWriteDataWithTag:)])
+	if (delegateQueue && [theDelegate respondsToSelector:@selector(socket:didWriteDataWithTag:)])
 	{
-		__strong id theDelegate = delegate;
 		long theWriteTag = currentWrite->tag;
 		
 		dispatch_async(delegateQueue, ^{ @autoreleasepool {
@@ -5800,7 +5810,7 @@ enum GCDAsyncSocketConfig : uint32_t
 		});
 		#endif
 		
-		dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (timeout * NSEC_PER_SEC));
+		dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (int64_t)((uint64_t)timeout * NSEC_PER_SEC));
 		
 		dispatch_source_set_timer(writeTimer, tt, DISPATCH_TIME_FOREVER, 0);
 		dispatch_resume(writeTimer);
@@ -5813,12 +5823,12 @@ enum GCDAsyncSocketConfig : uint32_t
 	// Ideally we'd like to synchronously query the delegate about a timeout extension.
 	// But if we do so synchronously we risk a possible deadlock.
 	// So instead we have to do so asynchronously, and callback to ourselves from within the delegate block.
+	__strong id theDelegate = delegate;
 	
 	flags |= kWritesPaused;
 	
-	if (delegateQueue && [delegate respondsToSelector:@selector(socket:shouldTimeoutWriteWithTag:elapsed:bytesDone:)])
+	if (delegateQueue && [theDelegate respondsToSelector:@selector(socket:shouldTimeoutWriteWithTag:elapsed:bytesDone:)])
 	{
-		__strong id theDelegate = delegate;
 		GCDAsyncWritePacket *theWrite = currentWrite;
 		
 		dispatch_async(delegateQueue, ^{ @autoreleasepool {
@@ -5850,7 +5860,7 @@ enum GCDAsyncSocketConfig : uint32_t
 			currentWrite->timeout += timeoutExtension;
 			
 			// Reschedule the timer
-			dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (timeoutExtension * NSEC_PER_SEC));
+			dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (int64_t)((uint64_t)timeoutExtension * NSEC_PER_SEC));
 			dispatch_source_set_timer(writeTimer, tt, DISPATCH_TIME_FOREVER, 0);
 			
 			// Unpause writes, and continue
@@ -6605,10 +6615,10 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		
 		flags |=  kSocketSecure;
 		
-		if (delegateQueue && [delegate respondsToSelector:@selector(socketDidSecure:)])
+		__strong id theDelegate = delegate;
+		
+		if (delegateQueue && [theDelegate respondsToSelector:@selector(socketDidSecure:)])
 		{
-			__strong id theDelegate = delegate;
-			
 			dispatch_async(delegateQueue, ^{ @autoreleasepool {
 				
 				[theDelegate socketDidSecure:self];
@@ -6654,10 +6664,10 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		
 		flags |= kSocketSecure;
 		
-		if (delegateQueue && [delegate respondsToSelector:@selector(socketDidSecure:)])
-		{
-			__strong id theDelegate = delegate;
+		__strong id theDelegate = delegate;
 		
+		if (delegateQueue && [theDelegate respondsToSelector:@selector(socketDidSecure:)])
+		{
 			dispatch_async(delegateQueue, ^{ @autoreleasepool {
 				
 				[theDelegate socketDidSecure:self];
@@ -6877,6 +6887,8 @@ static void CFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType type
 			
 			break;
 		}
+		case kCFStreamEventNone: case kCFStreamEventOpenCompleted: case kCFStreamEventCanAcceptBytes:
+		case kCFStreamEventEndEncountered: case kCFStreamEventErrorOccurred:
 		default:
 		{
 			NSError *error = (__bridge_transfer  NSError *)CFReadStreamCopyError(stream);
@@ -6944,6 +6956,8 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 			
 			break;
 		}
+		case kCFStreamEventNone: case kCFStreamEventOpenCompleted: case kCFStreamEventHasBytesAvailable:
+		case kCFStreamEventEndEncountered: case kCFStreamEventErrorOccurred:
 		default:
 		{
 			NSError *error = (__bridge_transfer NSError *)CFWriteStreamCopyError(stream);
