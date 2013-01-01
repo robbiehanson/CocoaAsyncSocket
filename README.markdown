@@ -1,9 +1,3 @@
-## Fork
-
-This fork of CocoaAsyncSocket merges in a number of pull requests on the original repository, silences compiler warnings, and adds a few small tweaks.
-
-# Original README
-
 CocoaAsyncSocket provides easy-to-use and powerful asynchronous socket libraries for Mac and iOS. The classes are described below.
 
 ## TCP
