@@ -1028,6 +1028,7 @@ enum GCDAsyncSocketConfig
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 @implementation GCDAsyncSocket
+@synthesize keepSocketEvenReadTimeout = _keepSocketEvenReadTimeout;
 
 - (id)init
 {
@@ -1107,6 +1108,7 @@ enum GCDAsyncSocketConfig
 		currentWrite = nil;
 		
 		preBuffer = [[GCDAsyncSocketPreBuffer alloc] initWithCapacity:(1024 * 4)];
+        _keepSocketEvenReadTimeout = NO;
 	}
 	return self;
 }
@@ -5172,8 +5174,11 @@ enum GCDAsyncSocketConfig
 		else
 		{
 			LogVerbose(@"ReadTimeout");
-			
-			[self closeWithError:[self readTimeoutError]];
+            if (self.keepSocketEvenReadTimeout) {
+                LogVerbose(@"keep socket live");
+            }else{
+                [self closeWithError:[self readTimeoutError]];
+            }
 		}
 	}
 }
