@@ -5172,8 +5172,13 @@ enum GCDAsyncSocketConfig
 		else
 		{
 			LogVerbose(@"ReadTimeout");
-			
-			[self closeWithError:[self readTimeoutError]];
+            if ([delegate respondsToSelector:@selector(socketShouldKeepLiveAfterReadTimeOut:)]) {
+                if ([delegate socketShouldKeepLiveAfterReadTimeOut:self]) {
+                    LogVerbose(@"keep socket live");
+                    return;
+                }
+            }
+            [self closeWithError:[self readTimeoutError]];
 		}
 	}
 }
