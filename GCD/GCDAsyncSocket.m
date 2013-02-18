@@ -5176,6 +5176,7 @@ enum GCDAsyncSocketConfig
                 if ([delegate socketShouldKeepLiveAfterReadTimeOut:self]) {
                     LogVerbose(@"keep socket live");
                     [self endCurrentRead];
+                    flags &= ~kReadsPaused;
                     return;
                 }
             }
