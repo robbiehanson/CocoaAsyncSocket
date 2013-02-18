@@ -1031,6 +1031,15 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
                                                                  elapsed:(NSTimeInterval)elapsed
                                                                bytesDone:(NSUInteger)length;
 
+
+
+/**
+ * Called if a read operation has reached its timeout without completing and will close socket
+ * This method allows you to keep current socket live instead of close the socket
+ * If you return true, socket will be kept live.
+ * If you don't implement this method, or return NO,  the socket will be closed.
+ **/
+- (BOOL) socketShouldKeepLiveAfterReadTimeOut:(GCDAsyncSocket *)sock;
 /**
  * Called if a write operation has reached its timeout without completing.
  * This method allows you to optionally extend the timeout.
