@@ -131,6 +131,14 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 - (void)synchronouslySetDelegate:(id)delegate delegateQueue:(dispatch_queue_t)delegateQueue;
 
 /**
+ * By setting this property to YES, the Nagle algorithm will be disabled for this connection.
+ * This is handy if you need to send bursts of very small data packets and you want to ensure
+ * a promptly delivery. Set this propery before connecting or listening. Defaults to NO.
+ */
+- (void)setEnableTCPNoDelay:(BOOL)enable;
+- (BOOL)enableTCPNoDelay;
+
+/**
  * By default, both IPv4 and IPv6 are enabled.
  * 
  * For accepting incoming connections, this means GCDAsyncSocket automatically supports both protocols,

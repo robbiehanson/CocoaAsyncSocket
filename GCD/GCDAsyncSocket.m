@@ -19,6 +19,7 @@
 #import <ifaddrs.h>
 #import <netdb.h>
 #import <netinet/in.h>
+#import <netinet/tcp.h>
 #import <net/if.h>
 #import <sys/socket.h>
 #import <sys/types.h>
@@ -189,6 +190,8 @@ enum GCDAsyncSocketConfig
 	__unsafe_unretained id delegate;
 #endif
 	dispatch_queue_t delegateQueue;
+    
+    BOOL enableTCPNoDelay;
 	
 	int socket4FD;
 	int socket6FD;
@@ -1107,6 +1110,8 @@ enum GCDAsyncSocketConfig
 		currentWrite = nil;
 		
 		preBuffer = [[GCDAsyncSocketPreBuffer alloc] initWithCapacity:(1024 * 4)];
+        
+        enableTCPNoDelay = NO;
 	}
 	return self;
 }
@@ -1296,6 +1301,18 @@ enum GCDAsyncSocketConfig
 - (void)synchronouslySetDelegate:(id)newDelegate delegateQueue:(dispatch_queue_t)newDelegateQueue
 {
 	[self setDelegate:newDelegate delegateQueue:newDelegateQueue synchronously:YES];
+}
+
+- (void)setEnableTCPNoDelay:(BOOL)enable;
+{
+    if (enableTCPNoDelay != enable) {
+        enableTCPNoDelay = enable;
+    }
+}
+
+- (BOOL)enableTCPNoDelay;
+{
+    return enableTCPNoDelay;
 }
 
 - (BOOL)isIPv4Enabled
@@ -1505,6 +1522,9 @@ enum GCDAsyncSocketConfig
 			close(socketFD);
 			return SOCKET_NULL;
 		}
+        
+        int tcpNoDelayFlag = (int)enableTCPNoDelay;
+        setsockopt(socketFD, IPPROTO_TCP, TCP_NODELAY, &tcpNoDelayFlag, sizeof(int));
 		
 		// Bind socket
 		
@@ -2380,6 +2400,9 @@ enum GCDAsyncSocketConfig
 		
 		return NO;
 	}
+    
+    int tcpNoDelayFlag = (int)enableTCPNoDelay;
+    setsockopt(socketFD, IPPROTO_TCP, TCP_NODELAY, &tcpNoDelayFlag, sizeof(int));
 	
 	// Bind the socket to the desired interface (if needed)
 	
