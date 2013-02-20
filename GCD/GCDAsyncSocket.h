@@ -133,7 +133,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 /**
  * By setting this property to YES, the Nagle algorithm will be disabled for this connection.
  * This is handy if you need to send bursts of very small data packets and you want to ensure
- * a promptly delivery. Set this propery before connecting or listening. Defaults to NO.
+ * a promptly delivery. Defaults to NO.
  */
 - (void)setTCPNoDelayEnabled:(BOOL)enable;
 - (BOOL)isTCPNoDelayEnabled;
