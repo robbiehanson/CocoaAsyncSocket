@@ -173,6 +173,7 @@ enum GCDAsyncSocketConfig
 	kIPv6Disabled              = 1 << 1,  // If set, IPv6 is disabled
 	kPreferIPv6                = 1 << 2,  // If set, IPv6 is preferred over IPv4
 	kAllowHalfDuplexConnection = 1 << 3,  // If set, the socket will stay open even if the read stream closes
+    kTCPNoDelayEnabled         = 1 << 4,  // If set, the socket will enable the TCP no delay mode
 };
 
 #if TARGET_OS_IPHONE
@@ -190,8 +191,6 @@ enum GCDAsyncSocketConfig
 	__unsafe_unretained id delegate;
 #endif
 	dispatch_queue_t delegateQueue;
-    
-    BOOL enableTCPNoDelay;
 	
 	int socket4FD;
 	int socket6FD;
@@ -1110,8 +1109,6 @@ enum GCDAsyncSocketConfig
 		currentWrite = nil;
 		
 		preBuffer = [[GCDAsyncSocketPreBuffer alloc] initWithCapacity:(1024 * 4)];
-        
-        enableTCPNoDelay = NO;
 	}
 	return self;
 }
@@ -1303,16 +1300,47 @@ enum GCDAsyncSocketConfig
 	[self setDelegate:newDelegate delegateQueue:newDelegateQueue synchronously:YES];
 }
 
-- (void)setEnableTCPNoDelay:(BOOL)enable;
+- (void)setTCPNoDelayEnabled:(BOOL)flag
 {
-    if (enableTCPNoDelay != enable) {
-        enableTCPNoDelay = enable;
-    }
+    // Note: YES means kTCPNoDelayEnabled is ON
+	
+	dispatch_block_t block = ^{
+		
+		if (flag)
+			config |= kTCPNoDelayEnabled;
+		else
+			config &= ~kTCPNoDelayEnabled;
+        
+        int socketFD = (socket4FD != SOCKET_NULL) ? socket4FD : socket6FD;
+        if (socketFD != SOCKET_NULL) {
+            int intFlag = (int)flag;
+            setsockopt(socketFD, IPPROTO_TCP, TCP_NODELAY, &intFlag, sizeof(intFlag));
+        }
+        
+	};
+	
+	if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
+		block();
+	else
+		dispatch_async(socketQueue, block);
 }
 
-- (BOOL)enableTCPNoDelay;
+- (BOOL)isTCPNoDelayEnabled
 {
-    return enableTCPNoDelay;
+    if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
+	{
+		return ((config & kIPv6Disabled) != 0);
+	}
+	else
+	{
+		__block BOOL result;
+		
+		dispatch_sync(socketQueue, ^{
+			result = ((config & kTCPNoDelayEnabled) != 0);
+		});
+		
+		return result;
+	}
 }
 
 - (BOOL)isIPv4Enabled
@@ -1522,9 +1550,6 @@ enum GCDAsyncSocketConfig
 			close(socketFD);
 			return SOCKET_NULL;
 		}
-        
-        int tcpNoDelayFlag = (int)enableTCPNoDelay;
-        setsockopt(socketFD, IPPROTO_TCP, TCP_NODELAY, &tcpNoDelayFlag, sizeof(int));
 		
 		// Bind socket
 		
@@ -2400,9 +2425,6 @@ enum GCDAsyncSocketConfig
 		
 		return NO;
 	}
-    
-    int tcpNoDelayFlag = (int)enableTCPNoDelay;
-    setsockopt(socketFD, IPPROTO_TCP, TCP_NODELAY, &tcpNoDelayFlag, sizeof(int));
 	
 	// Bind the socket to the desired interface (if needed)
 	

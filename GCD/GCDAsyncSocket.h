@@ -135,8 +135,8 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * This is handy if you need to send bursts of very small data packets and you want to ensure
  * a promptly delivery. Set this propery before connecting or listening. Defaults to NO.
  */
-- (void)setEnableTCPNoDelay:(BOOL)enable;
-- (BOOL)enableTCPNoDelay;
+- (void)setTCPNoDelayEnabled:(BOOL)enable;
+- (BOOL)isTCPNoDelayEnabled;
 
 /**
  * By default, both IPv4 and IPv6 are enabled.
