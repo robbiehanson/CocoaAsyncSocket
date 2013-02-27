@@ -1329,7 +1329,7 @@ enum GCDAsyncSocketConfig
 {
 	if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
 	{
-		return ((config & kIPv6Disabled) != 0);
+		return ((config & kTCPNoDelayEnabled) != 0);
 	}
 	else
 	{
@@ -1538,8 +1538,11 @@ enum GCDAsyncSocketConfig
 			close(socketFD);
 			return SOCKET_NULL;
 		}
-		
-		int reuseOn = 1;
+        
+        int tcpNoDelay = [self isTCPNoDelayEnabled];
+        setsockopt(socketFD, IPPROTO_TCP, TCP_NODELAY, &tcpNoDelay, sizeof(tcpNoDelay));
+        
+        int reuseOn = 1;
 		status = setsockopt(socketFD, SOL_SOCKET, SO_REUSEADDR, &reuseOn, sizeof(reuseOn));
 		if (status == -1)
 		{
@@ -2425,6 +2428,9 @@ enum GCDAsyncSocketConfig
 		
 		return NO;
 	}
+    
+    int tcpNoDelay = [self isTCPNoDelayEnabled];
+    setsockopt(socketFD, IPPROTO_TCP, TCP_NODELAY, &tcpNoDelay, sizeof(tcpNoDelay));
 	
 	// Bind the socket to the desired interface (if needed)
 	
