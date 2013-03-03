@@ -422,10 +422,12 @@ enum GCDAsyncUdpSocketConfig
 		sendQueue = [[NSMutableArray alloc] initWithCapacity:5];
 		
 		#if TARGET_OS_IPHONE
-		[[NSNotificationCenter defaultCenter] addObserver:self
-		                                         selector:@selector(applicationWillEnterForeground:)
-		                                             name:UIApplicationWillEnterForegroundNotification
-		                                           object:nil];
+            #ifndef TARGET_OS_ATV2
+                [[NSNotificationCenter defaultCenter] addObserver:self
+                                                         selector:@selector(applicationWillEnterForeground:)
+                                                             name:UIApplicationWillEnterForegroundNotification
+                                                           object:nil];
+            #endif
 		#endif
 	}
 	return self;
