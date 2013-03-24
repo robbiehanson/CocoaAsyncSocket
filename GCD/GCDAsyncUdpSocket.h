@@ -120,8 +120,9 @@ typedef BOOL (^GCDAsyncUdpSocketSendFilterBlock)(NSData *data, NSData *address, 
  * 
  * The socket queue is optional.
  * If you pass NULL, GCDAsyncSocket will automatically create its own socket queue.
- * If you choose to provide a socket queue, the socket queue must not be a concurrent queue.
- * 
+ * If you choose to provide a socket queue, the socket queue must not be a concurrent queue,
+ * then please see the discussion for the method markSocketQueueTargetQueue.
+ *
  * The delegate queue and socket queue can optionally be the same.
 **/
 - (id)init;
@@ -766,6 +767,80 @@ typedef BOOL (^GCDAsyncUdpSocketSendFilterBlock)(NSData *data, NSData *address, 
 - (void)closeAfterSending;
 
 #pragma mark Advanced
+/**
+ * GCDAsyncSocket maintains thread safety by using an internal serial dispatch_queue.
+ * In most cases, the instance creates this queue itself.
+ * However, to allow for maximum flexibility, the internal queue may be passed in the init method.
+ * This allows for some advanced options such as controlling socket priority via target queues.
+ * However, when one begins to use target queues like this, they open the door to some specific deadlock issues.
+ *
+ * For example, imagine there are 2 queues:
+ * dispatch_queue_t socketQueue;
+ * dispatch_queue_t socketTargetQueue;
+ *
+ * If you do this (pseudo-code):
+ * socketQueue.targetQueue = socketTargetQueue;
+ *
+ * Then all socketQueue operations will actually get run on the given socketTargetQueue.
+ * This is fine and works great in most situations.
+ * But if you run code directly from within the socketTargetQueue that accesses the socket,
+ * you could potentially get deadlock. Imagine the following code:
+ *
+ * - (BOOL)socketHasSomething
+ * {
+ *     __block BOOL result = NO;
+ *     dispatch_block_t block = ^{
+ *         result = [self someInternalMethodToBeRunOnlyOnSocketQueue];
+ *     }
+ *     if (is_executing_on_queue(socketQueue))
+ *         block();
+ *     else
+ *         dispatch_sync(socketQueue, block);
+ *
+ *     return result;
+ * }
+ *
+ * What happens if you call this method from the socketTargetQueue? The result is deadlock.
+ * This is because the GCD API offers no mechanism to discover a queue's targetQueue.
+ * Thus we have no idea if our socketQueue is configured with a targetQueue.
+ * If we had this information, we could easily avoid deadlock.
+ * But, since these API's are missing or unfeasible, you'll have to explicitly set it.
+ *
+ * IF you pass a socketQueue via the init method,
+ * AND you've configured the passed socketQueue with a targetQueue,
+ * THEN you should pass the end queue in the target hierarchy.
+ *
+ * For example, consider the following queue hierarchy:
+ * socketQueue -> ipQueue -> moduleQueue
+ *
+ * This example demonstrates priority shaping within some server.
+ * All incoming client connections from the same IP address are executed on the same target queue.
+ * And all connections for a particular module are executed on the same target queue.
+ * Thus, the priority of all networking for the entire module can be changed on the fly.
+ * Additionally, networking traffic from a single IP cannot monopolize the module.
+ *
+ * Here's how you would accomplish something like that:
+ * - (dispatch_queue_t)newSocketQueueForConnectionFromAddress:(NSData *)address onSocket:(GCDAsyncSocket *)sock
+ * {
+ *     dispatch_queue_t socketQueue = dispatch_queue_create("", NULL);
+ *     dispatch_queue_t ipQueue = [self ipQueueForAddress:address];
+ *
+ *     dispatch_set_target_queue(socketQueue, ipQueue);
+ *     dispatch_set_target_queue(iqQueue, moduleQueue);
+ *
+ *     return socketQueue;
+ * }
+ * - (void)socket:(GCDAsyncSocket *)sock didAcceptNewSocket:(GCDAsyncSocket *)newSocket
+ * {
+ *     [clientConnections addObject:newSocket];
+ *     [newSocket markSocketQueueTargetQueue:moduleQueue];
+ * }
+ *
+ * Note: This workaround is ONLY needed if you intend to execute code directly on the ipQueue or moduleQueue.
+ * This is often NOT the case, as such queues are used solely for execution shaping.
+ **/
+- (void)markSocketQueueTargetQueue:(dispatch_queue_t)socketQueuesPreConfiguredTargetQueue;
+- (void)unmarkSocketQueueTargetQueue:(dispatch_queue_t)socketQueuesPreviouslyConfiguredTargetQueue;
 
 /**
  * It's not thread-safe to access certain variables from outside the socket's internal queue.
