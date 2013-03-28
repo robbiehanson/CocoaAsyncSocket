@@ -366,13 +366,6 @@ enum GCDAsyncSocketConfig : uint32_t
 **/
 
 @interface GCDAsyncSocketPreBuffer : NSObject
-{
-	uint8_t *preBuffer;
-	size_t preBufferSize;
-	
-	uint8_t *readPointer;
-	uint8_t *writePointer;
-}
 
 - (id)initWithCapacity:(size_t)numBytes;
 
@@ -396,6 +389,13 @@ enum GCDAsyncSocketConfig : uint32_t
 @end
 
 @implementation GCDAsyncSocketPreBuffer
+{
+	uint8_t *preBuffer;
+	size_t preBufferSize;
+	
+	uint8_t *readPointer;
+	uint8_t *writePointer;
+}
 
 - (id)initWithCapacity:(size_t)numBytes
 {
@@ -520,19 +520,7 @@ enum GCDAsyncSocketConfig : uint32_t
  *  - or simply reading the first chunk of available data
 **/
 @interface GCDAsyncReadPacket : NSObject
-{
-  @public
-	NSMutableData *buffer;
-	NSUInteger startOffset;
-	NSUInteger bytesDone;
-	NSUInteger maxLength;
-	NSTimeInterval timeout;
-	NSUInteger readLength;
-	NSData *term;
-	BOOL bufferOwner;
-	NSUInteger originalBufferLength;
-	long tag;
-}
+
 - (id)initWithData:(NSMutableData *)d
        startOffset:(NSUInteger)s
          maxLength:(NSUInteger)m
@@ -554,6 +542,19 @@ enum GCDAsyncSocketConfig : uint32_t
 @end
 
 @implementation GCDAsyncReadPacket
+{
+  @public
+	NSMutableData *buffer;
+	NSUInteger startOffset;
+	NSUInteger bytesDone;
+	NSUInteger maxLength;
+	NSTimeInterval timeout;
+	NSUInteger readLength;
+	NSData *term;
+	BOOL bufferOwner;
+	NSUInteger originalBufferLength;
+	long tag;
+}
 
 - (id)initWithData:(NSMutableData *)d
        startOffset:(NSUInteger)s
@@ -986,6 +987,10 @@ enum GCDAsyncSocketConfig : uint32_t
  * The GCDAsyncWritePacket encompasses the instructions for any given write.
 **/
 @interface GCDAsyncWritePacket : NSObject
+- (id)initWithData:(NSData *)d timeout:(NSTimeInterval)t tag:(long)i;
+@end
+
+@implementation GCDAsyncWritePacket
 {
   @public
 	NSData *buffer;
@@ -993,10 +998,6 @@ enum GCDAsyncSocketConfig : uint32_t
 	long tag;
 	NSTimeInterval timeout;
 }
-- (id)initWithData:(NSData *)d timeout:(NSTimeInterval)t tag:(long)i;
-@end
-
-@implementation GCDAsyncWritePacket
 
 - (id)initWithData:(NSData *)d timeout:(NSTimeInterval)t tag:(long)i
 {
@@ -1022,14 +1023,14 @@ enum GCDAsyncSocketConfig : uint32_t
  * This class my be altered to support more than just TLS in the future.
 **/
 @interface GCDAsyncSpecialPacket : NSObject
-{
-  @public
-	NSDictionary *tlsSettings;
-}
 - (id)initWithTLSSettings:(NSDictionary *)settings;
 @end
 
 @implementation GCDAsyncSpecialPacket
+{
+  @public
+	NSDictionary *tlsSettings;
+}
 
 - (id)initWithTLSSettings:(NSDictionary *)settings
 {
@@ -1261,7 +1262,7 @@ enum GCDAsyncSocketConfig : uint32_t
 	[self setDelegateQueue:newDelegateQueue synchronously:YES];
 }
 
-- (void)getDelegate:(id *)delegatePtr delegateQueue:(dispatch_queue_t *)delegateQueuePtr
+- (void)getDelegate:(id __autoreleasing *)delegatePtr delegateQueue:(dispatch_queue_t __autoreleasing *)delegateQueuePtr
 {
 	if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
 	{
@@ -1469,12 +1470,12 @@ enum GCDAsyncSocketConfig : uint32_t
 #pragma mark Accepting
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-- (BOOL)acceptOnPort:(uint16_t)port error:(NSError **)errPtr
+- (BOOL)acceptOnPort:(uint16_t)port error:(NSError *  __autoreleasing *)errPtr
 {
 	return [self acceptOnInterface:nil port:port error:errPtr];
 }
 
-- (BOOL)acceptOnInterface:(NSString *)inInterface port:(uint16_t)port error:(NSError **)errPtr
+- (BOOL)acceptOnInterface:(NSString *)inInterface port:(uint16_t)port error:(NSError *  __autoreleasing *)errPtr
 {
 	LogTrace();
 	
@@ -1895,7 +1896,7 @@ enum GCDAsyncSocketConfig : uint32_t
  * It is shared between the connectToHost and connectToAddress methods.
  * 
 **/
-- (BOOL)preConnectWithInterface:(NSString *)interface error:(NSError **)errPtr
+- (BOOL)preConnectWithInterface:(NSString *)interface error:(NSError * __autoreleasing *)errPtr
 {
 	NSAssert(dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey), @"Must be dispatched on socketQueue");
 	
@@ -1990,7 +1991,7 @@ enum GCDAsyncSocketConfig : uint32_t
 	return YES;
 }
 
-- (BOOL)connectToHost:(NSString*)host onPort:(uint16_t)port error:(NSError **)errPtr
+- (BOOL)connectToHost:(NSString*)host onPort:(uint16_t)port error:(NSError * __autoreleasing *)errPtr
 {
 	return [self connectToHost:host onPort:port withTimeout:-1 error:errPtr];
 }
@@ -1998,7 +1999,7 @@ enum GCDAsyncSocketConfig : uint32_t
 - (BOOL)connectToHost:(NSString *)host
                onPort:(uint16_t)port
           withTimeout:(NSTimeInterval)timeout
-                error:(NSError **)errPtr
+                error:(NSError * __autoreleasing *)errPtr
 {
 	return [self connectToHost:host onPort:port viaInterface:nil withTimeout:timeout error:errPtr];
 }
@@ -2007,7 +2008,7 @@ enum GCDAsyncSocketConfig : uint32_t
                onPort:(uint16_t)port
          viaInterface:(NSString *)inInterface
           withTimeout:(NSTimeInterval)timeout
-                error:(NSError **)errPtr
+                error:(NSError * __autoreleasing *)errPtr
 {
 	LogTrace();
 	
@@ -2076,12 +2077,12 @@ enum GCDAsyncSocketConfig : uint32_t
 	return result;
 }
 
-- (BOOL)connectToAddress:(NSData *)remoteAddr error:(NSError **)errPtr
+- (BOOL)connectToAddress:(NSData *)remoteAddr error:(NSError * __autoreleasing *)errPtr
 {
 	return [self connectToAddress:remoteAddr viaInterface:nil withTimeout:-1 error:errPtr];
 }
 
-- (BOOL)connectToAddress:(NSData *)remoteAddr withTimeout:(NSTimeInterval)timeout error:(NSError **)errPtr
+- (BOOL)connectToAddress:(NSData *)remoteAddr withTimeout:(NSTimeInterval)timeout error:(NSError * __autoreleasing *)errPtr
 {
 	return [self connectToAddress:remoteAddr viaInterface:nil withTimeout:timeout error:errPtr];
 }
@@ -2089,7 +2090,7 @@ enum GCDAsyncSocketConfig : uint32_t
 - (BOOL)connectToAddress:(NSData *)inRemoteAddr
             viaInterface:(NSString *)inInterface
              withTimeout:(NSTimeInterval)timeout
-                   error:(NSError **)errPtr
+                   error:(NSError * __autoreleasing *)errPtr
 {
 	LogTrace();
 	
@@ -2359,7 +2360,7 @@ enum GCDAsyncSocketConfig : uint32_t
 	[self closeWithError:error];
 }
 
-- (BOOL)connectWithAddress4:(NSData *)address4 address6:(NSData *)address6 error:(NSError **)errPtr
+- (BOOL)connectWithAddress4:(NSData *)address4 address6:(NSData *)address6 error:(NSError * __autoreleasing *)errPtr
 {
 	LogTrace();
 	
@@ -3524,8 +3525,8 @@ enum GCDAsyncSocketConfig : uint32_t
  * 
  * The returned value is a 'struct sockaddr' wrapped in an NSMutableData object.
 **/
-- (void)getInterfaceAddress4:(NSMutableData **)interfaceAddr4Ptr
-                    address6:(NSMutableData **)interfaceAddr6Ptr
+- (void)getInterfaceAddress4:(NSMutableData * __autoreleasing *)interfaceAddr4Ptr
+                    address6:(NSMutableData * __autoreleasing *)interfaceAddr6Ptr
              fromDescription:(NSString *)interfaceDescription
                         port:(uint16_t)port
 {
@@ -7455,7 +7456,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 		return 0;
 }
 
-+ (BOOL)getHost:(NSString **)hostPtr port:(uint16_t *)portPtr fromAddress:(NSData *)address
++ (BOOL)getHost:(NSString * __autoreleasing *)hostPtr port:(uint16_t *)portPtr fromAddress:(NSData *)address
 {
 	if ([address length] >= sizeof(struct sockaddr))
 	{
