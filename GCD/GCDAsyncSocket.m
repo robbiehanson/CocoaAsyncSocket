@@ -4259,7 +4259,11 @@ enum GCDAsyncSocketConfig
 		else
 			hasBytesAvailable = NO;
 		
-		#endif
+		#else
+        // This should never occur because usingCFStreamForTLS is only TRUE on iPhone, but it silences
+        // an uninitialized variable warning.
+            hasBytesAvailable = NO;
+        #endif
 	}
 	else
 	{
