@@ -124,6 +124,7 @@ static const int logLevel = LOG_LEVEL_VERBOSE;
 **/
 #define SOCKET_NULL -1
 
+#define CONN_KEEPIDLE 60
 
 NSString *const GCDAsyncSocketException = @"GCDAsyncSocketException";
 NSString *const GCDAsyncSocketErrorDomain = @"GCDAsyncSocketErrorDomain";
@@ -1800,6 +1801,14 @@ enum GCDAsyncSocketConfig
 	int nosigpipe = 1;
 	setsockopt(childSocketFD, SOL_SOCKET, SO_NOSIGPIPE, &nosigpipe, sizeof(nosigpipe));
 	
+	// Enable keep-alive packets
+	
+	int keepalive = 1;
+	int keepidle = CONN_KEEPIDLE;
+	if (setsockopt(childSocketFD, SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive)) == noErr) {
+		setsockopt(childSocketFD, IPPROTO_TCP, TCP_KEEPALIVE, &keepidle, sizeof(keepidle));
+	}
+	
 	// Notify delegate
 	
 	if (delegateQueue)
@@ -2412,6 +2421,14 @@ enum GCDAsyncSocketConfig
 	
 	int nosigpipe = 1;
 	setsockopt(socketFD, SOL_SOCKET, SO_NOSIGPIPE, &nosigpipe, sizeof(nosigpipe));
+	
+	// Enable keep-alive packets
+	
+	int keepalive = 1;
+	int keepidle = CONN_KEEPIDLE;
+	if (setsockopt(childSocketFD, SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive)) == noErr) {
+		setsockopt(childSocketFD, IPPROTO_TCP, TCP_KEEPALIVE, &keepidle, sizeof(keepidle));
+	}
 	
 	// Start the connection process in a background queue
 	
