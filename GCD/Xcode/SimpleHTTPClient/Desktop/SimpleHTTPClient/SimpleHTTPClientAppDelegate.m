@@ -7,7 +7,7 @@
 // Log levels: off, error, warn, info, verbose
 static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
-#define HOST @"google.com"
+#define HOST @"www.apple.com"
 
 #define USE_SECURE_CONNECTION    0
 #define VALIDATE_SSL_CERTIFICATE 1
@@ -165,6 +165,8 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	
 	[asyncSocket writeData:requestData withTimeout:-1.0 tag:0];
 	
+	DDLogInfo(@"Full httpRequest:\n%@", requestStr);
+	
 	// Side Note:
 	// 
 	// The AsyncSocket family supports queued reads and writes.
@@ -235,7 +237,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	
 #else
 	
-	DDLogInfo(@"Full httpResponse: %@", httpResponse);
+	DDLogInfo(@"Full httpResponse:\n%@", httpResponse);
 	
 #endif
 	
