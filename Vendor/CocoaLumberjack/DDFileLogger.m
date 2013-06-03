@@ -191,13 +191,16 @@
 	}
 	
 	NSUInteger i;
-	for (i = maxNumLogFiles; i < count; i++)
+	for (i = 0; i < count; i++)
 	{
-		DDLogFileInfo *logFileInfo = [sortedArchivedLogFileInfos objectAtIndex:i];
-		
-		NSLogInfo(@"DDLogFileManagerDefault: Deleting file: %@", logFileInfo.fileName);
-		
-		[[NSFileManager defaultManager] removeItemAtPath:logFileInfo.filePath error:nil];
+		if (i >= maxNumLogFiles)
+		{
+			DDLogFileInfo *logFileInfo = [sortedArchivedLogFileInfos objectAtIndex:i];
+			
+			NSLogInfo(@"DDLogFileManagerDefault: Deleting file: %@", logFileInfo.fileName);
+			
+			[[NSFileManager defaultManager] removeItemAtPath:logFileInfo.filePath error:nil];
+		}
 	}
 }
 

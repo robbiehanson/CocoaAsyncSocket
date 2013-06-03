@@ -289,6 +289,7 @@ NSString *DDExtractFileNameWithoutExtension(const char *filePath, BOOL copy);
    function:(const char *)function
        line:(int)line
         tag:(id)tag
+     // format:(NSString *)format, ...;
      format:(NSString *)format, ... __attribute__ ((format (__NSString__, 9, 10)));
 
 /**
@@ -307,7 +308,6 @@ NSString *DDExtractFileNameWithoutExtension(const char *filePath, BOOL copy);
         tag:(id)tag
      format:(NSString *)format
        args:(va_list)argList;
-
 
 /**
  * Since logging can be asynchronous, there may be times when you want to flush the logs.
@@ -498,12 +498,15 @@ typedef int DDLogMessageOptions;
 	mach_port_t machThreadID;
     char *queueLabel;
 	NSString *threadName;
+	id tag; // For 3rd party extensions to the framework, where flags and contexts aren't enough.
+
+// The private variables below are only calculated if needed.
+// You should use the public methods to access this information.
 	
-	// For 3rd party extensions to the framework, where flags and contexts aren't enough.
-	id tag;
-	
-	// For 3rd party extensions that manually create DDLogMessage instances.
-	DDLogMessageOptions options;
+@private
+	NSString *threadID;
+	NSString *fileName;
+	NSString *methodName;
 }
 
 /**
@@ -538,7 +541,7 @@ typedef int DDLogMessageOptions;
 - (NSString *)threadID;
 
 /**
- * Convenience property to get just the file name, as the file variable is generally the full file path.
+ * Convenience method to get just the file name, as the file variable is generally the full file path.
  * This method does not include the file extension, which is generally unwanted for logging purposes.
 **/
 - (NSString *)fileName;
