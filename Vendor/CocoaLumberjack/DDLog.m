@@ -852,14 +852,14 @@ static char *dd_str_copy(const char *str)
 		logContext = context;
 		lineNumber = line;
 		tag        = aTag;
-		options    = optionsMask;
+		optind    = optionsMask;
 		
-		if (options & DDLogMessageCopyFile)
+		if (optind & DDLogMessageCopyFile)
 			file = dd_str_copy(aFile);
 		else
 			file = (char *)aFile;
 		
-		if (options & DDLogMessageCopyFunction)
+		if (optind & DDLogMessageCopyFunction)
 			file = dd_str_copy(aFunction);
 		else
 			function = (char *)aFunction;
@@ -907,10 +907,10 @@ static char *dd_str_copy(const char *str)
 
 - (void)dealloc
 {
-	if (file && (options & DDLogMessageCopyFile))
+	if (file && (optind & DDLogMessageCopyFile))
 		free(file);
 	
-	if (function && (options & DDLogMessageCopyFunction))
+	if (function && (optind & DDLogMessageCopyFunction))
 		free(function);
 	
 	if (queueLabel)
