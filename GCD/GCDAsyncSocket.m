@@ -6194,7 +6194,37 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		[self closeWithError:[self otherError:@"Error in SSLSetConnection"]];
 		return;
 	}
-	
+
+
+	if (delegateQueue && [delegate respondsToSelector:@selector(socketShouldManuallyEvaluateTrust:)])
+	{
+		__block BOOL manuallyEvaluateTrust = NO;
+		dispatch_sync(delegateQueue, ^{
+			@autoreleasepool {
+				manuallyEvaluateTrust = [delegate socketShouldManuallyEvaluateTrust:self];
+			}
+		});
+
+		if (manuallyEvaluateTrust) {
+			if (isServer) {
+				[self closeWithError:[self otherError:@"Manual trust validation is not supported for server sockets"]];
+				return;
+			}
+
+			NSCAssert([delegate respondsToSelector:@selector(socket:shouldTrustPeer:)],
+			      @"You need to implement -socket:shouldTrustPeer: if you return YES for -socketShouldManuallyEvaluateTrust:");
+
+			status = SSLSetSessionOption(sslContext, kSSLSessionOptionBreakOnServerAuth, true);
+
+			// TODO: per docs on OS X <10.8, disable default trust
+
+			if (status != noErr) {
+				[self closeWithError:[self otherError:@"Error in SSLSetSessionOption"]];
+				return;
+			}
+		}
+	}
+
 	// Configure SSLContext from given settings
 	// 
 	// Checklist:
@@ -6524,9 +6554,38 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	// If the return value is noErr, the session is ready for normal secure communication.
 	// If the return value is errSSLWouldBlock, the SSLHandshake function must be called again.
+	// If the return value is errSSLServerAuthCompleted, we ask delegate if we should trust the
+	// server and then call SSLHandshake again to resume the handshake or close the connection
+	// errSSLPeerBadCert SSL error.
 	// Otherwise, the return value indicates an error code.
 	
 	OSStatus status = SSLHandshake(sslContext);
+
+	if (status == errSSLServerAuthCompleted) {
+		SecTrustRef trust = NULL;
+		status = SSLCopyPeerTrust(sslContext, &trust);
+		if (status != noErr)
+		{
+			[self closeWithError:[self sslError:status]];
+			return;
+		}
+
+		__block BOOL shouldTrust = NO;
+		dispatch_sync(delegateQueue, ^{
+			@autoreleasepool {
+				shouldTrust = [delegate socket:self shouldTrustPeer:trust];
+			}
+		});
+
+		if (!shouldTrust)
+		{
+			[self closeWithError:[self sslError:errSSLPeerBadCert]];
+			return;
+		}
+
+		// Trusted, continue with handshake
+		status = SSLHandshake(sslContext);
+	}
 	
 	if (status == noErr)
 	{
