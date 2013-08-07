@@ -1055,6 +1055,13 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 - (void)socketDidCloseReadStream:(GCDAsyncSocket *)sock;
 
 /**
+ * Called when a socket was unable to connect.
+ *
+ * Usually, this is because the connection timeout expired.
+**/
+- (void)socketDidNotConnect:(GCDAsyncSocket *)sock error:(NSError *)err;
+
+/**
  * Called when a socket disconnects with or without error.
  * 
  * If you call the disconnect method, and the socket wasn't already disconnected,
