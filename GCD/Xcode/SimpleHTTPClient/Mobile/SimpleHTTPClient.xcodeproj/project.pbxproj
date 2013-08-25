@@ -26,6 +26,7 @@
 		DC80CA5213C3B43F00D29D06 /* SimpleHTTPClientViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = DC80CA5013C3B43F00D29D06 /* SimpleHTTPClientViewController.xib */; };
 		DC80CA6D13C3B4AA00D29D06 /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC80CA6C13C3B4AA00D29D06 /* CFNetwork.framework */; };
 		DC80CAA313C3B94B00D29D06 /* GCDAsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = DC80CAA213C3B94B00D29D06 /* GCDAsyncSocket.m */; };
+		DC825153163AFEC100D95D37 /* Default-568h@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = DC825152163AFEC100D95D37 /* Default-568h@2x.png */; };
 		DCFF8C051529676500448078 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DCFF8C041529676500448078 /* Security.framework */; };
 /* End PBXBuildFile section */
 
@@ -62,6 +63,7 @@
 		DC80CA6C13C3B4AA00D29D06 /* CFNetwork.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CFNetwork.framework; path = System/Library/Frameworks/CFNetwork.framework; sourceTree = SDKROOT; };
 		DC80CAA113C3B94B00D29D06 /* GCDAsyncSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GCDAsyncSocket.h; path = ../../../GCDAsyncSocket.h; sourceTree = "<group>"; };
 		DC80CAA213C3B94B00D29D06 /* GCDAsyncSocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GCDAsyncSocket.m; path = ../../../GCDAsyncSocket.m; sourceTree = "<group>"; };
+		DC825152163AFEC100D95D37 /* Default-568h@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "Default-568h@2x.png"; path = "../Default-568h@2x.png"; sourceTree = "<group>"; };
 		DCFF8C041529676500448078 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -142,6 +144,7 @@
 		DC80CA3F13C3B43F00D29D06 /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
+				DC825152163AFEC100D95D37 /* Default-568h@2x.png */,
 				DC80CA4013C3B43F00D29D06 /* SimpleHTTPClient-Info.plist */,
 				DC80CA4113C3B43F00D29D06 /* InfoPlist.strings */,
 				DC80CA4413C3B43F00D29D06 /* SimpleHTTPClient-Prefix.pch */,
@@ -231,6 +234,7 @@
 				DC80CA4C13C3B43F00D29D06 /* MainWindow.xib in Resources */,
 				DC80CA5213C3B43F00D29D06 /* SimpleHTTPClientViewController.xib in Resources */,
 				DC4B0BB9151D48DE000985E5 /* README.txt in Resources */,
+				DC825153163AFEC100D95D37 /* Default-568h@2x.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -331,6 +335,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "SimpleHTTPClient/SimpleHTTPClient-Prefix.pch";
 				INFOPLIST_FILE = "SimpleHTTPClient/SimpleHTTPClient-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
 			};
@@ -345,6 +350,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "SimpleHTTPClient/SimpleHTTPClient-Prefix.pch";
 				INFOPLIST_FILE = "SimpleHTTPClient/SimpleHTTPClient-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				VALIDATE_PRODUCT = YES;
 				WRAPPER_EXTENSION = app;

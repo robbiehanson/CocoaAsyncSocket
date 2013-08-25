@@ -17,6 +17,7 @@
 		DC90AB911477436C0022DF52 /* ContextFilterLogFormatter.m in Sources */ = {isa = PBXBuildFile; fileRef = DC90AB881477436C0022DF52 /* ContextFilterLogFormatter.m */; };
 		DC90AB921477436C0022DF52 /* DispatchQueueLogFormatter.m in Sources */ = {isa = PBXBuildFile; fileRef = DC90AB8A1477436C0022DF52 /* DispatchQueueLogFormatter.m */; };
 		DC90AB931477436C0022DF52 /* README.txt in Resources */ = {isa = PBXBuildFile; fileRef = DC90AB8B1477436C0022DF52 /* README.txt */; };
+		DCCE5078163B6B560000C729 /* Default-568h@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = DCCE5077163B6B560000C729 /* Default-568h@2x.png */; };
 		DCDE285D13DDEC74006BFCC0 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DCDE285C13DDEC74006BFCC0 /* UIKit.framework */; };
 		DCDE285F13DDEC74006BFCC0 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DCDE285E13DDEC74006BFCC0 /* Foundation.framework */; };
 		DCDE286113DDEC74006BFCC0 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DCDE286013DDEC74006BFCC0 /* CoreGraphics.framework */; };
@@ -48,6 +49,7 @@
 		DC90AB891477436C0022DF52 /* DispatchQueueLogFormatter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DispatchQueueLogFormatter.h; sourceTree = "<group>"; };
 		DC90AB8A1477436C0022DF52 /* DispatchQueueLogFormatter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DispatchQueueLogFormatter.m; sourceTree = "<group>"; };
 		DC90AB8B1477436C0022DF52 /* README.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README.txt; sourceTree = "<group>"; };
+		DCCE5077163B6B560000C729 /* Default-568h@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "Default-568h@2x.png"; path = "../Default-568h@2x.png"; sourceTree = "<group>"; };
 		DCDE285813DDEC74006BFCC0 /* ConnectTest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ConnectTest.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DCDE285C13DDEC74006BFCC0 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		DCDE285E13DDEC74006BFCC0 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
@@ -142,6 +144,7 @@
 		DCDE286313DDEC74006BFCC0 /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
+				DCCE5077163B6B560000C729 /* Default-568h@2x.png */,
 				DCDE286413DDEC74006BFCC0 /* ConnectTest-Info.plist */,
 				DCDE286513DDEC74006BFCC0 /* InfoPlist.strings */,
 				DCDE286813DDEC74006BFCC0 /* ConnectTest-Prefix.pch */,
@@ -231,6 +234,7 @@
 				DCDE287013DDEC74006BFCC0 /* MainWindow.xib in Resources */,
 				DCDE287613DDEC74006BFCC0 /* ConnectTestViewController.xib in Resources */,
 				DC90AB931477436C0022DF52 /* README.txt in Resources */,
+				DCCE5078163B6B560000C729 /* Default-568h@2x.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -299,7 +303,7 @@
 				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 5.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
 				SDKROOT = iphoneos;
 			};
 			name = Debug;
@@ -315,7 +319,7 @@
 				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 5.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
 				SDKROOT = iphoneos;
 			};
