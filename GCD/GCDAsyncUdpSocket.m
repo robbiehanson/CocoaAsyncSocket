@@ -146,7 +146,11 @@ enum GCDAsyncUdpSocketConfig
 
 @interface GCDAsyncUdpSocket ()
 {
-	id delegate;
+#if __has_feature(objc_arc_weak)
+	__weak id delegate;
+#else
+	__unsafe_unretained id delegate;
+#endif
 	dispatch_queue_t delegateQueue;
 	
 	GCDAsyncUdpSocketReceiveFilterBlock receiveFilterBlock;
