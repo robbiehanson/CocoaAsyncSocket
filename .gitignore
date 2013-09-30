@@ -2,5 +2,6 @@
 *.mode1v3
 *.mode2v3
 xcuserdata
+*.xccheckout
 
 .DS_Store
