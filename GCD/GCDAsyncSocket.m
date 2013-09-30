@@ -6735,11 +6735,14 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	// We can't run the run loop unless it has an associated input source or a timer.
 	// So we'll just create a timer that will never fire - unless the server runs for decades.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wundeclared-selector"
 	[NSTimer scheduledTimerWithTimeInterval:[[NSDate distantFuture] timeIntervalSinceNow]
 	                                 target:self
 	                               selector:@selector(ignore:)
 	                               userInfo:nil
 	                                repeats:YES];
+#pragma clang diagnostic pop
 	
 	[[NSRunLoop currentRunLoop] run];
 	
