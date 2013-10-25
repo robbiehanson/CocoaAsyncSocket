@@ -27,8 +27,8 @@
 #import <sys/uio.h>
 #import <unistd.h>
 
-#if ! __has_feature(objc_arc)
-#warning This file must be compiled with ARC. Use -fobjc-arc flag (or convert project to ARC).
+#if ! (__has_feature(objc_arc) || defined(__OBJC_GC__))
+#warning This file must be compiled with ARC. Use -fobjc-arc flag (or convert project to ARC). GC is also supported, but deprecated and not recommended.
 // For more information see: https://github.com/robbiehanson/CocoaAsyncSocket/wiki/ARC
 #endif
 
@@ -157,7 +157,7 @@ enum GCDAsyncSocketConfig
 	uint32_t flags;
 	uint16_t config;
 	
-#if __has_feature(objc_arc_weak)
+#if __has_feature(objc_arc_weak) || defined(__OBJC_GC__)
 	__weak id delegate;
 #else
 	__unsafe_unretained id delegate;
