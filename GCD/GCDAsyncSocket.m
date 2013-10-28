@@ -32,6 +32,13 @@
 // For more information see: https://github.com/robbiehanson/CocoaAsyncSocket/wiki/ARC
 #endif
 
+// Suppress warning about __bridge doing nothing in GC.
+// The fact that it does nothing under GC is just fine, and it must be there for ARC.
+#if defined(__OBJC_GC__) && defined(__clang__) && defined(__has_warning)
+	#if __has_warning("-Warc-bridge-casts-disallowed-in-nonarc")
+		#pragma clang diagnostic ignored "-Warc-bridge-casts-disallowed-in-nonarc"
+	#endif
+#endif
 
 #if 0
 
