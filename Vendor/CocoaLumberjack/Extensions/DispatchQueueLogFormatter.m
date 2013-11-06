@@ -1,4 +1,5 @@
 #import "DispatchQueueLogFormatter.h"
+#import <libkern/OSAtomic.h>
 
 /**
  * Welcome to Cocoa Lumberjack!
@@ -16,14 +17,25 @@
 
 
 @implementation DispatchQueueLogFormatter
+{
+	int32_t atomicLoggerCount;
+	NSDateFormatter *threadUnsafeDateFormatter; // Use [self stringFromDate]
+	
+	OSSpinLock lock;
+	
+	NSUInteger _minQueueLength;           // _prefix == Only access via atomic property
+	NSUInteger _maxQueueLength;           // _prefix == Only access via atomic property
+	NSMutableDictionary *_replacements;   // _prefix == Only access from within spinlock
+}
 
 - (id)init
 {
 	if ((self = [super init]))
 	{
-		dateFormatter = [[NSDateFormatter alloc] init];
-		[dateFormatter setFormatterBehavior:NSDateFormatterBehavior10_4];
-		[dateFormatter setDateFormat:@"yyyy-MM-dd HH:mm:ss:SSS"];
+		dateFormatString = @"yyyy-MM-dd HH:mm:ss:SSS";
+		
+		atomicLoggerCount = 0;
+		threadUnsafeDateFormatter = nil;
 		
 		_minQueueLength = 0;
 		_maxQueueLength = 0;
@@ -72,6 +84,46 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark DDLogFormatter
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+- (NSString *)stringFromDate:(NSDate *)date
+{
+	int32_t loggerCount = OSAtomicAdd32(0, &atomicLoggerCount);
+	
+	if (loggerCount <= 1)
+	{
+		// Single-threaded mode.
+		
+		if (threadUnsafeDateFormatter == nil)
+		{
+			threadUnsafeDateFormatter = [[NSDateFormatter alloc] init];
+			[threadUnsafeDateFormatter setFormatterBehavior:NSDateFormatterBehavior10_4];
+			[threadUnsafeDateFormatter setDateFormat:dateFormatString];
+		}
+		
+		return [threadUnsafeDateFormatter stringFromDate:date];
+	}
+	else
+	{
+		// Multi-threaded mode.
+		// NSDateFormatter is NOT thread-safe.
+		
+		NSString *key = @"DispatchQueueLogFormatter_NSDateFormatter";
+		
+		NSMutableDictionary *threadDictionary = [[NSThread currentThread] threadDictionary];
+		NSDateFormatter *dateFormatter = [threadDictionary objectForKey:key];
+		
+		if (dateFormatter == nil)
+		{
+			dateFormatter = [[NSDateFormatter alloc] init];
+			[dateFormatter setFormatterBehavior:NSDateFormatterBehavior10_4];
+			[dateFormatter setDateFormat:dateFormatString];
+			
+			[threadDictionary setObject:dateFormatter forKey:key];
+		}
+		
+		return [dateFormatter stringFromDate:date];
+	}
+}
 
 - (NSString *)queueThreadLabelForLogMessage:(DDLogMessage *)logMessage
 {
@@ -124,7 +176,7 @@
 		NSString *abrvLabel;
 		
 		if (useQueueLabel)
-			fullLabel = [NSString stringWithUTF8String:logMessage->queueLabel];
+			fullLabel = @(logMessage->queueLabel);
 		else
 			fullLabel = logMessage->threadName;
 		
@@ -180,10 +232,20 @@
 
 - (NSString *)formatLogMessage:(DDLogMessage *)logMessage
 {
-	NSString *timestamp = [dateFormatter stringFromDate:(logMessage->timestamp)];
+	NSString *timestamp = [self stringFromDate:(logMessage->timestamp)];
 	NSString *queueThreadLabel = [self queueThreadLabelForLogMessage:logMessage];
 	
 	return [NSString stringWithFormat:@"%@ [%@] %@", timestamp, queueThreadLabel, logMessage->logMsg];
+}
+
+- (void)didAddToLogger:(id <DDLogger>)logger
+{
+	OSAtomicIncrement32(&atomicLoggerCount);
+}
+
+- (void)willRemoveFromLogger:(id <DDLogger>)logger
+{
+	OSAtomicDecrement32(&atomicLoggerCount);
 }
 
 @end
