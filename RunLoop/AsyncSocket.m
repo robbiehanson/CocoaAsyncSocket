@@ -3482,14 +3482,22 @@ Failed:
 **/
 - (BOOL)hasBytesAvailable
 {
-	if ((theFlags & kSocketHasBytesAvailable) || ([partialReadBuffer length] > 0))
+	if ([partialReadBuffer length] > 0)
 	{
 		return YES;
 	}
-	else
+
+	// Completely ignore the kSocketHasBytesAvailable flag. We could have cases where the flag is raised
+	// just before sleep, but by the time the device wakes up the packet has been dropped and the read hangs the thread
+	// because the socket is disconnecting
+	if (CFReadStreamHasBytesAvailable(theReadStream))
 	{
-		return CFReadStreamHasBytesAvailable(theReadStream);
+		theFlags |= kSocketHasBytesAvailable;
+		return YES;
 	}
+
+	theFlags &= ~kSocketHasBytesAvailable;
+	return NO;
 }
 
 /**
