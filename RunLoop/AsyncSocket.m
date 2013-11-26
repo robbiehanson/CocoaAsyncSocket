@@ -1357,11 +1357,25 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 	
 	[self attachSocketsToRunLoop:nil error:nil];
 	
-	// Set the SO_REUSEADDR flags.
+	// Set SO_REUSEADDR to allow address reuse
+	// Set SO_NOADDRERR to detect network changes ASAP
+	// Set SO_UPCALLCLOSEWAIT for safety when closing sockets
 
-	int reuseOn = 1;
-	if (theSocket4)	setsockopt(CFSocketGetNative(theSocket4), SOL_SOCKET, SO_REUSEADDR, &reuseOn, sizeof(reuseOn));
-	if (theSocket6)	setsockopt(CFSocketGetNative(theSocket6), SOL_SOCKET, SO_REUSEADDR, &reuseOn, sizeof(reuseOn));
+	int flag = 1;
+	if (theSocket4)
+	{
+		int sock = CFSocketGetNative(theSocket4);
+		setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag));
+		setsockopt(sock, SOL_SOCKET, SO_NOADDRERR, &flag, sizeof(flag));
+		setsockopt(sock, SOL_SOCKET, SO_UPCALLCLOSEWAIT, &flag, sizeof(flag));
+	}
+	if (theSocket6)
+	{
+		int sock = CFSocketGetNative(theSocket6);
+		setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag));
+		setsockopt(sock, SOL_SOCKET, SO_NOADDRERR, &flag, sizeof(flag));
+		setsockopt(sock, SOL_SOCKET, SO_UPCALLCLOSEWAIT, &flag, sizeof(flag));
+	}
 
 	// Set the local bindings which causes the sockets to start listening.
 
