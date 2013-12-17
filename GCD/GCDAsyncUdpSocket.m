@@ -2243,7 +2243,7 @@ enum GCDAsyncUdpSocketConfig
 			LogWarn(@"Error in getsockname: %@", [self errnoError]);
 		}
 	}
-	else if (socketFamily == AF_INET)
+	else if (socketFamily == AF_INET6)
 	{
 		struct sockaddr_in6 sockaddr6;
 		socklen_t sockaddr6len = sizeof(sockaddr6);
