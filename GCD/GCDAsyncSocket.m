@@ -5627,7 +5627,7 @@ enum GCDAsyncSocketConfig
 		// We were unable to finish writing the data,
 		// so we're waiting for another callback to notify us of available space in the lower-level output buffer.
 		
-		if (!waiting & !error)
+		if (!waiting && !error)
 		{
 			// This would be the case if our write was able to accept some data, but not all of it.
 			
