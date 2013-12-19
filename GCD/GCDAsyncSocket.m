@@ -4219,7 +4219,7 @@ enum GCDAsyncSocketConfig
 	}
 	
 	BOOL hasBytesAvailable = NO;
-	unsigned long estimatedBytesAvailable;
+	unsigned long estimatedBytesAvailable = 0;
 	
 	if ([self usingCFStreamForTLS])
 	{
@@ -4237,9 +4237,9 @@ enum GCDAsyncSocketConfig
 	}
 	else
 	{
-		#if SECURE_TRANSPORT_MAYBE_AVAILABLE
-		
 		estimatedBytesAvailable = socketFDBytesAvailable;
+		
+		#if SECURE_TRANSPORT_MAYBE_AVAILABLE
 		
 		if (flags & kSocketSecure)
 		{
@@ -4277,9 +4277,9 @@ enum GCDAsyncSocketConfig
 			estimatedBytesAvailable += sslInternalBufSize;
 		}
 		
-		hasBytesAvailable = (estimatedBytesAvailable > 0);
-		
 		#endif
+		
+		hasBytesAvailable = (estimatedBytesAvailable > 0);
 	}
 	
 	if ((hasBytesAvailable == NO) && ([preBuffer availableBytes] == 0))
@@ -4884,7 +4884,7 @@ enum GCDAsyncSocketConfig
 		[self flushSSLBuffers];
 	}
 	
-	BOOL shouldDisconnect;
+	BOOL shouldDisconnect = NO;
 	NSError *error = nil;
 	
 	if ((flags & kStartingReadTLS) || (flags & kStartingWriteTLS))
@@ -5011,7 +5011,7 @@ enum GCDAsyncSocketConfig
 	NSAssert(currentRead, @"Trying to complete current read when there is no current read.");
 	
 	
-	NSData *result;
+	NSData *result = nil;
 	
 	if (currentRead->bufferOwner)
 	{
