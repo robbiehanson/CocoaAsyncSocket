@@ -205,10 +205,12 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		theSendQueue = [[NSMutableArray alloc] initWithCapacity:SENDQUEUE_CAPACITY];
 		theCurrentSend = nil;
 		theSendTimer = nil;
+		theSendQueueLock = [[NSLock alloc] init];
 		
 		theReceiveQueue = [[NSMutableArray alloc] initWithCapacity:RECEIVEQUEUE_CAPACITY];
 		theCurrentReceive = nil;
 		theReceiveTimer = nil;
+		theReceiveQueueLock = [[NSLock alloc] init];
 		
 		// Socket context
 		theContext.version = 0;
@@ -308,7 +310,8 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 - (void) dealloc
 {
 	[self close];
-	
+	[theSendQueueLock release];
+	[theReceiveQueueLock release];
 	[NSObject cancelPreviousPerformRequestsWithTarget:theDelegate selector:@selector(onUdpSocketDidClose:) object:self];
 	[NSObject cancelPreviousPerformRequestsWithTarget:self];
 }
@@ -1662,8 +1665,9 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	if(![self isConnected]) return NO;
 	
 	AsyncSendPacket *packet = [[AsyncSendPacket alloc] initWithData:data address:nil timeout:timeout tag:tag];
-	
+	[theSendQueueLock lock];
 	[theSendQueue addObject:packet];
+	[theSendQueueLock unlock];
 	[self scheduleDequeueSend];
 	
 	return YES;
@@ -1693,8 +1697,9 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		packet = [[AsyncSendPacket alloc] initWithData:data address:address6 timeout:timeout tag:tag];
 	else
 		return NO;
-	
+	[theSendQueueLock lock];
 	[theSendQueue addObject:packet];
+	[theSendQueueLock unlock];
 	[self scheduleDequeueSend];
 	
 	return YES;
@@ -1716,8 +1721,9 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		return NO;
 	
 	AsyncSendPacket *packet = [[AsyncSendPacket alloc] initWithData:data address:remoteAddr timeout:timeout tag:tag];
-	
+	[theSendQueueLock lock];
 	[theSendQueue addObject:packet];
+	[theSendQueueLock unlock];
 	[self scheduleDequeueSend];
 	
 	return YES;
@@ -1790,7 +1796,9 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		{
 			// Dequeue next send packet
 			theCurrentSend = [theSendQueue objectAtIndex:0];
+			[theSendQueueLock lock];
 			[theSendQueue removeObjectAtIndex:0];
+			[theSendQueueLock unlock];
 			
 			// Start time-out timer.
 			if(theCurrentSend->timeout >= 0.0)
@@ -1941,8 +1949,9 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 	if(theFlags & kDidClose) return;
 	
 	AsyncReceivePacket *packet = [[AsyncReceivePacket alloc] initWithTimeout:timeout tag:tag];
-	
+	[theReceiveQueueLock lock];
 	[theReceiveQueue addObject:packet];
+	[theReceiveQueueLock unlock];
 	[self scheduleDequeueReceive];
 }
 
@@ -2002,8 +2011,9 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 		{
 			// Dequeue next receive packet
 			theCurrentReceive = [theReceiveQueue objectAtIndex:0];
+			[theReceiveQueueLock lock];
 			[theReceiveQueue removeObjectAtIndex:0];
-			
+			[theReceiveQueueLock unlock];
 			// Start time-out timer.
 			if (theCurrentReceive->timeout >= 0.0)
 			{
