@@ -4557,7 +4557,7 @@ enum GCDAsyncSocketConfig
 					size_t loop_bytesRead = 0;
 					
 					result = SSLRead(sslContext, loop_buffer, loop_bytesToRead, &loop_bytesRead);
-					LogVerbose(@"read from secure socket = %u", (unsigned)bytesRead);
+					LogVerbose(@"read from secure socket = %u", (unsigned)loop_bytesRead);
 					
 					bytesRead += loop_bytesRead;
 					
