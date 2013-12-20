@@ -4973,23 +4973,25 @@ enum GCDAsyncSocketConfig
 	{
 		if (error == nil)
 		{
-			if ([self usingSecureTransportForTLS])
-			{
-				#if SECURE_TRANSPORT_MAYBE_AVAILABLE
-				if (sslErrCode != noErr && sslErrCode != errSSLClosedGraceful)
+			#if SECURE_TRANSPORT_MAYBE_AVAILABLE
+				if ([self usingSecureTransportForTLS])
 				{
-					error = [self sslError:sslErrCode];
+					if (sslErrCode != noErr && sslErrCode != errSSLClosedGraceful)
+					{
+						error = [self sslError:sslErrCode];
+					}
+					else
+					{
+						error = [self connectionClosedError];
+					}
 				}
 				else
 				{
 					error = [self connectionClosedError];
 				}
-				#endif
-			}
-			else
-			{
-				error = [self connectionClosedError];
-			}
+			#else
+					error = [self connectionClosedError];
+			#endif
 		}
 		[self closeWithError:error];
 	}
