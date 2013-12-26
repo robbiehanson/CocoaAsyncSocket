@@ -6,10 +6,10 @@
  * Welcome to Cocoa Lumberjack!
  * 
  * The project page has a wealth of documentation if you have any questions.
- * https://github.com/robbiehanson/CocoaLumberjack
+ * https://github.com/CocoaLumberjack/CocoaLumberjack
  * 
  * If you're new to the project you may wish to read the "Getting Started" wiki.
- * https://github.com/robbiehanson/CocoaLumberjack/wiki/GettingStarted
+ * https://github.com/CocoaLumberjack/CocoaLumberjack/wiki/GettingStarted
  * 
  * 
  * This class provides an abstract implementation of a database logger.
@@ -21,18 +21,18 @@
 
 @interface DDAbstractDatabaseLogger : DDAbstractLogger {
 @protected
-	NSUInteger saveThreshold;
-	NSTimeInterval saveInterval;
-	NSTimeInterval maxAge;
-	NSTimeInterval deleteInterval;
-	BOOL deleteOnEverySave;
-	
-	BOOL saveTimerSuspended;
-	NSUInteger unsavedCount;
-	dispatch_time_t unsavedTime;
-	dispatch_source_t saveTimer;
-	dispatch_time_t lastDeleteTime;
-	dispatch_source_t deleteTimer;
+    NSUInteger saveThreshold;
+    NSTimeInterval saveInterval;
+    NSTimeInterval maxAge;
+    NSTimeInterval deleteInterval;
+    BOOL deleteOnEverySave;
+    
+    BOOL saveTimerSuspended;
+    NSUInteger unsavedCount;
+    dispatch_time_t unsavedTime;
+    dispatch_source_t saveTimer;
+    dispatch_time_t lastDeleteTime;
+    dispatch_source_t deleteTimer;
 }
 
 /**

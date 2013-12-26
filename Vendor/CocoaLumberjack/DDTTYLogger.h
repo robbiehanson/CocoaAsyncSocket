@@ -7,14 +7,16 @@
 
 #import "DDLog.h"
 
+#define LOG_CONTEXT_ALL INT_MAX
+
 /**
  * Welcome to Cocoa Lumberjack!
  * 
  * The project page has a wealth of documentation if you have any questions.
- * https://github.com/robbiehanson/CocoaLumberjack
+ * https://github.com/CocoaLumberjack/CocoaLumberjack
  * 
  * If you're new to the project you may wish to read the "Getting Started" wiki.
- * https://github.com/robbiehanson/CocoaLumberjack/wiki/GettingStarted
+ * https://github.com/CocoaLumberjack/CocoaLumberjack/wiki/GettingStarted
  * 
  * 
  * This class provides a logger for Terminal output or Xcode console output,
@@ -33,23 +35,23 @@
 
 @interface DDTTYLogger : DDAbstractLogger <DDLogger>
 {
-	NSCalendar *calendar;
-	NSUInteger calendarUnitFlags;
-	
-	NSString *appName;
-	char *app;
-	size_t appLen;
-	
-	NSString *processID;
-	char *pid;
-	size_t pidLen;
-	
-	BOOL colorsEnabled;
-	NSMutableArray *colorProfilesArray;
-	NSMutableDictionary *colorProfilesDict;
+    NSCalendar *calendar;
+    NSUInteger calendarUnitFlags;
+    
+    NSString *appName;
+    char *app;
+    size_t appLen;
+    
+    NSString *processID;
+    char *pid;
+    size_t pidLen;
+    
+    BOOL colorsEnabled;
+    NSMutableArray *colorProfilesArray;
+    NSMutableDictionary *colorProfilesDict;
 }
 
-+ (DDTTYLogger *)sharedInstance;
++ (instancetype)sharedInstance;
 
 /* Inherited from the DDLogger protocol:
  * 
@@ -59,7 +61,7 @@
  * or it may use its own built in formatting style.
  * 
  * More information about formatters can be found here:
- * https://github.com/robbiehanson/CocoaLumberjack/wiki/CustomFormatters
+ * https://github.com/CocoaLumberjack/CocoaLumberjack/wiki/CustomFormatters
  * 
  * The actual implementation of these methods is inherited from DDAbstractLogger.
 
@@ -103,7 +105,7 @@
  * If you run the application from a shell, then DDTTYLogger will automatically map the given color to
  * the closest available color. (xterm-256color or xterm-color which have 256 and 16 supported colors respectively.)
  * 
- * This method invokes setForegroundColor:backgroundColor:forFlag:context: and passes the default context (0).
+ * This method invokes setForegroundColor:backgroundColor:forFlag:context: and applies it to `LOG_CONTEXT_ALL`.
 **/
 #if TARGET_OS_IPHONE
 - (void)setForegroundColor:(UIColor *)txtColor backgroundColor:(UIColor *)bgColor forFlag:(int)mask;
@@ -117,8 +119,10 @@
  * A logging context is often used to identify log messages coming from a 3rd party framework,
  * although logging context's can be used for many different functions.
  * 
+ * Use LOG_CONTEXT_ALL to set the deafult color for all contexts that have no specific color set defined.
+ * 
  * Logging context's are explained in further detail here:
- * https://github.com/robbiehanson/CocoaLumberjack/wiki/CustomContext
+ * https://github.com/CocoaLumberjack/CocoaLumberjack/wiki/CustomContext
 **/
 #if TARGET_OS_IPHONE
 - (void)setForegroundColor:(UIColor *)txtColor backgroundColor:(UIColor *)bgColor forFlag:(int)mask context:(int)ctxt;

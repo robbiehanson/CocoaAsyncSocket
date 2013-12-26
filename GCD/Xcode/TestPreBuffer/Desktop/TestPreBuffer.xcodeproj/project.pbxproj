@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		11C32843186CDCAB00F6D762 /* DDContextFilterLogFormatter.m in Sources */ = {isa = PBXBuildFile; fileRef = 11C3283E186CDCAB00F6D762 /* DDContextFilterLogFormatter.m */; };
+		11C32844186CDCAB00F6D762 /* DDDispatchQueueLogFormatter.m in Sources */ = {isa = PBXBuildFile; fileRef = 11C32840186CDCAB00F6D762 /* DDDispatchQueueLogFormatter.m */; };
+		11C32845186CDCAB00F6D762 /* DDMultiFormatter.m in Sources */ = {isa = PBXBuildFile; fileRef = 11C32842186CDCAB00F6D762 /* DDMultiFormatter.m */; };
 		DC71D2E015816A2200A8A249 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC71D2DF15816A2200A8A249 /* Cocoa.framework */; };
 		DC71D2EA15816A2200A8A249 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = DC71D2E815816A2200A8A249 /* InfoPlist.strings */; };
 		DC71D2EC15816A2300A8A249 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = DC71D2EB15816A2300A8A249 /* main.m */; };
@@ -18,8 +21,6 @@
 		DC71D31315816A5C00A8A249 /* DDFileLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC71D30615816A5C00A8A249 /* DDFileLogger.m */; };
 		DC71D31415816A5C00A8A249 /* DDLog.m in Sources */ = {isa = PBXBuildFile; fileRef = DC71D30815816A5C00A8A249 /* DDLog.m */; };
 		DC71D31515816A5C00A8A249 /* DDTTYLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DC71D30A15816A5C00A8A249 /* DDTTYLogger.m */; };
-		DC71D31615816A5C00A8A249 /* ContextFilterLogFormatter.m in Sources */ = {isa = PBXBuildFile; fileRef = DC71D30D15816A5C00A8A249 /* ContextFilterLogFormatter.m */; };
-		DC71D31715816A5C00A8A249 /* DispatchQueueLogFormatter.m in Sources */ = {isa = PBXBuildFile; fileRef = DC71D30F15816A5C00A8A249 /* DispatchQueueLogFormatter.m */; };
 		DC71D31815816A5C00A8A249 /* README.txt in Resources */ = {isa = PBXBuildFile; fileRef = DC71D31015816A5C00A8A249 /* README.txt */; };
 		DC71D31D15816A6F00A8A249 /* GCDAsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = DC71D31C15816A6F00A8A249 /* GCDAsyncSocket.m */; };
 		DC71D32015816A9900A8A249 /* TestPreBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = DC71D31F15816A9900A8A249 /* TestPreBuffer.m */; };
@@ -27,6 +28,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		11C3283C186CDCA100F6D762 /* DDLog+LOGV.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "DDLog+LOGV.h"; sourceTree = "<group>"; };
+		11C3283D186CDCAB00F6D762 /* DDContextFilterLogFormatter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DDContextFilterLogFormatter.h; sourceTree = "<group>"; };
+		11C3283E186CDCAB00F6D762 /* DDContextFilterLogFormatter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DDContextFilterLogFormatter.m; sourceTree = "<group>"; };
+		11C3283F186CDCAB00F6D762 /* DDDispatchQueueLogFormatter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DDDispatchQueueLogFormatter.h; sourceTree = "<group>"; };
+		11C32840186CDCAB00F6D762 /* DDDispatchQueueLogFormatter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DDDispatchQueueLogFormatter.m; sourceTree = "<group>"; };
+		11C32841186CDCAB00F6D762 /* DDMultiFormatter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DDMultiFormatter.h; sourceTree = "<group>"; };
+		11C32842186CDCAB00F6D762 /* DDMultiFormatter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DDMultiFormatter.m; sourceTree = "<group>"; };
 		DC71D2DB15816A2200A8A249 /* TestPreBuffer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TestPreBuffer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC71D2DF15816A2200A8A249 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		DC71D2E215816A2200A8A249 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -50,10 +58,6 @@
 		DC71D30815816A5C00A8A249 /* DDLog.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DDLog.m; sourceTree = "<group>"; };
 		DC71D30915816A5C00A8A249 /* DDTTYLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DDTTYLogger.h; sourceTree = "<group>"; };
 		DC71D30A15816A5C00A8A249 /* DDTTYLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DDTTYLogger.m; sourceTree = "<group>"; };
-		DC71D30C15816A5C00A8A249 /* ContextFilterLogFormatter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ContextFilterLogFormatter.h; sourceTree = "<group>"; };
-		DC71D30D15816A5C00A8A249 /* ContextFilterLogFormatter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ContextFilterLogFormatter.m; sourceTree = "<group>"; };
-		DC71D30E15816A5C00A8A249 /* DispatchQueueLogFormatter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DispatchQueueLogFormatter.h; sourceTree = "<group>"; };
-		DC71D30F15816A5C00A8A249 /* DispatchQueueLogFormatter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DispatchQueueLogFormatter.m; sourceTree = "<group>"; };
 		DC71D31015816A5C00A8A249 /* README.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README.txt; sourceTree = "<group>"; };
 		DC71D31B15816A6F00A8A249 /* GCDAsyncSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GCDAsyncSocket.h; path = ../../../GCDAsyncSocket.h; sourceTree = "<group>"; };
 		DC71D31C15816A6F00A8A249 /* GCDAsyncSocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GCDAsyncSocket.m; path = ../../../GCDAsyncSocket.m; sourceTree = "<group>"; };
@@ -150,6 +154,7 @@
 				DC71D30615816A5C00A8A249 /* DDFileLogger.m */,
 				DC71D30715816A5C00A8A249 /* DDLog.h */,
 				DC71D30815816A5C00A8A249 /* DDLog.m */,
+				11C3283C186CDCA100F6D762 /* DDLog+LOGV.h */,
 				DC71D30915816A5C00A8A249 /* DDTTYLogger.h */,
 				DC71D30A15816A5C00A8A249 /* DDTTYLogger.m */,
 				DC71D30B15816A5C00A8A249 /* Extensions */,
@@ -161,10 +166,12 @@
 		DC71D30B15816A5C00A8A249 /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
-				DC71D30C15816A5C00A8A249 /* ContextFilterLogFormatter.h */,
-				DC71D30D15816A5C00A8A249 /* ContextFilterLogFormatter.m */,
-				DC71D30E15816A5C00A8A249 /* DispatchQueueLogFormatter.h */,
-				DC71D30F15816A5C00A8A249 /* DispatchQueueLogFormatter.m */,
+				11C3283D186CDCAB00F6D762 /* DDContextFilterLogFormatter.h */,
+				11C3283E186CDCAB00F6D762 /* DDContextFilterLogFormatter.m */,
+				11C3283F186CDCAB00F6D762 /* DDDispatchQueueLogFormatter.h */,
+				11C32840186CDCAB00F6D762 /* DDDispatchQueueLogFormatter.m */,
+				11C32841186CDCAB00F6D762 /* DDMultiFormatter.h */,
+				11C32842186CDCAB00F6D762 /* DDMultiFormatter.m */,
 				DC71D31015816A5C00A8A249 /* README.txt */,
 			);
 			path = Extensions;
@@ -243,15 +250,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				11C32845186CDCAB00F6D762 /* DDMultiFormatter.m in Sources */,
 				DC71D2EC15816A2300A8A249 /* main.m in Sources */,
 				DC71D2F315816A2300A8A249 /* AppDelegate.m in Sources */,
+				11C32844186CDCAB00F6D762 /* DDDispatchQueueLogFormatter.m in Sources */,
 				DC71D31115816A5C00A8A249 /* DDAbstractDatabaseLogger.m in Sources */,
 				DC71D31215816A5C00A8A249 /* DDASLLogger.m in Sources */,
 				DC71D31315816A5C00A8A249 /* DDFileLogger.m in Sources */,
+				11C32843186CDCAB00F6D762 /* DDContextFilterLogFormatter.m in Sources */,
 				DC71D31415816A5C00A8A249 /* DDLog.m in Sources */,
 				DC71D31515816A5C00A8A249 /* DDTTYLogger.m in Sources */,
-				DC71D31615816A5C00A8A249 /* ContextFilterLogFormatter.m in Sources */,
-				DC71D31715816A5C00A8A249 /* DispatchQueueLogFormatter.m in Sources */,
 				DC71D31D15816A6F00A8A249 /* GCDAsyncSocket.m in Sources */,
 				DC71D32015816A9900A8A249 /* TestPreBuffer.m in Sources */,
 			);
