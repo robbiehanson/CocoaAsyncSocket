@@ -2,7 +2,7 @@
 #import "GCDAsyncSocket.h"
 #import "DDLog.h"
 #import "DDTTYLogger.h"
-#import "DispatchQueueLogFormatter.h"
+#import "DDDispatchQueueLogFormatter.h"
 
 // Log levels: off, error, warn, info, verbose
 static const int ddLogLevel = LOG_LEVEL_VERBOSE;
@@ -53,7 +53,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	//       2011-12-05 19:54:08:161 [socket] GCDAsyncSocket: Dispatching DNS lookup...
 	//       2011-12-05 19:54:08:161 [socket] GCDAsyncSocket: Creating IPv4 socket
 	
-	DispatchQueueLogFormatter *formatter = [[DispatchQueueLogFormatter alloc] init];
+	DDDispatchQueueLogFormatter *formatter = [[DDDispatchQueueLogFormatter alloc] init];
 	[formatter setReplacementString:@"socket" forQueueLabel:GCDAsyncSocketQueueName];
 	[formatter setReplacementString:@"socket-cf" forQueueLabel:GCDAsyncSocketThreadName];
 	
