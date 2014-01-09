@@ -3624,10 +3624,7 @@ enum GCDAsyncSocketConfig
 		socketFDBytesAvailable = dispatch_source_get_data(readSource);
 		LogVerbose(@"socketFDBytesAvailable: %lu", socketFDBytesAvailable);
 		
-		if (socketFDBytesAvailable > 0)
-			[self doReadData];
-		else
-			[self doReadEOF];
+		[self doReadData];
 	}});
 	
 	dispatch_source_set_event_handler(writeSource, ^{ @autoreleasepool {
