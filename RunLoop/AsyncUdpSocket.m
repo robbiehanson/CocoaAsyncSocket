@@ -254,6 +254,18 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 			CFSocketSetSocketFlags(theSocket6, kCFSocketCloseOnInvalidate);
 		}
 		
+		// Prevent sendto calls from sending SIGPIPE signal when socket has been shutdown for writing.
+		// sendto will instead let us handle errors as usual by returning -1.
+		int noSigPipe = 1;
+		if(theSocket4)
+		{
+			setsockopt(CFSocketGetNative(theSocket4), SOL_SOCKET, SO_NOSIGPIPE, &noSigPipe, sizeof(noSigPipe));
+		}
+		if(theSocket6)
+		{
+			setsockopt(CFSocketGetNative(theSocket6), SOL_SOCKET, SO_NOSIGPIPE, &noSigPipe, sizeof(noSigPipe));
+		}
+		
 		// Get the CFRunLoop to which the socket should be attached.
 		theRunLoop = CFRunLoopGetCurrent();
 		
