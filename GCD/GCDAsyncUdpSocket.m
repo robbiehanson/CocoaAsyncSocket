@@ -5094,7 +5094,7 @@ Failed:
 
 - (int)socketFD
 {
-	if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
+	if (! dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
 	{
 		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
 				THIS_FILE, THIS_METHOD);
@@ -5109,7 +5109,7 @@ Failed:
 
 - (int)socket4FD
 {
-	if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
+	if (! dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
 	{
 		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
 				THIS_FILE, THIS_METHOD);
@@ -5121,7 +5121,7 @@ Failed:
 
 - (int)socket6FD
 {
-	if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
+	if (! dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
 	{
 		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
 				THIS_FILE, THIS_METHOD);
@@ -5135,7 +5135,7 @@ Failed:
 
 - (CFReadStreamRef)readStream
 {
-	if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
+	if (! dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
 	{
 		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
 				THIS_FILE, THIS_METHOD);
@@ -5159,7 +5159,7 @@ Failed:
 
 - (CFWriteStreamRef)writeStream
 {
-	if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
+	if (! dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
 	{
 		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
 				THIS_FILE, THIS_METHOD);
@@ -5181,7 +5181,7 @@ Failed:
 
 - (BOOL)enableBackgroundingOnSockets
 {
-	if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
+	if (! dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
 	{
 		LogWarn(@"%@: %@ - Method only available from within the context of a performBlock: invocation",
 				THIS_FILE, THIS_METHOD);
