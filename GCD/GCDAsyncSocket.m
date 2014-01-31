@@ -2506,6 +2506,7 @@ enum GCDAsyncSocketConfig
 	uint16_t port = [self connectedPort];
 	
 	__strong id theDelegate = delegate;
+
 	if (delegateQueue && [theDelegate respondsToSelector:@selector(socket:didConnectToHost:port:)])
 	{
 		SetupStreamsPart1();
@@ -2781,6 +2782,7 @@ enum GCDAsyncSocketConfig
 	if (shouldCallDelegate)
 	{
 		__strong id theDelegate = delegate;
+
 		if (delegateQueue && [theDelegate respondsToSelector: @selector(socketDidDisconnect:withError:)])
 		{
 			dispatch_async(delegateQueue, ^{ @autoreleasepool {
@@ -4837,8 +4839,9 @@ enum GCDAsyncSocketConfig
 	else if (totalBytesReadForCurrentRead > 0)
 	{
 		// We're not done read type #2 or #3 yet, but we have read in some bytes
-		
+
 		__strong id theDelegate = delegate;
+		
 		if (delegateQueue && [theDelegate respondsToSelector:@selector(socket:didReadPartialDataOfLength:tag:)])
 		{
 			long theReadTag = currentRead->tag;
@@ -4954,6 +4957,7 @@ enum GCDAsyncSocketConfig
 			// Notify the delegate that we're going half-duplex
 			
 			__strong id theDelegate = delegate;
+
 			if (delegateQueue && [theDelegate respondsToSelector:@selector(socketDidCloseReadStream:)])
 			{
 				dispatch_async(delegateQueue, ^{ @autoreleasepool {
@@ -5049,6 +5053,7 @@ enum GCDAsyncSocketConfig
 	}
 	
 	__strong id theDelegate = delegate;
+
 	if (delegateQueue && [theDelegate respondsToSelector:@selector(socket:didReadData:withTag:)])
 	{
 		GCDAsyncReadPacket *theRead = currentRead; // Ensure currentRead retained since result may not own buffer
@@ -5109,6 +5114,7 @@ enum GCDAsyncSocketConfig
 	flags |= kReadsPaused;
 	
 	__strong id theDelegate = delegate;
+
 	if (delegateQueue && [theDelegate respondsToSelector:@selector(socket:shouldTimeoutReadWithTag:elapsed:bytesDone:)])
 	{
 		GCDAsyncReadPacket *theRead = currentRead;
@@ -5650,6 +5656,7 @@ enum GCDAsyncSocketConfig
 			// We're not done with the entire write, but we have written some bytes
 			
 			__strong id theDelegate = delegate;
+
 			if (delegateQueue && [theDelegate respondsToSelector:@selector(socket:didWritePartialDataOfLength:tag:)])
 			{
 				long theWriteTag = currentWrite->tag;
@@ -5678,8 +5685,9 @@ enum GCDAsyncSocketConfig
 	
 	NSAssert(currentWrite, @"Trying to complete current write when there is no current write.");
 	
-	
+
 	__strong id theDelegate = delegate;
+	
 	if (delegateQueue && [theDelegate respondsToSelector:@selector(socket:didWriteDataWithTag:)])
 	{
 		long theWriteTag = currentWrite->tag;
@@ -5740,6 +5748,7 @@ enum GCDAsyncSocketConfig
 	flags |= kWritesPaused;
 	
 	__strong id theDelegate = delegate;
+
 	if (delegateQueue && [theDelegate respondsToSelector:@selector(socket:shouldTimeoutWriteWithTag:elapsed:bytesDone:)])
 	{
 		GCDAsyncWritePacket *theWrite = currentWrite;
@@ -6519,6 +6528,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		flags |=  kSocketSecure;
 		
 		__strong id theDelegate = delegate;
+
 		if (delegateQueue && [theDelegate respondsToSelector:@selector(socketDidSecure:)])
 		{
 			dispatch_async(delegateQueue, ^{ @autoreleasepool {
@@ -6566,10 +6576,10 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		
 		flags |= kSocketSecure;
 		
-		if (delegateQueue && [delegate respondsToSelector:@selector(socketDidSecure:)])
+		__strong id theDelegate = delegate;
+
+		if (delegateQueue && [theDelegate respondsToSelector:@selector(socketDidSecure:)])
 		{
-			__strong id theDelegate = delegate;
-		
 			dispatch_async(delegateQueue, ^{ @autoreleasepool {
 				
 				[theDelegate socketDidSecure:self];
