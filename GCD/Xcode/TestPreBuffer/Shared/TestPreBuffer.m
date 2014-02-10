@@ -59,7 +59,7 @@ static int randomSize2;
 	// Run unit tests
 	
 	[self test_preBuffer];
-	
+
 	// Setup benchmarks.
 	// 
 	// We're going to test a common pattern within GCDAsyncSocket, which is:
@@ -89,7 +89,7 @@ static int randomSize2;
 	// Test capacity, and initial size methods
 	
 	size_t capacity = [preBuffer availableSpace];
-	
+
 	NSAssert([preBuffer availableSpace] >= 1024, @"1A");
 	NSAssert([preBuffer availableBytes] == 0, @"1B");
 	
@@ -101,7 +101,7 @@ static int randomSize2;
 	writePointer1 = [preBuffer writeBuffer];
 	[preBuffer didWrite:512];
 	writePointer2 = [preBuffer writeBuffer];
-	
+
 	NSAssert(writePointer2 - writePointer1 == 512, @"2A");
 	NSAssert([preBuffer availableBytes] == 512, @"2B");
 	
@@ -113,7 +113,7 @@ static int randomSize2;
 	readPointer1 = [preBuffer readBuffer];
 	[preBuffer didRead:256];
 	readPointer2 = [preBuffer readBuffer];
-	
+
 	NSAssert(readPointer2 - readPointer1 == 256, @"3A");
 	NSAssert([preBuffer availableBytes] == 256, @"3B");
 	
@@ -121,7 +121,11 @@ static int randomSize2;
 	
 	NSAssert([preBuffer availableBytes] == 0, @"4A");
 	NSAssert([preBuffer availableSpace] == capacity, @"4B");
-	
+
+    // At this point, the buffer should have reset
+    NSAssert([preBuffer readBuffer] == [preBuffer writeBuffer], @"4C");
+    NSAssert([preBuffer availableSpace] == 1024, @"4D");
+
 	// Test write and read
 	
 	char *str = "test";
@@ -140,7 +144,20 @@ static int randomSize2;
 	NSAssert([preBuffer availableSpace] >= (capacity * 2), @"6A");
 	NSAssert([preBuffer availableBytes] == strLen, @"6B");
 	NSAssert(memcmp([preBuffer readBuffer], str, strLen) == 0, @"6C");
-	
+
+    // Test available space
+    [preBuffer reset];
+    size_t availableSpace = [preBuffer availableSpace];
+
+    // Make sure the available space is correct if we write all but 1 byte of our available space
+    size_t writeCount = availableSpace - 1;
+    [preBuffer didWrite:writeCount];
+    NSAssert([preBuffer availableSpace] == 1, @"7A");
+
+    // Make sure it doesn't change if we read some, but not all, of the data
+    [preBuffer didRead:writeCount - 1];
+    NSAssert([preBuffer availableSpace] == 1, @"7B");
+
 	NSLog(@"%@: passed", NSStringFromSelector(_cmd));
 }
 

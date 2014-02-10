@@ -385,7 +385,7 @@ enum GCDAsyncSocketConfig
 
 - (void)ensureCapacityForWrite:(size_t)numBytes
 {
-	size_t availableSpace = preBufferSize - (writePointer - readPointer);
+	size_t availableSpace = [self availableSpace];
 	
 	if (numBytes > availableSpace)
 	{
@@ -418,7 +418,7 @@ enum GCDAsyncSocketConfig
 - (void)getReadBuffer:(uint8_t **)bufferPtr availableBytes:(size_t *)availableBytesPtr
 {
 	if (bufferPtr) *bufferPtr = readPointer;
-	if (availableBytesPtr) *availableBytesPtr = writePointer - readPointer;
+	if (availableBytesPtr) *availableBytesPtr = [self availableBytes];
 }
 
 - (void)didRead:(size_t)bytesRead
@@ -435,7 +435,7 @@ enum GCDAsyncSocketConfig
 
 - (size_t)availableSpace
 {
-	return preBufferSize - (writePointer - readPointer);
+	return preBufferSize - (writePointer - preBuffer);
 }
 
 - (uint8_t *)writeBuffer
@@ -446,7 +446,7 @@ enum GCDAsyncSocketConfig
 - (void)getWriteBuffer:(uint8_t **)bufferPtr availableSpace:(size_t *)availableSpacePtr
 {
 	if (bufferPtr) *bufferPtr = writePointer;
-	if (availableSpacePtr) *availableSpacePtr = preBufferSize - (writePointer - readPointer);
+	if (availableSpacePtr) *availableSpacePtr = [self availableSpace];
 }
 
 - (void)didWrite:(size_t)bytesWritten
