@@ -14,7 +14,7 @@ static const int ddLogLevel = LOG_LEVEL_INFO;
   #define HOST @"www.paypal.com"
   #define PORT 443
 #else
-  #define HOST @"google.com";
+  #define HOST @"google.com"
   #define PORT 80
 #endif
 
