@@ -4293,10 +4293,12 @@ enum GCDAsyncUdpSocketConfig
 		struct sockaddr_in sockaddr4;
 		socklen_t sockaddr4len = sizeof(sockaddr4);
 		
-		size_t bufSize = MIN(max4ReceiveSize, socket4FDBytesAvailable);
+		// #222: GCD does not necessarily return the size of an entire UDP packet 
+		// from dispatch_source_get_data(), so we must use the maximum packet size.
+		size_t bufSize = max4ReceiveSize;
 		void *buf = malloc(bufSize);
 		
-		result = recvfrom(socket4FD, buf, bufSize, 0, (struct sockaddr *)&sockaddr4, &sockaddr4len);
+		result = recvfrom(socket4FD, buf, bufSize, MSG_WAITALL, (struct sockaddr *)&sockaddr4, &sockaddr4len);
 		LogVerbose(@"recvfrom(socket4FD) = %i", (int)result);
 		
 		if (result > 0)
