@@ -4298,7 +4298,7 @@ enum GCDAsyncUdpSocketConfig
 		size_t bufSize = max4ReceiveSize;
 		void *buf = malloc(bufSize);
 		
-		result = recvfrom(socket4FD, buf, bufSize, MSG_WAITALL, (struct sockaddr *)&sockaddr4, &sockaddr4len);
+		result = recvfrom(socket4FD, buf, bufSize, 0, (struct sockaddr *)&sockaddr4, &sockaddr4len);
 		LogVerbose(@"recvfrom(socket4FD) = %i", (int)result);
 		
 		if (result > 0)
