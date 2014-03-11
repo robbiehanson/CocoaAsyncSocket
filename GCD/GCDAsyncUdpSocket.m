@@ -4330,7 +4330,9 @@ enum GCDAsyncUdpSocketConfig
 		struct sockaddr_in6 sockaddr6;
 		socklen_t sockaddr6len = sizeof(sockaddr6);
 		
-		size_t bufSize = MIN(max6ReceiveSize, socket6FDBytesAvailable);
+		// #222: GCD does not necessarily return the size of an entire UDP packet 
+		// from dispatch_source_get_data(), so we must use the maximum packet size.
+		size_t bufSize = max6ReceiveSize;
 		void *buf = malloc(bufSize);
 		
 		result = recvfrom(socket6FD, buf, bufSize, 0, (struct sockaddr *)&sockaddr6, &sockaddr6len);
