@@ -4844,6 +4844,14 @@ enum GCDAsyncSocketConfig
 				[theDelegate socket:self didReadPartialDataOfLength:totalBytesReadForCurrentRead tag:theReadTag];
 			}});
 		}
+
+		// There may still be data sitting in the SecureTransport internal buffer
+		size_t sslInternalBufSize = 0;
+		SSLGetBufferedReadSize(sslContext, &sslInternalBufSize);
+		if (sslInternalBufSize)
+		{
+			[self doReadData] ;
+		}
 	}
 	
 	// Check for errors
