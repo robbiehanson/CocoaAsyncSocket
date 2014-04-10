@@ -133,10 +133,11 @@ enum GCDAsyncSocketFlags
 	kSocketSecure                  = 1 << 13,  // If set, socket is using secure communication via SSL/TLS
 	kSocketHasReadEOF              = 1 << 14,  // If set, we have read EOF from socket
 	kReadStreamClosed              = 1 << 15,  // If set, we've read EOF plus prebuffer has been drained
+	kDealloc                       = 1 << 16,  // If set, the socket is being deallocated
 #if TARGET_OS_IPHONE
-	kAddedStreamsToRunLoop         = 1 << 16,  // If set, CFStreams have been added to listener thread
-	kUsingCFStreamForTLS           = 1 << 17,  // If set, we're forced to use CFStream instead of SecureTransport
-	kSecureSocketHasBytesAvailable = 1 << 18,  // If set, CFReadStream has notified us of bytes available
+	kAddedStreamsToRunLoop         = 1 << 17,  // If set, CFStreams have been added to listener thread
+	kUsingCFStreamForTLS           = 1 << 18,  // If set, we're forced to use CFStream instead of SecureTransport
+	kSecureSocketHasBytesAvailable = 1 << 19,  // If set, CFReadStream has notified us of bytes available
 #endif
 };
 
@@ -151,164 +152,6 @@ enum GCDAsyncSocketConfig
 #if TARGET_OS_IPHONE
   static NSThread *cfstreamThread;  // Used for CFStreams
 #endif
-
-@interface GCDAsyncSocket ()
-{
-	uint32_t flags;
-	uint16_t config;
-	
-#if __has_feature(objc_arc_weak)
-	__weak id delegate;
-#else
-	__unsafe_unretained id delegate;
-#endif
-	dispatch_queue_t delegateQueue;
-	
-	int socket4FD;
-	int socket6FD;
-	int connectIndex;
-	NSData * connectInterface4;
-	NSData * connectInterface6;
-	
-	dispatch_queue_t socketQueue;
-	
-	dispatch_source_t accept4Source;
-	dispatch_source_t accept6Source;
-	dispatch_source_t connectTimer;
-	dispatch_source_t readSource;
-	dispatch_source_t writeSource;
-	dispatch_source_t readTimer;
-	dispatch_source_t writeTimer;
-	
-	NSMutableArray *readQueue;
-	NSMutableArray *writeQueue;
-	
-	GCDAsyncReadPacket *currentRead;
-	GCDAsyncWritePacket *currentWrite;
-	
-	unsigned long socketFDBytesAvailable;
-	
-	GCDAsyncSocketPreBuffer *preBuffer;
-		
-#if TARGET_OS_IPHONE
-	CFStreamClientContext streamContext;
-	CFReadStreamRef readStream;
-	CFWriteStreamRef writeStream;
-#endif
-#if SECURE_TRANSPORT_MAYBE_AVAILABLE
-	SSLContextRef sslContext;
-	GCDAsyncSocketPreBuffer *sslPreBuffer;
-	size_t sslWriteCachedLength;
-	OSStatus sslErrCode;
-#endif
-	
-	void *IsOnSocketQueueOrTargetQueueKey;
-	
-	id userData;
-}
-// Accepting
-- (BOOL)doAccept:(int)socketFD;
-
-// Connecting
-- (void)startConnectTimeout:(NSTimeInterval)timeout;
-- (void)endConnectTimeout;
-- (void)doConnectTimeout;
-- (void)lookup:(int)aConnectIndex host:(NSString *)host port:(uint16_t)port;
-- (void)lookup:(int)aConnectIndex didSucceedWithAddress4:(NSData *)address4 address6:(NSData *)address6;
-- (void)lookup:(int)aConnectIndex didFail:(NSError *)error;
-- (BOOL)connectWithAddress4:(NSData *)address4 address6:(NSData *)address6 error:(NSError **)errPtr;
-- (void)didConnect:(int)aConnectIndex;
-- (void)didNotConnect:(int)aConnectIndex error:(NSError *)error;
-
-// Disconnect
-- (void)closeWithError:(NSError *)error;
-- (void)maybeClose;
-
-// Errors
-- (NSError *)badConfigError:(NSString *)msg;
-- (NSError *)badParamError:(NSString *)msg;
-- (NSError *)gaiError:(int)gai_error;
-- (NSError *)errnoError;
-- (NSError *)errnoErrorWithReason:(NSString *)reason;
-- (NSError *)connectTimeoutError;
-- (NSError *)otherError:(NSString *)msg;
-
-// Diagnostics
-- (NSString *)connectedHost4;
-- (NSString *)connectedHost6;
-- (uint16_t)connectedPort4;
-- (uint16_t)connectedPort6;
-- (NSString *)localHost4;
-- (NSString *)localHost6;
-- (uint16_t)localPort4;
-- (uint16_t)localPort6;
-- (NSString *)connectedHostFromSocket4:(int)socketFD;
-- (NSString *)connectedHostFromSocket6:(int)socketFD;
-- (uint16_t)connectedPortFromSocket4:(int)socketFD;
-- (uint16_t)connectedPortFromSocket6:(int)socketFD;
-- (NSString *)localHostFromSocket4:(int)socketFD;
-- (NSString *)localHostFromSocket6:(int)socketFD;
-- (uint16_t)localPortFromSocket4:(int)socketFD;
-- (uint16_t)localPortFromSocket6:(int)socketFD;
-
-// Utilities
-- (void)getInterfaceAddress4:(NSMutableData **)addr4Ptr
-                    address6:(NSMutableData **)addr6Ptr
-             fromDescription:(NSString *)interfaceDescription
-                        port:(uint16_t)port;
-- (void)setupReadAndWriteSourcesForNewlyConnectedSocket:(int)socketFD;
-- (void)suspendReadSource;
-- (void)resumeReadSource;
-- (void)suspendWriteSource;
-- (void)resumeWriteSource;
-
-// Reading
-- (void)maybeDequeueRead;
-- (void)flushSSLBuffers;
-- (void)doReadData;
-- (void)doReadEOF;
-- (void)completeCurrentRead;
-- (void)endCurrentRead;
-- (void)setupReadTimerWithTimeout:(NSTimeInterval)timeout;
-- (void)doReadTimeout;
-- (void)doReadTimeoutWithExtension:(NSTimeInterval)timeoutExtension;
-
-// Writing
-- (void)maybeDequeueWrite;
-- (void)doWriteData;
-- (void)completeCurrentWrite;
-- (void)endCurrentWrite;
-- (void)setupWriteTimerWithTimeout:(NSTimeInterval)timeout;
-- (void)doWriteTimeout;
-- (void)doWriteTimeoutWithExtension:(NSTimeInterval)timeoutExtension;
-
-// Security
-- (void)maybeStartTLS;
-#if SECURE_TRANSPORT_MAYBE_AVAILABLE
-- (void)ssl_startTLS;
-- (void)ssl_continueSSLHandshake;
-#endif
-#if TARGET_OS_IPHONE
-- (void)cf_startTLS;
-#endif
-
-// CFStream
-#if TARGET_OS_IPHONE
-+ (void)startCFStreamThreadIfNeeded;
-- (BOOL)createReadAndWriteStream;
-- (BOOL)registerForStreamCallbacksIncludingReadWrite:(BOOL)includeReadWrite;
-- (BOOL)addStreamsToRunLoop;
-- (BOOL)openStreams;
-- (void)removeStreamsFromRunLoop;
-#endif
-
-// Class Methods
-+ (NSString *)hostFromSockaddr4:(const struct sockaddr_in *)pSockaddr4;
-+ (NSString *)hostFromSockaddr6:(const struct sockaddr_in6 *)pSockaddr6;
-+ (uint16_t)portFromSockaddr4:(const struct sockaddr_in *)pSockaddr4;
-+ (uint16_t)portFromSockaddr6:(const struct sockaddr_in6 *)pSockaddr6;
-
-@end
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark -
@@ -1002,6 +845,55 @@ enum GCDAsyncSocketConfig
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 @implementation GCDAsyncSocket
+{
+	uint32_t flags;
+	uint16_t config;
+	
+	__weak id delegate;
+	dispatch_queue_t delegateQueue;
+	
+	int socket4FD;
+	int socket6FD;
+	int connectIndex;
+	NSData * connectInterface4;
+	NSData * connectInterface6;
+	
+	dispatch_queue_t socketQueue;
+	
+	dispatch_source_t accept4Source;
+	dispatch_source_t accept6Source;
+	dispatch_source_t connectTimer;
+	dispatch_source_t readSource;
+	dispatch_source_t writeSource;
+	dispatch_source_t readTimer;
+	dispatch_source_t writeTimer;
+	
+	NSMutableArray *readQueue;
+	NSMutableArray *writeQueue;
+	
+	GCDAsyncReadPacket *currentRead;
+	GCDAsyncWritePacket *currentWrite;
+	
+	unsigned long socketFDBytesAvailable;
+	
+	GCDAsyncSocketPreBuffer *preBuffer;
+		
+#if TARGET_OS_IPHONE
+	CFStreamClientContext streamContext;
+	CFReadStreamRef readStream;
+	CFWriteStreamRef writeStream;
+#endif
+#if SECURE_TRANSPORT_MAYBE_AVAILABLE
+	SSLContextRef sslContext;
+	GCDAsyncSocketPreBuffer *sslPreBuffer;
+	size_t sslWriteCachedLength;
+	OSStatus sslErrCode;
+#endif
+	
+	void *IsOnSocketQueueOrTargetQueueKey;
+	
+	id userData;
+}
 
 - (id)init
 {
@@ -1088,6 +980,10 @@ enum GCDAsyncSocketConfig
 - (void)dealloc
 {
 	LogInfo(@"%@ - %@ (start)", THIS_METHOD, self);
+	
+	// Set dealloc flag.
+	// This is used by closeWithError to ensure we don't accidentally retain ourself.
+	flags |= kDealloc;
 	
 	if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
 	{
@@ -1635,7 +1531,14 @@ enum GCDAsyncSocketConfig
 			int socketFD = socket4FD;
 			dispatch_source_t acceptSource = accept4Source;
 			
+			__weak GCDAsyncSocket *weakSelf = self;
+			
 			dispatch_source_set_event_handler(accept4Source, ^{ @autoreleasepool {
+			#pragma clang diagnostic push
+			#pragma clang diagnostic warning "-Wimplicit-retain-self"
+				
+				__strong GCDAsyncSocket *strongSelf = weakSelf;
+				if (strongSelf == nil) return_from_block;
 				
 				LogVerbose(@"event4Block");
 				
@@ -1644,10 +1547,15 @@ enum GCDAsyncSocketConfig
 				
 				LogVerbose(@"numPendingConnections: %lu", numPendingConnections);
 				
-				while ([self doAccept:socketFD] && (++i < numPendingConnections));
+				while ([strongSelf doAccept:socketFD] && (++i < numPendingConnections));
+				
+			#pragma clang diagnostic pop
 			}});
 			
+			
 			dispatch_source_set_cancel_handler(accept4Source, ^{
+			#pragma clang diagnostic push
+			#pragma clang diagnostic warning "-Wimplicit-retain-self"
 				
 				#if !OS_OBJECT_USE_OBJC
 				LogVerbose(@"dispatch_release(accept4Source)");
@@ -1656,6 +1564,8 @@ enum GCDAsyncSocketConfig
 				
 				LogVerbose(@"close(socket4FD)");
 				close(socketFD);
+			
+			#pragma clang diagnostic pop
 			});
 			
 			LogVerbose(@"dispatch_resume(accept4Source)");
@@ -1669,7 +1579,14 @@ enum GCDAsyncSocketConfig
 			int socketFD = socket6FD;
 			dispatch_source_t acceptSource = accept6Source;
 			
+			__weak GCDAsyncSocket *weakSelf = self;
+			
 			dispatch_source_set_event_handler(accept6Source, ^{ @autoreleasepool {
+			#pragma clang diagnostic push
+			#pragma clang diagnostic warning "-Wimplicit-retain-self"
+				
+				__strong GCDAsyncSocket *strongSelf = weakSelf;
+				if (strongSelf == nil) return_from_block;
 				
 				LogVerbose(@"event6Block");
 				
@@ -1678,10 +1595,14 @@ enum GCDAsyncSocketConfig
 				
 				LogVerbose(@"numPendingConnections: %lu", numPendingConnections);
 				
-				while ([self doAccept:socketFD] && (++i < numPendingConnections));
+				while ([strongSelf doAccept:socketFD] && (++i < numPendingConnections));
+				
+			#pragma clang diagnostic pop
 			}});
 			
 			dispatch_source_set_cancel_handler(accept6Source, ^{
+			#pragma clang diagnostic push
+			#pragma clang diagnostic warning "-Wimplicit-retain-self"
 				
 				#if !OS_OBJECT_USE_OBJC
 				LogVerbose(@"dispatch_release(accept6Source)");
@@ -1690,6 +1611,8 @@ enum GCDAsyncSocketConfig
 				
 				LogVerbose(@"close(socket6FD)");
 				close(socketFD);
+				
+			#pragma clang diagnostic pop
 			});
 			
 			LogVerbose(@"dispatch_resume(accept6Source)");
@@ -1962,7 +1885,7 @@ enum GCDAsyncSocketConfig
 	NSString *interface = [inInterface copy];
 	
 	__block BOOL result = NO;
-	__block NSError *err = nil;
+	__block NSError *preConnectErr = nil;
 	
 	dispatch_block_t block = ^{ @autoreleasepool {
 		
@@ -1971,14 +1894,14 @@ enum GCDAsyncSocketConfig
 		if ([host length] == 0)
 		{
 			NSString *msg = @"Invalid host parameter (nil or \"\"). Should be a domain name or IP address string.";
-			err = [self badParamError:msg];
+			preConnectErr = [self badParamError:msg];
 			
 			return_from_block;
 		}
 		
 		// Run through standard pre-connect checks
 		
-		if (![self preConnectWithInterface:interface error:&err])
+		if (![self preConnectWithInterface:interface error:&preConnectErr])
 		{
 			return_from_block;
 		}
@@ -1997,10 +1920,50 @@ enum GCDAsyncSocketConfig
 		int aConnectIndex = connectIndex;
 		NSString *hostCpy = [host copy];
 		
+		__weak GCDAsyncSocket *weakSelf = self;
+		
 		dispatch_queue_t globalConcurrentQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 		dispatch_async(globalConcurrentQueue, ^{ @autoreleasepool {
+		#pragma clang diagnostic push
+		#pragma clang diagnostic warning "-Wimplicit-retain-self"
 			
-			[self lookup:aConnectIndex host:hostCpy port:port];
+			NSError *lookupErr = nil;
+			NSMutableArray *addresses = [GCDAsyncSocket lookupHost:hostCpy port:port error:&lookupErr];
+			
+			__strong GCDAsyncSocket *strongSelf = weakSelf;
+			if (strongSelf == nil) return_from_block;
+			
+			if (lookupErr)
+			{
+				dispatch_async(strongSelf->socketQueue, ^{ @autoreleasepool {
+					
+					[strongSelf lookup:aConnectIndex didFail:lookupErr];
+				}});
+			}
+			else
+			{
+				NSData *address4 = nil;
+				NSData *address6 = nil;
+				
+				for (NSData *address in addresses)
+				{
+					if (!address4 && [GCDAsyncSocket isIPv4Address:address])
+					{
+						address4 = address;
+					}
+					else if (!address6 && [GCDAsyncSocket isIPv6Address:address])
+					{
+						address6 = address;
+					}
+				}
+				
+				dispatch_async(strongSelf->socketQueue, ^{ @autoreleasepool {
+					
+					[strongSelf lookup:aConnectIndex didSucceedWithAddress4:address4 address6:address6];
+				}});
+			}
+			
+		#pragma clang diagnostic pop
 		}});
 		
 		[self startConnectTimeout:timeout];
@@ -2013,12 +1976,8 @@ enum GCDAsyncSocketConfig
 	else
 		dispatch_sync(socketQueue, block);
 	
-	if (result == NO)
-	{
-		if (errPtr)
-			*errPtr = err;
-	}
 	
+	if (errPtr) *errPtr = preConnectErr;
 	return result;
 }
 
@@ -2134,101 +2093,6 @@ enum GCDAsyncSocketConfig
 	}
 	
 	return result;
-}
-
-- (void)lookup:(int)aConnectIndex host:(NSString *)host port:(uint16_t)port
-{
-	LogTrace();
-	
-	// This method is executed on a global concurrent queue.
-	// It posts the results back to the socket queue.
-	// The lookupIndex is used to ignore the results if the connect operation was cancelled or timed out.
-	
-	NSError *error = nil;
-	
-	NSData *address4 = nil;
-	NSData *address6 = nil;
-	
-	
-	if ([host isEqualToString:@"localhost"] || [host isEqualToString:@"loopback"])
-	{
-		// Use LOOPBACK address
-		struct sockaddr_in nativeAddr;
-		nativeAddr.sin_len         = sizeof(struct sockaddr_in);
-		nativeAddr.sin_family      = AF_INET;
-		nativeAddr.sin_port        = htons(port);
-		nativeAddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-		memset(&(nativeAddr.sin_zero), 0, sizeof(nativeAddr.sin_zero));
-		
-		struct sockaddr_in6 nativeAddr6;
-		nativeAddr6.sin6_len       = sizeof(struct sockaddr_in6);
-		nativeAddr6.sin6_family    = AF_INET6;
-		nativeAddr6.sin6_port      = htons(port);
-		nativeAddr6.sin6_flowinfo  = 0;
-		nativeAddr6.sin6_addr      = in6addr_loopback;
-		nativeAddr6.sin6_scope_id  = 0;
-		
-		// Wrap the native address structures
-		address4 = [NSData dataWithBytes:&nativeAddr length:sizeof(nativeAddr)];
-		address6 = [NSData dataWithBytes:&nativeAddr6 length:sizeof(nativeAddr6)];
-	}
-	else
-	{
-		NSString *portStr = [NSString stringWithFormat:@"%hu", port];
-		
-		struct addrinfo hints, *res, *res0;
-		
-		memset(&hints, 0, sizeof(hints));
-		hints.ai_family   = PF_UNSPEC;
-		hints.ai_socktype = SOCK_STREAM;
-		hints.ai_protocol = IPPROTO_TCP;
-		
-		int gai_error = getaddrinfo([host UTF8String], [portStr UTF8String], &hints, &res0);
-		
-		if (gai_error)
-		{
-			error = [self gaiError:gai_error];
-		}
-		else
-		{
-			for(res = res0; res; res = res->ai_next)
-			{
-				if ((address4 == nil) && (res->ai_family == AF_INET))
-				{
-					// Found IPv4 address
-					// Wrap the native address structure
-					address4 = [NSData dataWithBytes:res->ai_addr length:res->ai_addrlen];
-				}
-				else if ((address6 == nil) && (res->ai_family == AF_INET6))
-				{
-					// Found IPv6 address
-					// Wrap the native address structure
-					address6 = [NSData dataWithBytes:res->ai_addr length:res->ai_addrlen];
-				}
-			}
-			freeaddrinfo(res0);
-			
-			if ((address4 == nil) && (address6 == nil))
-			{
-				error = [self gaiError:EAI_FAIL];
-			}
-		}
-	}
-	
-	if (error)
-	{
-		dispatch_async(socketQueue, ^{ @autoreleasepool {
-			
-			[self lookup:aConnectIndex didFail:error];
-		}});
-	}
-	else
-	{
-		dispatch_async(socketQueue, ^{ @autoreleasepool {
-			
-			[self lookup:aConnectIndex didSucceedWithAddress4:address4 address6:address6];
-		}});
-	}
 }
 
 - (void)lookup:(int)aConnectIndex didSucceedWithAddress4:(NSData *)address4 address6:(NSData *)address6
@@ -2391,26 +2255,36 @@ enum GCDAsyncSocketConfig
 	
 	int aConnectIndex = connectIndex;
 	
+	__weak GCDAsyncSocket *weakSelf = self;
+	
 	dispatch_queue_t globalConcurrentQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 	dispatch_async(globalConcurrentQueue, ^{
-		
+	#pragma clang diagnostic push
+	#pragma clang diagnostic warning "-Wimplicit-retain-self"
+	
 		int result = connect(socketFD, (const struct sockaddr *)[address bytes], (socklen_t)[address length]);
+		
+		__strong GCDAsyncSocket *strongSelf = weakSelf;
+		if (strongSelf == nil) return_from_block;
+		
 		if (result == 0)
 		{
-			dispatch_async(socketQueue, ^{ @autoreleasepool {
+			dispatch_async(strongSelf->socketQueue, ^{ @autoreleasepool {
 				
-				[self didConnect:aConnectIndex];
+				[strongSelf didConnect:aConnectIndex];
 			}});
 		}
 		else
 		{
-			NSError *error = [self errnoErrorWithReason:@"Error in connect() function"];
+			NSError *error = [strongSelf errnoErrorWithReason:@"Error in connect() function"];
 			
-			dispatch_async(socketQueue, ^{ @autoreleasepool {
+			dispatch_async(strongSelf->socketQueue, ^{ @autoreleasepool {
 				
-				[self didNotConnect:aConnectIndex error:error];
+				[strongSelf didNotConnect:aConnectIndex error:error];
 			}});
 		}
+		
+	#pragma clang diagnostic pop
 	});
 	
 	LogVerbose(@"Connecting...");
@@ -2570,16 +2444,30 @@ enum GCDAsyncSocketConfig
 	{
 		connectTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, socketQueue);
 		
+		__weak GCDAsyncSocket *weakSelf = self;
+		
 		dispatch_source_set_event_handler(connectTimer, ^{ @autoreleasepool {
+		#pragma clang diagnostic push
+		#pragma clang diagnostic warning "-Wimplicit-retain-self"
+		
+			__strong GCDAsyncSocket *strongSelf = weakSelf;
+			if (strongSelf == nil) return_from_block;
 			
-			[self doConnectTimeout];
+			[strongSelf doConnectTimeout];
+			
+		#pragma clang diagnostic pop
 		}});
 		
 		#if !OS_OBJECT_USE_OBJC
 		dispatch_source_t theConnectTimer = connectTimer;
 		dispatch_source_set_cancel_handler(connectTimer, ^{
+		#pragma clang diagnostic push
+		#pragma clang diagnostic warning "-Wimplicit-retain-self"
+			
 			LogVerbose(@"dispatch_release(connectTimer)");
 			dispatch_release(theConnectTimer);
+			
+		#pragma clang diagnostic pop
 		});
 		#endif
 		
@@ -2633,9 +2521,7 @@ enum GCDAsyncSocketConfig
 - (void)closeWithError:(NSError *)error
 {
 	LogTrace();
-	
 	NSAssert(dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey), @"Must be dispatched on socketQueue");
-	
 	
 	[self endConnectTimeout];
 	
@@ -2766,7 +2652,8 @@ enum GCDAsyncSocketConfig
 	
 	// If the client has passed the connect/accept method, then the connection has at least begun.
 	// Notify delegate that it is now ending.
-	BOOL shouldCallDelegate = (flags & kSocketStarted);
+	BOOL shouldCallDelegate = (flags & kSocketStarted) ? YES : NO;
+	BOOL isDeallocating = (flags & kDealloc) ? YES : NO;
 	
 	// Clear stored socket info and all flags (config remains as is)
 	socketFDBytesAvailable = 0;
@@ -2775,12 +2662,13 @@ enum GCDAsyncSocketConfig
 	if (shouldCallDelegate)
 	{
 		__strong id theDelegate = delegate;
-
+		__strong id theSelf = isDeallocating ? nil : self;
+		
 		if (delegateQueue && [theDelegate respondsToSelector: @selector(socketDidDisconnect:withError:)])
 		{
 			dispatch_async(delegateQueue, ^{ @autoreleasepool {
 				
-				[theDelegate socketDidDisconnect:self withError:error];
+				[theDelegate socketDidDisconnect:theSelf withError:error];
 			}});
 		}	
 	}
@@ -2900,7 +2788,7 @@ enum GCDAsyncSocketConfig
 	return [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketBadParamError userInfo:userInfo];
 }
 
-- (NSError *)gaiError:(int)gai_error
++ (NSError *)gaiError:(int)gai_error
 {
 	NSString *errMsg = [NSString stringWithCString:gai_strerror(gai_error) encoding:NSASCIIStringEncoding];
 	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
@@ -3617,25 +3505,41 @@ enum GCDAsyncSocketConfig
 	
 	// Setup event handlers
 	
+	__weak GCDAsyncSocket *weakSelf = self;
+	
 	dispatch_source_set_event_handler(readSource, ^{ @autoreleasepool {
+	#pragma clang diagnostic push
+	#pragma clang diagnostic warning "-Wimplicit-retain-self"
+		
+		__strong GCDAsyncSocket *strongSelf = weakSelf;
+		if (strongSelf == nil) return_from_block;
 		
 		LogVerbose(@"readEventBlock");
 		
-		socketFDBytesAvailable = dispatch_source_get_data(readSource);
-		LogVerbose(@"socketFDBytesAvailable: %lu", socketFDBytesAvailable);
+		strongSelf->socketFDBytesAvailable = dispatch_source_get_data(strongSelf->readSource);
+		LogVerbose(@"socketFDBytesAvailable: %lu", strongSelf->socketFDBytesAvailable);
 		
-		if (socketFDBytesAvailable > 0)
-			[self doReadData];
+		if (strongSelf->socketFDBytesAvailable > 0)
+			[strongSelf doReadData];
 		else
-			[self doReadEOF];
+			[strongSelf doReadEOF];
+		
+	#pragma clang diagnostic pop
 	}});
 	
 	dispatch_source_set_event_handler(writeSource, ^{ @autoreleasepool {
+	#pragma clang diagnostic push
+	#pragma clang diagnostic warning "-Wimplicit-retain-self"
+		
+		__strong GCDAsyncSocket *strongSelf = weakSelf;
+		if (strongSelf == nil) return_from_block;
 		
 		LogVerbose(@"writeEventBlock");
 		
-		flags |= kSocketCanAcceptBytes;
-		[self doWriteData];
+		strongSelf->flags |= kSocketCanAcceptBytes;
+		[strongSelf doWriteData];
+		
+	#pragma clang diagnostic pop
 	}});
 	
 	// Setup cancel handlers
@@ -3648,6 +3552,8 @@ enum GCDAsyncSocketConfig
 	#endif
 	
 	dispatch_source_set_cancel_handler(readSource, ^{
+	#pragma clang diagnostic push
+	#pragma clang diagnostic warning "-Wimplicit-retain-self"
 		
 		LogVerbose(@"readCancelBlock");
 		
@@ -3661,9 +3567,13 @@ enum GCDAsyncSocketConfig
 			LogVerbose(@"close(socketFD)");
 			close(socketFD);
 		}
+		
+	#pragma clang diagnostic pop
 	});
 	
 	dispatch_source_set_cancel_handler(writeSource, ^{
+	#pragma clang diagnostic push
+	#pragma clang diagnostic warning "-Wimplicit-retain-self"
 		
 		LogVerbose(@"writeCancelBlock");
 		
@@ -3677,6 +3587,8 @@ enum GCDAsyncSocketConfig
 			LogVerbose(@"close(socketFD)");
 			close(socketFD);
 		}
+		
+	#pragma clang diagnostic pop
 	});
 	
 	// We will not be able to read until data arrives.
@@ -5077,16 +4989,30 @@ enum GCDAsyncSocketConfig
 	{
 		readTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, socketQueue);
 		
+		__weak GCDAsyncSocket *weakSelf = self;
+		
 		dispatch_source_set_event_handler(readTimer, ^{ @autoreleasepool {
+		#pragma clang diagnostic push
+		#pragma clang diagnostic warning "-Wimplicit-retain-self"
 			
-			[self doReadTimeout];
+			__strong GCDAsyncSocket *strongSelf = weakSelf;
+			if (strongSelf == nil) return_from_block;
+			
+			[strongSelf doReadTimeout];
+			
+		#pragma clang diagnostic pop
 		}});
 		
 		#if !OS_OBJECT_USE_OBJC
 		dispatch_source_t theReadTimer = readTimer;
 		dispatch_source_set_cancel_handler(readTimer, ^{
+		#pragma clang diagnostic push
+		#pragma clang diagnostic warning "-Wimplicit-retain-self"
+			
 			LogVerbose(@"dispatch_release(readTimer)");
 			dispatch_release(theReadTimer);
+			
+		#pragma clang diagnostic pop
 		});
 		#endif
 		
@@ -5711,16 +5637,30 @@ enum GCDAsyncSocketConfig
 	{
 		writeTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, socketQueue);
 		
+		__weak GCDAsyncSocket *weakSelf = self;
+		
 		dispatch_source_set_event_handler(writeTimer, ^{ @autoreleasepool {
+		#pragma clang diagnostic push
+		#pragma clang diagnostic warning "-Wimplicit-retain-self"
 			
-			[self doWriteTimeout];
+			__strong GCDAsyncSocket *strongSelf = weakSelf;
+			if (strongSelf == nil) return_from_block;
+			
+			[strongSelf doWriteTimeout];
+			
+		#pragma clang diagnostic pop
 		}});
 		
 		#if !OS_OBJECT_USE_OBJC
 		dispatch_source_t theWriteTimer = writeTimer;
 		dispatch_source_set_cancel_handler(writeTimer, ^{
+		#pragma clang diagnostic push
+		#pragma clang diagnostic warning "-Wimplicit-retain-self"
+			
 			LogVerbose(@"dispatch_release(writeTimer)");
 			dispatch_release(theWriteTimer);
+			
+		#pragma clang diagnostic pop
 		});
 		#endif
 		
@@ -7299,8 +7239,103 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#pragma mark Class Methods
+#pragma mark Class Utilities
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
++ (NSMutableArray *)lookupHost:(NSString *)host port:(uint16_t)port error:(NSError **)errPtr
+{
+	LogTrace();
+	
+	NSMutableArray *addresses = nil;
+	NSError *error = nil;
+	
+	if ([host isEqualToString:@"localhost"] || [host isEqualToString:@"loopback"])
+	{
+		// Use LOOPBACK address
+		struct sockaddr_in nativeAddr4;
+		nativeAddr4.sin_len         = sizeof(struct sockaddr_in);
+		nativeAddr4.sin_family      = AF_INET;
+		nativeAddr4.sin_port        = htons(port);
+		nativeAddr4.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+		memset(&(nativeAddr4.sin_zero), 0, sizeof(nativeAddr4.sin_zero));
+		
+		struct sockaddr_in6 nativeAddr6;
+		nativeAddr6.sin6_len        = sizeof(struct sockaddr_in6);
+		nativeAddr6.sin6_family     = AF_INET6;
+		nativeAddr6.sin6_port       = htons(port);
+		nativeAddr6.sin6_flowinfo   = 0;
+		nativeAddr6.sin6_addr       = in6addr_loopback;
+		nativeAddr6.sin6_scope_id   = 0;
+		
+		// Wrap the native address structures
+		
+		NSData *address4 = [NSData dataWithBytes:&nativeAddr4 length:sizeof(nativeAddr4)];
+		NSData *address6 = [NSData dataWithBytes:&nativeAddr6 length:sizeof(nativeAddr6)];
+		
+		addresses = [NSMutableArray arrayWithCapacity:2];
+		[addresses addObject:address4];
+		[addresses addObject:address6];
+	}
+	else
+	{
+		NSString *portStr = [NSString stringWithFormat:@"%hu", port];
+		
+		struct addrinfo hints, *res, *res0;
+		
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_family   = PF_UNSPEC;
+		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_protocol = IPPROTO_TCP;
+		
+		int gai_error = getaddrinfo([host UTF8String], [portStr UTF8String], &hints, &res0);
+		
+		if (gai_error)
+		{
+			error = [self gaiError:gai_error];
+		}
+		else
+		{
+			NSUInteger capacity = 0;
+			for (res = res0; res; res = res->ai_next)
+			{
+				if (res->ai_family == AF_INET || res->ai_family == AF_INET6) {
+					capacity++;
+				}
+			}
+			
+			addresses = [NSMutableArray arrayWithCapacity:capacity];
+			
+			for (res = res0; res; res = res->ai_next)
+			{
+				if (res->ai_family == AF_INET)
+				{
+					// Found IPv4 address.
+					// Wrap the native address structure, and add to results.
+					
+					NSData *address4 = [NSData dataWithBytes:res->ai_addr length:res->ai_addrlen];
+					[addresses addObject:address4];
+				}
+				else if (res->ai_family == AF_INET6)
+				{
+					// Found IPv6 address.
+					// Wrap the native address structure, and add to results.
+					
+					NSData *address6 = [NSData dataWithBytes:res->ai_addr length:res->ai_addrlen];
+					[addresses addObject:address6];
+				}
+			}
+			freeaddrinfo(res0);
+			
+			if ([addresses count] == 0)
+			{
+				error = [self gaiError:EAI_FAIL];
+			}
+		}
+	}
+	
+	if (errPtr) *errPtr = error;
+	return addresses;
+}
 
 + (NSString *)hostFromSockaddr4:(const struct sockaddr_in *)pSockaddr4
 {
@@ -7356,7 +7391,40 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 		return 0;
 }
 
++ (BOOL)isIPv4Address:(NSData *)address
+{
+	if ([address length] >= sizeof(struct sockaddr))
+	{
+		const struct sockaddr *sockaddrX = [address bytes];
+		
+		if (sockaddrX->sa_family == AF_INET) {
+			return YES;
+		}
+	}
+	
+	return NO;
+}
+
++ (BOOL)isIPv6Address:(NSData *)address
+{
+	if ([address length] >= sizeof(struct sockaddr))
+	{
+		const struct sockaddr *sockaddrX = [address bytes];
+		
+		if (sockaddrX->sa_family == AF_INET6) {
+			return YES;
+		}
+	}
+	
+	return NO;
+}
+
 + (BOOL)getHost:(NSString **)hostPtr port:(uint16_t *)portPtr fromAddress:(NSData *)address
+{
+	return [self getHost:hostPtr port:portPtr family:NULL fromAddress:address];
+}
+
++ (BOOL)getHost:(NSString **)hostPtr port:(uint16_t *)portPtr family:(sa_family_t *)afPtr fromAddress:(NSData *)address
 {
 	if ([address length] >= sizeof(struct sockaddr))
 	{
@@ -7371,6 +7439,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 				
 				if (hostPtr) *hostPtr = [self hostFromSockaddr4:&sockaddr4];
 				if (portPtr) *portPtr = [self portFromSockaddr4:&sockaddr4];
+				if (afPtr)   *afPtr   = AF_INET;
 				
 				return YES;
 			}
@@ -7384,6 +7453,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 				
 				if (hostPtr) *hostPtr = [self hostFromSockaddr6:&sockaddr6];
 				if (portPtr) *portPtr = [self portFromSockaddr6:&sockaddr6];
+				if (afPtr)   *afPtr   = AF_INET6;
 				
 				return YES;
 			}
