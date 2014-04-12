@@ -77,6 +77,9 @@ extern NSString *const GCDAsyncSocketSSLDiffieHellmanParameters;
 #endif
 #endif
 
+#define GCDAsyncSocketLoggingContext 65535
+
+
 enum GCDAsyncSocketError
 {
 	GCDAsyncSocketNoError = 0,           // Never used

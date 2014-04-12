@@ -33,7 +33,11 @@
 #endif
 
 
-#if 0
+#ifndef GCDAsyncSocketLoggingEnabled
+#define GCDAsyncSocketLoggingEnabled 0
+#endif
+
+#if GCDAsyncSocketLoggingEnabled
 
 // Logging Enabled - See log level below
 
@@ -44,7 +48,7 @@
 #import "DDLog.h"
 
 #define LogAsync   YES
-#define LogContext 65535
+#define LogContext GCDAsyncSocketLoggingContext
 
 #define LogObjc(flg, frmt, ...) LOG_OBJC_MAYBE(LogAsync, logLevel, flg, LogContext, frmt, ##__VA_ARGS__)
 #define LogC(flg, frmt, ...)    LOG_C_MAYBE(LogAsync, logLevel, flg, LogContext, frmt, ##__VA_ARGS__)
@@ -62,8 +66,12 @@
 #define LogTrace()              LogObjc(LOG_FLAG_VERBOSE, @"%@: %@", THIS_FILE, THIS_METHOD)
 #define LogCTrace()             LogC(LOG_FLAG_VERBOSE, @"%@: %s", THIS_FILE, __FUNCTION__)
 
+#ifndef GCDAsyncSocketLogLevel
+#define GCDAsyncSocketLogLevel LOG_LEVEL_VERBOSE
+#endif
+
 // Log levels : off, error, warn, info, verbose
-static const int logLevel = LOG_LEVEL_VERBOSE;
+static const int logLevel = GCDAsyncSocketLogLevel;
 
 #else
 
