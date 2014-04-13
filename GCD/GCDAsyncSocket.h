@@ -125,16 +125,18 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 
 #pragma mark Configuration
 
-- (id)delegate;
-- (void)setDelegate:(id)delegate;
-- (void)synchronouslySetDelegate:(id)delegate;
-
-- (dispatch_queue_t)delegateQueue;
-- (void)setDelegateQueue:(dispatch_queue_t)delegateQueue;
-- (void)synchronouslySetDelegateQueue:(dispatch_queue_t)delegateQueue;
+@property (atomic, weak, readwrite) id delegate;
+@property (atomic, strong, readwrite) dispatch_queue_t delegateQueue;
 
 - (void)getDelegate:(id *)delegatePtr delegateQueue:(dispatch_queue_t *)delegateQueuePtr;
 - (void)setDelegate:(id)delegate delegateQueue:(dispatch_queue_t)delegateQueue;
+
+/**
+ * If you are setting the delegate to nil within the delegate's dealloc method,
+ * you may need to use the synchronous versions below.
+**/
+- (void)synchronouslySetDelegate:(id)delegate;
+- (void)synchronouslySetDelegateQueue:(dispatch_queue_t)delegateQueue;
 - (void)synchronouslySetDelegate:(id)delegate delegateQueue:(dispatch_queue_t)delegateQueue;
 
 /**
@@ -149,21 +151,17 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * If a DNS lookup returns both IPv4 and IPv6 results, the preferred protocol will be chosen.
  * By default, the preferred protocol is IPv4, but may be configured as desired.
 **/
-- (BOOL)isIPv4Enabled;
-- (void)setIPv4Enabled:(BOOL)flag;
 
-- (BOOL)isIPv6Enabled;
-- (void)setIPv6Enabled:(BOOL)flag;
+@property (atomic, assign, readwrite, getter=isIPv4Enabled) BOOL IPv4Enabled;
+@property (atomic, assign, readwrite, getter=isIPv6Enabled) BOOL IPv6Enabled;
 
-- (BOOL)isIPv4PreferredOverIPv6;
-- (void)setPreferIPv4OverIPv6:(BOOL)flag;
+@property (atomic, assign, readwrite, getter=isIPv4PreferredOverIPv6) BOOL IPv4PreferredOverIPv6;
 
 /**
  * User data allows you to associate arbitrary information with the socket.
  * This data is not used internally by socket in any way.
 **/
-- (id)userData;
-- (void)setUserData:(id)arbitraryUserData;
+@property (atomic, strong, readwrite) id userData;
 
 #pragma mark Accepting
 
@@ -363,41 +361,44 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * 
  * If a socket is in the process of connecting, it may be neither disconnected nor connected.
 **/
-- (BOOL)isDisconnected;
-- (BOOL)isConnected;
+@property (atomic, readonly) BOOL isDisconnected;
+@property (atomic, readonly) BOOL isConnected;
 
 /**
  * Returns the local or remote host and port to which this socket is connected, or nil and 0 if not connected.
  * The host will be an IP address.
 **/
-- (NSString *)connectedHost;
-- (uint16_t)connectedPort;
+@property (atomic, readonly) NSString *connectedHost;
+@property (atomic, readonly) uint16_t  connectedPort;
 
-- (NSString *)localHost;
-- (uint16_t)localPort;
+@property (atomic, readonly) NSString *localHost;
+@property (atomic, readonly) uint16_t  localPort;
 
 /**
  * Returns the local or remote address to which this socket is connected,
  * specified as a sockaddr structure wrapped in a NSData object.
  * 
- * See also the connectedHost, connectedPort, localHost and localPort methods.
+ * @seealso connectedHost
+ * @seealso connectedPort
+ * @seealso localHost
+ * @seealso localPort
 **/
-- (NSData *)connectedAddress;
-- (NSData *)localAddress;
+@property (atomic, readonly) NSData *connectedAddress;
+@property (atomic, readonly) NSData *localAddress;
 
 /**
  * Returns whether the socket is IPv4 or IPv6.
  * An accepting socket may be both.
 **/
-- (BOOL)isIPv4;
-- (BOOL)isIPv6;
+@property (atomic, readonly) BOOL isIPv4;
+@property (atomic, readonly) BOOL isIPv6;
 
 /**
  * Returns whether or not the socket has been secured via SSL/TLS.
  * 
  * See also the startTLS method.
 **/
-- (BOOL)isSecure;
+@property (atomic, readonly) BOOL isSecure;
 
 #pragma mark Reading
 
@@ -750,8 +751,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * 
  * The default value is YES.
 **/
-- (BOOL)autoDisconnectOnClosedReadStream;
-- (void)setAutoDisconnectOnClosedReadStream:(BOOL)flag;
+@property (atomic, assign, readwrite) BOOL autoDisconnectOnClosedReadStream;
 
 /**
  * GCDAsyncSocket maintains thread safety by using an internal serial dispatch_queue.

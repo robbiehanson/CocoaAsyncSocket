@@ -1272,7 +1272,7 @@ enum GCDAsyncSocketConfig
 	}
 }
 
-- (void)setPreferIPv4OverIPv6:(BOOL)flag
+- (void)setIPv4PreferredOverIPv6:(BOOL)flag
 {
 	// Note: YES means kPreferIPv6 is OFF
 	
