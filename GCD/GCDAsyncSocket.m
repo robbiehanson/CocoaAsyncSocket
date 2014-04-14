@@ -113,14 +113,12 @@ NSString *const GCDAsyncSocketErrorDomain = @"GCDAsyncSocketErrorDomain";
 NSString *const GCDAsyncSocketQueueName = @"GCDAsyncSocket";
 NSString *const GCDAsyncSocketThreadName = @"GCDAsyncSocket-CFStream";
 
-#if SECURE_TRANSPORT_MAYBE_AVAILABLE
 NSString *const GCDAsyncSocketSSLCipherSuites = @"GCDAsyncSocketSSLCipherSuites";
 #if TARGET_OS_IPHONE
 NSString *const GCDAsyncSocketSSLProtocolVersionMin = @"GCDAsyncSocketSSLProtocolVersionMin";
 NSString *const GCDAsyncSocketSSLProtocolVersionMax = @"GCDAsyncSocketSSLProtocolVersionMax";
 #else
 NSString *const GCDAsyncSocketSSLDiffieHellmanParameters = @"GCDAsyncSocketSSLDiffieHellmanParameters";
-#endif
 #endif
 
 enum GCDAsyncSocketFlags
@@ -891,12 +889,10 @@ enum GCDAsyncSocketConfig
 	CFReadStreamRef readStream;
 	CFWriteStreamRef writeStream;
 #endif
-#if SECURE_TRANSPORT_MAYBE_AVAILABLE
 	SSLContextRef sslContext;
 	GCDAsyncSocketPreBuffer *sslPreBuffer;
 	size_t sslWriteCachedLength;
 	OSStatus sslErrCode;
-#endif
 	
 	void *IsOnSocketQueueOrTargetQueueKey;
 	
@@ -2564,28 +2560,25 @@ enum GCDAsyncSocketConfig
 		}
 	}
 	#endif
-	#if SECURE_TRANSPORT_MAYBE_AVAILABLE
+	
+	[sslPreBuffer reset];
+	sslErrCode = noErr;
+	
+	if (sslContext)
 	{
-		[sslPreBuffer reset];
-		sslErrCode = noErr;
+		// Getting a linker error here about the SSLx() functions?
+		// You need to add the Security Framework to your application.
 		
-		if (sslContext)
-		{
-			// Getting a linker error here about the SSLx() functions?
-			// You need to add the Security Framework to your application.
-			
-			SSLClose(sslContext);
-			
-			#if TARGET_OS_IPHONE
-			CFRelease(sslContext);
-			#else
-			SSLDisposeContext(sslContext);
-			#endif
-			
-			sslContext = NULL;
-		}
+		SSLClose(sslContext);
+		
+		#if TARGET_OS_IPHONE
+		CFRelease(sslContext);
+		#else
+		SSLDisposeContext(sslContext);
+		#endif
+		
+		sslContext = NULL;
 	}
-	#endif
 	
 	// For some crazy reason (in my opinion), cancelling a dispatch source doesn't
 	// invoke the cancel handler if the dispatch source is paused.
@@ -3634,12 +3627,10 @@ enum GCDAsyncSocketConfig
 - (BOOL)usingSecureTransportForTLS
 {
 	#if TARGET_OS_IPHONE
-	{
 		return ![self usingCFStreamForTLS];
-	}
+	#else
+		return YES;
 	#endif
-	
-	return YES;
 }
 
 - (void)suspendReadSource
@@ -3987,7 +3978,7 @@ enum GCDAsyncSocketConfig
 		return;
 	}
 	
-#if TARGET_OS_IPHONE
+	#if TARGET_OS_IPHONE
 	
 	if ([self usingCFStreamForTLS])
 	{
@@ -4015,8 +4006,7 @@ enum GCDAsyncSocketConfig
 		return;
 	}
 	
-#endif
-#if SECURE_TRANSPORT_MAYBE_AVAILABLE
+	#endif
 	
 	__block NSUInteger estimatedBytesAvailable = 0;
 	
@@ -4081,8 +4071,6 @@ enum GCDAsyncSocketConfig
 			
 		} while (!done && estimatedBytesAvailable > 0);
 	}
-	
-#endif
 }
 
 - (void)doReadData
@@ -4159,8 +4147,6 @@ enum GCDAsyncSocketConfig
 	{
 		estimatedBytesAvailable = socketFDBytesAvailable;
 		
-		#if SECURE_TRANSPORT_MAYBE_AVAILABLE
-		
 		if (flags & kSocketSecure)
 		{
 			// There are 2 buffers to be aware of here.
@@ -4197,8 +4183,6 @@ enum GCDAsyncSocketConfig
 			estimatedBytesAvailable += sslInternalBufSize;
 		}
 		
-		#endif
-		
 		hasBytesAvailable = (estimatedBytesAvailable > 0);
 	}
 	
@@ -4228,14 +4212,10 @@ enum GCDAsyncSocketConfig
 		{
 			if ([self usingSecureTransportForTLS])
 			{
-				#if SECURE_TRANSPORT_MAYBE_AVAILABLE
-			
 				// We are in the process of a SSL Handshake.
 				// We were waiting for incoming data which has just arrived.
 				
 				[self ssl_continueSSLHandshake];
-			
-				#endif
 			}
 		}
 		else
@@ -4459,8 +4439,6 @@ enum GCDAsyncSocketConfig
 			}
 			else
 			{
-				#if SECURE_TRANSPORT_MAYBE_AVAILABLE
-					
 				// The documentation from Apple states:
 				// 
 				//     "a read operation might return errSSLWouldBlock,
@@ -4514,8 +4492,6 @@ enum GCDAsyncSocketConfig
 				
 				// Do not modify socketFDBytesAvailable.
 				// It will be updated via the SSLReadFunction().
-				
-				#endif
 			}
 		}
 		else
@@ -4817,9 +4793,7 @@ enum GCDAsyncSocketConfig
 		
 		if ([self usingSecureTransportForTLS])
 		{
-			#if SECURE_TRANSPORT_MAYBE_AVAILABLE
 			error = [self sslError:errSSLClosedAbort];
-			#endif
 		}
 	}
 	else if (flags & kReadStreamClosed)
@@ -4894,25 +4868,21 @@ enum GCDAsyncSocketConfig
 	{
 		if (error == nil)
 		{
-			#if SECURE_TRANSPORT_MAYBE_AVAILABLE
-				if ([self usingSecureTransportForTLS])
+			if ([self usingSecureTransportForTLS])
+			{
+				if (sslErrCode != noErr && sslErrCode != errSSLClosedGraceful)
 				{
-					if (sslErrCode != noErr && sslErrCode != errSSLClosedGraceful)
-					{
-						error = [self sslError:sslErrCode];
-					}
-					else
-					{
-						error = [self connectionClosedError];
-					}
+					error = [self sslError:sslErrCode];
 				}
 				else
 				{
 					error = [self connectionClosedError];
 				}
-			#else
-					error = [self connectionClosedError];
-			#endif
+			}
+			else
+			{
+				error = [self connectionClosedError];
+			}
 		}
 		[self closeWithError:error];
 	}
@@ -5273,14 +5243,10 @@ enum GCDAsyncSocketConfig
 		{
 			if ([self usingSecureTransportForTLS])
 			{
-				#if SECURE_TRANSPORT_MAYBE_AVAILABLE
-			
 				// We are in the process of a SSL Handshake.
 				// We were waiting for available space in the socket's internal OS buffer to continue writing.
 			
 				[self ssl_continueSSLHandshake];
-			
-				#endif
 			}
 		}
 		else
@@ -5345,8 +5311,6 @@ enum GCDAsyncSocketConfig
 		}
 		else
 		{
-			#if SECURE_TRANSPORT_MAYBE_AVAILABLE
-			
 			// We're going to use the SSLWrite function.
 			// 
 			// OSStatus SSLWrite(SSLContextRef context, const void *data, size_t dataLength, size_t *processed)
@@ -5477,8 +5441,6 @@ enum GCDAsyncSocketConfig
 				} // while (keepLooping)
 				
 			} // if (hasNewDataToWrite)
-		
-			#endif
 		}
 	}
 	else
@@ -5818,11 +5780,9 @@ enum GCDAsyncSocketConfig
 		}
 		#endif
 		
-		if (IS_SECURE_TRANSPORT_AVAILABLE && canUseSecureTransport)
+		if (canUseSecureTransport)
 		{
-		#if SECURE_TRANSPORT_MAYBE_AVAILABLE
 			[self ssl_startTLS];
-		#endif
 		}
 		else
 		{
@@ -5836,8 +5796,6 @@ enum GCDAsyncSocketConfig
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Security via SecureTransport
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#if SECURE_TRANSPORT_MAYBE_AVAILABLE
 
 - (OSStatus)sslReadWithBuffer:(void *)buffer length:(size_t *)bufferLength
 {
@@ -6559,8 +6517,6 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		[self closeWithError:[self sslError:status]];
 	}
 }
-
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Security via CFStream
@@ -7293,8 +7249,6 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 
 #endif
 
-#if SECURE_TRANSPORT_MAYBE_AVAILABLE
-
 - (SSLContextRef)sslContext
 {
 	if (!dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
@@ -7305,8 +7259,6 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	
 	return sslContext;
 }
-
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Class Utilities

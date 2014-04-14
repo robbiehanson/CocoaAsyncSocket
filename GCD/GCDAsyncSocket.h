@@ -21,62 +21,18 @@
 @class GCDAsyncWritePacket;
 @class GCDAsyncSocketPreBuffer;
 
-#if TARGET_OS_IPHONE
-
-  // Compiling for iOS
-
-  #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 50000 // iOS 5.0 supported
-  
-    #if __IPHONE_OS_VERSION_MIN_REQUIRED >= 50000 // iOS 5.0 supported and required
-
-      #define IS_SECURE_TRANSPORT_AVAILABLE      YES
-      #define SECURE_TRANSPORT_MAYBE_AVAILABLE   1
-      #define SECURE_TRANSPORT_MAYBE_UNAVAILABLE 0
-
-    #else                                         // iOS 5.0 supported but not required
-
-      #ifndef NSFoundationVersionNumber_iPhoneOS_5_0
-        #define NSFoundationVersionNumber_iPhoneOS_5_0 881.00
-      #endif
-
-      #define IS_SECURE_TRANSPORT_AVAILABLE     (NSFoundationVersionNumber >= NSFoundationVersionNumber_iPhoneOS_5_0)
-      #define SECURE_TRANSPORT_MAYBE_AVAILABLE   1
-      #define SECURE_TRANSPORT_MAYBE_UNAVAILABLE 1
-
-    #endif
-
-  #else                                        // iOS 5.0 not supported
-
-    #define IS_SECURE_TRANSPORT_AVAILABLE      NO
-    #define SECURE_TRANSPORT_MAYBE_AVAILABLE   0
-    #define SECURE_TRANSPORT_MAYBE_UNAVAILABLE 1
-
-  #endif
-
-#else
-
-  // Compiling for Mac OS X
-
-  #define IS_SECURE_TRANSPORT_AVAILABLE      YES
-  #define SECURE_TRANSPORT_MAYBE_AVAILABLE   1
-  #define SECURE_TRANSPORT_MAYBE_UNAVAILABLE 0
-
-#endif
-
 extern NSString *const GCDAsyncSocketException;
 extern NSString *const GCDAsyncSocketErrorDomain;
 
 extern NSString *const GCDAsyncSocketQueueName;
 extern NSString *const GCDAsyncSocketThreadName;
 
-#if SECURE_TRANSPORT_MAYBE_AVAILABLE
 extern NSString *const GCDAsyncSocketSSLCipherSuites;
 #if TARGET_OS_IPHONE
 extern NSString *const GCDAsyncSocketSSLProtocolVersionMin;
 extern NSString *const GCDAsyncSocketSSLProtocolVersionMax;
 #else
 extern NSString *const GCDAsyncSocketSSLDiffieHellmanParameters;
-#endif
 #endif
 
 #define GCDAsyncSocketLoggingContext 65535
@@ -923,8 +879,6 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 
 #endif
 
-#if SECURE_TRANSPORT_MAYBE_AVAILABLE
-
 /**
  * This method is only available from within the context of a performBlock: invocation.
  * See the documentation for the performBlock: method above.
@@ -932,8 +886,6 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * Provides access to the socket's SSLContext, if SSL/TLS has been started on the socket.
 **/
 - (SSLContextRef)sslContext;
-
-#endif
 
 #pragma mark Utilities
 
@@ -1113,7 +1065,6 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 **/
 - (void)socketDidSecure:(GCDAsyncSocket *)sock;
 
-#if SECURE_TRANSPORT_MAYBE_AVAILABLE
 /**
  * Called to determine if the -socket:shouldTrustPeer: callback should be enabled.
  * Returning YES here will set the SSL session option kSSLSessionOptionBreakOnServerAuth.
@@ -1133,5 +1084,5 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * and closes the connection.
 **/
 - (BOOL)socket:(GCDAsyncSocket *)sock shouldTrustPeer:(SecTrustRef)trust;
-#endif
+
 @end
