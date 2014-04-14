@@ -12,7 +12,6 @@
 #import <Security/Security.h>
 #import <Security/SecureTransport.h>
 #import <dispatch/dispatch.h>
-#import <TargetConditionals.h>
 #import <Availability.h>
 
 #include <sys/socket.h> // AF_INET, AF_INET6
@@ -27,11 +26,15 @@ extern NSString *const GCDAsyncSocketErrorDomain;
 extern NSString *const GCDAsyncSocketQueueName;
 extern NSString *const GCDAsyncSocketThreadName;
 
-extern NSString *const GCDAsyncSocketSSLCipherSuites;
+extern NSString *const GCDAsyncSocketManuallyEvaluateTrust;
 #if TARGET_OS_IPHONE
+extern NSString *const GCDAsyncSocketUseCFStreamForTLS;
+#endif
+
+extern NSString *const GCDAsyncSocketSSLCipherSuites;
 extern NSString *const GCDAsyncSocketSSLProtocolVersionMin;
 extern NSString *const GCDAsyncSocketSSLProtocolVersionMax;
-#else
+#if !TARGET_OS_IPHONE
 extern NSString *const GCDAsyncSocketSSLDiffieHellmanParameters;
 #endif
 
@@ -629,31 +632,61 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * the upgrade to TLS at the same time, without having to wait for the write to finish.
  * Any reads or writes scheduled after this method is called will occur over the secured connection.
  * 
- * The possible keys and values for the TLS settings are well documented.
- * Standard keys are:
- * 
- * - kCFStreamSSLLevel
- * - kCFStreamSSLAllowsExpiredCertificates
- * - kCFStreamSSLAllowsExpiredRoots
- * - kCFStreamSSLAllowsAnyRoot
- * - kCFStreamSSLValidatesCertificateChain
+ * The available keys are:
+ *
  * - kCFStreamSSLPeerName
+ *     The value must be of type NSString.
+ *     It should match the name in the X.509 certificate given by the remote party.
+ *     See the documentation for SSLSetPeerDomainName.
+ *
  * - kCFStreamSSLCertificates
+ *     The value must be of type NSArray.
+ *     See the documentation for SSLSetCertificate.
+ *
  * - kCFStreamSSLIsServer
- * 
- * If SecureTransport is available on iOS:
- * 
+ *     The value must be of type NSNumber, encapsulationg a BOOL value.
+ *     See the documentation for SSLCreateContext for iOS.
+ *     This is optional for iOS. If not supplied, a NO value is the default.
+ *     This is not needed for Mac OS X, and the value is ignored.
+ *
  * - GCDAsyncSocketSSLCipherSuites
+ *     The values must be of type NSArray.
+ *     Each item within the array must be a NSNumber, encapsulating 
+ *     See the documentation for SSLSetEnabledCiphers.
+ *     See also the SSLCipherSuite typedef.
+ *
  * - GCDAsyncSocketSSLProtocolVersionMin
  * - GCDAsyncSocketSSLProtocolVersionMax
+ *     The value(s) must be of type NSNumber, encapsulting a SSLProtocol value.
+ *     See the documentation for SSLSetProtocolVersionMin & SSLSetProtocolVersionMax.
+ *     See also the SSLProtocol typedef.
+ *
+ * - GCDAsyncSocketSSLDiffieHellmanParameters () [Mac OS X only]
  * 
- * If SecureTransport is available on Mac OS X:
+ * The following keys are NOT available (and with throw an exception):
  * 
- * - GCDAsyncSocketSSLCipherSuites
- * - GCDAsyncSocketSSLDiffieHellmanParameters;
+ * - kCFStreamSSLAllowsAnyRoot (UNAVAILABLE)
+ *     You MUST use manualTrustEvaluation.
+ *     Corresponding deprecated method: SSLSetAllowsAnyRoot
  * 
+ * - kCFStreamSSLAllowsExpiredRoots (UNAVAILABLE)
+ *     You MUST use manualTrustEvaluation.
+ *     Corresponding deprecated method: SSLSetAllowsExpiredRoots
+ *
+ * - kCFStreamSSLAllowsExpiredCertificates (UNAVAILABLE)
+ *     You MUST use manualTrustEvaluation.
+ *     Corresponding deprecated method: SSLSetAllowsExpiredCerts
+ *
+ * - kCFStreamSSLValidatesCertificateChain (UNAVAILABLE)
+ *     You MUST use manualTrustEvaluation.
+ *     Corresponding deprecated method: SSLSetEnableCertVerify
+ *
+ * - kCFStreamSSLLevel (UNAVAILABLE)
+ *     You MUST use GCDAsyncSocketSSLProtocolVersionMin / Max instead.
+ *     Corresponding deprecated method: SSLSetProtocolVersionEnabled
+ *
  * 
- * Please refer to Apple's documentation for associated values, as well as other possible keys.
+ * Please refer to Apple's documentation for corresponding SSLFunctions.
  * 
  * If you pass in nil or an empty dictionary, the default settings will be used.
  * 
@@ -668,11 +701,9 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * the default settings will not detect any problems since the certificate is valid.
  * To properly secure your connection in this particular scenario you
  * should set the kCFStreamSSLPeerName property to "MySecureServer.com".
- * If you do not know the peer name of the remote host in advance (for example, you're not sure
- * if it will be "domain.com" or "www.domain.com"), then you can use the default settings to validate the
- * certificate, and then use the X509Certificate class to verify the issuer after the socket has been secured.
- * The X509Certificate class is part of the CocoaAsyncSocket open source project.
- **/
+ * 
+ * You can also perform additional validation via the certificate provided in socketDidSecure.
+**/
 - (void)startTLS:(NSDictionary *)tlsSettings;
 
 #pragma mark Advanced
@@ -1066,22 +1097,14 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 - (void)socketDidSecure:(GCDAsyncSocket *)sock;
 
 /**
- * Called to determine if the -socket:shouldTrustPeer: callback should be enabled.
- * Returning YES here will set the SSL session option kSSLSessionOptionBreakOnServerAuth.
- *
- * NOTE: Currently only implemented for client sockets. Returning YES in server socket
- * will terminate the connection.
-**/
-- (BOOL)socketShouldManuallyEvaluateTrust:(GCDAsyncSocket *)sock;
-
-/**
  * Allows a socket delegate to hook into the TLS handshake and manually validate
  * the peer it's connecting to.
  *
- * This is only called if -socketShouldManuallyEvaluateTrust: returns YES.
+ * This is only called if startTLS is invoked with options that include:
+ * - GCDAsyncSocketManuallyEvaluateTrust == YES
  *
- * Returning YES continues the SSL handshake, returning NO terminates the handshake
- * and closes the connection.
+ * Returning YES continues the SSL handshake.
+ * Returning NO terminates the handshake and closes the connection.
 **/
 - (BOOL)socket:(GCDAsyncSocket *)sock shouldTrustPeer:(SecTrustRef)trust;
 
