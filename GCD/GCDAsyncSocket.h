@@ -1113,4 +1113,25 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 **/
 - (void)socketDidSecure:(GCDAsyncSocket *)sock;
 
+#if SECURE_TRANSPORT_MAYBE_AVAILABLE
+/**
+ * Called to determine if the -socket:shouldTrustPeer: callback should be enabled.
+ * Returning YES here will set the SSL session option kSSLSessionOptionBreakOnServerAuth.
+ *
+ * NOTE: Currently only implemented for client sockets. Returning YES in server socket
+ * will terminate the connection.
+**/
+- (BOOL)socketShouldManuallyEvaluateTrust:(GCDAsyncSocket *)sock;
+
+/**
+ * Allows a socket delegate to hook into the TLS handshake and manually validate
+ * the peer it's connecting to.
+ *
+ * This is only called if -socketShouldManuallyEvaluateTrust: returns YES.
+ *
+ * Returning YES continues the SSL handshake, returning NO terminates the handshake
+ * and closes the connection.
+**/
+- (BOOL)socket:(GCDAsyncSocket *)sock shouldTrustPeer:(SecTrustRef)trust;
+#endif
 @end
