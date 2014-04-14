@@ -2829,6 +2829,15 @@ enum GCDAsyncSocketConfig
 	return [NSError errorWithDomain:@"kCFStreamErrorDomainSSL" code:ssl_error userInfo:userInfo];
 }
 
+- (NSError *)sslError:(OSStatus)ssl_error peerCertificateDER:(NSData *)peerCertificateDER
+{
+    NSParameterAssert(peerCertificateDER != NULL);
+    NSString *msg = @"Error code definition can be found in Apple's SecureTransport.h";
+    NSDictionary *userInfo = @{NSLocalizedRecoverySuggestionErrorKey : msg,
+                               @"peerCertificateDER" : peerCertificateDER};
+    return [NSError errorWithDomain:@"kCFStreamErrorDomainSSL" code:ssl_error userInfo:userInfo];
+}
+
 - (NSError *)connectTimeoutError
 {
 	NSString *errMsg = NSLocalizedStringWithDefaultValue(@"GCDAsyncSocketConnectTimeoutError",
@@ -6497,7 +6506,27 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	}
 	else
 	{
-		[self closeWithError:[self sslError:status]];
+        NSData *certData = nil;
+        SecTrustRef trust = NULL;
+        SSLCopyPeerTrust(sslContext, &trust);
+        if (trust) {
+            CFIndex count = SecTrustGetCertificateCount(trust);
+            if (count == 1) {
+                SecCertificateRef cert = SecTrustGetCertificateAtIndex(trust, 0);
+                CFDataRef certDataRef = SecCertificateCopyData(cert);
+                certData = CFBridgingRelease(certDataRef);
+            } else {
+                LogWarn(@"Got too many peer certificated (expected 1 got %d)", count);
+            }
+            CFRelease(trust);
+        }
+        NSError *error;
+        if (certData) {
+            error = [self sslError:status peerCertificateDER:certData];
+        } else {
+            error = [self sslError:status];
+        }
+        [self closeWithError:error];
 	}
 }
 
