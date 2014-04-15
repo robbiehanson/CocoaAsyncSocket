@@ -631,8 +631,43 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * are finished. This allows one the option of sending a protocol dependent StartTLS message, and queuing
  * the upgrade to TLS at the same time, without having to wait for the write to finish.
  * Any reads or writes scheduled after this method is called will occur over the secured connection.
+ *
+ * ==== The available TOP-LEVEL KEYS are:
  * 
- * The available keys are:
+ * - GCDAsyncSocketManuallyEvaluateTrust
+ *     The value must be of type NSNumber, encapsulating a BOOL value.
+ *     If you set this to YES, then the underlying SecureTransport system will not evaluate the SecTrustRef of the peer.
+ *     Instead it will pause at the moment evaulation would typically occur,
+ *     and allow us to handle the security evaluation however we see fit.
+ *     So GCDAsyncSocket will invoke the delegate method socket:shouldTrustPeer: passing the SecTrustRef.
+ *
+ *     Note that if you set this option, then all other configuration keys are ignored.
+ *     Evaluation will be completely up to you during the socket:shouldTrustPeer: delegate method.
+ *     
+ *     For more information on trust evaluation see:
+ *     Apple's Technical Note TN2232 - HTTPS Server Trust Evaluation
+ *     https://developer.apple.com/library/ios/technotes/tn2232/_index.html
+ *     
+ *     If unspecified, the default value is NO.
+ *
+ * - GCDAsyncSocketUseCFStreamForTLS (iOS only)
+ *     The value must be of type NSNumber, encapsulating a BOOL value.
+ *     By default GCDAsyncSocket will use the SecureTransport layer to perform encryption.
+ *     This gives us more control over the security protocol (many more configuration options),
+ *     plus it allows us to optimize things like sys calls and buffer allocation.
+ *     
+ *     However, if you absolutely must, you can instruct GCDAsyncSocket to use the old-fashioned encryption
+ *     technique by going through the CFStream instead. So instead of using SecureTransport, GCDAsyncSocket
+ *     will instead setup a CFRead/CFWriteStream. And then set the kCFStreamPropertySSLSettings property
+ *     (via CFReadStreamSetProperty / CFWriteStreamSetProperty) and will pass the given options to this method.
+ *     
+ *     Thus all the other keys in the given dictionary will be ignored by GCDAsyncSocket,
+ *     and will passed directly CFReadStreamSetProperty / CFWriteStreamSetProperty.
+ *     For more infomation on these keys, please see the documentation for kCFStreamPropertySSLSettings.
+ *
+ *     If unspecified, the default value is NO.
+ *
+ * ==== The available CONFIGURATION KEYS are:
  *
  * - kCFStreamSSLPeerName
  *     The value must be of type NSString.
@@ -661,35 +696,36 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  *     See the documentation for SSLSetProtocolVersionMin & SSLSetProtocolVersionMax.
  *     See also the SSLProtocol typedef.
  *
- * - GCDAsyncSocketSSLDiffieHellmanParameters () [Mac OS X only]
+ * - GCDAsyncSocketSSLDiffieHellmanParameters (Mac OS X only)
  * 
- * The following keys are NOT available (and with throw an exception):
+ * ==== The following UNAVAILABLE KEYS are: (with throw an exception)
  * 
  * - kCFStreamSSLAllowsAnyRoot (UNAVAILABLE)
- *     You MUST use manualTrustEvaluation.
+ *     You MUST use manual trust evaluation instead (see GCDAsyncSocketManuallyEvaluateTrust).
  *     Corresponding deprecated method: SSLSetAllowsAnyRoot
  * 
  * - kCFStreamSSLAllowsExpiredRoots (UNAVAILABLE)
- *     You MUST use manualTrustEvaluation.
+ *     You MUST use manual trust evaluation instead (see GCDAsyncSocketManuallyEvaluateTrust).
  *     Corresponding deprecated method: SSLSetAllowsExpiredRoots
  *
  * - kCFStreamSSLAllowsExpiredCertificates (UNAVAILABLE)
- *     You MUST use manualTrustEvaluation.
+ *     You MUST use manual trust evaluation instead (see GCDAsyncSocketManuallyEvaluateTrust).
  *     Corresponding deprecated method: SSLSetAllowsExpiredCerts
  *
  * - kCFStreamSSLValidatesCertificateChain (UNAVAILABLE)
- *     You MUST use manualTrustEvaluation.
+ *     You MUST use manual trust evaluation instead (see GCDAsyncSocketManuallyEvaluateTrust).
  *     Corresponding deprecated method: SSLSetEnableCertVerify
  *
  * - kCFStreamSSLLevel (UNAVAILABLE)
- *     You MUST use GCDAsyncSocketSSLProtocolVersionMin / Max instead.
+ *     You MUST use GCDAsyncSocketSSLProtocolVersionMin & GCDAsyncSocketSSLProtocolVersionMin instead.
  *     Corresponding deprecated method: SSLSetProtocolVersionEnabled
  *
  * 
  * Please refer to Apple's documentation for corresponding SSLFunctions.
- * 
+ *
  * If you pass in nil or an empty dictionary, the default settings will be used.
  * 
+ * IMPORTANT SECURITY NOTE:
  * The default settings will check to make sure the remote party's certificate is signed by a
  * trusted 3rd party certificate agency (e.g. verisign) and that the certificate is not expired.
  * However it will not verify the name on the certificate unless you
@@ -702,7 +738,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * To properly secure your connection in this particular scenario you
  * should set the kCFStreamSSLPeerName property to "MySecureServer.com".
  * 
- * You can also perform additional validation via the certificate provided in socketDidSecure.
+ * You can also perform additional validation in socketDidSecure.
 **/
 - (void)startTLS:(NSDictionary *)tlsSettings;
 
