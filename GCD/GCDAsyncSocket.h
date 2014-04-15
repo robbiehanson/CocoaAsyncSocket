@@ -642,8 +642,8 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  *     So GCDAsyncSocket will invoke the delegate method socket:shouldTrustPeer: passing the SecTrustRef.
  *
  *     Note that if you set this option, then all other configuration keys are ignored.
- *     Evaluation will be completely up to you during the socket:shouldTrustPeer: delegate method.
- *     
+ *     Evaluation will be completely up to you during the socket:didReceiveTrust:completionHandler: delegate method.
+ *
  *     For more information on trust evaluation see:
  *     Apple's Technical Note TN2232 - HTTPS Server Trust Evaluation
  *     https://developer.apple.com/library/ios/technotes/tn2232/_index.html
@@ -1133,15 +1133,23 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 - (void)socketDidSecure:(GCDAsyncSocket *)sock;
 
 /**
- * Allows a socket delegate to hook into the TLS handshake and manually validate
- * the peer it's connecting to.
+ * Allows a socket delegate to hook into the TLS handshake and manually validate the peer it's connecting to.
  *
  * This is only called if startTLS is invoked with options that include:
  * - GCDAsyncSocketManuallyEvaluateTrust == YES
  *
- * Returning YES continues the SSL handshake.
- * Returning NO terminates the handshake and closes the connection.
+ * Typically the delegate will use SecTrustEvaluate (and related functions) to properly validate the peer.
+ * 
+ * Note from Apple's documentation:
+ *   Because [SecTrustEvaluate] might look on the network for certificates in the certificate chain,
+ *   [it] might block while attempting network access. You should never call it from your main thread;
+ *   call it only from within a function running on a dispatch queue or on a separate thread.
+ * 
+ * Thus this method uses a completionHandler block rather than a normal return value.
+ * The completionHandler block is thread-safe, and may be invoked from a background queue/thread.
+ * It is safe to invoke the completionHandler block even if the socket has been closed.
 **/
-- (BOOL)socket:(GCDAsyncSocket *)sock shouldTrustPeer:(SecTrustRef)trust;
+- (void)socket:(GCDAsyncSocket *)sock didReceiveTrust:(SecTrustRef)trust
+                                    completionHandler:(void (^)(BOOL shouldTrustPeer))completionHandler;
 
 @end

@@ -11,7 +11,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 #define CERT_HOST @"www.apple.com"
 
 #define USE_SECURE_CONNECTION    1
-#define MANUALLY_EVALUATE_TRUST  0
+#define MANUALLY_EVALUATE_TRUST  1
 
 #define READ_HEADER_LINE_BY_LINE 0
 
@@ -205,11 +205,28 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 #endif
 }
 
-- (BOOL)socket:(GCDAsyncSocket *)sock shouldTrustPeer:(SecTrustRef)trust
+- (void)socket:(GCDAsyncSocket *)sock didReceiveTrust:(SecTrustRef)trust
+                                    completionHandler:(void (^)(BOOL shouldTrustPeer))completionHandler
 {
 	DDLogVerbose(@"socket:shouldTrustPeer:");
 	
-	return YES;
+	dispatch_queue_t bgQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+	dispatch_async(bgQueue, ^{
+		
+		// This is where you would (eventually) invoke SecTrustEvaluate.
+		// Presumably, if you're using manual trust evaluation, you're likely doing extra stuff here.
+		// For example, allowing a specific self-signed certificate that is known to the app.
+		
+		SecTrustResultType result = kSecTrustResultDeny;
+		OSStatus status = SecTrustEvaluate(trust, &result);
+		
+		if (status == noErr && (result == kSecTrustResultProceed || result == kSecTrustResultUnspecified)) {
+			completionHandler(YES);
+		}
+		else {
+			completionHandler(NO);
+		}
+	});
 }
 
 - (void)socketDidSecure:(GCDAsyncSocket *)sock

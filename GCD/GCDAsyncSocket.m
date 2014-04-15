@@ -6397,7 +6397,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	{
 		LogVerbose(@"SSLHandshake peerAuthCompleted - awaiting delegate approval");
 		
-		SecTrustRef trust = NULL;
+		__block SecTrustRef trust = NULL;
 		status = SSLCopyPeerTrust(sslContext, &trust);
 		if (status != noErr)
 		{
@@ -6406,22 +6406,47 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		}
 		
 		int aStateIndex = stateIndex;
+		dispatch_queue_t theSocketQueue = socketQueue;
+		
+		__weak GCDAsyncSocket *weakSelf = self;
+		
+		void (^comletionHandler)(BOOL) = ^(BOOL shouldTrust){ @autoreleasepool {
+		#pragma clang diagnostic push
+		#pragma clang diagnostic warning "-Wimplicit-retain-self"
+			
+			dispatch_async(theSocketQueue, ^{ @autoreleasepool {
+				
+				if (trust) {
+					CFRelease(trust);
+					trust = NULL;
+				}
+				
+				__strong GCDAsyncSocket *strongSelf = weakSelf;
+				if (strongSelf)
+				{
+					[strongSelf ssl_shouldTrustPeer:shouldTrust stateIndex:aStateIndex];
+				}
+			}});
+			
+		#pragma clang diagnostic pop
+		}};
+		
 		__strong id theDelegate = delegate;
 		
-		if (delegateQueue && [theDelegate respondsToSelector:@selector(socket:shouldTrustPeer:)])
+		if (delegateQueue && [theDelegate respondsToSelector:@selector(socket:didReceiveTrust:completionHandler:)])
 		{
 			dispatch_async(delegateQueue, ^{ @autoreleasepool {
 			
-				BOOL shouldTrust = [theDelegate socket:self shouldTrustPeer:trust];
-				
-				dispatch_async(socketQueue, ^{ @autoreleasepool {
-					
-					[self ssl_shouldTrustPeer:shouldTrust stateIndex:aStateIndex];
-				}});
+				[theDelegate socket:self didReceiveTrust:trust completionHandler:comletionHandler];
 			}});
 		}
 		else
 		{
+			if (trust) {
+				CFRelease(trust);
+				trust = NULL;
+			}
+			
 			NSString *msg = @"GCDAsyncSocketManuallyEvaluateTrust specified in tlsSettings,"
 			                @" but delegate doesn't implement socket:shouldTrustPeer:";
 			
@@ -6449,13 +6474,18 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	if (aStateIndex != stateIndex)
 	{
-		LogInfo(@"Ignoring ssl_shouldTrustPeer, already disconnected");
+		LogInfo(@"Ignoring ssl_shouldTrustPeer - invalid state (maybe disconnected)");
 		
-		// The startTLS operation has been cancelled.
-		// That is, socket was disconnected, or startTLS operation timed out.
+		// One of the following is true
+		// - the socket was disconnected
+		// - the startTLS operation timed out
+		// - the completionHandler was already invoked once
 		
 		return;
 	}
+	
+	// Increment stateIndex to ensure completionHandler can only be called once.
+	stateIndex++;
 	
 	if (shouldTrust)
 	{
