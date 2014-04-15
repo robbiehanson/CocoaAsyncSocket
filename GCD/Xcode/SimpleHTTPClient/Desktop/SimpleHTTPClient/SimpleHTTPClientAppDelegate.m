@@ -126,6 +126,8 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	
 	#if MANUALLY_EVALUATE_TRUST
 	{
+		// Use socket:shouldTrustPeer: delegate method for manual trust evaluation
+		
 		NSDictionary *options = @{
 		    GCDAsyncSocketManuallyEvaluateTrust : @(YES)
 		};
@@ -135,6 +137,8 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	}
 	#else
 	{
+		// Use default trust evaluation, and provide basic security parameters
+		
 		NSDictionary *options = @{
 		    (NSString *)kCFStreamSSLPeerName : CERT_HOST
 		};

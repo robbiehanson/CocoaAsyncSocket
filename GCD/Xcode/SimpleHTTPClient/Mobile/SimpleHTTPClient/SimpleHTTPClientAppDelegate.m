@@ -12,6 +12,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 #define CERT_HOST @"www.apple.com"
 
 #define USE_SECURE_CONNECTION    1
+#define USE_CFSTREAM_FOR_TLS     0 // Use old-school CFStream style technique
 #define MANUALLY_EVALUATE_TRUST  0
 
 #define READ_HEADER_LINE_BY_LINE 0
@@ -126,8 +127,22 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// 
 	// The options passed to the startTLS method are fully documented in the GCDAsyncSocket header file.
 	
-	#if MANUALLY_EVALUATE_TRUST
+	#if USE_CFSTREAM_FOR_TLS
 	{
+		// Use old-school CFStream style technique
+		
+		NSDictionary *options = @{
+		    GCDAsyncSocketUseCFStreamForTLS : @(YES),
+			(NSString *)kCFStreamSSLPeerName : CERT_HOST
+		};
+		
+		DDLogVerbose(@"Requesting StartTLS with options:\n%@", options);
+		[asyncSocket startTLS:options];
+	}
+	#elif MANUALLY_EVALUATE_TRUST
+	{
+		// Use socket:shouldTrustPeer: delegate method for manual trust evaluation
+		
 		NSDictionary *options = @{
 		    GCDAsyncSocketManuallyEvaluateTrust : @(YES)
 		};
@@ -137,6 +152,8 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	}
 	#else
 	{
+		// Use default trust evaluation, and provide basic security parameters
+		
 		NSDictionary *options = @{
 		    (NSString *)kCFStreamSSLPeerName : CERT_HOST
 		};
