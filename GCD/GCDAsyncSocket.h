@@ -13,6 +13,8 @@
 #import <Security/SecureTransport.h>
 #import <dispatch/dispatch.h>
 
+#include <sys/socket.h> // AF_INET, AF_INET6
+
 @class GCDAsyncReadPacket;
 @class GCDAsyncWritePacket;
 @class GCDAsyncSocketPreBuffer;
@@ -74,6 +76,9 @@ extern NSString *const GCDAsyncSocketSSLProtocolVersionMax;
 extern NSString *const GCDAsyncSocketSSLDiffieHellmanParameters;
 #endif
 #endif
+
+#define GCDAsyncSocketLoggingContext 65535
+
 
 enum GCDAsyncSocketError
 {
@@ -931,11 +936,31 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 #pragma mark Utilities
 
 /**
+ * The address lookup utility used by the class.
+ * This method is synchronous, so it's recommended you use it on a background thread/queue.
+ * 
+ * The special strings "localhost" and "loopback" return the loopback address for IPv4 and IPv6.
+ * 
+ * @returns
+ *   A mutable array with all IPv4 and IPv6 addresses returned by getaddrinfo.
+ *   The addresses are specifically for TCP connections.
+ *   You can filter the addresses, if needed, using the other utility methods provided by the class.
+**/
++ (NSMutableArray *)lookupHost:(NSString *)host port:(uint16_t)port error:(NSError **)errPtr;
+
+/**
  * Extracting host and port information from raw address data.
 **/
+
 + (NSString *)hostFromAddress:(NSData *)address;
 + (uint16_t)portFromAddress:(NSData *)address;
+
++ (BOOL)isIPv4Address:(NSData *)address;
++ (BOOL)isIPv6Address:(NSData *)address;
+
 + (BOOL)getHost:(NSString **)hostPtr port:(uint16_t *)portPtr fromAddress:(NSData *)address;
+
++ (BOOL)getHost:(NSString **)hostPtr port:(uint16_t *)portPtr family:(sa_family_t *)afPtr fromAddress:(NSData *)address;
 
 /**
  * A few common line separators, for use with the readDataToData:... methods.
@@ -1058,7 +1083,22 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * Called when a socket disconnects with or without error.
  * 
  * If you call the disconnect method, and the socket wasn't already disconnected,
- * this delegate method will be called before the disconnect method returns.
+ * then an invocation of this delegate method will be enqueued on the delegateQueue
+ * before the disconnect method returns.
+ * 
+ * Note: If the GCDAsyncSocket instance is deallocated while it is still connected,
+ * and the delegate is not also deallocated, then this method will be invoked,
+ * but the sock parameter will be nil. (It must necessarily be nil since it is no longer available.)
+ * This is a generally rare, but is possible if one writes code like this:
+ * 
+ * asyncSocket = nil; // I'm implicitly disconnecting the socket
+ * 
+ * In this case it may preferrable to nil the delegate beforehand, like this:
+ * 
+ * asyncSocket.delegate = nil; // Don't invoke my delegate method
+ * asyncSocket = nil; // I'm implicitly disconnecting the socket
+ * 
+ * Of course, this depends on how your state machine is configured.
 **/
 - (void)socketDidDisconnect:(GCDAsyncSocket *)sock withError:(NSError *)err;
 

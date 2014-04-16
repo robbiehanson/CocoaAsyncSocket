@@ -247,7 +247,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 {
 	// Since we requested HTTP/1.0, we expect the server to close the connection as soon as it has sent the response.
 	
-	DDLogVerbose(@"socketDidDisconnect:withError:%@", err);
+	DDLogVerbose(@"socketDidDisconnect:%p withError:%@", sock, err);
 }
 
 @end
