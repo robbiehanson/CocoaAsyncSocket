@@ -118,7 +118,7 @@ NSString *const GCDAsyncSocketManuallyEvaluateTrust = @"GCDAsyncSocketManuallyEv
 #if TARGET_OS_IPHONE
 NSString *const GCDAsyncSocketUseCFStreamForTLS = @"GCDAsyncSocketUseCFStreamForTLS";
 #endif
-
+NSString *const GCDAsyncSocketSSLPeerID = @"GCDAsyncSocketSSLPeerID";
 NSString *const GCDAsyncSocketSSLCipherSuites = @"GCDAsyncSocketSSLCipherSuites";
 NSString *const GCDAsyncSocketSSLProtocolVersionMin = @"GCDAsyncSocketSSLProtocolVersionMin";
 NSString *const GCDAsyncSocketSSLProtocolVersionMax = @"GCDAsyncSocketSSLProtocolVersionMax";
@@ -3615,17 +3615,14 @@ enum GCDAsyncSocketConfig
 - (BOOL)usingCFStreamForTLS
 {
 	#if TARGET_OS_IPHONE
-	{	
-		if ((flags & kSocketSecure) && (flags & kUsingCFStreamForTLS))
-		{
-			// Due to the fact that Apple doesn't give us the full power of SecureTransport on iOS,
-			// we are relegated to using the slower, less powerful, and RunLoop based CFStream API. :( Boo!
-			// 
-			// Thus we're not able to use the GCD read/write sources in this particular scenario.
-			
-			return YES;
-		}
+	
+	if ((flags & kSocketSecure) && (flags & kUsingCFStreamForTLS))
+	{
+		// The startTLS method was given the GCDAsyncSocketUseCFStreamForTLS flag.
+		
+		return YES;
 	}
+	
 	#endif
 	
 	return NO;
@@ -6121,16 +6118,17 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	// Checklist:
 	//  1. kCFStreamSSLPeerName
 	//  2. kCFStreamSSLCertificates
-	//  3. GCDAsyncSocketSSLProtocolVersionMin & GCDAsyncSocketSSLProtocolVersionMax
-	//  4. GCDAsyncSocketSSLCipherSuites
-	//  5. GCDAsyncSocketSSLDiffieHellmanParameters (Mac)
+	//  3. GCDAsyncSocketSSLPeerID
+	//  4. GCDAsyncSocketSSLProtocolVersionMin & GCDAsyncSocketSSLProtocolVersionMax
+	//  5. GCDAsyncSocketSSLCipherSuites
+	//  6. GCDAsyncSocketSSLDiffieHellmanParameters (Mac)
 	//
 	// Deprecated (throw error):
-	//  6. kCFStreamSSLAllowsAnyRoot
-	//  7. kCFStreamSSLAllowsExpiredRoots
-	//  8. kCFStreamSSLAllowsExpiredCertificates
-	//  9. kCFStreamSSLValidatesCertificateChain
-	// 10. kCFStreamSSLLevel
+	//  7. kCFStreamSSLAllowsAnyRoot
+	//  8. kCFStreamSSLAllowsExpiredRoots
+	//  9. kCFStreamSSLAllowsExpiredCertificates
+	// 10. kCFStreamSSLValidatesCertificateChain
+	// 11. kCFStreamSSLLevel
 	
 	id value;
 	
@@ -6167,7 +6165,22 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		}
 	}
 	
-	// 3. GCDAsyncSocketSSLProtocolVersionMin & GCDAsyncSocketSSLProtocolVersionMax
+	// 3. GCDAsyncSocketSSLPeerID
+	
+	value = [tlsSettings objectForKey:GCDAsyncSocketSSLPeerID];
+	if (value)
+	{
+		NSData *peerIdData = (NSData *)value;
+		
+		status = SSLSetPeerID(sslContext, [peerIdData bytes], [peerIdData length]);
+		if (status != noErr)
+		{
+			[self closeWithError:[self otherError:@"Error in SSLSetPeerID"]];
+			return;
+		}
+	}
+	
+	// 4. GCDAsyncSocketSSLProtocolVersionMin & GCDAsyncSocketSSLProtocolVersionMax
 	
 	id sslMinLevel = [tlsSettings objectForKey:GCDAsyncSocketSSLProtocolVersionMin];
 	id sslMaxLevel = [tlsSettings objectForKey:GCDAsyncSocketSSLProtocolVersionMax];
@@ -6212,7 +6225,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		}
 	}
 	
-	// 4. GCDAsyncSocketSSLCipherSuites
+	// 5. GCDAsyncSocketSSLCipherSuites
 	
 	value = [tlsSettings objectForKey:GCDAsyncSocketSSLCipherSuites];
 	if (value)
@@ -6236,7 +6249,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		}
 	}
 	
-	// 9. GCDAsyncSocketSSLDiffieHellmanParameters
+	// 6. GCDAsyncSocketSSLDiffieHellmanParameters
 	
 	#if !TARGET_OS_IPHONE
 	value = [tlsSettings objectForKey:GCDAsyncSocketSSLDiffieHellmanParameters];
@@ -6244,7 +6257,6 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	{
 		NSData *diffieHellmanData = (NSData *)value;
 		
-		// Still available
 		status = SSLSetDiffieHellmanParams(sslContext, [diffieHellmanData bytes], [diffieHellmanData length]);
 		if (status != noErr)
 		{
@@ -6256,7 +6268,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	// DEPRECATED checks
 	
-	// 6. kCFStreamSSLAllowsAnyRoot
+	// 7. kCFStreamSSLAllowsAnyRoot
 	
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsAnyRoot];
 	if (value)
@@ -6272,7 +6284,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		return;
 	}
 	
-	// 7. kCFStreamSSLAllowsExpiredRoots
+	// 8. kCFStreamSSLAllowsExpiredRoots
 	
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredRoots];
 	if (value)
@@ -6288,7 +6300,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		return;
 	}
 	
-	// 8. kCFStreamSSLValidatesCertificateChain
+	// 9. kCFStreamSSLValidatesCertificateChain
 	
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
 	if (value)
@@ -6304,7 +6316,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		return;
 	}
 	
-	// 9. kCFStreamSSLAllowsExpiredCertificates
+	// 10. kCFStreamSSLAllowsExpiredCertificates
 	
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredCertificates];
 	if (value)
@@ -6319,6 +6331,8 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		[self closeWithError:[self otherError:@"Security option unavailable - kCFStreamSSLAllowsExpiredCertificates"]];
 		return;
 	}
+	
+	// 11. kCFStreamSSLLevel
 	
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLLevel];
 	if (value)
