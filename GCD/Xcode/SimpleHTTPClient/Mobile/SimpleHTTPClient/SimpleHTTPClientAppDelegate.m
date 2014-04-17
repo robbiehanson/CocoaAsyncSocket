@@ -8,8 +8,9 @@
 // Log levels: off, error, warn, info, verbose
 static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
-#define WWW_HOST  @"www.apple.com"
-#define CERT_HOST @"www.apple.com"
+#define  WWW_PORT 0  // 0 => automatic
+#define  WWW_HOST @"www.amazon.com"
+#define CERT_HOST @"www.amazon.com"
 
 #define USE_SECURE_CONNECTION    1
 #define USE_CFSTREAM_FOR_TLS     0 // Use old-school CFStream style technique
@@ -63,6 +64,19 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	
 	[[DDTTYLogger sharedInstance] setLogFormatter:formatter];
 	
+	// Start the socket stuff
+	
+	[self startSocket];
+	
+	// Normal iOS stuff...
+	
+	self.window.rootViewController = self.viewController;
+	[self.window makeKeyAndVisible];
+    return YES;
+}
+
+- (void)startSocket
+{
 	// Create our GCDAsyncSocket instance.
 	// 
 	// Notice that we give it the normal delegate AND a delegate queue.
@@ -94,11 +108,15 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	
 	NSError *error = nil;
 	
-#if USE_SECURE_CONNECTION
-	uint16_t port = 443; // HTTPS
-#else
-	uint16_t port = 80;  // HTTP
-#endif
+	uint16_t port = WWW_PORT;
+	if (port == 0)
+	{
+	#if USE_SECURE_CONNECTION
+		port = 443; // HTTPS
+	#else
+		port = 80;  // HTTP
+	#endif
+	}
 	
 	if (![asyncSocket connectToHost:WWW_HOST onPort:port error:&error])
 	{
@@ -133,7 +151,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 		
 		NSDictionary *options = @{
 		    GCDAsyncSocketUseCFStreamForTLS : @(YES),
-			(NSString *)kCFStreamSSLPeerName : CERT_HOST
+			GCDAsyncSocketSSLPeerName : CERT_HOST
 		};
 		
 		DDLogVerbose(@"Requesting StartTLS with options:\n%@", options);
@@ -144,7 +162,8 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 		// Use socket:didReceiveTrust:completionHandler: delegate method for manual trust evaluation
 		
 		NSDictionary *options = @{
-		    GCDAsyncSocketManuallyEvaluateTrust : @(YES)
+			GCDAsyncSocketManuallyEvaluateTrust : @(YES),
+			GCDAsyncSocketSSLPeerName : CERT_HOST
 		};
 		
 		DDLogVerbose(@"Requesting StartTLS with options:\n%@", options);
@@ -155,7 +174,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 		// Use default trust evaluation, and provide basic security parameters
 		
 		NSDictionary *options = @{
-		    (NSString *)kCFStreamSSLPeerName : CERT_HOST
+		    GCDAsyncSocketSSLPeerName : CERT_HOST
 		};
 		
 		DDLogVerbose(@"Requesting StartTLS with options:\n%@", options);
@@ -164,12 +183,6 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	#endif
 	
 #endif
-	
-	// Normal iOS stuff...
-	
-	self.window.rootViewController = self.viewController;
-	[self.window makeKeyAndVisible];
-    return YES;
 }
 
 - (void)socket:(GCDAsyncSocket *)sock didConnectToHost:(NSString *)host port:(UInt16)port
@@ -185,12 +198,12 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// The server will send an http response, and then immediately close the connection.
 	
 	NSString *requestStrFrmt = @"HEAD / HTTP/1.0\r\nHost: %@\r\n\r\n";
-	
+
 	NSString *requestStr = [NSString stringWithFormat:requestStrFrmt, WWW_HOST];
 	NSData *requestData = [requestStr dataUsingEncoding:NSUTF8StringEncoding];
-	
+
 	[asyncSocket writeData:requestData withTimeout:-1.0 tag:0];
-	
+
 	DDLogVerbose(@"Sending HTTP Request:\n%@", requestStr);
 	
 	// Side Note:
@@ -220,7 +233,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// As per the http protocol, we know the header is terminated with two CRLF's (carriage return, line feed).
 	
 	NSData *responseTerminatorData = [@"\r\n\r\n" dataUsingEncoding:NSASCIIStringEncoding];
-	
+
 	[asyncSocket readDataToData:responseTerminatorData withTimeout:-1.0 tag:0];
 	
 #endif

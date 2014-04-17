@@ -30,10 +30,15 @@ extern NSString *const GCDAsyncSocketManuallyEvaluateTrust;
 #if TARGET_OS_IPHONE
 extern NSString *const GCDAsyncSocketUseCFStreamForTLS;
 #endif
+#define GCDAsyncSocketSSLPeerName     (NSString *)kCFStreamSSLPeerName
+#define GCDAsyncSocketSSLCertificates (NSString *)kCFStreamSSLCertificates
+#define GCDAsyncSocketSSLIsServer     (NSString *)kCFStreamSSLIsServer
 extern NSString *const GCDAsyncSocketSSLPeerID;
-extern NSString *const GCDAsyncSocketSSLCipherSuites;
 extern NSString *const GCDAsyncSocketSSLProtocolVersionMin;
 extern NSString *const GCDAsyncSocketSSLProtocolVersionMax;
+extern NSString *const GCDAsyncSocketSSLSessionOptionFalseStart;
+extern NSString *const GCDAsyncSocketSSLSessionOptionSendOneByteRecord;
+extern NSString *const GCDAsyncSocketSSLCipherSuites;
 #if !TARGET_OS_IPHONE
 extern NSString *const GCDAsyncSocketSSLDiffieHellmanParameters;
 #endif
@@ -672,38 +677,46 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
  * - kCFStreamSSLPeerName
  *     The value must be of type NSString.
  *     It should match the name in the X.509 certificate given by the remote party.
- *     See the documentation for SSLSetPeerDomainName.
+ *     See Apple's documentation for SSLSetPeerDomainName.
  *
  * - kCFStreamSSLCertificates
  *     The value must be of type NSArray.
- *     See the documentation for SSLSetCertificate.
+ *     See Apple's documentation for SSLSetCertificate.
  *
  * - kCFStreamSSLIsServer
  *     The value must be of type NSNumber, encapsulationg a BOOL value.
- *     See the documentation for SSLCreateContext for iOS.
+ *     See Apple's documentation for SSLCreateContext for iOS.
  *     This is optional for iOS. If not supplied, a NO value is the default.
  *     This is not needed for Mac OS X, and the value is ignored.
  *
  * - GCDAsyncSocketSSLPeerID
  *     The value must be of type NSData.
  *     You must set this value if you want to use TLS session resumption.
- *     See the documentation for SSLSetPeerID.
+ *     See Apple's documentation for SSLSetPeerID.
  *
  * - GCDAsyncSocketSSLProtocolVersionMin
  * - GCDAsyncSocketSSLProtocolVersionMax
  *     The value(s) must be of type NSNumber, encapsulting a SSLProtocol value.
- *     See the documentation for SSLSetProtocolVersionMin & SSLSetProtocolVersionMax.
+ *     See Apple's documentation for SSLSetProtocolVersionMin & SSLSetProtocolVersionMax.
  *     See also the SSLProtocol typedef.
+ * 
+ * - GCDAsyncSocketSSLSessionOptionFalseStart
+ *     The value must be of type NSNumber, encapsulating a BOOL value.
+ *     See Apple's documentation for kSSLSessionOptionFalseStart.
+ * 
+ * - GCDAsyncSocketSSLSessionOptionSendOneByteRecord
+ *     The value must be of type NSNumber, encapsulating a BOOL value.
+ *     See Apple's documentation for kSSLSessionOptionSendOneByteRecord.
  * 
  * - GCDAsyncSocketSSLCipherSuites
  *     The values must be of type NSArray.
  *     Each item within the array must be a NSNumber, encapsulating
- *     See the documentation for SSLSetEnabledCiphers.
+ *     See Apple's documentation for SSLSetEnabledCiphers.
  *     See also the SSLCipherSuite typedef.
  *
  * - GCDAsyncSocketSSLDiffieHellmanParameters (Mac OS X only)
  *     The value must be of type NSData.
- *     See the documentation for SSLSetDiffieHellmanParams.
+ *     See Apple's documentation for SSLSetDiffieHellmanParams.
  * 
  * ==== The following UNAVAILABLE KEYS are: (with throw an exception)
  * 

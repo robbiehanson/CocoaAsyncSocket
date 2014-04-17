@@ -7,8 +7,9 @@
 // Log levels: off, error, warn, info, verbose
 static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
-#define WWW_HOST  @"www.apple.com"
-#define CERT_HOST @"www.apple.com"
+#define  WWW_PORT 0  // 0 => automatic
+#define  WWW_HOST @"www.amazon.com"
+#define CERT_HOST @"www.amazon.com"
 
 #define USE_SECURE_CONNECTION    1
 #define MANUALLY_EVALUATE_TRUST  1
@@ -60,6 +61,13 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	
 	[[DDTTYLogger sharedInstance] setLogFormatter:formatter];
 	
+	// Start the socket stuff
+	
+	[self startSocket];
+}
+
+- (void)startSocket
+{
 	// Create our GCDAsyncSocket instance.
 	// 
 	// Notice that we give it the normal delegate AND a delegate queue.
@@ -91,11 +99,15 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	
 	NSError *error = nil;
 	
-#if USE_SECURE_CONNECTION
-	uint16_t port = 443; // HTTPS
-#else
-	uint16_t port = 80;  // HTTP
-#endif
+	uint16_t port = WWW_PORT;
+	if (port == 0)
+	{
+	#if USE_SECURE_CONNECTION
+		port = 443; // HTTPS
+	#else
+		port = 80;  // HTTP
+	#endif
+	}
 	
 	if (![asyncSocket connectToHost:WWW_HOST onPort:port error:&error])
 	{
@@ -129,7 +141,8 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 		// Use socket:shouldTrustPeer: delegate method for manual trust evaluation
 		
 		NSDictionary *options = @{
-		    GCDAsyncSocketManuallyEvaluateTrust : @(YES)
+			GCDAsyncSocketManuallyEvaluateTrust : @(YES),
+		    GCDAsyncSocketSSLPeerName : CERT_HOST
 		};
 		
 		DDLogVerbose(@"Requesting StartTLS with options:\n%@", options);
@@ -140,7 +153,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 		// Use default trust evaluation, and provide basic security parameters
 		
 		NSDictionary *options = @{
-		    (NSString *)kCFStreamSSLPeerName : CERT_HOST
+		    GCDAsyncSocketSSLPeerName : CERT_HOST
 		};
 		
 		DDLogVerbose(@"Requesting StartTLS with options:\n%@", options);
@@ -199,7 +212,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// As per the http protocol, we know the header is terminated with two CRLF's (carriage return, line feed).
 	
 	NSData *responseTerminatorData = [@"\r\n\r\n" dataUsingEncoding:NSASCIIStringEncoding];
-	
+
 	[asyncSocket readDataToData:responseTerminatorData withTimeout:-1.0 tag:0];
 	
 #endif

@@ -119,9 +119,11 @@ NSString *const GCDAsyncSocketManuallyEvaluateTrust = @"GCDAsyncSocketManuallyEv
 NSString *const GCDAsyncSocketUseCFStreamForTLS = @"GCDAsyncSocketUseCFStreamForTLS";
 #endif
 NSString *const GCDAsyncSocketSSLPeerID = @"GCDAsyncSocketSSLPeerID";
-NSString *const GCDAsyncSocketSSLCipherSuites = @"GCDAsyncSocketSSLCipherSuites";
 NSString *const GCDAsyncSocketSSLProtocolVersionMin = @"GCDAsyncSocketSSLProtocolVersionMin";
 NSString *const GCDAsyncSocketSSLProtocolVersionMax = @"GCDAsyncSocketSSLProtocolVersionMax";
+NSString *const GCDAsyncSocketSSLSessionOptionFalseStart = @"GCDAsyncSocketSSLSessionOptionFalseStart";
+NSString *const GCDAsyncSocketSSLSessionOptionSendOneByteRecord = @"GCDAsyncSocketSSLSessionOptionSendOneByteRecord";
+NSString *const GCDAsyncSocketSSLCipherSuites = @"GCDAsyncSocketSSLCipherSuites";
 #if !TARGET_OS_IPHONE
 NSString *const GCDAsyncSocketSSLDiffieHellmanParameters = @"GCDAsyncSocketSSLDiffieHellmanParameters";
 #endif
@@ -6119,16 +6121,19 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	//  1. kCFStreamSSLPeerName
 	//  2. kCFStreamSSLCertificates
 	//  3. GCDAsyncSocketSSLPeerID
-	//  4. GCDAsyncSocketSSLProtocolVersionMin & GCDAsyncSocketSSLProtocolVersionMax
-	//  5. GCDAsyncSocketSSLCipherSuites
-	//  6. GCDAsyncSocketSSLDiffieHellmanParameters (Mac)
+	//  4. GCDAsyncSocketSSLProtocolVersionMin
+	//  5. GCDAsyncSocketSSLProtocolVersionMax
+	//  6. GCDAsyncSocketSSLSessionOptionFalseStart
+	//  7. GCDAsyncSocketSSLSessionOptionSendOneByteRecord
+	//  8. GCDAsyncSocketSSLCipherSuites
+	//  9. GCDAsyncSocketSSLDiffieHellmanParameters (Mac)
 	//
 	// Deprecated (throw error):
-	//  7. kCFStreamSSLAllowsAnyRoot
-	//  8. kCFStreamSSLAllowsExpiredRoots
-	//  9. kCFStreamSSLAllowsExpiredCertificates
-	// 10. kCFStreamSSLValidatesCertificateChain
-	// 11. kCFStreamSSLLevel
+	// 10. kCFStreamSSLAllowsAnyRoot
+	// 11. kCFStreamSSLAllowsExpiredRoots
+	// 12. kCFStreamSSLAllowsExpiredCertificates
+	// 13. kCFStreamSSLValidatesCertificateChain
+	// 14. kCFStreamSSLLevel
 	
 	id value;
 	
@@ -6149,11 +6154,18 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 			return;
 		}
 	}
+	else if (value)
+	{
+		NSAssert(NO, @"Invalid value for kCFStreamSSLPeerName. Value must be of type NSString.");
+		
+		[self closeWithError:[self otherError:@"Invalid value for kCFStreamSSLPeerName."]];
+		return;
+	}
 	
 	// 2. kCFStreamSSLCertificates
 	
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLCertificates];
-	if (value)
+	if ([value isKindOfClass:[NSArray class]])
 	{
 		CFArrayRef certs = (__bridge CFArrayRef)value;
 		
@@ -6164,11 +6176,18 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 			return;
 		}
 	}
+	else if (value)
+	{
+		NSAssert(NO, @"Invalid value for kCFStreamSSLCertificates. Value must be of type NSArray.");
+		
+		[self closeWithError:[self otherError:@"Invalid value for kCFStreamSSLCertificates."]];
+		return;
+	}
 	
 	// 3. GCDAsyncSocketSSLPeerID
 	
 	value = [tlsSettings objectForKey:GCDAsyncSocketSSLPeerID];
-	if (value)
+	if ([value isKindOfClass:[NSData class]])
 	{
 		NSData *peerIdData = (NSData *)value;
 		
@@ -6179,56 +6198,110 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 			return;
 		}
 	}
-	
-	// 4. GCDAsyncSocketSSLProtocolVersionMin & GCDAsyncSocketSSLProtocolVersionMax
-	
-	id sslMinLevel = [tlsSettings objectForKey:GCDAsyncSocketSSLProtocolVersionMin];
-	id sslMaxLevel = [tlsSettings objectForKey:GCDAsyncSocketSSLProtocolVersionMax];
-	
-	if (sslMinLevel || sslMaxLevel)
+	else if (value)
 	{
-		OSStatus status1 = noErr;
-		OSStatus status2 = noErr;
+		NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLPeerID. Value must be of type NSData."
+		             @" (You can convert strings to data using a method like"
+		             @" [string dataUsingEncoding:NSUTF8StringEncoding])");
 		
-		if ((sslMinLevel && ![sslMinLevel isKindOfClass:[NSNumber class]]) ||
-		    (sslMaxLevel && ![sslMaxLevel isKindOfClass:[NSNumber class]])  )
+		[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLPeerID."]];
+		return;
+	}
+	
+	// 4. GCDAsyncSocketSSLProtocolVersionMin
+	
+	value = [tlsSettings objectForKey:GCDAsyncSocketSSLProtocolVersionMin];
+	if ([value isKindOfClass:[NSNumber class]])
+	{
+		SSLProtocol minProtocol = (SSLProtocol)[(NSNumber *)value intValue];
+		if (minProtocol != kSSLProtocolUnknown)
 		{
-			NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLProtocolVersionMin / Max."
-			             @" Value must be of type NSNumber, wrapping a SSLProtocol value.");
-			
-			[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLProtocolVersionMin / Max."]];
-			return;
-		}
-		
-		if (sslMinLevel)
-		{
-			SSLProtocol minProtocol = (SSLProtocol)[(NSNumber *)sslMinLevel intValue];
-			if (minProtocol != kSSLProtocolUnknown)
+			status = SSLSetProtocolVersionMin(sslContext, minProtocol);
+			if (status != noErr)
 			{
-				status1 = SSLSetProtocolVersionMin(sslContext, minProtocol);
+				[self closeWithError:[self otherError:@"Error in SSLSetProtocolVersionMin"]];
+				return;
 			}
 		}
+	}
+	else if (value)
+	{
+		NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLProtocolVersionMin. Value must be of type NSNumber.");
 		
-		if (sslMaxLevel)
+		[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLProtocolVersionMin."]];
+		return;
+	}
+	
+	// 5. GCDAsyncSocketSSLProtocolVersionMax
+	
+	value = [tlsSettings objectForKey:GCDAsyncSocketSSLProtocolVersionMax];
+	if ([value isKindOfClass:[NSNumber class]])
+	{
+		SSLProtocol maxProtocol = (SSLProtocol)[(NSNumber *)value intValue];
+		if (maxProtocol != kSSLProtocolUnknown)
 		{
-			SSLProtocol maxProtocol = (SSLProtocol)[(NSNumber *)sslMaxLevel intValue];
-			if (maxProtocol != kSSLProtocolUnknown)
+			status = SSLSetProtocolVersionMax(sslContext, maxProtocol);
+			if (status != noErr)
 			{
-				status2 = SSLSetProtocolVersionMax(sslContext, maxProtocol);
+				[self closeWithError:[self otherError:@"Error in SSLSetProtocolVersionMax"]];
+				return;
 			}
 		}
+	}
+	else if (value)
+	{
+		NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLProtocolVersionMax. Value must be of type NSNumber.");
 		
-		if (status1 != noErr || status2 != noErr)
+		[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLProtocolVersionMax."]];
+		return;
+	}
+	
+	// 6. GCDAsyncSocketSSLSessionOptionFalseStart
+	
+	value = [tlsSettings objectForKey:GCDAsyncSocketSSLSessionOptionFalseStart];
+	if ([value isKindOfClass:[NSNumber class]])
+	{
+		status = SSLSetSessionOption(sslContext, kSSLSessionOptionFalseStart, [value boolValue]);
+		if (status != noErr)
 		{
-			[self closeWithError:[self otherError:@"Error in SSLSetProtocolVersionMin / Max"]];
+			[self closeWithError:[self otherError:@"Error in SSLSetSessionOption (kSSLSessionOptionFalseStart)"]];
 			return;
 		}
 	}
+	else if (value)
+	{
+		NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLSessionOptionFalseStart. Value must be of type NSNumber.");
+		
+		[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLSessionOptionFalseStart."]];
+		return;
+	}
 	
-	// 5. GCDAsyncSocketSSLCipherSuites
+	// 7. GCDAsyncSocketSSLSessionOptionSendOneByteRecord
+	
+	value = [tlsSettings objectForKey:GCDAsyncSocketSSLSessionOptionSendOneByteRecord];
+	if ([value isKindOfClass:[NSNumber class]])
+	{
+		status = SSLSetSessionOption(sslContext, kSSLSessionOptionSendOneByteRecord, [value boolValue]);
+		if (status != noErr)
+		{
+			[self closeWithError:
+			  [self otherError:@"Error in SSLSetSessionOption (kSSLSessionOptionSendOneByteRecord)"]];
+			return;
+		}
+	}
+	else if (value)
+	{
+		NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLSessionOptionSendOneByteRecord."
+		             @" Value must be of type NSNumber.");
+		
+		[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLSessionOptionSendOneByteRecord."]];
+		return;
+	}
+	
+	// 8. GCDAsyncSocketSSLCipherSuites
 	
 	value = [tlsSettings objectForKey:GCDAsyncSocketSSLCipherSuites];
-	if (value)
+	if ([value isKindOfClass:[NSArray class]])
 	{
 		NSArray *cipherSuites = (NSArray *)value;
 		NSUInteger numberCiphers = [cipherSuites count];
@@ -6248,12 +6321,19 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 			return;
 		}
 	}
+	else if (value)
+	{
+		NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLCipherSuites. Value must be of type NSArray.");
+		
+		[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLCipherSuites."]];
+		return;
+	}
 	
-	// 6. GCDAsyncSocketSSLDiffieHellmanParameters
+	// 9. GCDAsyncSocketSSLDiffieHellmanParameters
 	
 	#if !TARGET_OS_IPHONE
 	value = [tlsSettings objectForKey:GCDAsyncSocketSSLDiffieHellmanParameters];
-	if (value)
+	if ([value isKindOfClass:[NSData class]])
 	{
 		NSData *diffieHellmanData = (NSData *)value;
 		
@@ -6264,75 +6344,66 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 			return;
 		}
 	}
+	else if (value)
+	{
+		NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLDiffieHellmanParameters. Value must be of type NSData.");
+		
+		[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLDiffieHellmanParameters."]];
+		return;
+	}
 	#endif
 	
 	// DEPRECATED checks
 	
-	// 7. kCFStreamSSLAllowsAnyRoot
+	// 10. kCFStreamSSLAllowsAnyRoot
 	
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsAnyRoot];
 	if (value)
 	{
-	#if TARGET_OS_IPHONE
-		NSAssert(NO, @"Security option unavailable via SecureTransport in iOS - kCFStreamSSLAllowsAnyRoot");
-	#else
 		NSAssert(NO, @"Security option unavailable - kCFStreamSSLAllowsAnyRoot"
 		             @" - You must use manual trust evaluation");
-	#endif
 		
 		[self closeWithError:[self otherError:@"Security option unavailable - kCFStreamSSLAllowsAnyRoot"]];
 		return;
 	}
 	
-	// 8. kCFStreamSSLAllowsExpiredRoots
+	// 11. kCFStreamSSLAllowsExpiredRoots
 	
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredRoots];
 	if (value)
 	{
-	#if TARGET_OS_IPHONE
-		NSAssert(NO, @"Security option unavailable via SecureTransport in iOS - kCFStreamSSLAllowsExpiredRoots");
-	#else
 		NSAssert(NO, @"Security option unavailable - kCFStreamSSLAllowsExpiredRoots"
 		             @" - You must use manual trust evaluation");
-	#endif
 		
 		[self closeWithError:[self otherError:@"Security option unavailable - kCFStreamSSLAllowsExpiredRoots"]];
 		return;
 	}
 	
-	// 9. kCFStreamSSLValidatesCertificateChain
+	// 12. kCFStreamSSLValidatesCertificateChain
 	
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
 	if (value)
 	{
-	#if TARGET_OS_IPHONE
-		NSAssert(NO, @"Security option unavailable via SecureTransport in iOS - kCFStreamSSLValidatesCertificateChain");
-	#else
 		NSAssert(NO, @"Security option unavailable - kCFStreamSSLValidatesCertificateChain"
 		             @" - You must use manual trust evaluation");
-	#endif
 		
 		[self closeWithError:[self otherError:@"Security option unavailable - kCFStreamSSLValidatesCertificateChain"]];
 		return;
 	}
 	
-	// 10. kCFStreamSSLAllowsExpiredCertificates
+	// 13. kCFStreamSSLAllowsExpiredCertificates
 	
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredCertificates];
 	if (value)
 	{
-	#if TARGET_OS_IPHONE
-		NSAssert(NO, @"Security option unavailable via SecureTransport in iOS - kCFStreamSSLAllowsExpiredCertificates");
-	#else
 		NSAssert(NO, @"Security option unavailable - kCFStreamSSLAllowsExpiredCertificates"
 		             @" - You must use manual trust evaluation");
-	#endif
 		
 		[self closeWithError:[self otherError:@"Security option unavailable - kCFStreamSSLAllowsExpiredCertificates"]];
 		return;
 	}
 	
-	// 11. kCFStreamSSLLevel
+	// 14. kCFStreamSSLLevel
 	
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLLevel];
 	if (value)
