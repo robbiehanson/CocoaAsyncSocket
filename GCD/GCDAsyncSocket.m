@@ -2580,7 +2580,7 @@ enum GCDAsyncSocketConfig
 		
 		SSLClose(sslContext);
 		
-		#if TARGET_OS_IPHONE
+		#if TARGET_OS_IPHONE || (__MAC_OS_X_VERSION_MIN_REQUIRED >= 1080)
 		CFRelease(sslContext);
 		#else
 		SSLDisposeContext(sslContext);
@@ -6041,7 +6041,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	BOOL isServer = [[tlsSettings objectForKey:(NSString *)kCFStreamSSLIsServer] boolValue];
 	
-	#if TARGET_OS_IPHONE
+	#if TARGET_OS_IPHONE || (__MAC_OS_X_VERSION_MIN_REQUIRED >= 1080)
 	{
 		if (isServer)
 			sslContext = SSLCreateContext(kCFAllocatorDefault, kSSLServerSide, kSSLStreamType);
@@ -6054,7 +6054,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 			return;
 		}
 	}
-	#else
+	#else // (__MAC_OS_X_VERSION_MIN_REQUIRED < 1080)
 	{
 		status = SSLNewContext(isServer, &sslContext);
 		if (status != noErr)
