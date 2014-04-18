@@ -6031,10 +6031,17 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	LogTrace();
 	
 	LogVerbose(@"Starting TLS (via SecureTransport)...");
-		
+	
 	OSStatus status;
 	
 	GCDAsyncSpecialPacket *tlsPacket = (GCDAsyncSpecialPacket *)currentRead;
+	if (tlsPacket == nil) // Code to quiet the analyzer
+	{
+		NSAssert(NO, @"Logic error");
+		
+		[self closeWithError:[self otherError:@"Logic error"]];
+		return;
+	}
 	NSDictionary *tlsSettings = tlsPacket->tlsSettings;
 	
 	// Create SSLContext, and setup IO callbacks and connection ref
