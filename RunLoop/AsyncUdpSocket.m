@@ -13,6 +13,7 @@
 #endif
 
 #import "AsyncUdpSocket.h"
+#import <TargetConditionals.h>
 #import <sys/socket.h>
 #import <netinet/in.h>
 #import <arpa/inet.h>

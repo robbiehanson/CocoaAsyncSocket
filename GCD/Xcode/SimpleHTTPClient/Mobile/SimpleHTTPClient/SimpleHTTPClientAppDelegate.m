@@ -8,10 +8,13 @@
 // Log levels: off, error, warn, info, verbose
 static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
-#define HOST @"www.apple.com"
+#define  WWW_PORT 0  // 0 => automatic
+#define  WWW_HOST @"www.amazon.com"
+#define CERT_HOST @"www.amazon.com"
 
-#define USE_SECURE_CONNECTION    0
-#define VALIDATE_SSL_CERTIFICATE 1
+#define USE_SECURE_CONNECTION    1
+#define USE_CFSTREAM_FOR_TLS     0 // Use old-school CFStream style technique
+#define MANUALLY_EVALUATE_TRUST  1
 
 #define READ_HEADER_LINE_BY_LINE 0
 
@@ -61,6 +64,19 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	
 	[[DDTTYLogger sharedInstance] setLogFormatter:formatter];
 	
+	// Start the socket stuff
+	
+	[self startSocket];
+	
+	// Normal iOS stuff...
+	
+	self.window.rootViewController = self.viewController;
+	[self.window makeKeyAndVisible];
+    return YES;
+}
+
+- (void)startSocket
+{
 	// Create our GCDAsyncSocket instance.
 	// 
 	// Notice that we give it the normal delegate AND a delegate queue.
@@ -91,28 +107,31 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// When the asynchronous sockets connects, it will invoke the socket:didConnectToHost:port: delegate method.
 	
 	NSError *error = nil;
-	NSString *host = HOST;
 	
-#if USE_SECURE_CONNECTION
-	uint16_t port = 443; // HTTPS
-#else
-	uint16_t port = 80;  // HTTP
-#endif
+	uint16_t port = WWW_PORT;
+	if (port == 0)
+	{
+	#if USE_SECURE_CONNECTION
+		port = 443; // HTTPS
+	#else
+		port = 80;  // HTTP
+	#endif
+	}
 	
-	if (![asyncSocket connectToHost:host onPort:port error:&error])
+	if (![asyncSocket connectToHost:WWW_HOST onPort:port error:&error])
 	{
 		DDLogError(@"Unable to connect to due to invalid configuration: %@", error);
 	}
 	else
 	{
-		DDLogVerbose(@"Connecting to \"%@\" on port %hu...", host, port);
+		DDLogVerbose(@"Connecting to \"%@\" on port %hu...", WWW_HOST, port);
 	}
 	
 #if USE_SECURE_CONNECTION
 	
 	// The connect method above is asynchronous.
 	// At this point, the connection has been initiated, but hasn't completed.
-	// When the connection is establish, our socket:didConnectToHost:port: delegate method will be invoked.
+	// When the connection is established, our socket:didConnectToHost:port: delegate method will be invoked.
 	// 
 	// Now, for a secure connection we have to connect to the HTTPS server running on port 443.
 	// The SSL/TLS protocol runs atop TCP, so after the connection is established we want to start the TLS handshake.
@@ -121,23 +140,42 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// Wouldn't it be convenient if we could tell the socket to queue the security upgrade now instead of waiting?
 	// Well in fact you can! This is part of the queued architecture of AsyncSocket.
 	// 
-	// After the connection has been established, AsyncSocket will look in it's queue for the next task.
+	// After the connection has been established, AsyncSocket will look in its queue for the next task.
 	// There it will find, dequeue and execute our request to start the TLS security protocol.
 	// 
 	// The options passed to the startTLS method are fully documented in the GCDAsyncSocket header file.
-	// Some servers only have a development (self-signed) X.509 certificate.
-	// In this case we would tell it not to attempt to validate the cert (cause if it did it would fail).
 	
-	#if VALIDATE_SSL_CERTIFICATE
+	#if USE_CFSTREAM_FOR_TLS
 	{
-		DDLogVerbose(@"Requesting StartTLS with options: (nil)");
-		[asyncSocket startTLS:nil];
+		// Use old-school CFStream style technique
+		
+		NSDictionary *options = @{
+		    GCDAsyncSocketUseCFStreamForTLS : @(YES),
+			GCDAsyncSocketSSLPeerName : CERT_HOST
+		};
+		
+		DDLogVerbose(@"Requesting StartTLS with options:\n%@", options);
+		[asyncSocket startTLS:options];
+	}
+	#elif MANUALLY_EVALUATE_TRUST
+	{
+		// Use socket:didReceiveTrust:completionHandler: delegate method for manual trust evaluation
+		
+		NSDictionary *options = @{
+			GCDAsyncSocketManuallyEvaluateTrust : @(YES),
+			GCDAsyncSocketSSLPeerName : CERT_HOST
+		};
+		
+		DDLogVerbose(@"Requesting StartTLS with options:\n%@", options);
+		[asyncSocket startTLS:options];
 	}
 	#else
 	{
-		NSDictionary *options =
-		    [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:NO]
-		                                forKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
+		// Use default trust evaluation, and provide basic security parameters
+		
+		NSDictionary *options = @{
+		    GCDAsyncSocketSSLPeerName : CERT_HOST
+		};
 		
 		DDLogVerbose(@"Requesting StartTLS with options:\n%@", options);
 		[asyncSocket startTLS:options];
@@ -145,12 +183,6 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	#endif
 	
 #endif
-	
-	// Normal iOS stuff...
-	
-	self.window.rootViewController = self.viewController;
-	[self.window makeKeyAndVisible];
-    return YES;
 }
 
 - (void)socket:(GCDAsyncSocket *)sock didConnectToHost:(NSString *)host port:(UInt16)port
@@ -166,12 +198,12 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// The server will send an http response, and then immediately close the connection.
 	
 	NSString *requestStrFrmt = @"HEAD / HTTP/1.0\r\nHost: %@\r\n\r\n";
-	
-	NSString *requestStr = [NSString stringWithFormat:requestStrFrmt, HOST];
+
+	NSString *requestStr = [NSString stringWithFormat:requestStrFrmt, WWW_HOST];
 	NSData *requestData = [requestStr dataUsingEncoding:NSUTF8StringEncoding];
-	
+
 	[asyncSocket writeData:requestData withTimeout:-1.0 tag:0];
-	
+
 	DDLogVerbose(@"Sending HTTP Request:\n%@", requestStr);
 	
 	// Side Note:
@@ -201,10 +233,34 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// As per the http protocol, we know the header is terminated with two CRLF's (carriage return, line feed).
 	
 	NSData *responseTerminatorData = [@"\r\n\r\n" dataUsingEncoding:NSASCIIStringEncoding];
-	
+
 	[asyncSocket readDataToData:responseTerminatorData withTimeout:-1.0 tag:0];
 	
 #endif
+}
+
+- (void)socket:(GCDAsyncSocket *)sock didReceiveTrust:(SecTrustRef)trust
+                                    completionHandler:(void (^)(BOOL shouldTrustPeer))completionHandler
+{
+	DDLogVerbose(@"socket:shouldTrustPeer:");
+	
+	dispatch_queue_t bgQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+	dispatch_async(bgQueue, ^{
+		
+		// This is where you would (eventually) invoke SecTrustEvaluate.
+		// Presumably, if you're using manual trust evaluation, you're likely doing extra stuff here.
+		// For example, allowing a specific self-signed certificate that is known to the app.
+		
+		SecTrustResultType result = kSecTrustResultDeny;
+		OSStatus status = SecTrustEvaluate(trust, &result);
+		
+		if (status == noErr && (result == kSecTrustResultProceed || result == kSecTrustResultUnspecified)) {
+			completionHandler(YES);
+		}
+		else {
+			completionHandler(NO);
+		}
+	});
 }
 
 - (void)socketDidSecure:(GCDAsyncSocket *)sock
