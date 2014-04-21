@@ -4351,75 +4351,8 @@ enum GCDAsyncSocketConfig
 	{
 		NSAssert(([preBuffer availableBytes] == 0), @"Invalid logic");
 		
-		// There are 3 types of read packets:
-		// 
-		// 1) Read all available data.
-		// 2) Read a specific length of data.
-		// 3) Read up to a particular terminator.
-		
 		BOOL readIntoPreBuffer = NO;
-		NSUInteger bytesToRead;
-		
-		if ([self usingCFStreamForTLS])
-		{
-			// Since Apple hasn't made the full power of SecureTransport available on iOS,
-			// we are relegated to using the slower, less powerful, RunLoop based CFStream API.
-			// 
-			// This API doesn't tell us how much data is available on the socket to be read.
-			// If we had that information we could optimize our memory allocations, and sys calls.
-			// 
-			// But alas...
-			// So we do it old school, and just read as much data from the socket as we can.
-			
-			NSUInteger defaultReadLength = (1024 * 32);
-			
-			bytesToRead = [currentRead optimalReadLengthWithDefault:defaultReadLength
-			                                        shouldPreBuffer:&readIntoPreBuffer];
-		}
-		else
-		{
-			if (currentRead->term != nil)
-			{
-				// Read type #3 - read up to a terminator
-				
-				bytesToRead = [currentRead readLengthForTermWithHint:estimatedBytesAvailable
-													 shouldPreBuffer:&readIntoPreBuffer];
-			}
-			else
-			{
-				// Read type #1 or #2
-				
-				bytesToRead = [currentRead readLengthForNonTermWithHint:estimatedBytesAvailable];
-			}
-		}
-		
-		if (bytesToRead > SIZE_MAX) // NSUInteger may be bigger than size_t (read param 3)
-		{
-			bytesToRead = SIZE_MAX;
-		}
-		
-		// Make sure we have enough room in the buffer for our read.
-		// 
-		// We are either reading directly into the currentRead->buffer,
-		// or we're reading into the temporary preBuffer.
-		
-		uint8_t *buffer;
-		
-		if (readIntoPreBuffer)
-		{
-			[preBuffer ensureCapacityForWrite:bytesToRead];
-						
-			buffer = [preBuffer writeBuffer];
-		}
-		else
-		{
-			[currentRead ensureCapacityForAdditionalDataOfLength:bytesToRead];
-			
-			buffer = (uint8_t *)[currentRead->buffer mutableBytes] + currentRead->startOffset + currentRead->bytesDone;
-		}
-		
-		// Read data into buffer
-		
+		uint8_t *buffer = NULL;
 		size_t bytesRead = 0;
 		
 		if (flags & kSocketSecure)
@@ -4427,6 +4360,35 @@ enum GCDAsyncSocketConfig
 			if ([self usingCFStreamForTLS])
 			{
 				#if TARGET_OS_IPHONE
+				
+				// Using CFStream, rather than SecureTransport, for TLS
+				
+				NSUInteger defaultReadLength = (1024 * 32);
+				
+				NSUInteger bytesToRead = [currentRead optimalReadLengthWithDefault:defaultReadLength
+				                                                   shouldPreBuffer:&readIntoPreBuffer];
+				
+				// Make sure we have enough room in the buffer for our read.
+				//
+				// We are either reading directly into the currentRead->buffer,
+				// or we're reading into the temporary preBuffer.
+				
+				if (readIntoPreBuffer)
+				{
+					[preBuffer ensureCapacityForWrite:bytesToRead];
+					
+					buffer = [preBuffer writeBuffer];
+				}
+				else
+				{
+					[currentRead ensureCapacityForAdditionalDataOfLength:bytesToRead];
+					
+					buffer = (uint8_t *)[currentRead->buffer mutableBytes]
+					       + currentRead->startOffset
+					       + currentRead->bytesDone;
+				}
+				
+				// Read data into buffer
 				
 				CFIndex result = CFReadStreamRead(readStream, buffer, (CFIndex)bytesToRead);
 				LogVerbose(@"CFReadStreamRead(): result = %i", (int)result);
@@ -4454,6 +4416,51 @@ enum GCDAsyncSocketConfig
 			}
 			else
 			{
+				// Using SecureTransport for TLS
+				//
+				// We know:
+				// - how many bytes are available on the socket
+				// - how many encrypted bytes are sitting in the sslPreBuffer
+				// - how many decypted bytes are sitting in the sslContext
+				//
+				// But we do NOT know:
+				// - how many encypted bytes are sitting in the sslContext
+				//
+				// So we play the regular game of using an upper bound instead.
+				
+				NSUInteger defaultReadLength = (1024 * 32);
+				
+				if (defaultReadLength < estimatedBytesAvailable) {
+					defaultReadLength = estimatedBytesAvailable + (1024 * 16);
+				}
+				
+				NSUInteger bytesToRead = [currentRead optimalReadLengthWithDefault:defaultReadLength
+				                                                   shouldPreBuffer:&readIntoPreBuffer];
+				
+				if (bytesToRead > SIZE_MAX) { // NSUInteger may be bigger than size_t
+					bytesToRead = SIZE_MAX;
+				}
+				
+				// Make sure we have enough room in the buffer for our read.
+				//
+				// We are either reading directly into the currentRead->buffer,
+				// or we're reading into the temporary preBuffer.
+				
+				if (readIntoPreBuffer)
+				{
+					[preBuffer ensureCapacityForWrite:bytesToRead];
+					
+					buffer = [preBuffer writeBuffer];
+				}
+				else
+				{
+					[currentRead ensureCapacityForAdditionalDataOfLength:bytesToRead];
+					
+					buffer = (uint8_t *)[currentRead->buffer mutableBytes]
+					       + currentRead->startOffset
+					       + currentRead->bytesDone;
+				}
+				
 				// The documentation from Apple states:
 				// 
 				//     "a read operation might return errSSLWouldBlock,
@@ -4511,6 +4518,56 @@ enum GCDAsyncSocketConfig
 		}
 		else
 		{
+			// Normal socket operation
+			
+			NSUInteger bytesToRead;
+			
+			// There are 3 types of read packets:
+			//
+			// 1) Read all available data.
+			// 2) Read a specific length of data.
+			// 3) Read up to a particular terminator.
+			
+			if (currentRead->term != nil)
+			{
+				// Read type #3 - read up to a terminator
+				
+				bytesToRead = [currentRead readLengthForTermWithHint:estimatedBytesAvailable
+				                                     shouldPreBuffer:&readIntoPreBuffer];
+			}
+			else
+			{
+				// Read type #1 or #2
+				
+				bytesToRead = [currentRead readLengthForNonTermWithHint:estimatedBytesAvailable];
+			}
+			
+			if (bytesToRead > SIZE_MAX) { // NSUInteger may be bigger than size_t (read param 3)
+				bytesToRead = SIZE_MAX;
+			}
+			
+			// Make sure we have enough room in the buffer for our read.
+			//
+			// We are either reading directly into the currentRead->buffer,
+			// or we're reading into the temporary preBuffer.
+			
+			if (readIntoPreBuffer)
+			{
+				[preBuffer ensureCapacityForWrite:bytesToRead];
+				
+				buffer = [preBuffer writeBuffer];
+			}
+			else
+			{
+				[currentRead ensureCapacityForAdditionalDataOfLength:bytesToRead];
+				
+				buffer = (uint8_t *)[currentRead->buffer mutableBytes]
+				       + currentRead->startOffset
+				       + currentRead->bytesDone;
+			}
+			
+			// Read data into buffer
+			
 			int socketFD = (socket4FD == SOCKET_NULL) ? socket6FD : socket4FD;
 			
 			ssize_t result = read(socketFD, buffer, (size_t)bytesToRead);
