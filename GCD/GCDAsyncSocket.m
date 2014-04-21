@@ -3632,11 +3632,20 @@ enum GCDAsyncSocketConfig
 
 - (BOOL)usingSecureTransportForTLS
 {
+	// Invoking this method is equivalent to ![self usingCFStreamForTLS] (just more readable)
+	
 	#if TARGET_OS_IPHONE
-		return ![self usingCFStreamForTLS];
-	#else
-		return YES;
+	
+	if ((flags & kSocketSecure) && (flags & kUsingCFStreamForTLS))
+	{
+		// The startTLS method was given the GCDAsyncSocketUseCFStreamForTLS flag.
+		
+		return NO;
+	}
+	
 	#endif
+	
+	return YES;
 }
 
 - (void)suspendReadSource
@@ -4139,7 +4148,7 @@ enum GCDAsyncSocketConfig
 	{
 		#if TARGET_OS_IPHONE
 		
-		// Relegated to using CFStream... :( Boo! Give us a full SecureTransport stack Apple!
+		// Requested CFStream, rather than SecureTransport, for TLS (via GCDAsyncSocketUseCFStreamForTLS)
 		
 		estimatedBytesAvailable = 0;
 		if ((flags & kSecureSocketHasBytesAvailable) && CFReadStreamHasBytesAvailable(readStream))
