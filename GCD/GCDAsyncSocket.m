@@ -4761,7 +4761,7 @@ enum GCDAsyncSocketConfig
 	}
 	
 	BOOL hasBytesAvailable;
-	unsigned long estimatedBytesAvailable;
+	unsigned long estimatedBytesAvailable = 0;
 	
 	if ([self usingCFStreamForTLS])
 	{
@@ -7868,8 +7868,8 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 
 + (NSURL *)urlFromSockaddrUN:(const struct sockaddr_un *)pSockaddr
 {
-	NSString *string = [NSString stringWithUTF8String:pSockaddr->sun_path];
-	return [NSURL URLWithString:string];
+	NSString *path = [NSString stringWithUTF8String:pSockaddr->sun_path];
+	return [NSURL fileURLWithPath:path];
 }
 
 + (NSString *)hostFromAddress:(NSData *)address
