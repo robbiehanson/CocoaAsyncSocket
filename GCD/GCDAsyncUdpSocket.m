@@ -3288,6 +3288,117 @@ enum GCDAsyncUdpSocketConfig
 #pragma mark Multicast
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+- (BOOL)sendIPv4MulticastOnInterface:(NSString*)interface error:(NSError **)errPtr
+{
+	__block BOOL result = NO;
+	__block NSError *err = nil;
+	
+	dispatch_block_t block = ^{ @autoreleasepool {
+		
+		if (![self preOp:&err])
+		{
+			return_from_block;
+		}
+		
+		if ((flags & kDidCreateSockets) == 0)
+		{
+			if (![self createSockets:&err])
+			{
+				return_from_block;
+			}
+		}
+		// Convert interface to address
+		
+		NSData *interfaceAddr4 = nil;
+		NSData *interfaceAddr6 = nil;
+		
+		[self convertIntefaceDescription:interface port:0 intoAddress4:&interfaceAddr4 address6:&interfaceAddr6];
+		
+		if (interfaceAddr4 == nil)
+		{
+			NSString *msg = @"Unknown interface. Specify valid interface by IP address.";
+			err = [self badParamError:msg];
+			return_from_block;
+		}
+
+        if (socket4FD != SOCKET_NULL) {
+            const struct sockaddr_in *nativeIface = (struct sockaddr_in *)[interfaceAddr4 bytes];
+            struct in_addr interface_addr = nativeIface->sin_addr;
+            int status = setsockopt(socket4FD, IPPROTO_IP, IP_MULTICAST_IF, &interface_addr, sizeof(interface_addr));
+            if (status != 0) {
+ 				err = [self errnoErrorWithReason:@"Error in setsockopt() function"];
+				return_from_block;
+                result = YES;
+          }
+        }
+ 	}};
+	
+	if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
+		block();
+	else
+		dispatch_sync(socketQueue, block);
+	
+	if (errPtr)
+		*errPtr = err;
+	
+	return result;
+}
+
+- (BOOL)sendIPv6MulticastOnInterface:(NSString*)interface error:(NSError **)errPtr
+{
+	__block BOOL result = NO;
+	__block NSError *err = nil;
+	
+	dispatch_block_t block = ^{ @autoreleasepool {
+		
+		if (![self preOp:&err])
+		{
+			return_from_block;
+		}
+		
+		if ((flags & kDidCreateSockets) == 0)
+		{
+			if (![self createSockets:&err])
+			{
+				return_from_block;
+			}
+		}
+		// Convert interface to address
+		
+		NSData *interfaceAddr4 = nil;
+		NSData *interfaceAddr6 = nil;
+		
+		[self convertIntefaceDescription:interface port:0 intoAddress4:&interfaceAddr4 address6:&interfaceAddr6];
+		
+		if (interfaceAddr6 == nil)
+		{
+			NSString *msg = @"Unknown interface. Specify valid interface by name (e.g. \"en1\").";
+			err = [self badParamError:msg];
+			return_from_block;
+		}
+        
+        if ((socket6FD != SOCKET_NULL)) {
+            uint32_t scope_id = [self indexOfInterfaceAddr6:interfaceAddr6];
+            int status = setsockopt(socket6FD, IPPROTO_IPV6, IPV6_MULTICAST_IF, &scope_id, sizeof(scope_id));
+            if (status != 0) {
+ 				err = [self errnoErrorWithReason:@"Error in setsockopt() function"];
+				return_from_block;
+            }
+            result = YES;
+       }
+ 	}};
+	
+	if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
+		block();
+	else
+		dispatch_sync(socketQueue, block);
+	
+	if (errPtr)
+		*errPtr = err;
+	
+	return result;
+}
+
 - (BOOL)preJoin:(NSError **)errPtr
 {
 	if (![self preOp:errPtr])
