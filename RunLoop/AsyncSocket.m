@@ -45,6 +45,8 @@
 NSString *const AsyncSocketException = @"AsyncSocketException";
 NSString *const AsyncSocketErrorDomain = @"AsyncSocketErrorDomain";
 
+const extern CFStringRef kCFStreamPropertySocketSSLContext;
+const extern CFStringRef _kCFStreamPropertySSLClientSideAuthentication; // in CFNetwork
 
 enum AsyncSocketFlags
 {
@@ -4157,11 +4159,37 @@ Failed:
 														   (CFDictionaryRef)tlsPacket->tlsSettings);
 		BOOL didStartOnWriteStream = CFWriteStreamSetProperty(theWriteStream, kCFStreamPropertySSLSettings,
 															 (CFDictionaryRef)tlsPacket->tlsSettings);
-		
+    
 		if(!didStartOnReadStream || !didStartOnWriteStream)
 		{
             [self closeWithError:[self getSocketError]];
 		}
+
+    NSDictionary* tlsSettings = (NSDictionary*)tlsPacket->tlsSettings;
+    //manually enable client side cert auth - not sure why this wasn't originally implemented - Sammy
+    NSNumber* isServer = [tlsSettings objectForKey:(NSString*)kCFStreamSSLIsServer];
+    if (isServer && (int)[tlsSettings objectForKey:(NSString*)_kCFStreamPropertySSLClientSideAuthentication] != kNeverAuthenticate) {
+      CFDataRef data = (CFDataRef) CFReadStreamCopyProperty(theReadStream, kCFStreamPropertySocketSSLContext);
+      SSLContextRef sslContext;
+      CFDataGetBytes(data, CFRangeMake(0, sizeof(SSLContextRef)), (UInt8*)&sslContext);
+      OSStatus status = SSLSetClientSideAuthenticate(sslContext, kAlwaysAuthenticate);
+      if (data != nil) {
+        CFRelease(data);
+      }
+      if (status != noErr && (int)[tlsSettings objectForKey:(NSString*)_kCFStreamPropertySSLClientSideAuthentication] == kAlwaysAuthenticate){//kTryAuthenticate failure shouldn't be fatal
+        [self closeWithError:[self getSocketError]];
+      }
+      data = (CFDataRef) CFWriteStreamCopyProperty(theWriteStream, kCFStreamPropertySocketSSLContext);
+      CFDataGetBytes(data, CFRangeMake(0, sizeof(SSLContextRef)), (UInt8*)&sslContext);
+      status = SSLSetClientSideAuthenticate(sslContext, kAlwaysAuthenticate);
+      if (data != nil) {
+        CFRelease(data);
+      }
+      if (status != noErr && (int)[tlsSettings objectForKey:(NSString*)_kCFStreamPropertySSLClientSideAuthentication] == kAlwaysAuthenticate){//kTryAuthenticate failure shouldn't be fatal
+        [self closeWithError:[self getSocketError]];
+      }
+    }
+
 	}
 }
 
