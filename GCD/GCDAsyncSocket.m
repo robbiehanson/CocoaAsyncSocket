@@ -6430,7 +6430,10 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	// 10. kCFStreamSSLAllowsAnyRoot
 	
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsAnyRoot];
+	#pragma clang diagnostic pop
 	if (value)
 	{
 		NSAssert(NO, @"Security option unavailable - kCFStreamSSLAllowsAnyRoot"
@@ -6442,7 +6445,10 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	// 11. kCFStreamSSLAllowsExpiredRoots
 	
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredRoots];
+	#pragma clang diagnostic pop
 	if (value)
 	{
 		NSAssert(NO, @"Security option unavailable - kCFStreamSSLAllowsExpiredRoots"
@@ -6454,7 +6460,10 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	// 12. kCFStreamSSLValidatesCertificateChain
 	
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
+	#pragma clang diagnostic pop
 	if (value)
 	{
 		NSAssert(NO, @"Security option unavailable - kCFStreamSSLValidatesCertificateChain"
@@ -6466,7 +6475,10 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	// 13. kCFStreamSSLAllowsExpiredCertificates
 	
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredCertificates];
+	#pragma clang diagnostic pop
 	if (value)
 	{
 		NSAssert(NO, @"Security option unavailable - kCFStreamSSLAllowsExpiredCertificates"
@@ -6478,7 +6490,10 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	// 14. kCFStreamSSLLevel
 	
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLLevel];
+	#pragma clang diagnostic pop
 	if (value)
 	{
 		NSAssert(NO, @"Security option unavailable - kCFStreamSSLLevel"
