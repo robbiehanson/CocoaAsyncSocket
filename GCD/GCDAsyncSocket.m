@@ -3632,11 +3632,20 @@ enum GCDAsyncSocketConfig
 
 - (BOOL)usingSecureTransportForTLS
 {
+	// Invoking this method is equivalent to ![self usingCFStreamForTLS] (just more readable)
+	
 	#if TARGET_OS_IPHONE
-		return ![self usingCFStreamForTLS];
-	#else
-		return YES;
+	
+	if ((flags & kSocketSecure) && (flags & kUsingCFStreamForTLS))
+	{
+		// The startTLS method was given the GCDAsyncSocketUseCFStreamForTLS flag.
+		
+		return NO;
+	}
+	
 	#endif
+	
+	return YES;
 }
 
 - (void)suspendReadSource
@@ -4139,7 +4148,7 @@ enum GCDAsyncSocketConfig
 	{
 		#if TARGET_OS_IPHONE
 		
-		// Relegated to using CFStream... :( Boo! Give us a full SecureTransport stack Apple!
+		// Requested CFStream, rather than SecureTransport, for TLS (via GCDAsyncSocketUseCFStreamForTLS)
 		
 		estimatedBytesAvailable = 0;
 		if ((flags & kSecureSocketHasBytesAvailable) && CFReadStreamHasBytesAvailable(readStream))
@@ -4335,82 +4344,15 @@ enum GCDAsyncSocketConfig
 	// STEP 2 - READ FROM SOCKET
 	// 
 	
-	BOOL socketEOF = (flags & kSocketHasReadEOF) ? YES : NO;  // Nothing more to via socket (end of file)
+	BOOL socketEOF = (flags & kSocketHasReadEOF) ? YES : NO;  // Nothing more to read via socket (end of file)
 	BOOL waiting   = !done && !error && !socketEOF && !hasBytesAvailable; // Ran out of data, waiting for more
 	
-	if (!done && !error && !socketEOF && !waiting && hasBytesAvailable)
+	if (!done && !error && !socketEOF && hasBytesAvailable)
 	{
 		NSAssert(([preBuffer availableBytes] == 0), @"Invalid logic");
 		
-		// There are 3 types of read packets:
-		// 
-		// 1) Read all available data.
-		// 2) Read a specific length of data.
-		// 3) Read up to a particular terminator.
-		
 		BOOL readIntoPreBuffer = NO;
-		NSUInteger bytesToRead;
-		
-		if ([self usingCFStreamForTLS])
-		{
-			// Since Apple hasn't made the full power of SecureTransport available on iOS,
-			// we are relegated to using the slower, less powerful, RunLoop based CFStream API.
-			// 
-			// This API doesn't tell us how much data is available on the socket to be read.
-			// If we had that information we could optimize our memory allocations, and sys calls.
-			// 
-			// But alas...
-			// So we do it old school, and just read as much data from the socket as we can.
-			
-			NSUInteger defaultReadLength = (1024 * 32);
-			
-			bytesToRead = [currentRead optimalReadLengthWithDefault:defaultReadLength
-			                                        shouldPreBuffer:&readIntoPreBuffer];
-		}
-		else
-		{
-			if (currentRead->term != nil)
-			{
-				// Read type #3 - read up to a terminator
-				
-				bytesToRead = [currentRead readLengthForTermWithHint:estimatedBytesAvailable
-													 shouldPreBuffer:&readIntoPreBuffer];
-			}
-			else
-			{
-				// Read type #1 or #2
-				
-				bytesToRead = [currentRead readLengthForNonTermWithHint:estimatedBytesAvailable];
-			}
-		}
-		
-		if (bytesToRead > SIZE_MAX) // NSUInteger may be bigger than size_t (read param 3)
-		{
-			bytesToRead = SIZE_MAX;
-		}
-		
-		// Make sure we have enough room in the buffer for our read.
-		// 
-		// We are either reading directly into the currentRead->buffer,
-		// or we're reading into the temporary preBuffer.
-		
-		uint8_t *buffer;
-		
-		if (readIntoPreBuffer)
-		{
-			[preBuffer ensureCapacityForWrite:bytesToRead];
-						
-			buffer = [preBuffer writeBuffer];
-		}
-		else
-		{
-			[currentRead ensureCapacityForAdditionalDataOfLength:bytesToRead];
-			
-			buffer = (uint8_t *)[currentRead->buffer mutableBytes] + currentRead->startOffset + currentRead->bytesDone;
-		}
-		
-		// Read data into buffer
-		
+		uint8_t *buffer = NULL;
 		size_t bytesRead = 0;
 		
 		if (flags & kSocketSecure)
@@ -4418,6 +4360,35 @@ enum GCDAsyncSocketConfig
 			if ([self usingCFStreamForTLS])
 			{
 				#if TARGET_OS_IPHONE
+				
+				// Using CFStream, rather than SecureTransport, for TLS
+				
+				NSUInteger defaultReadLength = (1024 * 32);
+				
+				NSUInteger bytesToRead = [currentRead optimalReadLengthWithDefault:defaultReadLength
+				                                                   shouldPreBuffer:&readIntoPreBuffer];
+				
+				// Make sure we have enough room in the buffer for our read.
+				//
+				// We are either reading directly into the currentRead->buffer,
+				// or we're reading into the temporary preBuffer.
+				
+				if (readIntoPreBuffer)
+				{
+					[preBuffer ensureCapacityForWrite:bytesToRead];
+					
+					buffer = [preBuffer writeBuffer];
+				}
+				else
+				{
+					[currentRead ensureCapacityForAdditionalDataOfLength:bytesToRead];
+					
+					buffer = (uint8_t *)[currentRead->buffer mutableBytes]
+					       + currentRead->startOffset
+					       + currentRead->bytesDone;
+				}
+				
+				// Read data into buffer
 				
 				CFIndex result = CFReadStreamRead(readStream, buffer, (CFIndex)bytesToRead);
 				LogVerbose(@"CFReadStreamRead(): result = %i", (int)result);
@@ -4445,6 +4416,51 @@ enum GCDAsyncSocketConfig
 			}
 			else
 			{
+				// Using SecureTransport for TLS
+				//
+				// We know:
+				// - how many bytes are available on the socket
+				// - how many encrypted bytes are sitting in the sslPreBuffer
+				// - how many decypted bytes are sitting in the sslContext
+				//
+				// But we do NOT know:
+				// - how many encypted bytes are sitting in the sslContext
+				//
+				// So we play the regular game of using an upper bound instead.
+				
+				NSUInteger defaultReadLength = (1024 * 32);
+				
+				if (defaultReadLength < estimatedBytesAvailable) {
+					defaultReadLength = estimatedBytesAvailable + (1024 * 16);
+				}
+				
+				NSUInteger bytesToRead = [currentRead optimalReadLengthWithDefault:defaultReadLength
+				                                                   shouldPreBuffer:&readIntoPreBuffer];
+				
+				if (bytesToRead > SIZE_MAX) { // NSUInteger may be bigger than size_t
+					bytesToRead = SIZE_MAX;
+				}
+				
+				// Make sure we have enough room in the buffer for our read.
+				//
+				// We are either reading directly into the currentRead->buffer,
+				// or we're reading into the temporary preBuffer.
+				
+				if (readIntoPreBuffer)
+				{
+					[preBuffer ensureCapacityForWrite:bytesToRead];
+					
+					buffer = [preBuffer writeBuffer];
+				}
+				else
+				{
+					[currentRead ensureCapacityForAdditionalDataOfLength:bytesToRead];
+					
+					buffer = (uint8_t *)[currentRead->buffer mutableBytes]
+					       + currentRead->startOffset
+					       + currentRead->bytesDone;
+				}
+				
 				// The documentation from Apple states:
 				// 
 				//     "a read operation might return errSSLWouldBlock,
@@ -4502,6 +4518,56 @@ enum GCDAsyncSocketConfig
 		}
 		else
 		{
+			// Normal socket operation
+			
+			NSUInteger bytesToRead;
+			
+			// There are 3 types of read packets:
+			//
+			// 1) Read all available data.
+			// 2) Read a specific length of data.
+			// 3) Read up to a particular terminator.
+			
+			if (currentRead->term != nil)
+			{
+				// Read type #3 - read up to a terminator
+				
+				bytesToRead = [currentRead readLengthForTermWithHint:estimatedBytesAvailable
+				                                     shouldPreBuffer:&readIntoPreBuffer];
+			}
+			else
+			{
+				// Read type #1 or #2
+				
+				bytesToRead = [currentRead readLengthForNonTermWithHint:estimatedBytesAvailable];
+			}
+			
+			if (bytesToRead > SIZE_MAX) { // NSUInteger may be bigger than size_t (read param 3)
+				bytesToRead = SIZE_MAX;
+			}
+			
+			// Make sure we have enough room in the buffer for our read.
+			//
+			// We are either reading directly into the currentRead->buffer,
+			// or we're reading into the temporary preBuffer.
+			
+			if (readIntoPreBuffer)
+			{
+				[preBuffer ensureCapacityForWrite:bytesToRead];
+				
+				buffer = [preBuffer writeBuffer];
+			}
+			else
+			{
+				[currentRead ensureCapacityForAdditionalDataOfLength:bytesToRead];
+				
+				buffer = (uint8_t *)[currentRead->buffer mutableBytes]
+				       + currentRead->startOffset
+				       + currentRead->bytesDone;
+			}
+			
+			// Read data into buffer
+			
 			int socketFD = (socket4FD == SOCKET_NULL) ? socket6FD : socket4FD;
 			
 			ssize_t result = read(socketFD, buffer, (size_t)bytesToRead);
@@ -4577,27 +4643,27 @@ enum GCDAsyncSocketConfig
 					
 					// Search for the terminating sequence
 					
-					bytesToRead = [currentRead readLengthForTermWithPreBuffer:preBuffer found:&done];
-					LogVerbose(@"copying %lu bytes from preBuffer", (unsigned long)bytesToRead);
+					NSUInteger bytesToCopy = [currentRead readLengthForTermWithPreBuffer:preBuffer found:&done];
+					LogVerbose(@"copying %lu bytes from preBuffer", (unsigned long)bytesToCopy);
 					
 					// Ensure there's room on the read packet's buffer
 					
-					[currentRead ensureCapacityForAdditionalDataOfLength:bytesToRead];
+					[currentRead ensureCapacityForAdditionalDataOfLength:bytesToCopy];
 					
 					// Copy bytes from prebuffer into read buffer
 					
 					uint8_t *readBuf = (uint8_t *)[currentRead->buffer mutableBytes] + currentRead->startOffset
 					                                                                 + currentRead->bytesDone;
 					
-					memcpy(readBuf, [preBuffer readBuffer], bytesToRead);
+					memcpy(readBuf, [preBuffer readBuffer], bytesToCopy);
 					
 					// Remove the copied bytes from the prebuffer
-					[preBuffer didRead:bytesToRead];
+					[preBuffer didRead:bytesToCopy];
 					LogVerbose(@"preBuffer.length = %zu", [preBuffer availableBytes]);
 					
 					// Update totals
-					currentRead->bytesDone += bytesToRead;
-					totalBytesReadForCurrentRead += bytesToRead;
+					currentRead->bytesDone += bytesToCopy;
+					totalBytesReadForCurrentRead += bytesToCopy;
 					
 					// Our 'done' variable was updated via the readLengthForTermWithPreBuffer:found: method above
 				}
@@ -4708,7 +4774,7 @@ enum GCDAsyncSocketConfig
 			
 		} // if (bytesRead > 0)
 		
-	} // if (!done && !error && !socketEOF && !waiting && hasBytesAvailable)
+	} // if (!done && !error && !socketEOF && hasBytesAvailable)
 	
 	
 	if (!done && currentRead->readLength == 0 && currentRead->term == nil)
@@ -6364,7 +6430,10 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	// 10. kCFStreamSSLAllowsAnyRoot
 	
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsAnyRoot];
+	#pragma clang diagnostic pop
 	if (value)
 	{
 		NSAssert(NO, @"Security option unavailable - kCFStreamSSLAllowsAnyRoot"
@@ -6376,7 +6445,10 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	// 11. kCFStreamSSLAllowsExpiredRoots
 	
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredRoots];
+	#pragma clang diagnostic pop
 	if (value)
 	{
 		NSAssert(NO, @"Security option unavailable - kCFStreamSSLAllowsExpiredRoots"
@@ -6388,7 +6460,10 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	// 12. kCFStreamSSLValidatesCertificateChain
 	
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
+	#pragma clang diagnostic pop
 	if (value)
 	{
 		NSAssert(NO, @"Security option unavailable - kCFStreamSSLValidatesCertificateChain"
@@ -6400,7 +6475,10 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	// 13. kCFStreamSSLAllowsExpiredCertificates
 	
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredCertificates];
+	#pragma clang diagnostic pop
 	if (value)
 	{
 		NSAssert(NO, @"Security option unavailable - kCFStreamSSLAllowsExpiredCertificates"
@@ -6412,7 +6490,10 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	// 14. kCFStreamSSLLevel
 	
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLLevel];
+	#pragma clang diagnostic pop
 	if (value)
 	{
 		NSAssert(NO, @"Security option unavailable - kCFStreamSSLLevel"
