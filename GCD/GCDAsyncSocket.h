@@ -90,7 +90,7 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 #pragma mark Configuration
 
 @property (atomic, weak, readwrite) id delegate;
-@property (atomic, strong, readwrite) dispatch_queue_t delegateQueue;
+@property (atomic, readwrite) dispatch_queue_t delegateQueue;
 
 - (void)getDelegate:(id *)delegatePtr delegateQueue:(dispatch_queue_t *)delegateQueuePtr;
 - (void)setDelegate:(id)delegate delegateQueue:(dispatch_queue_t)delegateQueue;
