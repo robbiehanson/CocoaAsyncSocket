@@ -802,6 +802,7 @@ enum GCDAsyncSocketConfig
 {
   @public
 	NSData *buffer;
+	NSUInteger length;
 	NSUInteger bytesDone;
 	long tag;
 	NSTimeInterval timeout;
@@ -817,6 +818,40 @@ enum GCDAsyncSocketConfig
 	{
 		buffer = d; // Retain not copy. For performance as documented in header file.
 		bytesDone = 0;
+		length = [buffer length];
+		timeout = t;
+		tag = i;
+	}
+	return self;
+}
+
+
+@end
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark -
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * The GCDAsyncSendFilePacket encompasses the instructions for sending a file
+ **/
+@interface GCDAsyncSendFilePacket : GCDAsyncWritePacket
+{
+@public
+	int sourceFD;
+}
+- (id)initWithSourceFD:(int)fd offset:(NSUInteger)offset length:(NSUInteger)len timeout:(NSTimeInterval)t tag:(long)i;
+@end
+
+@implementation GCDAsyncSendFilePacket
+
+- (id)initWithSourceFD:(int)fd offset:(NSUInteger)offset length:(NSUInteger)len timeout:(NSTimeInterval)t tag:(long)i
+{
+	if((self = [super init]))
+	{
+		sourceFD = fd;
+		bytesDone = (NSUInteger)offset;
+		length = len;
 		timeout = t;
 		tag = i;
 	}
@@ -5158,6 +5193,46 @@ enum GCDAsyncSocketConfig
 	// as the queue might get released without the block completing.
 }
 
+- (BOOL)sendFileAtPath:(NSString *)path withOffset:(NSUInteger)offset andLength:(NSUInteger)len withTimeout:(NSTimeInterval)timeout tag:(long)tag error:(NSError **)error
+{
+	assert (flags ^ kSocketSecure);
+
+	NSError *attsError;
+	NSDictionary *atts = [[NSFileManager defaultManager] attributesOfItemAtPath:path error:&attsError];
+
+	if (!atts || attsError) {
+		*error = [self badParamError:[NSString stringWithFormat:@"Unable to get attributes for file %@", path]];
+		LogError(@"Error getting attributes for file %@: %@", path, [attsError localizedDescription]);
+		return NO;
+	}
+
+	if (len == 0) {
+		len = [atts fileSize];
+	}
+
+	int fd = open([path UTF8String], O_RDONLY);
+	if (!fd) {
+		*error = [self errnoErrorWithReason:@"Unable to open file at path"];
+		LogError(@"Error opening file %@: %s", path, [*error localizedDescription]);
+		return NO;
+	}
+
+	GCDAsyncSendFilePacket *packet = [[GCDAsyncSendFilePacket alloc] initWithSourceFD:fd offset:offset length:len timeout:timeout tag:tag];
+
+	dispatch_async(socketQueue, ^{ @autoreleasepool {
+
+		LogTrace();
+
+		if ((flags & kSocketStarted) && !(flags & kForbidReadsWrites))
+		{
+			[writeQueue addObject:packet];
+			[self maybeDequeueWrite];
+		}
+	}});
+
+	return YES;
+}
+
 - (float)progressOfWriteReturningTag:(long *)tagPtr bytesDone:(NSUInteger *)donePtr total:(NSUInteger *)totalPtr
 {
 	__block float result = 0.0F;
@@ -5177,8 +5252,8 @@ enum GCDAsyncSocketConfig
 		else
 		{
 			NSUInteger done = currentWrite->bytesDone;
-			NSUInteger total = [currentWrite->buffer length];
-			
+			NSUInteger total = currentWrite->length;
+
 			if (tagPtr != NULL)   *tagPtr = currentWrite->tag;
 			if (donePtr != NULL)  *donePtr = done;
 			if (totalPtr != NULL) *totalPtr = total;
@@ -5520,21 +5595,38 @@ enum GCDAsyncSocketConfig
 		// 
 		// Writing data directly over raw socket
 		// 
-		
+
+		ssize_t result;
 		int socketFD = (socket4FD == SOCKET_NULL) ? socket6FD : socket4FD;
 		
-		const uint8_t *buffer = (const uint8_t *)[currentWrite->buffer bytes] + currentWrite->bytesDone;
-		
-		NSUInteger bytesToWrite = [currentWrite->buffer length] - currentWrite->bytesDone;
-		
-		if (bytesToWrite > SIZE_MAX) // NSUInteger may be bigger than size_t (write param 3)
-		{
-			bytesToWrite = SIZE_MAX;
+		if ([currentWrite isKindOfClass:[GCDAsyncSendFilePacket class]]) {
+			GCDAsyncSendFilePacket *sendFilePacket = (GCDAsyncSendFilePacket *)currentWrite;
+
+			off_t len = currentWrite->length;
+			off_t offset = currentWrite->bytesDone;
+			result = sendfile(sendFilePacket->sourceFD, socketFD, offset, &len, NULL, 0);
+			if (result >= 0) {
+				// sendfile returns the length sent in &len. If the entire file has been sent
+				// len will be set to zero. We just set result to the full length in that case
+				// so the result semantics match write's.
+				result = (len > 0 ? len : currentWrite->length);
+			}
 		}
-		
-		ssize_t result = write(socketFD, buffer, (size_t)bytesToWrite);
-		LogVerbose(@"wrote to socket = %zd", result);
-		
+		else
+		{
+			const uint8_t *buffer = (const uint8_t *)[currentWrite->buffer bytes] + currentWrite->bytesDone;
+
+			NSUInteger bytesToWrite = [currentWrite->buffer length] - currentWrite->bytesDone;
+
+			if (bytesToWrite > SIZE_MAX) // NSUInteger may be bigger than size_t (write param 3)
+			{
+				bytesToWrite = SIZE_MAX;
+			}
+
+			result = write(socketFD, buffer, (size_t)bytesToWrite);
+			LogVerbose(@"wrote to socket = %zd", result);
+		}
+
 		// Check results
 		if (result < 0)
 		{
@@ -5583,7 +5675,7 @@ enum GCDAsyncSocketConfig
 		LogVerbose(@"currentWrite->bytesDone = %lu", (unsigned long)currentWrite->bytesDone);
 		
 		// Is packet done?
-		done = (currentWrite->bytesDone == [currentWrite->buffer length]);
+		done = (currentWrite->bytesDone == currentWrite->length);
 	}
 	
 	if (done)
