@@ -5200,7 +5200,7 @@ enum GCDAsyncSocketConfig
 	NSError *attsError;
 	NSDictionary *atts = [[NSFileManager defaultManager] attributesOfItemAtPath:path error:&attsError];
 
-	if (!atts || error) {
+	if (!atts || attsError) {
 		*error = [self badParamError:[NSString stringWithFormat:@"Unable to get attributes for file %@", path]];
 		LogError(@"Error getting attributes for file %@: %@", path, [attsError localizedDescription]);
 		return NO;
