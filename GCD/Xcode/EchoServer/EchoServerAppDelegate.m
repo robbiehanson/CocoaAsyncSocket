@@ -190,11 +190,9 @@
 		
 		}
 	});
-	
-	NSString *welcomeMsg = @"Welcome to the AsyncSocket Echo Server\r\n";
-	NSData *welcomeData = [welcomeMsg dataUsingEncoding:NSUTF8StringEncoding];
-	
-	[newSocket writeData:welcomeData withTimeout:-1 tag:WELCOME_MSG];
+
+	NSString *welcomePath = [[NSBundle mainBundle] pathForResource:@"welcome" ofType:@"txt"];
+	[newSocket sendFileAtPath:welcomePath withOffset:0 andLength:0 withTimeout:-1 tag:0 error:NULL];
 	
 	[newSocket readDataToData:[GCDAsyncSocket CRLFData] withTimeout:READ_TIMEOUT tag:0];
 }

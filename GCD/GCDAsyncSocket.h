@@ -627,6 +627,22 @@ typedef enum GCDAsyncSocketError GCDAsyncSocketError;
 **/
 - (float)progressOfWriteReturningTag:(long *)tagPtr bytesDone:(NSUInteger *)donePtr total:(NSUInteger *)totalPtr;
 
+
+/**
+ * Writes the specified file to the socket, and calls the delegate when finished.
+ *
+ * This function using the POSIX sendfile function.
+ *
+ * If a zero lenth is used, the entire file length will be sent.
+ * If the timeout value is negative, the write operation will not use a timeout.
+ *
+ * Please see Thread-Safety note writeData:withTimeout:tag.
+ *
+ * WARNING: This function only works with GCDAsyncSocket's native socket implementation
+ * and will assert if used with secure sockets.
+ */
+- (BOOL)sendFileAtPath:(NSString *)path withOffset:(NSUInteger)offset andLength:(NSUInteger)len withTimeout:(NSTimeInterval)timeout tag:(long)tag error:(NSError **)error;
+
 #pragma mark Security
 
 /**

@@ -12,6 +12,7 @@
 		11C327FF186CDAD800F6D762 /* DDMultiFormatter.m in Sources */ = {isa = PBXBuildFile; fileRef = 11C327FC186CDAD800F6D762 /* DDMultiFormatter.m */; };
 		1DDD58160DA1D0A300B32029 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1DDD58140DA1D0A300B32029 /* MainMenu.xib */; };
 		256AC3DA0F4B6AC300CF3369 /* EchoServerAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 256AC3D90F4B6AC300CF3369 /* EchoServerAppDelegate.m */; };
+		7A1597F9198052EC008F1DD2 /* welcome.txt in Resources */ = {isa = PBXBuildFile; fileRef = 7A1597F8198052EC008F1DD2 /* welcome.txt */; };
 		8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
 		8D11072D0486CEB800E47090 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 29B97316FDCFA39411CA2CEA /* main.m */; settings = {ATTRIBUTES = (); }; };
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
@@ -43,6 +44,7 @@
 		29B97316FDCFA39411CA2CEA /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
+		7A1597F8198052EC008F1DD2 /* welcome.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = welcome.txt; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* EchoServer-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "EchoServer-Info.plist"; sourceTree = "<group>"; };
 		8D1107320486CEB800E47090 /* EchoServer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EchoServer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC90AB3E14773F9A0022DF52 /* DDAbstractDatabaseLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DDAbstractDatabaseLogger.h; path = ../../../Vendor/CocoaLumberjack/DDAbstractDatabaseLogger.h; sourceTree = "<group>"; };
@@ -140,6 +142,7 @@
 				1DDD58140DA1D0A300B32029 /* MainMenu.xib */,
 				8D1107310486CEB800E47090 /* EchoServer-Info.plist */,
 				089C165CFE840E0CC02AAC07 /* InfoPlist.strings */,
+				7A1597F8198052EC008F1DD2 /* welcome.txt */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -241,6 +244,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */,
+				7A1597F9198052EC008F1DD2 /* welcome.txt in Resources */,
 				1DDD58160DA1D0A300B32029 /* MainMenu.xib in Resources */,
 				DC90AB5514773F9A0022DF52 /* README.txt in Resources */,
 			);
