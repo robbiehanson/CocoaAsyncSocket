@@ -3153,7 +3153,7 @@ enum GCDAsyncSocketConfig
 		
 		if (flags & kSocketStarted)
 		{
-			[self closeWithError:nil];
+			[self closeWithError:[self disconnectedError]];
 		}
 	}};
 	
@@ -3239,7 +3239,7 @@ enum GCDAsyncSocketConfig
 	
 	if (shouldClose)
 	{
-		[self closeWithError:nil];
+		[self closeWithError:[self disconnectedError]];
 	}
 }
 
@@ -3356,6 +3356,17 @@ enum GCDAsyncSocketConfig
 	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
 	
 	return [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketClosedError userInfo:userInfo];
+}
+
+- (NSError *)disconnectedError
+{
+    NSString *errMsg = NSLocalizedStringWithDefaultValue(@"GCDAsyncSocketDisconnectedError",
+	                                                     @"GCDAsyncSocket", [NSBundle mainBundle],
+	                                                     @"Socket was disconnected", nil);
+	
+	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+	
+	return [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketDisconnectedError userInfo:userInfo];
 }
 
 - (NSError *)otherError:(NSString *)errMsg

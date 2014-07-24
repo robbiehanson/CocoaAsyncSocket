@@ -55,6 +55,7 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
 	GCDAsyncSocketWriteTimeoutError,     // A write operation timed out
 	GCDAsyncSocketReadMaxedOutError,     // Reached set maxLength without completing
 	GCDAsyncSocketClosedError,           // The remote peer closed the connection
+	GCDAsyncSocketDisconnectedError,     // Socket was closed manually
 	GCDAsyncSocketOtherError,            // Description provided in userInfo
 };
 
