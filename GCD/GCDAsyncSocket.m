@@ -5798,22 +5798,8 @@ enum GCDAsyncSocketConfig
 			GCDAsyncSpecialPacket *tlsPacket = (GCDAsyncSpecialPacket *)currentRead;
 			NSDictionary *tlsSettings = tlsPacket->tlsSettings;
 			
-			NSNumber *value;
-			
-			value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsAnyRoot];
-			if (value && [value boolValue] == YES)
-				canUseSecureTransport = NO;
-			
-			value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredRoots];
-			if (value && [value boolValue] == YES)
-				canUseSecureTransport = NO;
-			
-			value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
+			NSNumber *value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
 			if (value && [value boolValue] == NO)
-				canUseSecureTransport = NO;
-			
-			value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredCertificates];
-			if (value && [value boolValue] == YES)
 				canUseSecureTransport = NO;
 		}
 		#endif
@@ -6162,49 +6148,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		}
 	}
 	
-	// 2. kCFStreamSSLAllowsAnyRoot
-	
-	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsAnyRoot];
-	if (value)
-	{
-		#if TARGET_OS_IPHONE
-		NSAssert(NO, @"Security option unavailable via SecureTransport in iOS - kCFStreamSSLAllowsAnyRoot");
-		#else
-		
-		BOOL allowsAnyRoot = [value boolValue];
-		
-		status = SSLSetAllowsAnyRoot(sslContext, allowsAnyRoot);
-		if (status != noErr)
-		{
-			[self closeWithError:[self otherError:@"Error in SSLSetAllowsAnyRoot"]];
-			return;
-		}
-		
-		#endif
-	}
-	
-	// 3. kCFStreamSSLAllowsExpiredRoots
-	
-	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredRoots];
-	if (value)
-	{
-		#if TARGET_OS_IPHONE
-		NSAssert(NO, @"Security option unavailable via SecureTransport in iOS - kCFStreamSSLAllowsExpiredRoots");
-		#else
-		
-		BOOL allowsExpiredRoots = [value boolValue];
-		
-		status = SSLSetAllowsExpiredRoots(sslContext, allowsExpiredRoots);
-		if (status != noErr)
-		{
-			[self closeWithError:[self otherError:@"Error in SSLSetAllowsExpiredRoots"]];
-			return;
-		}
-		
-		#endif
-	}
-	
-	// 4. kCFStreamSSLValidatesCertificateChain
+	// 2. kCFStreamSSLValidatesCertificateChain
 	
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
 	if (value)
@@ -6225,28 +6169,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		#endif
 	}
 	
-	// 5. kCFStreamSSLAllowsExpiredCertificates
-	
-	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredCertificates];
-	if (value)
-	{
-		#if TARGET_OS_IPHONE
-		NSAssert(NO, @"Security option unavailable via SecureTransport in iOS - kCFStreamSSLAllowsExpiredCertificates");
-		#else
-		
-		BOOL allowsExpiredCerts = [value boolValue];
-		
-		status = SSLSetAllowsExpiredCerts(sslContext, allowsExpiredCerts);
-		if (status != noErr)
-		{
-			[self closeWithError:[self otherError:@"Error in SSLSetAllowsExpiredCerts"]];
-			return;
-		}
-		
-		#endif
-	}
-	
-	// 6. kCFStreamSSLCertificates
+	// 3. kCFStreamSSLCertificates
 	
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLCertificates];
 	if (value)
@@ -6261,7 +6184,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		}
 	}
 	
-	// 7. kCFStreamSSLLevel
+	// 4. kCFStreamSSLLevel
 	
 	#if TARGET_OS_IPHONE
 	{
@@ -6386,7 +6309,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	}
 	#endif
 	
-	// 8. GCDAsyncSocketSSLCipherSuites
+	// 5. GCDAsyncSocketSSLCipherSuites
 	
 	value = [tlsSettings objectForKey:GCDAsyncSocketSSLCipherSuites];
 	if (value)
@@ -6410,7 +6333,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		}
 	}
 	
-	// 9. GCDAsyncSocketSSLDiffieHellmanParameters
+	// 6. GCDAsyncSocketSSLDiffieHellmanParameters
 	
 	#if !TARGET_OS_IPHONE
 	value = [tlsSettings objectForKey:GCDAsyncSocketSSLDiffieHellmanParameters];
