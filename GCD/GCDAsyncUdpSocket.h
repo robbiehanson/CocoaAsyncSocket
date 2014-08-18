@@ -10,7 +10,8 @@
 
 #import <Foundation/Foundation.h>
 #import <dispatch/dispatch.h>
-
+#import <TargetConditionals.h>
+#import <Availability.h>
 
 extern NSString *const GCDAsyncUdpSocketException;
 extern NSString *const GCDAsyncUdpSocketErrorDomain;

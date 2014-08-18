@@ -14,6 +14,7 @@
 #import <CFNetwork/CFNetwork.h>
 #endif
 
+#import <TargetConditionals.h>
 #import <arpa/inet.h>
 #import <fcntl.h>
 #import <ifaddrs.h>
@@ -120,14 +121,18 @@ NSString *const GCDAsyncSocketErrorDomain = @"GCDAsyncSocketErrorDomain";
 NSString *const GCDAsyncSocketQueueName = @"GCDAsyncSocket";
 NSString *const GCDAsyncSocketThreadName = @"GCDAsyncSocket-CFStream";
 
-#if SECURE_TRANSPORT_MAYBE_AVAILABLE
-NSString *const GCDAsyncSocketSSLCipherSuites = @"GCDAsyncSocketSSLCipherSuites";
+NSString *const GCDAsyncSocketManuallyEvaluateTrust = @"GCDAsyncSocketManuallyEvaluateTrust";
 #if TARGET_OS_IPHONE
+NSString *const GCDAsyncSocketUseCFStreamForTLS = @"GCDAsyncSocketUseCFStreamForTLS";
+#endif
+NSString *const GCDAsyncSocketSSLPeerID = @"GCDAsyncSocketSSLPeerID";
 NSString *const GCDAsyncSocketSSLProtocolVersionMin = @"GCDAsyncSocketSSLProtocolVersionMin";
 NSString *const GCDAsyncSocketSSLProtocolVersionMax = @"GCDAsyncSocketSSLProtocolVersionMax";
-#else
+NSString *const GCDAsyncSocketSSLSessionOptionFalseStart = @"GCDAsyncSocketSSLSessionOptionFalseStart";
+NSString *const GCDAsyncSocketSSLSessionOptionSendOneByteRecord = @"GCDAsyncSocketSSLSessionOptionSendOneByteRecord";
+NSString *const GCDAsyncSocketSSLCipherSuites = @"GCDAsyncSocketSSLCipherSuites";
+#if !TARGET_OS_IPHONE
 NSString *const GCDAsyncSocketSSLDiffieHellmanParameters = @"GCDAsyncSocketSSLDiffieHellmanParameters";
-#endif
 #endif
 
 enum GCDAsyncSocketFlags
@@ -166,6 +171,9 @@ enum GCDAsyncSocketConfig
 
 #if TARGET_OS_IPHONE
   static NSThread *cfstreamThread;  // Used for CFStreams
+
+  static uint64_t cfstreamThreadRetainCount;   // setup & teardown
+  static dispatch_queue_t cfstreamThreadSetupQueue; // setup & teardown
 #endif
 
 
@@ -870,7 +878,7 @@ enum GCDAsyncSocketConfig
 	
 	int socket4FD;
 	int socket6FD;
-	int connectIndex;
+	int stateIndex;
 	NSData * connectInterface4;
 	NSData * connectInterface6;
 	
@@ -899,12 +907,10 @@ enum GCDAsyncSocketConfig
 	CFReadStreamRef readStream;
 	CFWriteStreamRef writeStream;
 #endif
-#if SECURE_TRANSPORT_MAYBE_AVAILABLE
 	SSLContextRef sslContext;
 	GCDAsyncSocketPreBuffer *sslPreBuffer;
 	size_t sslWriteCachedLength;
 	OSStatus sslErrCode;
-#endif
 	
 	void *IsOnSocketQueueOrTargetQueueKey;
 	
@@ -939,7 +945,7 @@ enum GCDAsyncSocketConfig
 		
 		socket4FD = SOCKET_NULL;
 		socket6FD = SOCKET_NULL;
-		connectIndex = 0;
+		stateIndex = 0;
 		
 		if (sq)
 		{
@@ -1280,7 +1286,7 @@ enum GCDAsyncSocketConfig
 	}
 }
 
-- (void)setPreferIPv4OverIPv6:(BOOL)flag
+- (void)setIPv4PreferredOverIPv6:(BOOL)flag
 {
 	// Note: YES means kPreferIPv6 is OFF
 	
@@ -1933,9 +1939,9 @@ enum GCDAsyncSocketConfig
 		// So we want to copy it now, within this block that will be executed synchronously.
 		// This way the asynchronous lookup block below doesn't have to worry about it changing.
 		
-		int aConnectIndex = connectIndex;
 		NSString *hostCpy = [host copy];
 		
+		int aStateIndex = stateIndex;
 		__weak GCDAsyncSocket *weakSelf = self;
 		
 		dispatch_queue_t globalConcurrentQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
@@ -1953,7 +1959,7 @@ enum GCDAsyncSocketConfig
 			{
 				dispatch_async(strongSelf->socketQueue, ^{ @autoreleasepool {
 					
-					[strongSelf lookup:aConnectIndex didFail:lookupErr];
+					[strongSelf lookup:aStateIndex didFail:lookupErr];
 				}});
 			}
 			else
@@ -1975,7 +1981,7 @@ enum GCDAsyncSocketConfig
 				
 				dispatch_async(strongSelf->socketQueue, ^{ @autoreleasepool {
 					
-					[strongSelf lookup:aConnectIndex didSucceedWithAddress4:address4 address6:address6];
+					[strongSelf lookup:aStateIndex didSucceedWithAddress4:address4 address6:address6];
 				}});
 			}
 			
@@ -2111,14 +2117,14 @@ enum GCDAsyncSocketConfig
 	return result;
 }
 
-- (void)lookup:(int)aConnectIndex didSucceedWithAddress4:(NSData *)address4 address6:(NSData *)address6
+- (void)lookup:(int)aStateIndex didSucceedWithAddress4:(NSData *)address4 address6:(NSData *)address6
 {
 	LogTrace();
 	
 	NSAssert(dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey), @"Must be dispatched on socketQueue");
 	NSAssert(address4 || address6, @"Expected at least one valid address");
 	
-	if (aConnectIndex != connectIndex)
+	if (aStateIndex != stateIndex)
 	{
 		LogInfo(@"Ignoring lookupDidSucceed, already disconnected");
 		
@@ -2165,14 +2171,14 @@ enum GCDAsyncSocketConfig
  * the original connection request may have already been cancelled or timed-out by the time this method is invoked.
  * The lookupIndex tells us whether the lookup is still valid or not.
 **/
-- (void)lookup:(int)aConnectIndex didFail:(NSError *)error
+- (void)lookup:(int)aStateIndex didFail:(NSError *)error
 {
 	LogTrace();
 	
 	NSAssert(dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey), @"Must be dispatched on socketQueue");
 	
 	
-	if (aConnectIndex != connectIndex)
+	if (aStateIndex != stateIndex)
 	{
 		LogInfo(@"Ignoring lookup:didFail: - already disconnected");
 		
@@ -2269,8 +2275,7 @@ enum GCDAsyncSocketConfig
 	
 	// Start the connection process in a background queue
 	
-	int aConnectIndex = connectIndex;
-	
+	int aStateIndex = stateIndex;
 	__weak GCDAsyncSocket *weakSelf = self;
 	
 	dispatch_queue_t globalConcurrentQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
@@ -2287,7 +2292,7 @@ enum GCDAsyncSocketConfig
 		{
 			dispatch_async(strongSelf->socketQueue, ^{ @autoreleasepool {
 				
-				[strongSelf didConnect:aConnectIndex];
+				[strongSelf didConnect:aStateIndex];
 			}});
 		}
 		else
@@ -2296,7 +2301,7 @@ enum GCDAsyncSocketConfig
 			
 			dispatch_async(strongSelf->socketQueue, ^{ @autoreleasepool {
 				
-				[strongSelf didNotConnect:aConnectIndex error:error];
+				[strongSelf didNotConnect:aStateIndex error:error];
 			}});
 		}
 		
@@ -2308,14 +2313,14 @@ enum GCDAsyncSocketConfig
 	return YES;
 }
 
-- (void)didConnect:(int)aConnectIndex
+- (void)didConnect:(int)aStateIndex
 {
 	LogTrace();
 	
 	NSAssert(dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey), @"Must be dispatched on socketQueue");
 	
 	
-	if (aConnectIndex != connectIndex)
+	if (aStateIndex != stateIndex)
 	{
 		LogInfo(@"Ignoring didConnect, already disconnected");
 		
@@ -2329,8 +2334,8 @@ enum GCDAsyncSocketConfig
 	[self endConnectTimeout];
 	
 	#if TARGET_OS_IPHONE
-	// The endConnectTimeout method executed above incremented the connectIndex.
-	aConnectIndex = connectIndex;
+	// The endConnectTimeout method executed above incremented the stateIndex.
+	aStateIndex = stateIndex;
 	#endif
 	
 	// Setup read/write streams (as workaround for specific shortcomings in the iOS platform)
@@ -2362,7 +2367,7 @@ enum GCDAsyncSocketConfig
 	dispatch_block_t SetupStreamsPart2 = ^{
 		#if TARGET_OS_IPHONE
 		
-		if (aConnectIndex != connectIndex)
+		if (aStateIndex != stateIndex)
 		{
 			// The socket has been disconnected.
 			return;
@@ -2435,14 +2440,14 @@ enum GCDAsyncSocketConfig
 	[self maybeDequeueWrite];
 }
 
-- (void)didNotConnect:(int)aConnectIndex error:(NSError *)error
+- (void)didNotConnect:(int)aStateIndex error:(NSError *)error
 {
 	LogTrace();
 	
 	NSAssert(dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey), @"Must be dispatched on socketQueue");
 	
 	
-	if (aConnectIndex != connectIndex)
+	if (aStateIndex != stateIndex)
 	{
 		LogInfo(@"Ignoring didNotConnect, already disconnected");
 		
@@ -2504,13 +2509,13 @@ enum GCDAsyncSocketConfig
 		connectTimer = NULL;
 	}
 	
-	// Increment connectIndex.
+	// Increment stateIndex.
 	// This will prevent us from processing results from any related background asynchronous operations.
 	// 
 	// Note: This should be called from close method even if connectTimer is NULL.
 	// This is because one might disconnect a socket prior to a successful connection which had no timeout.
 	
-	connectIndex++;
+	stateIndex++;
 	
 	if (connectInterface4)
 	{
@@ -2572,28 +2577,25 @@ enum GCDAsyncSocketConfig
 		}
 	}
 	#endif
-	#if SECURE_TRANSPORT_MAYBE_AVAILABLE
+	
+	[sslPreBuffer reset];
+	sslErrCode = noErr;
+	
+	if (sslContext)
 	{
-		[sslPreBuffer reset];
-		sslErrCode = noErr;
+		// Getting a linker error here about the SSLx() functions?
+		// You need to add the Security Framework to your application.
 		
-		if (sslContext)
-		{
-			// Getting a linker error here about the SSLx() functions?
-			// You need to add the Security Framework to your application.
-			
-			SSLClose(sslContext);
-			
-			#if TARGET_OS_IPHONE
-			CFRelease(sslContext);
-			#else
-			SSLDisposeContext(sslContext);
-			#endif
-			
-			sslContext = NULL;
-		}
+		SSLClose(sslContext);
+		
+		#if TARGET_OS_IPHONE || (__MAC_OS_X_VERSION_MIN_REQUIRED >= 1080)
+		CFRelease(sslContext);
+		#else
+		SSLDisposeContext(sslContext);
+		#endif
+		
+		sslContext = NULL;
 	}
-	#endif
 	
 	// For some crazy reason (in my opinion), cancelling a dispatch source doesn't
 	// invoke the cancel handler if the dispatch source is paused.
@@ -3623,17 +3625,14 @@ enum GCDAsyncSocketConfig
 - (BOOL)usingCFStreamForTLS
 {
 	#if TARGET_OS_IPHONE
-	{	
-		if ((flags & kSocketSecure) && (flags & kUsingCFStreamForTLS))
-		{
-			// Due to the fact that Apple doesn't give us the full power of SecureTransport on iOS,
-			// we are relegated to using the slower, less powerful, and RunLoop based CFStream API. :( Boo!
-			// 
-			// Thus we're not able to use the GCD read/write sources in this particular scenario.
-			
-			return YES;
-		}
+	
+	if ((flags & kSocketSecure) && (flags & kUsingCFStreamForTLS))
+	{
+		// The startTLS method was given the GCDAsyncSocketUseCFStreamForTLS flag.
+		
+		return YES;
 	}
+	
 	#endif
 	
 	return NO;
@@ -3641,10 +3640,17 @@ enum GCDAsyncSocketConfig
 
 - (BOOL)usingSecureTransportForTLS
 {
+	// Invoking this method is equivalent to ![self usingCFStreamForTLS] (just more readable)
+	
 	#if TARGET_OS_IPHONE
+	
+	if ((flags & kSocketSecure) && (flags & kUsingCFStreamForTLS))
 	{
-		return ![self usingCFStreamForTLS];
+		// The startTLS method was given the GCDAsyncSocketUseCFStreamForTLS flag.
+		
+		return NO;
 	}
+	
 	#endif
 	
 	return YES;
@@ -3995,7 +4001,7 @@ enum GCDAsyncSocketConfig
 		return;
 	}
 	
-#if TARGET_OS_IPHONE
+	#if TARGET_OS_IPHONE
 	
 	if ([self usingCFStreamForTLS])
 	{
@@ -4023,8 +4029,7 @@ enum GCDAsyncSocketConfig
 		return;
 	}
 	
-#endif
-#if SECURE_TRANSPORT_MAYBE_AVAILABLE
+	#endif
 	
 	__block NSUInteger estimatedBytesAvailable = 0;
 	
@@ -4089,8 +4094,6 @@ enum GCDAsyncSocketConfig
 			
 		} while (!done && estimatedBytesAvailable > 0);
 	}
-	
-#endif
 }
 
 - (void)doReadData
@@ -4153,7 +4156,7 @@ enum GCDAsyncSocketConfig
 	{
 		#if TARGET_OS_IPHONE
 		
-		// Relegated to using CFStream... :( Boo! Give us a full SecureTransport stack Apple!
+		// Requested CFStream, rather than SecureTransport, for TLS (via GCDAsyncSocketUseCFStreamForTLS)
 		
 		estimatedBytesAvailable = 0;
 		if ((flags & kSecureSocketHasBytesAvailable) && CFReadStreamHasBytesAvailable(readStream))
@@ -4166,8 +4169,6 @@ enum GCDAsyncSocketConfig
 	else
 	{
 		estimatedBytesAvailable = socketFDBytesAvailable;
-		
-		#if SECURE_TRANSPORT_MAYBE_AVAILABLE
 		
 		if (flags & kSocketSecure)
 		{
@@ -4205,8 +4206,6 @@ enum GCDAsyncSocketConfig
 			estimatedBytesAvailable += sslInternalBufSize;
 		}
 		
-		#endif
-		
 		hasBytesAvailable = (estimatedBytesAvailable > 0);
 	}
 	
@@ -4236,14 +4235,10 @@ enum GCDAsyncSocketConfig
 		{
 			if ([self usingSecureTransportForTLS])
 			{
-				#if SECURE_TRANSPORT_MAYBE_AVAILABLE
-			
 				// We are in the process of a SSL Handshake.
 				// We were waiting for incoming data which has just arrived.
 				
 				[self ssl_continueSSLHandshake];
-			
-				#endif
 			}
 		}
 		else
@@ -4357,82 +4352,15 @@ enum GCDAsyncSocketConfig
 	// STEP 2 - READ FROM SOCKET
 	// 
 	
-	BOOL socketEOF = (flags & kSocketHasReadEOF) ? YES : NO;  // Nothing more to via socket (end of file)
+	BOOL socketEOF = (flags & kSocketHasReadEOF) ? YES : NO;  // Nothing more to read via socket (end of file)
 	BOOL waiting   = !done && !error && !socketEOF && !hasBytesAvailable; // Ran out of data, waiting for more
 	
-	if (!done && !error && !socketEOF && !waiting && hasBytesAvailable)
+	if (!done && !error && !socketEOF && hasBytesAvailable)
 	{
 		NSAssert(([preBuffer availableBytes] == 0), @"Invalid logic");
 		
-		// There are 3 types of read packets:
-		// 
-		// 1) Read all available data.
-		// 2) Read a specific length of data.
-		// 3) Read up to a particular terminator.
-		
 		BOOL readIntoPreBuffer = NO;
-		NSUInteger bytesToRead;
-		
-		if ([self usingCFStreamForTLS])
-		{
-			// Since Apple hasn't made the full power of SecureTransport available on iOS,
-			// we are relegated to using the slower, less powerful, RunLoop based CFStream API.
-			// 
-			// This API doesn't tell us how much data is available on the socket to be read.
-			// If we had that information we could optimize our memory allocations, and sys calls.
-			// 
-			// But alas...
-			// So we do it old school, and just read as much data from the socket as we can.
-			
-			NSUInteger defaultReadLength = (1024 * 32);
-			
-			bytesToRead = [currentRead optimalReadLengthWithDefault:defaultReadLength
-			                                        shouldPreBuffer:&readIntoPreBuffer];
-		}
-		else
-		{
-			if (currentRead->term != nil)
-			{
-				// Read type #3 - read up to a terminator
-				
-				bytesToRead = [currentRead readLengthForTermWithHint:estimatedBytesAvailable
-													 shouldPreBuffer:&readIntoPreBuffer];
-			}
-			else
-			{
-				// Read type #1 or #2
-				
-				bytesToRead = [currentRead readLengthForNonTermWithHint:estimatedBytesAvailable];
-			}
-		}
-		
-		if (bytesToRead > SIZE_MAX) // NSUInteger may be bigger than size_t (read param 3)
-		{
-			bytesToRead = SIZE_MAX;
-		}
-		
-		// Make sure we have enough room in the buffer for our read.
-		// 
-		// We are either reading directly into the currentRead->buffer,
-		// or we're reading into the temporary preBuffer.
-		
-		uint8_t *buffer;
-		
-		if (readIntoPreBuffer)
-		{
-			[preBuffer ensureCapacityForWrite:bytesToRead];
-						
-			buffer = [preBuffer writeBuffer];
-		}
-		else
-		{
-			[currentRead ensureCapacityForAdditionalDataOfLength:bytesToRead];
-			
-			buffer = (uint8_t *)[currentRead->buffer mutableBytes] + currentRead->startOffset + currentRead->bytesDone;
-		}
-		
-		// Read data into buffer
-		
+		uint8_t *buffer = NULL;
 		size_t bytesRead = 0;
 		
 		if (flags & kSocketSecure)
@@ -4440,6 +4368,35 @@ enum GCDAsyncSocketConfig
 			if ([self usingCFStreamForTLS])
 			{
 				#if TARGET_OS_IPHONE
+				
+				// Using CFStream, rather than SecureTransport, for TLS
+				
+				NSUInteger defaultReadLength = (1024 * 32);
+				
+				NSUInteger bytesToRead = [currentRead optimalReadLengthWithDefault:defaultReadLength
+				                                                   shouldPreBuffer:&readIntoPreBuffer];
+				
+				// Make sure we have enough room in the buffer for our read.
+				//
+				// We are either reading directly into the currentRead->buffer,
+				// or we're reading into the temporary preBuffer.
+				
+				if (readIntoPreBuffer)
+				{
+					[preBuffer ensureCapacityForWrite:bytesToRead];
+					
+					buffer = [preBuffer writeBuffer];
+				}
+				else
+				{
+					[currentRead ensureCapacityForAdditionalDataOfLength:bytesToRead];
+					
+					buffer = (uint8_t *)[currentRead->buffer mutableBytes]
+					       + currentRead->startOffset
+					       + currentRead->bytesDone;
+				}
+				
+				// Read data into buffer
 				
 				CFIndex result = CFReadStreamRead(readStream, buffer, (CFIndex)bytesToRead);
 				LogVerbose(@"CFReadStreamRead(): result = %i", (int)result);
@@ -4467,8 +4424,51 @@ enum GCDAsyncSocketConfig
 			}
 			else
 			{
-				#if SECURE_TRANSPORT_MAYBE_AVAILABLE
+				// Using SecureTransport for TLS
+				//
+				// We know:
+				// - how many bytes are available on the socket
+				// - how many encrypted bytes are sitting in the sslPreBuffer
+				// - how many decypted bytes are sitting in the sslContext
+				//
+				// But we do NOT know:
+				// - how many encypted bytes are sitting in the sslContext
+				//
+				// So we play the regular game of using an upper bound instead.
+				
+				NSUInteger defaultReadLength = (1024 * 32);
+				
+				if (defaultReadLength < estimatedBytesAvailable) {
+					defaultReadLength = estimatedBytesAvailable + (1024 * 16);
+				}
+				
+				NSUInteger bytesToRead = [currentRead optimalReadLengthWithDefault:defaultReadLength
+				                                                   shouldPreBuffer:&readIntoPreBuffer];
+				
+				if (bytesToRead > SIZE_MAX) { // NSUInteger may be bigger than size_t
+					bytesToRead = SIZE_MAX;
+				}
+				
+				// Make sure we have enough room in the buffer for our read.
+				//
+				// We are either reading directly into the currentRead->buffer,
+				// or we're reading into the temporary preBuffer.
+				
+				if (readIntoPreBuffer)
+				{
+					[preBuffer ensureCapacityForWrite:bytesToRead];
 					
+					buffer = [preBuffer writeBuffer];
+				}
+				else
+				{
+					[currentRead ensureCapacityForAdditionalDataOfLength:bytesToRead];
+					
+					buffer = (uint8_t *)[currentRead->buffer mutableBytes]
+					       + currentRead->startOffset
+					       + currentRead->bytesDone;
+				}
+				
 				// The documentation from Apple states:
 				// 
 				//     "a read operation might return errSSLWouldBlock,
@@ -4522,12 +4522,60 @@ enum GCDAsyncSocketConfig
 				
 				// Do not modify socketFDBytesAvailable.
 				// It will be updated via the SSLReadFunction().
-				
-				#endif
 			}
 		}
 		else
 		{
+			// Normal socket operation
+			
+			NSUInteger bytesToRead;
+			
+			// There are 3 types of read packets:
+			//
+			// 1) Read all available data.
+			// 2) Read a specific length of data.
+			// 3) Read up to a particular terminator.
+			
+			if (currentRead->term != nil)
+			{
+				// Read type #3 - read up to a terminator
+				
+				bytesToRead = [currentRead readLengthForTermWithHint:estimatedBytesAvailable
+				                                     shouldPreBuffer:&readIntoPreBuffer];
+			}
+			else
+			{
+				// Read type #1 or #2
+				
+				bytesToRead = [currentRead readLengthForNonTermWithHint:estimatedBytesAvailable];
+			}
+			
+			if (bytesToRead > SIZE_MAX) { // NSUInteger may be bigger than size_t (read param 3)
+				bytesToRead = SIZE_MAX;
+			}
+			
+			// Make sure we have enough room in the buffer for our read.
+			//
+			// We are either reading directly into the currentRead->buffer,
+			// or we're reading into the temporary preBuffer.
+			
+			if (readIntoPreBuffer)
+			{
+				[preBuffer ensureCapacityForWrite:bytesToRead];
+				
+				buffer = [preBuffer writeBuffer];
+			}
+			else
+			{
+				[currentRead ensureCapacityForAdditionalDataOfLength:bytesToRead];
+				
+				buffer = (uint8_t *)[currentRead->buffer mutableBytes]
+				       + currentRead->startOffset
+				       + currentRead->bytesDone;
+			}
+			
+			// Read data into buffer
+			
 			int socketFD = (socket4FD == SOCKET_NULL) ? socket6FD : socket4FD;
 			
 			ssize_t result = read(socketFD, buffer, (size_t)bytesToRead);
@@ -4603,27 +4651,27 @@ enum GCDAsyncSocketConfig
 					
 					// Search for the terminating sequence
 					
-					bytesToRead = [currentRead readLengthForTermWithPreBuffer:preBuffer found:&done];
-					LogVerbose(@"copying %lu bytes from preBuffer", (unsigned long)bytesToRead);
+					NSUInteger bytesToCopy = [currentRead readLengthForTermWithPreBuffer:preBuffer found:&done];
+					LogVerbose(@"copying %lu bytes from preBuffer", (unsigned long)bytesToCopy);
 					
 					// Ensure there's room on the read packet's buffer
 					
-					[currentRead ensureCapacityForAdditionalDataOfLength:bytesToRead];
+					[currentRead ensureCapacityForAdditionalDataOfLength:bytesToCopy];
 					
 					// Copy bytes from prebuffer into read buffer
 					
 					uint8_t *readBuf = (uint8_t *)[currentRead->buffer mutableBytes] + currentRead->startOffset
 					                                                                 + currentRead->bytesDone;
 					
-					memcpy(readBuf, [preBuffer readBuffer], bytesToRead);
+					memcpy(readBuf, [preBuffer readBuffer], bytesToCopy);
 					
 					// Remove the copied bytes from the prebuffer
-					[preBuffer didRead:bytesToRead];
+					[preBuffer didRead:bytesToCopy];
 					LogVerbose(@"preBuffer.length = %zu", [preBuffer availableBytes]);
 					
 					// Update totals
-					currentRead->bytesDone += bytesToRead;
-					totalBytesReadForCurrentRead += bytesToRead;
+					currentRead->bytesDone += bytesToCopy;
+					totalBytesReadForCurrentRead += bytesToCopy;
 					
 					// Our 'done' variable was updated via the readLengthForTermWithPreBuffer:found: method above
 				}
@@ -4734,7 +4782,7 @@ enum GCDAsyncSocketConfig
 			
 		} // if (bytesRead > 0)
 		
-	} // if (!done && !error && !socketEOF && !waiting && hasBytesAvailable)
+	} // if (!done && !error && !socketEOF && hasBytesAvailable)
 	
 	
 	if (!done && currentRead->readLength == 0 && currentRead->term == nil)
@@ -4825,9 +4873,7 @@ enum GCDAsyncSocketConfig
 		
 		if ([self usingSecureTransportForTLS])
 		{
-			#if SECURE_TRANSPORT_MAYBE_AVAILABLE
 			error = [self sslError:errSSLClosedAbort];
-			#endif
 		}
 	}
 	else if (flags & kReadStreamClosed)
@@ -4902,25 +4948,21 @@ enum GCDAsyncSocketConfig
 	{
 		if (error == nil)
 		{
-			#if SECURE_TRANSPORT_MAYBE_AVAILABLE
-				if ([self usingSecureTransportForTLS])
+			if ([self usingSecureTransportForTLS])
+			{
+				if (sslErrCode != noErr && sslErrCode != errSSLClosedGraceful)
 				{
-					if (sslErrCode != noErr && sslErrCode != errSSLClosedGraceful)
-					{
-						error = [self sslError:sslErrCode];
-					}
-					else
-					{
-						error = [self connectionClosedError];
-					}
+					error = [self sslError:sslErrCode];
 				}
 				else
 				{
 					error = [self connectionClosedError];
 				}
-			#else
-					error = [self connectionClosedError];
-			#endif
+			}
+			else
+			{
+				error = [self connectionClosedError];
+			}
 		}
 		[self closeWithError:error];
 	}
@@ -5281,14 +5323,10 @@ enum GCDAsyncSocketConfig
 		{
 			if ([self usingSecureTransportForTLS])
 			{
-				#if SECURE_TRANSPORT_MAYBE_AVAILABLE
-			
 				// We are in the process of a SSL Handshake.
 				// We were waiting for available space in the socket's internal OS buffer to continue writing.
 			
 				[self ssl_continueSSLHandshake];
-			
-				#endif
 			}
 		}
 		else
@@ -5353,8 +5391,6 @@ enum GCDAsyncSocketConfig
 		}
 		else
 		{
-			#if SECURE_TRANSPORT_MAYBE_AVAILABLE
-			
 			// We're going to use the SSLWrite function.
 			// 
 			// OSStatus SSLWrite(SSLContextRef context, const void *data, size_t dataLength, size_t *processed)
@@ -5485,8 +5521,6 @@ enum GCDAsyncSocketConfig
 				} // while (keepLooping)
 				
 			} // if (hasNewDataToWrite)
-		
-			#endif
 		}
 	}
 	else
@@ -5799,38 +5833,22 @@ enum GCDAsyncSocketConfig
 	
 	if ((flags & kStartingReadTLS) && (flags & kStartingWriteTLS))
 	{
-		BOOL canUseSecureTransport = YES;
+		BOOL useSecureTransport = YES;
 		
 		#if TARGET_OS_IPHONE
 		{
 			GCDAsyncSpecialPacket *tlsPacket = (GCDAsyncSpecialPacket *)currentRead;
 			NSDictionary *tlsSettings = tlsPacket->tlsSettings;
 			
-			NSNumber *value;
-			
-			value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsAnyRoot];
+			NSNumber *value = [tlsSettings objectForKey:GCDAsyncSocketUseCFStreamForTLS];
 			if (value && [value boolValue] == YES)
-				canUseSecureTransport = NO;
-			
-			value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredRoots];
-			if (value && [value boolValue] == YES)
-				canUseSecureTransport = NO;
-			
-			value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
-			if (value && [value boolValue] == NO)
-				canUseSecureTransport = NO;
-			
-			value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredCertificates];
-			if (value && [value boolValue] == YES)
-				canUseSecureTransport = NO;
+				useSecureTransport = NO;
 		}
 		#endif
 		
-		if (IS_SECURE_TRANSPORT_AVAILABLE && canUseSecureTransport)
+		if (useSecureTransport)
 		{
-		#if SECURE_TRANSPORT_MAYBE_AVAILABLE
 			[self ssl_startTLS];
-		#endif
 		}
 		else
 		{
@@ -5844,8 +5862,6 @@ enum GCDAsyncSocketConfig
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Security via SecureTransport
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#if SECURE_TRANSPORT_MAYBE_AVAILABLE
 
 - (OSStatus)sslReadWithBuffer:(void *)buffer length:(size_t *)bufferLength
 {
@@ -6089,17 +6105,24 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	LogTrace();
 	
 	LogVerbose(@"Starting TLS (via SecureTransport)...");
-		
+	
 	OSStatus status;
 	
 	GCDAsyncSpecialPacket *tlsPacket = (GCDAsyncSpecialPacket *)currentRead;
+	if (tlsPacket == nil) // Code to quiet the analyzer
+	{
+		NSAssert(NO, @"Logic error");
+		
+		[self closeWithError:[self otherError:@"Logic error"]];
+		return;
+	}
 	NSDictionary *tlsSettings = tlsPacket->tlsSettings;
 	
 	// Create SSLContext, and setup IO callbacks and connection ref
 	
 	BOOL isServer = [[tlsSettings objectForKey:(NSString *)kCFStreamSSLIsServer] boolValue];
 	
-	#if TARGET_OS_IPHONE
+	#if TARGET_OS_IPHONE || (__MAC_OS_X_VERSION_MIN_REQUIRED >= 1080)
 	{
 		if (isServer)
 			sslContext = SSLCreateContext(kCFAllocatorDefault, kSSLServerSide, kSSLStreamType);
@@ -6112,7 +6135,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 			return;
 		}
 	}
-	#else
+	#else // (__MAC_OS_X_VERSION_MIN_REQUIRED < 1080)
 	{
 		status = SSLNewContext(isServer, &sslContext);
 		if (status != noErr)
@@ -6136,19 +6159,62 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		[self closeWithError:[self otherError:@"Error in SSLSetConnection"]];
 		return;
 	}
-	
+
+
+	BOOL shouldManuallyEvaluateTrust = [[tlsSettings objectForKey:GCDAsyncSocketManuallyEvaluateTrust] boolValue];
+	if (shouldManuallyEvaluateTrust)
+	{
+		if (isServer)
+		{
+			[self closeWithError:[self otherError:@"Manual trust validation is not supported for server sockets"]];
+			return;
+		}
+		
+		status = SSLSetSessionOption(sslContext, kSSLSessionOptionBreakOnServerAuth, true);
+		if (status != noErr)
+		{
+			[self closeWithError:[self otherError:@"Error in SSLSetSessionOption"]];
+			return;
+		}
+		
+		#if !TARGET_OS_IPHONE && (__MAC_OS_X_VERSION_MIN_REQUIRED < 1080)
+		
+		// Note from Apple's documentation:
+		//
+		// It is only necessary to call SSLSetEnableCertVerify on the Mac prior to OS X 10.8.
+		// On OS X 10.8 and later setting kSSLSessionOptionBreakOnServerAuth always disables the
+		// built-in trust evaluation. All versions of iOS behave like OS X 10.8 and thus
+		// SSLSetEnableCertVerify is not available on that platform at all.
+		
+		status = SSLSetEnableCertVerify(sslContext, NO);
+		if (status != noErr)
+		{
+			[self closeWithError:[self otherError:@"Error in SSLSetEnableCertVerify"]];
+			return;
+		}
+		
+		#endif
+	}
+
 	// Configure SSLContext from given settings
 	// 
 	// Checklist:
-	// 1. kCFStreamSSLPeerName
-	// 2. kCFStreamSSLAllowsAnyRoot
-	// 3. kCFStreamSSLAllowsExpiredRoots
-	// 4. kCFStreamSSLValidatesCertificateChain
-	// 5. kCFStreamSSLAllowsExpiredCertificates
-	// 6. kCFStreamSSLCertificates
-	// 7. kCFStreamSSLLevel (GCDAsyncSocketSSLProtocolVersionMin / GCDAsyncSocketSSLProtocolVersionMax)
-	// 8. GCDAsyncSocketSSLCipherSuites
-	// 9. GCDAsyncSocketSSLDiffieHellmanParameters (Mac)
+	//  1. kCFStreamSSLPeerName
+	//  2. kCFStreamSSLCertificates
+	//  3. GCDAsyncSocketSSLPeerID
+	//  4. GCDAsyncSocketSSLProtocolVersionMin
+	//  5. GCDAsyncSocketSSLProtocolVersionMax
+	//  6. GCDAsyncSocketSSLSessionOptionFalseStart
+	//  7. GCDAsyncSocketSSLSessionOptionSendOneByteRecord
+	//  8. GCDAsyncSocketSSLCipherSuites
+	//  9. GCDAsyncSocketSSLDiffieHellmanParameters (Mac)
+	//
+	// Deprecated (throw error):
+	// 10. kCFStreamSSLAllowsAnyRoot
+	// 11. kCFStreamSSLAllowsExpiredRoots
+	// 12. kCFStreamSSLAllowsExpiredCertificates
+	// 13. kCFStreamSSLValidatesCertificateChain
+	// 14. kCFStreamSSLLevel
 	
 	id value;
 	
@@ -6169,95 +6235,18 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 			return;
 		}
 	}
-	
-	// 2. kCFStreamSSLAllowsAnyRoot
-	
-	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsAnyRoot];
-	if (value)
+	else if (value)
 	{
-		#if TARGET_OS_IPHONE
-		NSAssert(NO, @"Security option unavailable via SecureTransport in iOS - kCFStreamSSLAllowsAnyRoot");
-		#else
+		NSAssert(NO, @"Invalid value for kCFStreamSSLPeerName. Value must be of type NSString.");
 		
-		BOOL allowsAnyRoot = [value boolValue];
-		
-		status = SSLSetAllowsAnyRoot(sslContext, allowsAnyRoot);
-		if (status != noErr)
-		{
-			[self closeWithError:[self otherError:@"Error in SSLSetAllowsAnyRoot"]];
-			return;
-		}
-		
-		#endif
+		[self closeWithError:[self otherError:@"Invalid value for kCFStreamSSLPeerName."]];
+		return;
 	}
 	
-	// 3. kCFStreamSSLAllowsExpiredRoots
-	
-	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredRoots];
-	if (value)
-	{
-		#if TARGET_OS_IPHONE
-		NSAssert(NO, @"Security option unavailable via SecureTransport in iOS - kCFStreamSSLAllowsExpiredRoots");
-		#else
-		
-		BOOL allowsExpiredRoots = [value boolValue];
-		
-		status = SSLSetAllowsExpiredRoots(sslContext, allowsExpiredRoots);
-		if (status != noErr)
-		{
-			[self closeWithError:[self otherError:@"Error in SSLSetAllowsExpiredRoots"]];
-			return;
-		}
-		
-		#endif
-	}
-	
-	// 4. kCFStreamSSLValidatesCertificateChain
-	
-	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
-	if (value)
-	{
-		#if TARGET_OS_IPHONE
-		NSAssert(NO, @"Security option unavailable via SecureTransport in iOS - kCFStreamSSLValidatesCertificateChain");
-		#else
-		
-		BOOL validatesCertChain = [value boolValue];
-		
-		status = SSLSetEnableCertVerify(sslContext, validatesCertChain);
-		if (status != noErr)
-		{
-			[self closeWithError:[self otherError:@"Error in SSLSetEnableCertVerify"]];
-			return;
-		}
-		
-		#endif
-	}
-	
-	// 5. kCFStreamSSLAllowsExpiredCertificates
-	
-	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredCertificates];
-	if (value)
-	{
-		#if TARGET_OS_IPHONE
-		NSAssert(NO, @"Security option unavailable via SecureTransport in iOS - kCFStreamSSLAllowsExpiredCertificates");
-		#else
-		
-		BOOL allowsExpiredCerts = [value boolValue];
-		
-		status = SSLSetAllowsExpiredCerts(sslContext, allowsExpiredCerts);
-		if (status != noErr)
-		{
-			[self closeWithError:[self otherError:@"Error in SSLSetAllowsExpiredCerts"]];
-			return;
-		}
-		
-		#endif
-	}
-	
-	// 6. kCFStreamSSLCertificates
+	// 2. kCFStreamSSLCertificates
 	
 	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLCertificates];
-	if (value)
+	if ([value isKindOfClass:[NSArray class]])
 	{
 		CFArrayRef certs = (__bridge CFArrayRef)value;
 		
@@ -6268,136 +6257,132 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 			return;
 		}
 	}
-	
-	// 7. kCFStreamSSLLevel
-	
-	#if TARGET_OS_IPHONE
+	else if (value)
 	{
-		NSString *sslLevel = [tlsSettings objectForKey:(NSString *)kCFStreamSSLLevel];
+		NSAssert(NO, @"Invalid value for kCFStreamSSLCertificates. Value must be of type NSArray.");
 		
-		NSString *sslMinLevel = [tlsSettings objectForKey:GCDAsyncSocketSSLProtocolVersionMin];
-		NSString *sslMaxLevel = [tlsSettings objectForKey:GCDAsyncSocketSSLProtocolVersionMax];
+		[self closeWithError:[self otherError:@"Invalid value for kCFStreamSSLCertificates."]];
+		return;
+	}
+	
+	// 3. GCDAsyncSocketSSLPeerID
+	
+	value = [tlsSettings objectForKey:GCDAsyncSocketSSLPeerID];
+	if ([value isKindOfClass:[NSData class]])
+	{
+		NSData *peerIdData = (NSData *)value;
 		
-		if (sslLevel)
+		status = SSLSetPeerID(sslContext, [peerIdData bytes], [peerIdData length]);
+		if (status != noErr)
 		{
-			if (sslMinLevel || sslMaxLevel)
-			{
-				LogWarn(@"kCFStreamSSLLevel security option ignored. Overriden by "
-						@"GCDAsyncSocketSSLProtocolVersionMin and/or GCDAsyncSocketSSLProtocolVersionMax");
-			}
-			else
-			{
-				if ([sslLevel isEqualToString:(NSString *)kCFStreamSocketSecurityLevelSSLv3])
-				{
-					sslMinLevel = sslMaxLevel = @"kSSLProtocol3";
-				}
-				else if ([sslLevel isEqualToString:(NSString *)kCFStreamSocketSecurityLevelTLSv1])
-				{
-					sslMinLevel = sslMaxLevel = @"kTLSProtocol1";
-				}
-				else
-				{
-					LogWarn(@"Unable to match kCFStreamSSLLevel security option to valid SSL protocol min/max");
-				}
-			}
+			[self closeWithError:[self otherError:@"Error in SSLSetPeerID"]];
+			return;
 		}
+	}
+	else if (value)
+	{
+		NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLPeerID. Value must be of type NSData."
+		             @" (You can convert strings to data using a method like"
+		             @" [string dataUsingEncoding:NSUTF8StringEncoding])");
 		
-		if (sslMinLevel || sslMaxLevel)
+		[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLPeerID."]];
+		return;
+	}
+	
+	// 4. GCDAsyncSocketSSLProtocolVersionMin
+	
+	value = [tlsSettings objectForKey:GCDAsyncSocketSSLProtocolVersionMin];
+	if ([value isKindOfClass:[NSNumber class]])
+	{
+		SSLProtocol minProtocol = (SSLProtocol)[(NSNumber *)value intValue];
+		if (minProtocol != kSSLProtocolUnknown)
 		{
-			OSStatus status1 = noErr;
-			OSStatus status2 = noErr;
-			
-			SSLProtocol (^sslProtocolForString)(NSString*) = ^SSLProtocol (NSString *protocolStr) {
-				
-				if ([protocolStr isEqualToString:@"kSSLProtocol3"])  return kSSLProtocol3;
-				if ([protocolStr isEqualToString:@"kTLSProtocol1"])  return kTLSProtocol1;
-				if ([protocolStr isEqualToString:@"kTLSProtocol11"]) return kTLSProtocol11;
-				if ([protocolStr isEqualToString:@"kTLSProtocol12"]) return kTLSProtocol12;
-				
-				return kSSLProtocolUnknown;
-			};
-			
-			SSLProtocol minProtocol = sslProtocolForString(sslMinLevel);
-			SSLProtocol maxProtocol = sslProtocolForString(sslMaxLevel);
-			
-			if (minProtocol != kSSLProtocolUnknown)
+			status = SSLSetProtocolVersionMin(sslContext, minProtocol);
+			if (status != noErr)
 			{
-				status1 = SSLSetProtocolVersionMin(sslContext, minProtocol);
-			}
-			if (maxProtocol != kSSLProtocolUnknown)
-			{
-				status2 = SSLSetProtocolVersionMax(sslContext, maxProtocol);
-			}
-			
-			if (status1 != noErr || status2 != noErr)
-			{
-				[self closeWithError:[self otherError:@"Error in SSLSetProtocolVersionMinMax"]];
+				[self closeWithError:[self otherError:@"Error in SSLSetProtocolVersionMin"]];
 				return;
 			}
 		}
 	}
-	#else
+	else if (value)
 	{
-		value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLLevel];
-		if (value)
+		NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLProtocolVersionMin. Value must be of type NSNumber.");
+		
+		[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLProtocolVersionMin."]];
+		return;
+	}
+	
+	// 5. GCDAsyncSocketSSLProtocolVersionMax
+	
+	value = [tlsSettings objectForKey:GCDAsyncSocketSSLProtocolVersionMax];
+	if ([value isKindOfClass:[NSNumber class]])
+	{
+		SSLProtocol maxProtocol = (SSLProtocol)[(NSNumber *)value intValue];
+		if (maxProtocol != kSSLProtocolUnknown)
 		{
-			NSString *sslLevel = (NSString *)value;
-			
-			OSStatus status1 = noErr;
-			OSStatus status2 = noErr;
-			OSStatus status3 = noErr;
-			
-			if ([sslLevel isEqualToString:(NSString *)kCFStreamSocketSecurityLevelSSLv2])
+			status = SSLSetProtocolVersionMax(sslContext, maxProtocol);
+			if (status != noErr)
 			{
-				// kCFStreamSocketSecurityLevelSSLv2:
-				// 
-				// Specifies that SSL version 2 be set as the security protocol.
-				
-				status1 = SSLSetProtocolVersionEnabled(sslContext, kSSLProtocolAll, NO);
-				status2 = SSLSetProtocolVersionEnabled(sslContext, kSSLProtocol2,   YES);
-			}
-			else if ([sslLevel isEqualToString:(NSString *)kCFStreamSocketSecurityLevelSSLv3])
-			{
-				// kCFStreamSocketSecurityLevelSSLv3:
-				// 
-				// Specifies that SSL version 3 be set as the security protocol.
-				// If SSL version 3 is not available, specifies that SSL version 2 be set as the security protocol.
-				
-				status1 = SSLSetProtocolVersionEnabled(sslContext, kSSLProtocolAll, NO);
-				status2 = SSLSetProtocolVersionEnabled(sslContext, kSSLProtocol2,   YES);
-				status3 = SSLSetProtocolVersionEnabled(sslContext, kSSLProtocol3,   YES);
-			}
-			else if ([sslLevel isEqualToString:(NSString *)kCFStreamSocketSecurityLevelTLSv1])
-			{
-				// kCFStreamSocketSecurityLevelTLSv1:
-				// 
-				// Specifies that TLS version 1 be set as the security protocol.
-				
-				status1 = SSLSetProtocolVersionEnabled(sslContext, kSSLProtocolAll, NO);
-				status2 = SSLSetProtocolVersionEnabled(sslContext, kTLSProtocol1,   YES);
-			}
-			else if ([sslLevel isEqualToString:(NSString *)kCFStreamSocketSecurityLevelNegotiatedSSL])
-			{
-				// kCFStreamSocketSecurityLevelNegotiatedSSL:
-				// 
-				// Specifies that the highest level security protocol that can be negotiated be used.
-				
-				status1 = SSLSetProtocolVersionEnabled(sslContext, kSSLProtocolAll, YES);
-			}
-			
-			if (status1 != noErr || status2 != noErr || status3 != noErr)
-			{
-				[self closeWithError:[self otherError:@"Error in SSLSetProtocolVersionEnabled"]];
+				[self closeWithError:[self otherError:@"Error in SSLSetProtocolVersionMax"]];
 				return;
 			}
 		}
 	}
-	#endif
+	else if (value)
+	{
+		NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLProtocolVersionMax. Value must be of type NSNumber.");
+		
+		[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLProtocolVersionMax."]];
+		return;
+	}
+	
+	// 6. GCDAsyncSocketSSLSessionOptionFalseStart
+	
+	value = [tlsSettings objectForKey:GCDAsyncSocketSSLSessionOptionFalseStart];
+	if ([value isKindOfClass:[NSNumber class]])
+	{
+		status = SSLSetSessionOption(sslContext, kSSLSessionOptionFalseStart, [value boolValue]);
+		if (status != noErr)
+		{
+			[self closeWithError:[self otherError:@"Error in SSLSetSessionOption (kSSLSessionOptionFalseStart)"]];
+			return;
+		}
+	}
+	else if (value)
+	{
+		NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLSessionOptionFalseStart. Value must be of type NSNumber.");
+		
+		[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLSessionOptionFalseStart."]];
+		return;
+	}
+	
+	// 7. GCDAsyncSocketSSLSessionOptionSendOneByteRecord
+	
+	value = [tlsSettings objectForKey:GCDAsyncSocketSSLSessionOptionSendOneByteRecord];
+	if ([value isKindOfClass:[NSNumber class]])
+	{
+		status = SSLSetSessionOption(sslContext, kSSLSessionOptionSendOneByteRecord, [value boolValue]);
+		if (status != noErr)
+		{
+			[self closeWithError:
+			  [self otherError:@"Error in SSLSetSessionOption (kSSLSessionOptionSendOneByteRecord)"]];
+			return;
+		}
+	}
+	else if (value)
+	{
+		NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLSessionOptionSendOneByteRecord."
+		             @" Value must be of type NSNumber.");
+		
+		[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLSessionOptionSendOneByteRecord."]];
+		return;
+	}
 	
 	// 8. GCDAsyncSocketSSLCipherSuites
 	
 	value = [tlsSettings objectForKey:GCDAsyncSocketSSLCipherSuites];
-	if (value)
+	if ([value isKindOfClass:[NSArray class]])
 	{
 		NSArray *cipherSuites = (NSArray *)value;
 		NSUInteger numberCiphers = [cipherSuites count];
@@ -6417,12 +6402,19 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 			return;
 		}
 	}
+	else if (value)
+	{
+		NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLCipherSuites. Value must be of type NSArray.");
+		
+		[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLCipherSuites."]];
+		return;
+	}
 	
 	// 9. GCDAsyncSocketSSLDiffieHellmanParameters
 	
 	#if !TARGET_OS_IPHONE
 	value = [tlsSettings objectForKey:GCDAsyncSocketSSLDiffieHellmanParameters];
-	if (value)
+	if ([value isKindOfClass:[NSData class]])
 	{
 		NSData *diffieHellmanData = (NSData *)value;
 		
@@ -6433,7 +6425,91 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 			return;
 		}
 	}
+	else if (value)
+	{
+		NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLDiffieHellmanParameters. Value must be of type NSData.");
+		
+		[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLDiffieHellmanParameters."]];
+		return;
+	}
 	#endif
+	
+	// DEPRECATED checks
+	
+	// 10. kCFStreamSSLAllowsAnyRoot
+	
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsAnyRoot];
+	#pragma clang diagnostic pop
+	if (value)
+	{
+		NSAssert(NO, @"Security option unavailable - kCFStreamSSLAllowsAnyRoot"
+		             @" - You must use manual trust evaluation");
+		
+		[self closeWithError:[self otherError:@"Security option unavailable - kCFStreamSSLAllowsAnyRoot"]];
+		return;
+	}
+	
+	// 11. kCFStreamSSLAllowsExpiredRoots
+	
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredRoots];
+	#pragma clang diagnostic pop
+	if (value)
+	{
+		NSAssert(NO, @"Security option unavailable - kCFStreamSSLAllowsExpiredRoots"
+		             @" - You must use manual trust evaluation");
+		
+		[self closeWithError:[self otherError:@"Security option unavailable - kCFStreamSSLAllowsExpiredRoots"]];
+		return;
+	}
+	
+	// 12. kCFStreamSSLValidatesCertificateChain
+	
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
+	#pragma clang diagnostic pop
+	if (value)
+	{
+		NSAssert(NO, @"Security option unavailable - kCFStreamSSLValidatesCertificateChain"
+		             @" - You must use manual trust evaluation");
+		
+		[self closeWithError:[self otherError:@"Security option unavailable - kCFStreamSSLValidatesCertificateChain"]];
+		return;
+	}
+	
+	// 13. kCFStreamSSLAllowsExpiredCertificates
+	
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredCertificates];
+	#pragma clang diagnostic pop
+	if (value)
+	{
+		NSAssert(NO, @"Security option unavailable - kCFStreamSSLAllowsExpiredCertificates"
+		             @" - You must use manual trust evaluation");
+		
+		[self closeWithError:[self otherError:@"Security option unavailable - kCFStreamSSLAllowsExpiredCertificates"]];
+		return;
+	}
+	
+	// 14. kCFStreamSSLLevel
+	
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLLevel];
+	#pragma clang diagnostic pop
+	if (value)
+	{
+		NSAssert(NO, @"Security option unavailable - kCFStreamSSLLevel"
+		             @" - You must use GCDAsyncSocketSSLProtocolVersionMin & GCDAsyncSocketSSLProtocolVersionMax");
+		
+		[self closeWithError:[self otherError:@"Security option unavailable - kCFStreamSSLLevel"]];
+		return;
+	}
 	
 	// Setup the sslPreBuffer
 	// 
@@ -6466,6 +6542,9 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	// If the return value is noErr, the session is ready for normal secure communication.
 	// If the return value is errSSLWouldBlock, the SSLHandshake function must be called again.
+	// If the return value is errSSLServerAuthCompleted, we ask delegate if we should trust the
+	// server and then call SSLHandshake again to resume the handshake or close the connection
+	// errSSLPeerBadCert SSL error.
 	// Otherwise, the return value indicates an error code.
 	
 	OSStatus status = SSLHandshake(sslContext);
@@ -6495,6 +6574,67 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		[self maybeDequeueRead];
 		[self maybeDequeueWrite];
 	}
+	else if (status == errSSLPeerAuthCompleted)
+	{
+		LogVerbose(@"SSLHandshake peerAuthCompleted - awaiting delegate approval");
+		
+		__block SecTrustRef trust = NULL;
+		status = SSLCopyPeerTrust(sslContext, &trust);
+		if (status != noErr)
+		{
+			[self closeWithError:[self sslError:status]];
+			return;
+		}
+		
+		int aStateIndex = stateIndex;
+		dispatch_queue_t theSocketQueue = socketQueue;
+		
+		__weak GCDAsyncSocket *weakSelf = self;
+		
+		void (^comletionHandler)(BOOL) = ^(BOOL shouldTrust){ @autoreleasepool {
+		#pragma clang diagnostic push
+		#pragma clang diagnostic warning "-Wimplicit-retain-self"
+			
+			dispatch_async(theSocketQueue, ^{ @autoreleasepool {
+				
+				if (trust) {
+					CFRelease(trust);
+					trust = NULL;
+				}
+				
+				__strong GCDAsyncSocket *strongSelf = weakSelf;
+				if (strongSelf)
+				{
+					[strongSelf ssl_shouldTrustPeer:shouldTrust stateIndex:aStateIndex];
+				}
+			}});
+			
+		#pragma clang diagnostic pop
+		}};
+		
+		__strong id theDelegate = delegate;
+		
+		if (delegateQueue && [theDelegate respondsToSelector:@selector(socket:didReceiveTrust:completionHandler:)])
+		{
+			dispatch_async(delegateQueue, ^{ @autoreleasepool {
+			
+				[theDelegate socket:self didReceiveTrust:trust completionHandler:comletionHandler];
+			}});
+		}
+		else
+		{
+			if (trust) {
+				CFRelease(trust);
+				trust = NULL;
+			}
+			
+			NSString *msg = @"GCDAsyncSocketManuallyEvaluateTrust specified in tlsSettings,"
+			                @" but delegate doesn't implement socket:shouldTrustPeer:";
+			
+			[self closeWithError:[self otherError:msg]];
+			return;
+		}
+	}
 	else if (status == errSSLWouldBlock)
 	{
 		LogVerbose(@"SSLHandshake continues...");
@@ -6509,7 +6649,34 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	}
 }
 
-#endif
+- (void)ssl_shouldTrustPeer:(BOOL)shouldTrust stateIndex:(int)aStateIndex
+{
+	LogTrace();
+	
+	if (aStateIndex != stateIndex)
+	{
+		LogInfo(@"Ignoring ssl_shouldTrustPeer - invalid state (maybe disconnected)");
+		
+		// One of the following is true
+		// - the socket was disconnected
+		// - the startTLS operation timed out
+		// - the completionHandler was already invoked once
+		
+		return;
+	}
+	
+	// Increment stateIndex to ensure completionHandler can only be called once.
+	stateIndex++;
+	
+	if (shouldTrust)
+	{
+		[self ssl_continueSSLHandshake];
+	}
+	else
+	{
+		[self closeWithError:[self sslError:errSSLPeerBadCert]];
+	}
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Security via CFStream
@@ -6659,14 +6826,64 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 
 + (void)startCFStreamThreadIfNeeded
 {
+	LogTrace();
+	
 	static dispatch_once_t predicate;
 	dispatch_once(&predicate, ^{
 		
-		cfstreamThread = [[NSThread alloc] initWithTarget:self
-		                                         selector:@selector(cfstreamThread)
-		                                           object:nil];
-		[cfstreamThread start];
+		cfstreamThreadRetainCount = 0;
+		cfstreamThreadSetupQueue = dispatch_queue_create("GCDAsyncSocket-CFStreamThreadSetup", DISPATCH_QUEUE_SERIAL);
 	});
+	
+	dispatch_sync(cfstreamThreadSetupQueue, ^{ @autoreleasepool {
+		
+		if (++cfstreamThreadRetainCount == 1)
+		{
+			cfstreamThread = [[NSThread alloc] initWithTarget:self
+			                                         selector:@selector(cfstreamThread)
+			                                           object:nil];
+			[cfstreamThread start];
+		}
+	}});
+}
+
++ (void)stopCFStreamThreadIfNeeded
+{
+	LogTrace();
+	
+	// The creation of the cfstreamThread is relatively expensive.
+	// So we'd like to keep it available for recycling.
+	// However, there's a tradeoff here, because it shouldn't remain alive forever.
+	// So what we're going to do is use a little delay before taking it down.
+	// This way it can be reused properly in situations where multiple sockets are continually in flux.
+	
+	int delayInSeconds = 30;
+	dispatch_time_t when = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));
+	dispatch_after(when, cfstreamThreadSetupQueue, ^{ @autoreleasepool {
+	#pragma clang diagnostic push
+	#pragma clang diagnostic warning "-Wimplicit-retain-self"
+		
+		if (cfstreamThreadRetainCount == 0)
+		{
+			LogWarn(@"Logic error concerning cfstreamThread start / stop");
+			return_from_block;
+		}
+		
+		if (--cfstreamThreadRetainCount == 0)
+		{
+			[cfstreamThread cancel]; // set isCancelled flag
+			
+			// wake up the thread
+			[GCDAsyncSocket performSelector:@selector(ignore:)
+			                       onThread:cfstreamThread
+			                     withObject:[NSNull null]
+			                  waitUntilDone:NO];
+			
+			cfstreamThread = nil;
+		}
+		
+	#pragma clang diagnostic pop
+	}});
 }
 
 + (void)cfstreamThread { @autoreleasepool
@@ -6683,7 +6900,15 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	                               userInfo:nil
 	                                repeats:YES];
 	
-	[[NSRunLoop currentRunLoop] run];
+	NSThread *currentThread = [NSThread currentThread];
+	NSRunLoop *currentRunLoop = [NSRunLoop currentRunLoop];
+	
+	BOOL isCancelled = [currentThread isCancelled];
+	
+	while (!isCancelled && [currentRunLoop runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]])
+	{
+		isCancelled = [currentThread isCancelled];
+	}
 	
 	LogInfo(@"CFStreamThread: Stopped");
 }}
@@ -6984,6 +7209,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 		                     onThread:cfstreamThread
 		                   withObject:self
 		                waitUntilDone:YES];
+		[[self class] stopCFStreamThreadIfNeeded];
 		
 		flags &= ~kAddedStreamsToRunLoop;
 	}
@@ -7242,8 +7468,6 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 
 #endif
 
-#if SECURE_TRANSPORT_MAYBE_AVAILABLE
-
 - (SSLContextRef)sslContext
 {
 	if (!dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
@@ -7254,8 +7478,6 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	
 	return sslContext;
 }
-
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Class Utilities
