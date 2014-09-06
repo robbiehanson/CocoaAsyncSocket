@@ -423,6 +423,17 @@ typedef BOOL (^GCDAsyncUdpSocketSendFilterBlock)(NSData *data, NSData *address, 
 - (BOOL)leaveMulticastGroup:(NSString *)group error:(NSError **)errPtr;
 - (BOOL)leaveMulticastGroup:(NSString *)group onInterface:(NSString *)interface error:(NSError **)errPtr;
 
+#pragma mark Reuse Port
+
+/**
+ * By default, only one socket can be bound to a given IP address + port at a time.
+ * To enable multiple processes to simultaneously bind to the same address+port, 
+ * you need to enable this functionality in the socket.  All processes that wish to
+ * use the address+port simultaneously must all enable reuse port on the socket
+ * bound to that port.
+ **/
+- (BOOL)enableReusePort:(BOOL)flag error:(NSError **)errPtr;
+
 #pragma mark Broadcast
 
 /**
