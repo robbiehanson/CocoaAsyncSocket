@@ -9,7 +9,35 @@
 /* Begin PBXBuildFile section */
 		6EC7514619C4116E009F0E00 /* CocoaAsyncSocket.h in Headers */ = {isa = PBXBuildFile; fileRef = 6EC7514519C4116E009F0E00 /* CocoaAsyncSocket.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		6EC7515019C4116E009F0E00 /* CocoaAsyncSocketTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6EC7514F19C4116E009F0E00 /* CocoaAsyncSocketTests.m */; };
+		6EC7515B19C411F1009F0E00 /* GCDAsyncSocket.h in Headers */ = {isa = PBXBuildFile; fileRef = 6EC7515919C411F1009F0E00 /* GCDAsyncSocket.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		6EC7515C19C411F1009F0E00 /* GCDAsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = 6EC7515A19C411F1009F0E00 /* GCDAsyncSocket.m */; };
+		6EC7515D19C411F1009F0E00 /* GCDAsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = 6EC7515A19C411F1009F0E00 /* GCDAsyncSocket.m */; };
+		6EC7516C19C4122E009F0E00 /* CocoaLumberjack.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6EC7516419C411FF009F0E00 /* CocoaLumberjack.framework */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		6EC7516319C411FF009F0E00 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6EC7515E19C411FF009F0E00 /* Lumberjack.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = DCB3185114EB418E001CFBEE;
+			remoteInfo = CocoaLumberjack;
+		};
+		6EC7516519C411FF009F0E00 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6EC7515E19C411FF009F0E00 /* Lumberjack.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = DCB318CA14ED6C3B001CFBEE;
+			remoteInfo = FmwkTest;
+		};
+		6EC7516A19C41229009F0E00 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6EC7515E19C411FF009F0E00 /* Lumberjack.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = DCB3185014EB418E001CFBEE;
+			remoteInfo = CocoaLumberjack;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		6EC7514019C4116E009F0E00 /* CocoaAsyncSocket.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = CocoaAsyncSocket.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -18,6 +46,9 @@
 		6EC7514B19C4116E009F0E00 /* CocoaAsyncSocketTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CocoaAsyncSocketTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6EC7514E19C4116E009F0E00 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		6EC7514F19C4116E009F0E00 /* CocoaAsyncSocketTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CocoaAsyncSocketTests.m; sourceTree = "<group>"; };
+		6EC7515919C411F1009F0E00 /* GCDAsyncSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GCDAsyncSocket.h; path = ../../../GCD/GCDAsyncSocket.h; sourceTree = "<group>"; };
+		6EC7515A19C411F1009F0E00 /* GCDAsyncSocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GCDAsyncSocket.m; path = ../../../GCD/GCDAsyncSocket.m; sourceTree = "<group>"; };
+		6EC7515E19C411FF009F0E00 /* Lumberjack.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Lumberjack.xcodeproj; path = ../../CocoaLumberjack/Framework/Desktop/Lumberjack.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -25,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6EC7516C19C4122E009F0E00 /* CocoaLumberjack.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -41,6 +73,7 @@
 		6EC7513619C4116E009F0E00 = {
 			isa = PBXGroup;
 			children = (
+				6EC7515E19C411FF009F0E00 /* Lumberjack.xcodeproj */,
 				6EC7514219C4116E009F0E00 /* CocoaAsyncSocket */,
 				6EC7514C19C4116E009F0E00 /* CocoaAsyncSocketTests */,
 				6EC7514119C4116E009F0E00 /* Products */,
@@ -60,6 +93,8 @@
 			isa = PBXGroup;
 			children = (
 				6EC7514519C4116E009F0E00 /* CocoaAsyncSocket.h */,
+				6EC7515919C411F1009F0E00 /* GCDAsyncSocket.h */,
+				6EC7515A19C411F1009F0E00 /* GCDAsyncSocket.m */,
 				6EC7514319C4116E009F0E00 /* Supporting Files */,
 			);
 			path = CocoaAsyncSocket;
@@ -90,6 +125,15 @@
 			name = "Supporting Files";
 			sourceTree = "<group>";
 		};
+		6EC7515F19C411FF009F0E00 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				6EC7516419C411FF009F0E00 /* CocoaLumberjack.framework */,
+				6EC7516619C411FF009F0E00 /* FmwkTest.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -98,6 +142,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6EC7514619C4116E009F0E00 /* CocoaAsyncSocket.h in Headers */,
+				6EC7515B19C411F1009F0E00 /* GCDAsyncSocket.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -116,6 +161,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				6EC7516B19C41229009F0E00 /* PBXTargetDependency */,
 			);
 			name = CocoaAsyncSocket;
 			productName = CocoaAsyncSocket;
@@ -166,6 +212,12 @@
 			mainGroup = 6EC7513619C4116E009F0E00;
 			productRefGroup = 6EC7514119C4116E009F0E00 /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 6EC7515F19C411FF009F0E00 /* Products */;
+					ProjectRef = 6EC7515E19C411FF009F0E00 /* Lumberjack.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				6EC7513F19C4116E009F0E00 /* CocoaAsyncSocket */,
@@ -173,6 +225,23 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		6EC7516419C411FF009F0E00 /* CocoaLumberjack.framework */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.framework;
+			path = CocoaLumberjack.framework;
+			remoteRef = 6EC7516319C411FF009F0E00 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		6EC7516619C411FF009F0E00 /* FmwkTest.app */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.application;
+			path = FmwkTest.app;
+			remoteRef = 6EC7516519C411FF009F0E00 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
 
 /* Begin PBXResourcesBuildPhase section */
 		6EC7513E19C4116E009F0E00 /* Resources */ = {
@@ -196,6 +265,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6EC7515C19C411F1009F0E00 /* GCDAsyncSocket.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -203,11 +273,20 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6EC7515D19C411F1009F0E00 /* GCDAsyncSocket.m in Sources */,
 				6EC7515019C4116E009F0E00 /* CocoaAsyncSocketTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		6EC7516B19C41229009F0E00 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = CocoaLumberjack;
+			targetProxy = 6EC7516A19C41229009F0E00 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		6EC7515119C4116E009F0E00 /* Debug */ = {
@@ -377,6 +456,7 @@
 				6EC7515519C4116E009F0E00 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		6EC7515619C4116E009F0E00 /* Build configuration list for PBXNativeTarget "CocoaAsyncSocketTests" */ = {
 			isa = XCConfigurationList;
@@ -385,6 +465,7 @@
 				6EC7515819C4116E009F0E00 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
