@@ -1,0 +1,9 @@
+language: objective-c
+
+install:
+  - gem install cocoapods --no-rdoc --no-ri # Need Cocoapods >= 0.34.1
+  - pod install
+
+script:
+  - xctool -workspace CocoaAsyncSocket.xcworkspace -scheme CocoaAsyncSocketTestsiOS -sdk iphonesimulator -arch i386 test
+  - xctool -workspace CocoaAsyncSocket.xcworkspace -scheme CocoaAsyncSocketTestsMac -sdk macosx -arch x86_64 test

@@ -1,0 +1,17 @@
+PODS:
+  - CocoaAsyncSocket (7.4.1)
+  - Expecta (0.3.1)
+
+DEPENDENCIES:
+  - CocoaAsyncSocket (from `./CocoaAsyncSocket.podspec`)
+  - Expecta (~> 0.3)
+
+EXTERNAL SOURCES:
+  CocoaAsyncSocket:
+    :path: ./CocoaAsyncSocket.podspec
+
+SPEC CHECKSUMS:
+  CocoaAsyncSocket: 4bbe8fc969e61e62f408de98faac676468e155b3
+  Expecta: 03aabd0a89d8dea843baecb19a7fd7466a69a31d
+
+COCOAPODS: 0.34.4
