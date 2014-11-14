@@ -24,7 +24,13 @@ Updated and maintained by Deusty LLC and the Apple development community.
                   'version, but is designed specifically for UDP. This includes queued non-blocking send/receive operations, full ' \
                   'delegate support, run-loop based, self-contained class, and support for IPv4 and IPv6.'
 
-  s.source_files = '{GCD,RunLoop}/*.{h,m}'
+  s.subspec 'GCD' do |ss|
+    ss.source_files = 'GCD/*.{h,m}'
+  end
+
+  s.subspec 'RunLoop' do |ss|
+    ss.source_files = 'RunLoop/*.{h,m}'
+  end
 
   s.requires_arc = true
 
