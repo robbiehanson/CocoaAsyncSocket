@@ -3169,7 +3169,7 @@ enum GCDAsyncSocketConfig
 	// So we have to unpause the source if needed.
 	// This allows the cancel handler to be run, which in turn releases the source and closes the socket.
 	
-	if (!accept4Source && !accept6Source && !readSource && !writeSource)
+	if (!accept4Source && !accept6Source && !acceptUNSource && !readSource && !writeSource)
 	{
 		LogVerbose(@"manually closing close");
 
