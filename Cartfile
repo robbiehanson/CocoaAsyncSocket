@@ -1,1 +1,1 @@
-github "mackross/CocoaLumberjack" "master"
+github "CocoaLumberjack/CocoaLumberjack" ~>2.0.0
