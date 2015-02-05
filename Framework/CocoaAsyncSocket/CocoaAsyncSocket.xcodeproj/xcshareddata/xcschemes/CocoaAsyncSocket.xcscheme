@@ -28,7 +28,26 @@
       shouldUseLaunchSchemeArgsEnv = "YES"
       buildConfiguration = "Debug">
       <Testables>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "6EC7514A19C4116E009F0E00"
+               BuildableName = "CocoaAsyncSocketTests.xctest"
+               BlueprintName = "CocoaAsyncSocketTests"
+               ReferencedContainer = "container:CocoaAsyncSocket.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "6EC7513F19C4116E009F0E00"
+            BuildableName = "CocoaAsyncSocket.framework"
+            BlueprintName = "CocoaAsyncSocket"
+            ReferencedContainer = "container:CocoaAsyncSocket.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
    </TestAction>
    <LaunchAction
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
