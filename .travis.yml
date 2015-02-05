@@ -4,5 +4,4 @@ before_install: true
 script:
     - cd Framework
     - cd CocoaAsyncSocket
-    - xcodebuild [DEFAULT_OPTIONS] CODE_SIGNING_REQUIRED=NO
-    - xcodebuild -scheme 'CocoaAsyncSocket' test
+    - xcodebuild CODE_SIGNING_REQUIRED=NO -scheme 'CocoaAsyncSocket' test
