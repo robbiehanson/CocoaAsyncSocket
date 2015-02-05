@@ -3,5 +3,5 @@ osx_image: xcode61
 before_install: true
 script:
     - cd Framework
-	- cd CocoaAsyncSocket
+    - cd CocoaAsyncSocket
     - xcodebuild -scheme 'CocoaAsyncSocket' test
