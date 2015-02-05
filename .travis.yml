@@ -1,0 +1,7 @@
+language: objective-c
+osx_image: xcode61
+before_install: true
+script:
+    - cd Framework
+	- cd CocoaAsyncSocket
+    - xcodebuild -scheme 'CocoaAsyncSocket' test
