@@ -27,7 +27,7 @@
 #import <net/if.h>
 #import <sys/socket.h>
 #import <sys/types.h>
-
+#import <SystemConfiguration/SCDynamicStore.h>
 
 #if 0
 
@@ -5362,6 +5362,24 @@ Failed:
 	if (afPtr)   *afPtr   = AF_UNSPEC;
 	
 	return NO;
+}
+
++ (NSDictionary *)allNetworks {
+  NSMutableDictionary *networkStates = [NSMutableDictionary new];
+  SCDynamicStoreRef storeRef = SCDynamicStoreCreate(NULL, (CFStringRef)@"FindCurrentInterfaceIpMac", NULL, NULL);
+  if (storeRef) {
+    NSDictionary *interfaceInfo = CFBridgingRelease(SCDynamicStoreCopyValue(storeRef, CFSTR("State:/Network/Interface")));
+    NSArray *primaryInterfaces = interfaceInfo[@"Interfaces"];
+    for (NSString* interfaceName in primaryInterfaces) {
+      NSString *interfaceStateKey = [NSString stringWithFormat:@"State:/Network/Interface/%@/IPv4", interfaceName];
+      NSDictionary *ipv4State = CFBridgingRelease(SCDynamicStoreCopyValue(storeRef, (__bridge CFStringRef)interfaceStateKey));
+      if (ipv4State != nil) {
+        networkStates[interfaceName] = ipv4State;
+      }
+    }
+    CFRelease(storeRef);
+  }
+  return networkStates;
 }
 
 @end

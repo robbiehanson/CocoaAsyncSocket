@@ -941,6 +941,8 @@ typedef BOOL (^GCDAsyncUdpSocketSendFilterBlock)(NSData *data, NSData *address, 
 + (BOOL)getHost:(NSString **)hostPtr port:(uint16_t *)portPtr fromAddress:(NSData *)address;
 + (BOOL)getHost:(NSString **)hostPtr port:(uint16_t *)portPtr family:(int *)afPtr fromAddress:(NSData *)address;
 
++ (NSDictionary *)allNetworks;
+
 @end
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
