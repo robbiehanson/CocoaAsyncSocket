@@ -15,7 +15,7 @@
 // For more information see: https://github.com/robbiehanson/CocoaAsyncSocket/wiki/ARC
 #endif
 
-#if TARGET_OS_IPHONE
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE
   #import <CFNetwork/CFNetwork.h>
   #import <UIKit/UIKit.h>
 #endif
@@ -27,7 +27,10 @@
 #import <net/if.h>
 #import <sys/socket.h>
 #import <sys/types.h>
+
+#if TARGET_OS_MAC
 #import <SystemConfiguration/SCDynamicStore.h>
+#endif
 
 #if 0
 
@@ -5365,6 +5368,7 @@ Failed:
 }
 
 + (NSDictionary *)allNetworks {
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE
   NSMutableDictionary *networkStates = [NSMutableDictionary new];
   SCDynamicStoreRef storeRef = SCDynamicStoreCreate(NULL, (CFStringRef)@"FindCurrentInterfaceIpMac", NULL, NULL);
   if (storeRef) {
@@ -5380,6 +5384,10 @@ Failed:
     CFRelease(storeRef);
   }
   return networkStates;
+#else
+  // TODO: Is there an iOS solution for this?
+  return @{};
+#endif
 }
 
 @end
