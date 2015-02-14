@@ -15,7 +15,7 @@
 // For more information see: https://github.com/robbiehanson/CocoaAsyncSocket/wiki/ARC
 #endif
 
-#if TARGET_OS_MAC && !TARGET_OS_IPHONE
+#if TARGET_OS_IPHONE
   #import <CFNetwork/CFNetwork.h>
   #import <UIKit/UIKit.h>
 #endif
@@ -28,7 +28,7 @@
 #import <sys/socket.h>
 #import <sys/types.h>
 
-#if TARGET_OS_MAC
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE
 #import <SystemConfiguration/SCDynamicStore.h>
 #endif
 
