@@ -5849,7 +5849,7 @@ enum GCDAsyncSocketConfig
 			NSDictionary *tlsSettings = tlsPacket->tlsSettings;
 			
 			NSNumber *value = [tlsSettings objectForKey:GCDAsyncSocketUseCFStreamForTLS];
-			if (value && [value boolValue] == YES)
+			if (value && [value boolValue])
 				useSecureTransport = NO;
 		}
 		#endif
