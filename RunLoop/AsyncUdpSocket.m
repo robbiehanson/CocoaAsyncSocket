@@ -2099,6 +2099,10 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 				void *buf = malloc(maxReceiveBufferSize);
 				size_t bufSize = maxReceiveBufferSize;
 				
+				if(!buf)
+				{
+					result = -1;
+				}
 				if(theSocket == theSocket4)
 				{
 					struct sockaddr_in sockaddr4;
@@ -2121,14 +2125,27 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 						{
 							if(result != bufSize)
 							{
-								buf = realloc(buf, result);
+								void *newBuf = realloc(buf, result);
+								
+								if(newBuf)
+								{
+									buf = newBuf;
+								}
+								else
+								{
+									result = -1;
+								}
 							}
-                            bufferData = [[NSData alloc] initWithBytesNoCopy:buf
-																					 length:result
-																			   freeWhenDone:YES];
-							theCurrentReceive->buffer = bufferData;
-							theCurrentReceive->host = host;
-							theCurrentReceive->port = port;
+							
+							if(result >= 0)
+							{
+								bufferData = [[NSData alloc] initWithBytesNoCopy:buf
+																						 length:result
+																				   freeWhenDone:YES];
+								theCurrentReceive->buffer = bufferData;
+								theCurrentReceive->host = host;
+								theCurrentReceive->port = port;
+							}
 						}
 					}
 					
@@ -2156,14 +2173,27 @@ static void MyCFSocketCallback(CFSocketRef, CFSocketCallBackType, CFDataRef, con
 						{
 							if(result != bufSize)
 							{
-								buf = realloc(buf, result);
+								void *newBuf = realloc(buf, result);
+								
+								if(newBuf)
+								{
+									buf = newBuf;
+								}
+								else
+								{
+									result = -1;
+								}
 							}
-                            bufferData = [[NSData alloc] initWithBytesNoCopy:buf
-																					 length:result
-																			   freeWhenDone:YES];
-							theCurrentReceive->buffer = bufferData;
-							theCurrentReceive->host = host;
-							theCurrentReceive->port = port;
+							
+							if(result >= 0)
+							{
+								bufferData = [[NSData alloc] initWithBytesNoCopy:buf
+																						 length:result
+																				   freeWhenDone:YES];
+								theCurrentReceive->buffer = bufferData;
+								theCurrentReceive->host = host;
+								theCurrentReceive->port = port;
+							}
 						}
 					}
 					

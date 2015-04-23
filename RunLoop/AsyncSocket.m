@@ -3053,13 +3053,16 @@ Failed:
 	NSData *result = nil;
 	void *sockaddr = malloc(sockaddrlen);
 	
-	if(getpeername(theNativeSocket, (struct sockaddr *)sockaddr, &sockaddrlen) >= 0)
+	if(sockaddr)
 	{
-		result = [NSData dataWithBytesNoCopy:sockaddr length:sockaddrlen freeWhenDone:YES];
-	}
-	else
-	{
-		free(sockaddr);
+		if(getpeername(theNativeSocket, (struct sockaddr *)sockaddr, &sockaddrlen) >= 0)
+		{
+			result = [NSData dataWithBytesNoCopy:sockaddr length:sockaddrlen freeWhenDone:YES];
+		}
+		else
+		{
+			free(sockaddr);
+		}
 	}
 	
 	return result;
@@ -3109,13 +3112,16 @@ Failed:
 	NSData *result = nil;
 	void *sockaddr = malloc(sockaddrlen);
 	
-	if(getsockname(theNativeSocket, (struct sockaddr *)sockaddr, &sockaddrlen) >= 0)
+	if(sockaddr)
 	{
-		result = [NSData dataWithBytesNoCopy:sockaddr length:sockaddrlen freeWhenDone:YES];
-	}
-	else
-	{
-		free(sockaddr);
+		if(getsockname(theNativeSocket, (struct sockaddr *)sockaddr, &sockaddrlen) >= 0)
+		{
+			result = [NSData dataWithBytesNoCopy:sockaddr length:sockaddrlen freeWhenDone:YES];
+		}
+		else
+		{
+			free(sockaddr);
+		}
 	}
 	
 	return result;
