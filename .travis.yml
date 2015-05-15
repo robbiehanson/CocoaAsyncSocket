@@ -1,13 +1,9 @@
 language: objective-c
 
-before_install:
-  - brew update
-  - if brew outdated | grep -qx xctool; then brew upgrade xctool; fi
-
 install:
-  - gem install cocoapods --no-rdoc --no-ri # Need Cocoapods >= 0.34.1
+  - cd Tests
   - pod install
 
 script:
-  - xctool -workspace CocoaAsyncSocket.xcworkspace -scheme CocoaAsyncSocketTestsiOS -sdk iphonesimulator -arch i386 test
-  - xctool -workspace CocoaAsyncSocket.xcworkspace -scheme CocoaAsyncSocketTestsMac -sdk macosx -arch x86_64 test
+  - xctool -workspace ./Tests/CocoaAsyncSocket.xcworkspace -scheme CocoaAsyncSocketTestsiOS -sdk iphonesimulator -arch i386 test
+  - xctool -workspace ./Tests/CocoaAsyncSocket.xcworkspace -scheme CocoaAsyncSocketTestsMac -sdk macosx -arch x86_64 test
