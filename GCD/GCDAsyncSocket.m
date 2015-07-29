@@ -4266,7 +4266,7 @@ enum GCDAsyncSocketConfig
 	}
 	
 	BOOL done        = NO;  // Completed read operation
-	NSError *error   = nil; // Error occured
+	NSError *error   = nil; // Error occurred
 	
 	NSUInteger totalBytesReadForCurrentRead = 0;
 	
@@ -7414,7 +7414,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 {
 	if (![self createReadAndWriteStream])
 	{
-		// Error occured creating streams (perhaps socket isn't open)
+		// Error occurred creating streams (perhaps socket isn't open)
 		return NO;
 	}
 	
