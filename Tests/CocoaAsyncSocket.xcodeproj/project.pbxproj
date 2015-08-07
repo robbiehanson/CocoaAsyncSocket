@@ -7,24 +7,24 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		4EED4E1EC861448459C00D8C /* libPods-CocoaAsyncSocketTestsiOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = DDDB91CAF1EB2E9F5E0663AD /* libPods-CocoaAsyncSocketTestsiOS.a */; };
-		84668B20BFE04AFB6D07FE12 /* libPods-CocoaAsyncSocketTestsMac.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 751DE9BA3EE4ED39351D57DB /* libPods-CocoaAsyncSocketTestsMac.a */; };
-		D9873DA41A058011004C014F /* CocoaAsyncSocketTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D9873DA31A058011004C014F /* CocoaAsyncSocketTests.m */; };
-		D9B2DFB21A05870A0004D36C /* CocoaAsyncSocketTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D9873DA31A058011004C014F /* CocoaAsyncSocketTests.m */; };
+		112EB90908C5A2F61A4882CB /* Pods_CocoaAsyncSocketTestsMac.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 22AFE0AC4A8210F5D90D8419 /* Pods_CocoaAsyncSocketTestsMac.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
+		673F792AB48B8FDEE8B23C9B /* Pods_CocoaAsyncSocketTestsiOS.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F95D257221C81668EA412B30 /* Pods_CocoaAsyncSocketTestsiOS.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
+		D938B4E41B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */; };
+		D938B4E51B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		22AFE0AC4A8210F5D90D8419 /* Pods_CocoaAsyncSocketTestsMac.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_CocoaAsyncSocketTestsMac.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		352DA76AF29EE988F653F1BD /* Pods-CocoaAsyncSocketTestsiOS.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CocoaAsyncSocketTestsiOS.release.xcconfig"; path = "Pods/Target Support Files/Pods-CocoaAsyncSocketTestsiOS/Pods-CocoaAsyncSocketTestsiOS.release.xcconfig"; sourceTree = "<group>"; };
-		751DE9BA3EE4ED39351D57DB /* libPods-CocoaAsyncSocketTestsMac.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-CocoaAsyncSocketTestsMac.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD85483ACFF4A9D05C841806 /* Pods-CocoaAsyncSocketTestsMac.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CocoaAsyncSocketTestsMac.debug.xcconfig"; path = "Pods/Target Support Files/Pods-CocoaAsyncSocketTestsMac/Pods-CocoaAsyncSocketTestsMac.debug.xcconfig"; sourceTree = "<group>"; };
 		C9198C88D67BDEFEA629AB60 /* Pods-CocoaAsyncSocketTestsMac.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CocoaAsyncSocketTestsMac.release.xcconfig"; path = "Pods/Target Support Files/Pods-CocoaAsyncSocketTestsMac/Pods-CocoaAsyncSocketTestsMac.release.xcconfig"; sourceTree = "<group>"; };
-		D9873DA31A058011004C014F /* CocoaAsyncSocketTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = CocoaAsyncSocketTests.m; path = ../../Code/CocoaAsyncSocket/Tests/iOS/CocoaAsyncSocketTests.m; sourceTree = SOURCE_ROOT; };
+		D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GCDAsyncSocketConnectionTests.m; path = Shared/GCDAsyncSocketConnectionTests.m; sourceTree = "<group>"; };
 		D9BC0D7F1A0457F40059D906 /* CocoaAsyncSocketTestsiOS.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CocoaAsyncSocketTestsiOS.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D9BC0D831A0457F40059D906 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; name = Info.plist; path = Tests/iOS/Info.plist; sourceTree = "<group>"; };
 		D9BC0D8D1A0458EF0059D906 /* CocoaAsyncSocketTestsMac.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CocoaAsyncSocketTestsMac.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D9BC0D901A0458EF0059D906 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; name = Info.plist; path = Tests/iOS/Info.plist; sourceTree = "<group>"; };
-		DDDB91CAF1EB2E9F5E0663AD /* libPods-CocoaAsyncSocketTestsiOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-CocoaAsyncSocketTestsiOS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F43CCF0455154E6532834570 /* Pods-CocoaAsyncSocketTestsiOS.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CocoaAsyncSocketTestsiOS.debug.xcconfig"; path = "Pods/Target Support Files/Pods-CocoaAsyncSocketTestsiOS/Pods-CocoaAsyncSocketTestsiOS.debug.xcconfig"; sourceTree = "<group>"; };
+		F95D257221C81668EA412B30 /* Pods_CocoaAsyncSocketTestsiOS.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_CocoaAsyncSocketTestsiOS.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -32,7 +32,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4EED4E1EC861448459C00D8C /* libPods-CocoaAsyncSocketTestsiOS.a in Frameworks */,
+				673F792AB48B8FDEE8B23C9B /* Pods_CocoaAsyncSocketTestsiOS.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -40,7 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				84668B20BFE04AFB6D07FE12 /* libPods-CocoaAsyncSocketTestsMac.a in Frameworks */,
+				112EB90908C5A2F61A4882CB /* Pods_CocoaAsyncSocketTestsMac.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -50,16 +50,24 @@
 		8400CAC70478EEBC3002E52B /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				751DE9BA3EE4ED39351D57DB /* libPods-CocoaAsyncSocketTestsMac.a */,
-				DDDB91CAF1EB2E9F5E0663AD /* libPods-CocoaAsyncSocketTestsiOS.a */,
+				22AFE0AC4A8210F5D90D8419 /* Pods_CocoaAsyncSocketTestsMac.framework */,
+				F95D257221C81668EA412B30 /* Pods_CocoaAsyncSocketTestsiOS.framework */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		D938B4E61B752ED800FE8AB3 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */,
+			);
+			name = Shared;
 			sourceTree = "<group>";
 		};
 		D9873DA11A057F34004C014F /* Tests */ = {
 			isa = PBXGroup;
 			children = (
-				D9873DA31A058011004C014F /* CocoaAsyncSocketTests.m */,
+				D938B4E61B752ED800FE8AB3 /* Shared */,
 				D9BC0D811A0457F40059D906 /* iOS */,
 				D9BC0D8E1A0458EF0059D906 /* Mac */,
 			);
@@ -142,6 +150,7 @@
 				D9BC0D7C1A0457F40059D906 /* Frameworks */,
 				D9BC0D7D1A0457F40059D906 /* Resources */,
 				6B91819F15A678B7C409F651 /* Copy Pods Resources */,
+				DFE18EB85931917D28D4FBE5 /* Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -161,6 +170,7 @@
 				D9BC0D8A1A0458EF0059D906 /* Frameworks */,
 				D9BC0D8B1A0458EF0059D906 /* Resources */,
 				46E4B24E7D6621E48A697455 /* Copy Pods Resources */,
+				F2AB5BD430AF4C0FD63BBCD8 /* Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -283,6 +293,36 @@
 			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-CocoaAsyncSocketTestsiOS/Pods-CocoaAsyncSocketTestsiOS-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
+		DFE18EB85931917D28D4FBE5 /* Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Embed Pods Frameworks";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-CocoaAsyncSocketTestsiOS/Pods-CocoaAsyncSocketTestsiOS-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		F2AB5BD430AF4C0FD63BBCD8 /* Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Embed Pods Frameworks";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-CocoaAsyncSocketTestsMac/Pods-CocoaAsyncSocketTestsMac-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -290,7 +330,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D9873DA41A058011004C014F /* CocoaAsyncSocketTests.m in Sources */,
+				D938B4E41B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -298,7 +338,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D9B2DFB21A05870A0004D36C /* CocoaAsyncSocketTests.m in Sources */,
+				D938B4E51B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -308,6 +348,8 @@
 		D9BC0D791A0457800059D906 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				ONLY_ACTIVE_ARCH = YES;
 			};
 			name = Debug;
@@ -315,6 +357,8 @@
 		D9BC0D7A1A0457800059D906 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
 			};
 			name = Release;
 		};
@@ -357,10 +401,9 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = iOS/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 8.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				MTL_ENABLE_DEBUG_INFO = YES;
-				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 			};
@@ -399,7 +442,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = iOS/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 8.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				MTL_ENABLE_DEBUG_INFO = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -451,7 +494,6 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				MTL_ENABLE_DEBUG_INFO = YES;
-				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 			};

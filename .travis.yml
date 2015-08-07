@@ -1,4 +1,5 @@
 language: objective-c
+osx_image: xcode6.4
 
 install:
   - cd Tests
