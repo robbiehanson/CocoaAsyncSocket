@@ -1,9 +1,7 @@
 #import <Cocoa/Cocoa.h>
+#import "GCDAsyncUdpSocket.h"
 
-@class GCDAsyncUdpSocket;
-
-
-@interface AppDelegate : NSObject <NSApplicationDelegate>
+@interface AppDelegate : NSObject <NSApplicationDelegate, GCDAsyncUdpSocketDelegate>
 {
 	long tag;
 	GCDAsyncUdpSocket *udpSocket;

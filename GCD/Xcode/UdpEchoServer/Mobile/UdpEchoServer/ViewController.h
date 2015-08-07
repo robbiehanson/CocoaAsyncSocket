@@ -1,7 +1,7 @@
 #import <UIKit/UIKit.h>
+#import "GCDAsyncUdpSocket.h"
 
-
-@interface ViewController : UIViewController
+@interface ViewController : UIViewController <GCDAsyncUdpSocketDelegate>
 {
 	IBOutlet UITextField *portField;
 	IBOutlet UIButton *startStopButton;

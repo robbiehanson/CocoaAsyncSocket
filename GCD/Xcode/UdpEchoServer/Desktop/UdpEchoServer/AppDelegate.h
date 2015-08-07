@@ -2,7 +2,7 @@
 #import "GCDAsyncUdpSocket.h"
 
 
-@interface AppDelegate : NSObject <NSApplicationDelegate>
+@interface AppDelegate : NSObject <NSApplicationDelegate, GCDAsyncUdpSocketDelegate>
 {
 	GCDAsyncUdpSocket *udpSocket;
 	BOOL isRunning;
