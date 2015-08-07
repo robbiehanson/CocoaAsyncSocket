@@ -1,9 +1,11 @@
 language: objective-c
 osx_image: xcode6.4
 
+before_install:
+  - gem install cocoapods --no-rdoc --no-ri
+
 install:
-  - cd Tests
-  - pod install
+  - pod install --project-directory=./Tests
 
 script:
   - xctool -workspace ./Tests/CocoaAsyncSocket.xcworkspace -scheme CocoaAsyncSocketTestsiOS -sdk iphonesimulator -arch i386 test
