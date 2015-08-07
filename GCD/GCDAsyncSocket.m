@@ -2668,6 +2668,7 @@ enum GCDAsyncSocketConfig
 	// Clear stored socket info and all flags (config remains as is)
 	socketFDBytesAvailable = 0;
 	flags = 0;
+	sslWriteCachedLength = 0;
 	
 	if (shouldCallDelegate)
 	{
