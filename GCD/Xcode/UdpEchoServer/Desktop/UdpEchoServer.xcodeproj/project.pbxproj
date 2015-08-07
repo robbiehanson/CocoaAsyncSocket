@@ -10,6 +10,7 @@
 		11C3286B186CDD5800F6D762 /* DDContextFilterLogFormatter.m in Sources */ = {isa = PBXBuildFile; fileRef = 11C32866186CDD5800F6D762 /* DDContextFilterLogFormatter.m */; };
 		11C3286C186CDD5800F6D762 /* DDDispatchQueueLogFormatter.m in Sources */ = {isa = PBXBuildFile; fileRef = 11C32868186CDD5800F6D762 /* DDDispatchQueueLogFormatter.m */; };
 		11C3286D186CDD5800F6D762 /* DDMultiFormatter.m in Sources */ = {isa = PBXBuildFile; fileRef = 11C3286A186CDD5800F6D762 /* DDMultiFormatter.m */; };
+		39E278581A8F2123001B2EC9 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 39E278571A8F2123001B2EC9 /* SystemConfiguration.framework */; };
 		DC34A1A8147DF0A8004F0A03 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC34A1A7147DF0A8004F0A03 /* Cocoa.framework */; };
 		DC34A1B2147DF0A8004F0A03 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = DC34A1B0147DF0A8004F0A03 /* InfoPlist.strings */; };
 		DC34A1B4147DF0A8004F0A03 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = DC34A1B3147DF0A8004F0A03 /* main.m */; };
@@ -33,6 +34,7 @@
 		11C32868186CDD5800F6D762 /* DDDispatchQueueLogFormatter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DDDispatchQueueLogFormatter.m; sourceTree = "<group>"; };
 		11C32869186CDD5800F6D762 /* DDMultiFormatter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DDMultiFormatter.h; sourceTree = "<group>"; };
 		11C3286A186CDD5800F6D762 /* DDMultiFormatter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DDMultiFormatter.m; sourceTree = "<group>"; };
+		39E278571A8F2123001B2EC9 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = ../../../../../../../../../../System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SOURCE_ROOT; };
 		DC34A1A3147DF0A8004F0A03 /* UdpEchoServer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UdpEchoServer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC34A1A7147DF0A8004F0A03 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		DC34A1AA147DF0A8004F0A03 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -66,6 +68,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				39E278581A8F2123001B2EC9 /* SystemConfiguration.framework in Frameworks */,
 				DC34A1A8147DF0A8004F0A03 /* Cocoa.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -96,6 +99,7 @@
 			isa = PBXGroup;
 			children = (
 				DC34A1A7147DF0A8004F0A03 /* Cocoa.framework */,
+				39E278571A8F2123001B2EC9 /* SystemConfiguration.framework */,
 				DC34A1A9147DF0A8004F0A03 /* Other Frameworks */,
 			);
 			name = Frameworks;
