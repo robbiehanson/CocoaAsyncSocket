@@ -3,6 +3,21 @@
 
 CocoaAsyncSocket provides easy-to-use and powerful asynchronous socket libraries for Mac and iOS. The classes are described below.
 
+# Installation 
+
+## Carthage
+[![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
+
+CocoaAsyncSocket is fully Carthage compatible. It can then be included using this import:
+
+```objectivec
+#import <CocoaAsyncSocket/CocoaAsyncSocket.h>
+```
+
+## Manual
+
+CocoaAsyncSocket can be included into your project by adding the source files to it. Simply include the relevant source files for the technologies you wish to use.
+
 ## TCP
 
 **GCDAsyncSocket** and **AsyncSocket** are TCP/IP socket networking libraries. Here are the key features available in both:
