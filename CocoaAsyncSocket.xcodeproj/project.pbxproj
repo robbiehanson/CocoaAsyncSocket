@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		6CD990301B7789680011A685 /* GCDAsyncSocket.h in Headers */ = {isa = PBXBuildFile; fileRef = 6CD9902C1B7789680011A685 /* GCDAsyncSocket.h */; };
+		6CD990301B7789680011A685 /* GCDAsyncSocket.h in Headers */ = {isa = PBXBuildFile; fileRef = 6CD9902C1B7789680011A685 /* GCDAsyncSocket.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		6CD990311B7789680011A685 /* GCDAsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = 6CD9902D1B7789680011A685 /* GCDAsyncSocket.m */; };
-		6CD990321B7789680011A685 /* GCDAsyncUdpSocket.h in Headers */ = {isa = PBXBuildFile; fileRef = 6CD9902E1B7789680011A685 /* GCDAsyncUdpSocket.h */; };
+		6CD990321B7789680011A685 /* GCDAsyncUdpSocket.h in Headers */ = {isa = PBXBuildFile; fileRef = 6CD9902E1B7789680011A685 /* GCDAsyncUdpSocket.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		6CD990331B7789680011A685 /* GCDAsyncUdpSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = 6CD9902F1B7789680011A685 /* GCDAsyncUdpSocket.m */; };
-		6CD990381B7789760011A685 /* AsyncSocket.h in Headers */ = {isa = PBXBuildFile; fileRef = 6CD990341B7789760011A685 /* AsyncSocket.h */; };
+		6CD990381B7789760011A685 /* AsyncSocket.h in Headers */ = {isa = PBXBuildFile; fileRef = 6CD990341B7789760011A685 /* AsyncSocket.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		6CD990391B7789760011A685 /* AsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = 6CD990351B7789760011A685 /* AsyncSocket.m */; };
-		6CD9903A1B7789760011A685 /* AsyncUdpSocket.h in Headers */ = {isa = PBXBuildFile; fileRef = 6CD990361B7789760011A685 /* AsyncUdpSocket.h */; };
+		6CD9903A1B7789760011A685 /* AsyncUdpSocket.h in Headers */ = {isa = PBXBuildFile; fileRef = 6CD990361B7789760011A685 /* AsyncUdpSocket.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		6CD9903B1B7789760011A685 /* AsyncUdpSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = 6CD990371B7789760011A685 /* AsyncUdpSocket.m */; };
 /* End PBXBuildFile section */
 
