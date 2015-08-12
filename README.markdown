@@ -1,7 +1,40 @@
 # CocoaAsyncSocket
-[![Build Status](https://travis-ci.org/robbiehanson/CocoaAsyncSocket.svg?branch=master)](https://travis-ci.org/robbiehanson/CocoaAsyncSocket)
+[![Build Status](https://travis-ci.org/robbiehanson/CocoaAsyncSocket.svg?branch=master)](https://travis-ci.org/robbiehanson/CocoaAsyncSocket) [![Version Status](https://img.shields.io/cocoapods/v/CocoaAsyncSocket.svg?style=flat)](http://cocoadocs.org/docsets/CocoaAsyncSocket) [![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage) [![license Public Domain](https://img.shields.io/badge/license-Public%20Domain-orange.svg?style=flat)](https://en.wikipedia.org/wiki/Public_domain)
+
 
 CocoaAsyncSocket provides easy-to-use and powerful asynchronous socket libraries for Mac and iOS. The classes are described below.
+
+## Installation
+
+#### CocoaPods
+
+Install using [CocoaPods](http://cocoapods.org) by adding this line to your Podfile:
+
+````ruby
+pod 'CocoaAsyncSocket'  
+````
+
+#### Carthage
+
+CocoaAsyncSocket is [Carthage](https://github.com/Carthage/Carthage) compatible. To include it, build your project with Carthage, then drag `Carthage/Build/iOS/CocoaAsyncSocket.framework` into your project.
+
+#### Manual
+
+You can also include it into your project by adding the source files directly, but you should probably be using a dependency manager to keep up to date.
+
+### Importing
+
+Using Objective-C:
+
+```obj-c
+@import CocoaAsyncSocket;
+```
+
+Using Swift:
+
+```swift
+import CocoaAsyncSocket
+```
 
 ## TCP
 
