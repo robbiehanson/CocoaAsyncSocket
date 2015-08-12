@@ -11,6 +11,7 @@ CocoaAsyncSocket provides easy-to-use and powerful asynchronous socket libraries
 Install using [CocoaPods](http://cocoapods.org) by adding this line to your Podfile:
 
 ````ruby
+use_frameworks! # Add this if you are targeting iOS 8+ or using Swift
 pod 'CocoaAsyncSocket'  
 ````
 
@@ -27,7 +28,9 @@ You can also include it into your project by adding the source files directly, b
 Using Objective-C:
 
 ```obj-c
-@import CocoaAsyncSocket;
+@import CocoaAsyncSocket; // When using iOS 8+ frameworks
+// OR
+#import "CocoaAsyncSocket.h" // When not using frameworks, targeting iOS 7 or below
 ```
 
 Using Swift:
