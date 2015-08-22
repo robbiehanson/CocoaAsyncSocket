@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2D2E9B031B88F008007497EE /* GCDAsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D2E9AFF1B88F008007497EE /* GCDAsyncSocket.m */; };
 		FCA1B584161FA1A400613B9F /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FCA1B583161FA1A400613B9F /* Cocoa.framework */; };
 		FCA1B58E161FA1A400613B9F /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = FCA1B58C161FA1A400613B9F /* InfoPlist.strings */; };
 		FCA1B590161FA1A400613B9F /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = FCA1B58F161FA1A400613B9F /* main.m */; };
 		FCA1B594161FA1A400613B9F /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = FCA1B592161FA1A400613B9F /* Credits.rtf */; };
 		FCA1B597161FA1A400613B9F /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = FCA1B596161FA1A400613B9F /* AppDelegate.m */; };
 		FCA1B59A161FA1A400613B9F /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = FCA1B598161FA1A400613B9F /* MainMenu.xib */; };
-		FCA1B5A2161FA1D100613B9F /* GCDAsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = FCA1B5A1161FA1D100613B9F /* GCDAsyncSocket.m */; };
 		FCA1B5A6161FA1EB00613B9F /* DomainServer.m in Sources */ = {isa = PBXBuildFile; fileRef = FCA1B5A5161FA1EB00613B9F /* DomainServer.m */; };
 		FCA1B5AB161FA21100613B9F /* DomainClient.xib in Resources */ = {isa = PBXBuildFile; fileRef = FCA1B5AA161FA21100613B9F /* DomainClient.xib */; };
 		FCA1B5B1161FAA4900613B9F /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FCA1B5B0161FAA4900613B9F /* Security.framework */; };
@@ -21,6 +21,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		2D2E9AFE1B88F008007497EE /* GCDAsyncSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GCDAsyncSocket.h; sourceTree = "<group>"; };
+		2D2E9AFF1B88F008007497EE /* GCDAsyncSocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GCDAsyncSocket.m; sourceTree = "<group>"; };
 		FCA1B57F161FA1A400613B9F /* DomainTest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DomainTest.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FCA1B583161FA1A400613B9F /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		FCA1B586161FA1A400613B9F /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -34,8 +36,6 @@
 		FCA1B595161FA1A400613B9F /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		FCA1B596161FA1A400613B9F /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		FCA1B599161FA1A400613B9F /* en */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = en; path = en.lproj/MainMenu.xib; sourceTree = "<group>"; };
-		FCA1B5A0161FA1D100613B9F /* GCDAsyncSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GCDAsyncSocket.h; path = ../../GCDAsyncSocket.h; sourceTree = "<group>"; };
-		FCA1B5A1161FA1D100613B9F /* GCDAsyncSocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GCDAsyncSocket.m; path = ../../GCDAsyncSocket.m; sourceTree = "<group>"; };
 		FCA1B5A4161FA1EB00613B9F /* DomainServer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DomainServer.h; sourceTree = "<group>"; };
 		FCA1B5A5161FA1EB00613B9F /* DomainServer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DomainServer.m; sourceTree = "<group>"; };
 		FCA1B5AA161FA21100613B9F /* DomainClient.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = DomainClient.xib; sourceTree = "<group>"; };
@@ -57,10 +57,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		2D2E9AFC1B88F008007497EE /* GCDAsyncSocket */ = {
+			isa = PBXGroup;
+			children = (
+				2D2E9AFE1B88F008007497EE /* GCDAsyncSocket.h */,
+				2D2E9AFF1B88F008007497EE /* GCDAsyncSocket.m */,
+			);
+			name = GCDAsyncSocket;
+			path = ../../../Source/GCD;
+			sourceTree = "<group>";
+		};
 		FCA1B574161FA1A400613B9F = {
 			isa = PBXGroup;
 			children = (
-				FCA1B5A3161FA1D400613B9F /* GCDAsyncSocket */,
+				2D2E9AFC1B88F008007497EE /* GCDAsyncSocket */,
 				FCA1B589161FA1A400613B9F /* DomainTest */,
 				FCA1B582161FA1A400613B9F /* Frameworks */,
 				FCA1B580161FA1A400613B9F /* Products */,
@@ -121,15 +131,6 @@
 				FCA1B592161FA1A400613B9F /* Credits.rtf */,
 			);
 			name = "Supporting Files";
-			sourceTree = "<group>";
-		};
-		FCA1B5A3161FA1D400613B9F /* GCDAsyncSocket */ = {
-			isa = PBXGroup;
-			children = (
-				FCA1B5A0161FA1D100613B9F /* GCDAsyncSocket.h */,
-				FCA1B5A1161FA1D100613B9F /* GCDAsyncSocket.m */,
-			);
-			name = GCDAsyncSocket;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -198,8 +199,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				FCA1B590161FA1A400613B9F /* main.m in Sources */,
+				2D2E9B031B88F008007497EE /* GCDAsyncSocket.m in Sources */,
 				FCA1B597161FA1A400613B9F /* AppDelegate.m in Sources */,
-				FCA1B5A2161FA1D100613B9F /* GCDAsyncSocket.m in Sources */,
 				FCA1B5A6161FA1EB00613B9F /* DomainServer.m in Sources */,
 				FCA1B5B4161FB2DA00613B9F /* DomainClient.m in Sources */,
 			);
@@ -331,6 +332,7 @@
 				FCA1B59F161FA1A400613B9F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
