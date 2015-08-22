@@ -1400,7 +1400,7 @@ enum GCDAsyncSocketConfig
 		}
 		
 		// Bind socket
-
+		
 		status = bind(socketFD, (const struct sockaddr *)[interfaceAddr bytes], (socklen_t)[interfaceAddr length]);
 		if (status == -1)
 		{
