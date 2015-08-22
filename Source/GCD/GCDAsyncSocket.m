@@ -1400,9 +1400,8 @@ enum GCDAsyncSocketConfig
 		}
 		
 		// Bind socket
-		
-		const struct sockaddr *addr = (const struct sockaddr *)[interfaceAddr bytes];
-		status = bind(socketFD, addr, addr->sa_len);
+
+		status = bind(socketFD, (const struct sockaddr *)[interfaceAddr bytes], (socklen_t)[interfaceAddr length]);
 		if (status == -1)
 		{
 			NSString *reason = @"Error in bind() function";
