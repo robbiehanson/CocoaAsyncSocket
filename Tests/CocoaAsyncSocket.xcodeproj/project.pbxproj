@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		112EB90908C5A2F61A4882CB /* Pods_CocoaAsyncSocketTestsMac.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 22AFE0AC4A8210F5D90D8419 /* Pods_CocoaAsyncSocketTestsMac.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
+		2DBCA5C81B8CF4F3004F3128 /* GCDAsyncSocketUNTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 2DBCA5C71B8CF4F3004F3128 /* GCDAsyncSocketUNTests.m */; };
 		673F792AB48B8FDEE8B23C9B /* Pods_CocoaAsyncSocketTestsiOS.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F95D257221C81668EA412B30 /* Pods_CocoaAsyncSocketTestsiOS.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		D938B4E41B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */; };
 		D938B4E51B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */; };
@@ -15,6 +16,7 @@
 
 /* Begin PBXFileReference section */
 		22AFE0AC4A8210F5D90D8419 /* Pods_CocoaAsyncSocketTestsMac.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_CocoaAsyncSocketTestsMac.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		2DBCA5C71B8CF4F3004F3128 /* GCDAsyncSocketUNTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GCDAsyncSocketUNTests.m; path = Mac/GCDAsyncSocketUNTests.m; sourceTree = SOURCE_ROOT; };
 		352DA76AF29EE988F653F1BD /* Pods-CocoaAsyncSocketTestsiOS.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CocoaAsyncSocketTestsiOS.release.xcconfig"; path = "Pods/Target Support Files/Pods-CocoaAsyncSocketTestsiOS/Pods-CocoaAsyncSocketTestsiOS.release.xcconfig"; sourceTree = "<group>"; };
 		BD85483ACFF4A9D05C841806 /* Pods-CocoaAsyncSocketTestsMac.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CocoaAsyncSocketTestsMac.debug.xcconfig"; path = "Pods/Target Support Files/Pods-CocoaAsyncSocketTestsMac/Pods-CocoaAsyncSocketTestsMac.debug.xcconfig"; sourceTree = "<group>"; };
 		C9198C88D67BDEFEA629AB60 /* Pods-CocoaAsyncSocketTestsMac.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CocoaAsyncSocketTestsMac.release.xcconfig"; path = "Pods/Target Support Files/Pods-CocoaAsyncSocketTestsMac/Pods-CocoaAsyncSocketTestsMac.release.xcconfig"; sourceTree = "<group>"; };
@@ -113,6 +115,7 @@
 		D9BC0D8E1A0458EF0059D906 /* Mac */ = {
 			isa = PBXGroup;
 			children = (
+				2DBCA5C71B8CF4F3004F3128 /* GCDAsyncSocketUNTests.m */,
 				D9BC0D8F1A0458EF0059D906 /* Supporting Files */,
 			);
 			name = Mac;
@@ -338,6 +341,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2DBCA5C81B8CF4F3004F3128 /* GCDAsyncSocketUNTests.m in Sources */,
 				D938B4E51B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
