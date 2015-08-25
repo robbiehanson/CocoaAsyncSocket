@@ -13,6 +13,7 @@
 @interface DomainServer : NSObject
 
 @property (readonly) GCDAsyncSocket *socket;
+@property (readonly) NSMutableSet *connectedSockets;
 @property (strong) NSURL *url;
 
 - (BOOL)start:(NSError **)error;

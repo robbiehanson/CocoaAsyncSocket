@@ -15,6 +15,7 @@
 
 - (BOOL)start:(NSError **)error;
 {
+	_connectedSockets = [NSMutableSet new];
 	_socket = [[GCDAsyncSocket alloc] initWithDelegate:self delegateQueue:dispatch_get_main_queue()];
 	BOOL result = [self.socket acceptOnUrl:self.url error:error];
 	if (result) {
@@ -32,11 +33,13 @@
 - (void)socket:(GCDAsyncSocket *)sock didAcceptNewSocket:(GCDAsyncSocket *)newSocket;
 {
 	NSLog(@"[Server] New connection.");
+	[self.connectedSockets addObject:newSocket];
 	[newSocket readDataWithTimeout:-1 tag:0];
 }
 
 - (void)socketDidDisconnect:(GCDAsyncSocket *)socket withError:(NSError *)error;
 {
+	[self.connectedSockets removeObject:socket];
 	NSLog(@"[Server] Closed connection: %@", error);
 }
 
