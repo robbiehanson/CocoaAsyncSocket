@@ -906,9 +906,9 @@ enum GCDAsyncUdpSocketConfig
 {
 	LogTrace();
 	
-	if (delegateQueue && [delegate respondsToSelector:@selector(udpSocket:didConnectToAddress:)])
+	__strong id theDelegate = delegate;
+	if (delegateQueue && [theDelegate respondsToSelector:@selector(udpSocket:didConnectToAddress:)])
 	{
-		id theDelegate = delegate;
 		NSData *address = [anAddress copy]; // In case param is NSMutableData
 		
 		dispatch_async(delegateQueue, ^{ @autoreleasepool {
@@ -922,10 +922,9 @@ enum GCDAsyncUdpSocketConfig
 {
 	LogTrace();
 	
-	if (delegateQueue && [delegate respondsToSelector:@selector(udpSocket:didNotConnect:)])
+	__strong id theDelegate = delegate;
+	if (delegateQueue && [theDelegate respondsToSelector:@selector(udpSocket:didNotConnect:)])
 	{
-		id theDelegate = delegate;
-		
 		dispatch_async(delegateQueue, ^{ @autoreleasepool {
 			
 			[theDelegate udpSocket:self didNotConnect:error];
@@ -937,10 +936,9 @@ enum GCDAsyncUdpSocketConfig
 {
 	LogTrace();
 	
-	if (delegateQueue && [delegate respondsToSelector:@selector(udpSocket:didSendDataWithTag:)])
+	__strong id theDelegate = delegate;
+	if (delegateQueue && [theDelegate respondsToSelector:@selector(udpSocket:didSendDataWithTag:)])
 	{
-		id theDelegate = delegate;
-		
 		dispatch_async(delegateQueue, ^{ @autoreleasepool {
 			
 			[theDelegate udpSocket:self didSendDataWithTag:tag];
@@ -952,10 +950,9 @@ enum GCDAsyncUdpSocketConfig
 {
 	LogTrace();
 	
-	if (delegateQueue && [delegate respondsToSelector:@selector(udpSocket:didNotSendDataWithTag:dueToError:)])
+	__strong id theDelegate = delegate;
+	if (delegateQueue && [theDelegate respondsToSelector:@selector(udpSocket:didNotSendDataWithTag:dueToError:)])
 	{
-		id theDelegate = delegate;
-		
 		dispatch_async(delegateQueue, ^{ @autoreleasepool {
 			
 			[theDelegate udpSocket:self didNotSendDataWithTag:tag dueToError:error];
@@ -969,10 +966,9 @@ enum GCDAsyncUdpSocketConfig
 	
 	SEL selector = @selector(udpSocket:didReceiveData:fromAddress:withFilterContext:);
 	
-	if (delegateQueue && [delegate respondsToSelector:selector])
+	__strong id theDelegate = delegate;
+	if (delegateQueue && [theDelegate respondsToSelector:selector])
 	{
-		id theDelegate = delegate;
-		
 		dispatch_async(delegateQueue, ^{ @autoreleasepool {
 			
 			[theDelegate udpSocket:self didReceiveData:data fromAddress:address withFilterContext:context];
@@ -984,10 +980,9 @@ enum GCDAsyncUdpSocketConfig
 {
 	LogTrace();
 	
-	if (delegateQueue && [delegate respondsToSelector:@selector(udpSocketDidClose:withError:)])
+	__strong id theDelegate = delegate;
+	if (delegateQueue && [theDelegate respondsToSelector:@selector(udpSocketDidClose:withError:)])
 	{
-		id theDelegate = delegate;
-		
 		dispatch_async(delegateQueue, ^{ @autoreleasepool {
 			
 			[theDelegate udpSocketDidClose:self withError:error];
