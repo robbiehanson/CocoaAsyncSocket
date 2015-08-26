@@ -2843,11 +2843,9 @@ enum GCDAsyncSocketConfig
 			}});
 		}});
 	}
-	else if (delegateQueue && url != nil && [delegate respondsToSelector:@selector(socket:didConnectToUrl:)])
+	else if (delegateQueue && url != nil && [theDelegate respondsToSelector:@selector(socket:didConnectToUrl:)])
 	{
 		SetupStreamsPart1();
-		
-		__strong id theDelegate = delegate;
 		
 		dispatch_async(delegateQueue, ^{ @autoreleasepool {
 			
