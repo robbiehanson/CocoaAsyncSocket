@@ -16,7 +16,6 @@ static const uint16_t kTestPort = 30301;
 @property (nonatomic, strong) GCDAsyncSocket *clientSocket;
 @property (nonatomic, strong) GCDAsyncSocket *serverSocket;
 @property (nonatomic, strong) GCDAsyncSocket *acceptedServerSocket;
-@property (nonatomic, strong) NSData *readData;
 
 @property (nonatomic, strong) XCTestExpectation *expectation;
 @end
@@ -57,60 +56,6 @@ static const uint16_t kTestPort = 30301;
     }];
 }
 
-- (void)testTransferFromClient {
-	
-	NSData *testData = [@"ThisTestRocks!!!" dataUsingEncoding:NSUTF8StringEncoding];
-	
-	// set up and conncet to socket
-	[self.serverSocket acceptOnPort:kTestPort error:nil];
-	[self.clientSocket connectToHost:@"127.0.0.1" onPort:kTestPort error:nil];
-	
-	// wait for connection
-	self.expectation = [self expectationWithDescription:@"Socket Connected"];
-	[self waitForExpectationsWithTimeout:30 handler:^(NSError *error) {
-		
-		// start reading
-		[self.acceptedServerSocket readDataWithTimeout:-1 tag:0];
-		
-		// send data
-		self.expectation = [self expectationWithDescription:@"Data Sent"];
-		[self.clientSocket writeData:testData withTimeout:-1 tag:0];
-		[self waitForExpectationsWithTimeout:1 handler:^(NSError *error) {
-			if (error) {
-				return NSLog(@"Error reading data");
-			}
-			XCTAssertTrue([testData isEqual:self.readData], @"Read data did not match test data");
-		}];
-	}];
-}
-
-- (void)testTransferFromServer {
-	
-	NSData *testData = [@"ThisTestRocks!!!" dataUsingEncoding:NSUTF8StringEncoding];
-	
-	// set up and conncet to socket
-	[self.serverSocket acceptOnPort:kTestPort error:nil];
-	[self.clientSocket connectToHost:@"127.0.0.1" onPort:kTestPort error:nil];
-	
-	// wait for connection
-	self.expectation = [self expectationWithDescription:@"Socket Connected"];
-	[self waitForExpectationsWithTimeout:30 handler:^(NSError *error) {
-		
-		// start reading
-		[self.clientSocket readDataWithTimeout:-1 tag:0];
-		
-		// send data
-		self.expectation = [self expectationWithDescription:@"Data Sent"];
-		[self.acceptedServerSocket writeData:testData withTimeout:-1 tag:0];
-		[self waitForExpectationsWithTimeout:1 handler:^(NSError *error) {
-			if (error) {
-				return NSLog(@"Error reading data");
-			}
-			XCTAssertTrue([testData isEqual:self.readData], @"Read data did not match test data");
-		}];
-	}];
-}
-
 #pragma mark GCDAsyncSocketDelegate methods
 
 /**
@@ -136,22 +81,6 @@ static const uint16_t kTestPort = 30301;
     NSLog(@"didConnectToHost %@ %@ %d", sock, host, port);
     [self.expectation fulfill];
 }
-
-/**
- * Called when a socket has completed reading the requested data into memory.
- * Not called if there is an error.
- **/
-- (void)socket:(GCDAsyncSocket *)sock didReadData:(NSData *)data withTag:(long)tag {
-	NSLog(@"didReadData: %@ withTag: %ld", data, tag);
-	self.readData = data;
-	[self.expectation fulfill];
-}
-
-- (void)socketDidDisconnect:(GCDAsyncSocket *)socket withError:(NSError *)error;
-{
-	NSLog(@"[Server] Closed connection: %@", error);
-}
-
 
 
 @end
