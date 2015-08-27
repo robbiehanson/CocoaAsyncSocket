@@ -204,7 +204,7 @@ enum GCDAsyncSocketConfig
 
 - (id)initWithCapacity:(size_t)numBytes;
 
-- (void)ensureCapacityForWrite:(size_t)numBytes;
+- (BOOL)ensureCapacityForWrite:(size_t)numBytes;
 
 - (size_t)availableBytes;
 - (uint8_t *)readBuffer;
@@ -231,7 +231,9 @@ enum GCDAsyncSocketConfig
 	{
 		preBufferSize = numBytes;
 		preBuffer = malloc(preBufferSize);
-		
+		if (!preBuffer)
+            return nil;
+
 		readPointer = preBuffer;
 		writePointer = preBuffer;
 	}
@@ -244,8 +246,9 @@ enum GCDAsyncSocketConfig
 		free(preBuffer);
 }
 
-- (void)ensureCapacityForWrite:(size_t)numBytes
+- (BOOL)ensureCapacityForWrite:(size_t)numBytes
 {
+    BOOL success;
 	size_t availableSpace = [self availableSpace];
 	
 	if (numBytes > availableSpace)
@@ -254,16 +257,25 @@ enum GCDAsyncSocketConfig
 		
 		size_t newPreBufferSize = preBufferSize + additionalBytes;
 		uint8_t *newPreBuffer = realloc(preBuffer, newPreBufferSize);
-		
-		size_t readPointerOffset = readPointer - preBuffer;
-		size_t writePointerOffset = writePointer - preBuffer;
-		
-		preBuffer = newPreBuffer;
-		preBufferSize = newPreBufferSize;
-		
-		readPointer = preBuffer + readPointerOffset;
-		writePointer = preBuffer + writePointerOffset;
+		if (newPreBuffer)
+        {
+            size_t readPointerOffset = readPointer - preBuffer;
+            size_t writePointerOffset = writePointer - preBuffer;
+            
+            preBuffer = newPreBuffer;
+            preBufferSize = newPreBufferSize;
+            
+            readPointer = preBuffer + readPointerOffset;
+            writePointer = preBuffer + writePointerOffset;
+            success = YES;
+        }
+        else
+            success = NO;
 	}
+    else
+        success = YES;
+    
+    return success;
 }
 
 - (size_t)availableBytes
@@ -3357,7 +3369,16 @@ enum GCDAsyncSocketConfig
 	
 	return [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketClosedError userInfo:userInfo];
 }
-
+- (NSError *)outOfMemoryError
+{
+    NSString *errMsg = NSLocalizedStringWithDefaultValue(@"GCDAsyncSocketOutOfMemoryError",
+                                                         @"GCDAsyncSocket", [NSBundle mainBundle],
+                                                         @"Out of memory", nil);
+    
+    NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+    
+    return [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketOtherError userInfo:userInfo];
+}
 - (NSError *)otherError:(NSString *)errMsg
 {
 	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
@@ -4517,19 +4538,22 @@ enum GCDAsyncSocketConfig
 			
 			CFIndex defaultBytesToRead = (1024 * 4);
 			
-			[preBuffer ensureCapacityForWrite:defaultBytesToRead];
-			
-			uint8_t *buffer = [preBuffer writeBuffer];
-			
-			CFIndex result = CFReadStreamRead(readStream, buffer, defaultBytesToRead);
-			LogVerbose(@"%@ - CFReadStreamRead(): result = %i", THIS_METHOD, (int)result);
-			
-			if (result > 0)
-			{
-				[preBuffer didWrite:result];
-			}
-			
-			flags &= ~kSecureSocketHasBytesAvailable;
+			if ([preBuffer ensureCapacityForWrite:defaultBytesToRead])
+            {
+                uint8_t *buffer = [preBuffer writeBuffer];
+                
+                CFIndex result = CFReadStreamRead(readStream, buffer, defaultBytesToRead);
+                LogVerbose(@"%@ - CFReadStreamRead(): result = %i", THIS_METHOD, (int)result);
+                
+                if (result > 0)
+                {
+                    [preBuffer didWrite:result];
+                }
+                
+                flags &= ~kSecureSocketHasBytesAvailable;
+            }
+            else
+                [self closeWithError:[self outOfMemoryError]];
 		}
 		
 		return;
@@ -4572,31 +4596,37 @@ enum GCDAsyncSocketConfig
 			
 			// Make sure there's enough room in the prebuffer
 			
-			[preBuffer ensureCapacityForWrite:estimatedBytesAvailable];
-			
-			// Read data into prebuffer
-			
-			uint8_t *buffer = [preBuffer writeBuffer];
-			size_t bytesRead = 0;
-			
-			OSStatus result = SSLRead(sslContext, buffer, (size_t)estimatedBytesAvailable, &bytesRead);
-			LogVerbose(@"%@ - read from secure socket = %u", THIS_METHOD, (unsigned)bytesRead);
-			
-			if (bytesRead > 0)
-			{
-				[preBuffer didWrite:bytesRead];
-			}
-			
-			LogVerbose(@"%@ - prebuffer.length = %zu", THIS_METHOD, [preBuffer availableBytes]);
-			
-			if (result != noErr)
-			{
-				done = YES;
-			}
-			else
-			{
-				updateEstimatedBytesAvailable();
-			}
+            if ([preBuffer ensureCapacityForWrite:estimatedBytesAvailable])
+            {
+                // Read data into prebuffer
+                
+                uint8_t *buffer = [preBuffer writeBuffer];
+                size_t bytesRead = 0;
+                
+                OSStatus result = SSLRead(sslContext, buffer, (size_t)estimatedBytesAvailable, &bytesRead);
+                LogVerbose(@"%@ - read from secure socket = %u", THIS_METHOD, (unsigned)bytesRead);
+                
+                if (bytesRead > 0)
+                {
+                    [preBuffer didWrite:bytesRead];
+                }
+                
+                LogVerbose(@"%@ - prebuffer.length = %zu", THIS_METHOD, [preBuffer availableBytes]);
+                
+                if (result != noErr)
+                {
+                    done = YES;
+                }
+                else
+                {
+                    updateEstimatedBytesAvailable();
+                }
+            }
+            else
+            {
+                done = YES;
+                [self closeWithError:[self outOfMemoryError]];
+            }
 			
 		} while (!done && estimatedBytesAvailable > 0);
 	}
@@ -4889,9 +4919,13 @@ enum GCDAsyncSocketConfig
 				
 				if (readIntoPreBuffer)
 				{
-					[preBuffer ensureCapacityForWrite:bytesToRead];
-					
-					buffer = [preBuffer writeBuffer];
+					if ([preBuffer ensureCapacityForWrite:bytesToRead])
+                        buffer = [preBuffer writeBuffer];
+                    else
+                    {
+                        [self closeWithError:[self outOfMemoryError]];
+                        return;
+                    }
 				}
 				else
 				{
@@ -4962,9 +4996,13 @@ enum GCDAsyncSocketConfig
 				
 				if (readIntoPreBuffer)
 				{
-					[preBuffer ensureCapacityForWrite:bytesToRead];
-					
-					buffer = [preBuffer writeBuffer];
+                    if ([preBuffer ensureCapacityForWrite:bytesToRead])
+                        buffer = [preBuffer writeBuffer];
+                    else
+                    {
+                        [self closeWithError:[self outOfMemoryError]];
+                        return;
+                    }
 				}
 				else
 				{
@@ -5067,9 +5105,14 @@ enum GCDAsyncSocketConfig
 			
 			if (readIntoPreBuffer)
 			{
-				[preBuffer ensureCapacityForWrite:bytesToRead];
-				
-				buffer = [preBuffer writeBuffer];
+                if ([preBuffer ensureCapacityForWrite:bytesToRead])
+                    buffer = [preBuffer writeBuffer];
+                else
+                {
+                    [self closeWithError:[self outOfMemoryError]];
+                    return;
+                }
+
 			}
 			else
 			{
@@ -5209,19 +5252,24 @@ enum GCDAsyncSocketConfig
 						// Copy excess data into preBuffer
 						
 						LogVerbose(@"copying %ld overflow bytes into preBuffer", (long)overflow);
-						[preBuffer ensureCapacityForWrite:overflow];
-						
-						uint8_t *overflowBuffer = buffer + underflow;
-						memcpy([preBuffer writeBuffer], overflowBuffer, overflow);
-						
-						[preBuffer didWrite:overflow];
-						LogVerbose(@"preBuffer.length = %zu", [preBuffer availableBytes]);
-						
-						// Note: The completeCurrentRead method will trim the buffer for us.
-						
-						currentRead->bytesDone += underflow;
-						totalBytesReadForCurrentRead += underflow;
-						done = YES;
+                        if ([preBuffer ensureCapacityForWrite:overflow])
+                        {
+                            uint8_t *overflowBuffer = buffer + underflow;
+                            memcpy([preBuffer writeBuffer], overflowBuffer, overflow);
+                            
+                            [preBuffer didWrite:overflow];
+                            LogVerbose(@"preBuffer.length = %zu", [preBuffer availableBytes]);
+                            
+                            // Note: The completeCurrentRead method will trim the buffer for us.
+                            
+                            currentRead->bytesDone += underflow;
+                            totalBytesReadForCurrentRead += underflow;
+                            done = YES;
+                        }
+                        else
+                        {
+                            error = [self outOfMemoryError];
+                        }
 					}
 					else
 					{
@@ -6446,11 +6494,16 @@ enum GCDAsyncSocketConfig
 			
 			LogVerbose(@"%@: Reading into sslPreBuffer...", THIS_METHOD);
 			
-			[sslPreBuffer ensureCapacityForWrite:socketFDBytesAvailable];
-			
-			readIntoPreBuffer = YES;
-			bytesToRead = (size_t)socketFDBytesAvailable;
-			buf = [sslPreBuffer writeBuffer];
+			if ([sslPreBuffer ensureCapacityForWrite:socketFDBytesAvailable])
+            {
+                readIntoPreBuffer = YES;
+                bytesToRead = (size_t)socketFDBytesAvailable;
+                buf = [sslPreBuffer writeBuffer];
+            }
+            else
+            {
+                socketError = YES;
+            }
 		}
 		else
 		{
@@ -7028,11 +7081,16 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	if (preBufferLength > 0)
 	{
-		[sslPreBuffer ensureCapacityForWrite:preBufferLength];
-		
-		memcpy([sslPreBuffer writeBuffer], [preBuffer readBuffer], preBufferLength);
-		[preBuffer didRead:preBufferLength];
-		[sslPreBuffer didWrite:preBufferLength];
+		if ([sslPreBuffer ensureCapacityForWrite:preBufferLength])
+        {
+            memcpy([sslPreBuffer writeBuffer], [preBuffer readBuffer], preBufferLength);
+            [preBuffer didRead:preBufferLength];
+            [sslPreBuffer didWrite:preBufferLength];
+        }
+        else
+        {
+            [self closeWithError:[self outOfMemoryError]];
+        }
 	}
 	
 	sslErrCode = lastSSLHandshakeError = noErr;
