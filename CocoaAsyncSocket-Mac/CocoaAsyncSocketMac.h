@@ -16,4 +16,9 @@ FOUNDATION_EXPORT const unsigned char CocoaAsyncSocketMacVersionString[];
 
 // In this header, you should import all the public headers of your framework using statements like #import <CocoaAsyncSocket_Mac/PublicHeader.h>
 
+#import <CocoaAsyncSocket/AsyncSocket.h>
+#import <CocoaAsyncSocket/AsyncUdpSocket.h>
+#import <CocoaAsyncSocket/GCDAsyncSocket.h>
+#import <CocoaAsyncSocket/GCDAsyncUdpSocket.h>
+
 
