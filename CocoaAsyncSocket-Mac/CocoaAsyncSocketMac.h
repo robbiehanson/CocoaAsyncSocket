@@ -9,10 +9,10 @@
 #import <Cocoa/Cocoa.h>
 
 //! Project version number for CocoaAsyncSocket-Mac.
-FOUNDATION_EXPORT double CocoaAsyncSocket_MacVersionNumber;
+FOUNDATION_EXPORT double CocoaAsyncSocketMacVersionNumber;
 
 //! Project version string for CocoaAsyncSocket-Mac.
-FOUNDATION_EXPORT const unsigned char CocoaAsyncSocket_MacVersionString[];
+FOUNDATION_EXPORT const unsigned char CocoaAsyncSocketMacVersionString[];
 
 // In this header, you should import all the public headers of your framework using statements like #import <CocoaAsyncSocket_Mac/PublicHeader.h>
 
