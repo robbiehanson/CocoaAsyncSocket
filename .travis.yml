@@ -11,3 +11,4 @@ script:
   - xctool -workspace ./Tests/CocoaAsyncSocket.xcworkspace -scheme CocoaAsyncSocketTestsiOS -sdk iphonesimulator -arch i386 test
   - xctool -workspace ./Tests/CocoaAsyncSocket.xcworkspace -scheme CocoaAsyncSocketTestsMac -sdk macosx -arch x86_64 test
   - xctool -project CocoaAsyncSocket.xcodeproj -scheme "iOS Framework" -sdk iphonesimulator -arch i386 build
+  - xctool -project CocoaAsyncSocket.xcodeproj -scheme "Mac Framework" -sdk macosx10.11  -arch x86_64 build
