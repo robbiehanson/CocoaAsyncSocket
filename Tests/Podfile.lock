@@ -1,0 +1,14 @@
+PODS:
+  - CocoaAsyncSocket (7.4.2)
+
+DEPENDENCIES:
+  - CocoaAsyncSocket (from `../CocoaAsyncSocket.podspec`)
+
+EXTERNAL SOURCES:
+  CocoaAsyncSocket:
+    :path: ../CocoaAsyncSocket.podspec
+
+SPEC CHECKSUMS:
+  CocoaAsyncSocket: f5783bdedd232d91b89769bc4b5a1580aed518ad
+
+COCOAPODS: 0.38.2
