@@ -293,6 +293,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx10.10;
 				SKIP_INSTALL = YES;
+				VALID_ARCHS = "i386 x86_64 arm64 arm7s arm7";
 			};
 			name = Debug;
 		};
@@ -311,6 +312,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx10.10;
 				SKIP_INSTALL = YES;
+				VALID_ARCHS = "i386 x86_64 arm64 arm7s arm7";
 			};
 			name = Release;
 		};
