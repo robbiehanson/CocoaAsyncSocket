@@ -291,7 +291,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.robbiehanson.CocoaAsyncSocket;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx10.10;
+				SDKROOT = macosx10.11;
 				SKIP_INSTALL = YES;
 				VALID_ARCHS = "i386 x86_64 arm64 arm7s arm7";
 			};
@@ -310,7 +310,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.robbiehanson.CocoaAsyncSocket;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx10.10;
+				SDKROOT = macosx10.11;
 				SKIP_INSTALL = YES;
 				VALID_ARCHS = "i386 x86_64 arm64 arm7s arm7";
 			};
