@@ -2151,6 +2151,7 @@ enum GCDAsyncUdpSocketConfig
 		send4Source = NULL;
 		receive4Source = NULL;
 		
+		close(socket4FD);
 		socket4FD = SOCKET_NULL;
 		
 		// Clear socket states
@@ -2189,6 +2190,7 @@ enum GCDAsyncUdpSocketConfig
 		
 		// The sockets will be closed by the cancel handlers of the corresponding source
 		
+		close(socket6FD);
 		socket6FD = SOCKET_NULL;
 		
 		// Clear socket states
