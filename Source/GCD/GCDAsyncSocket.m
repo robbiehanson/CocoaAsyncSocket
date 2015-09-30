@@ -2827,11 +2827,9 @@ enum GCDAsyncSocketConfig
 			}});
 		}});
 	}
-	else if (delegateQueue && url != nil && [delegate respondsToSelector:@selector(socket:didConnectToUrl:)])
+	else if (delegateQueue && url != nil && [theDelegate respondsToSelector:@selector(socket:didConnectToUrl:)])
 	{
 		SetupStreamsPart1();
-		
-		__strong id theDelegate = delegate;
 		
 		dispatch_async(delegateQueue, ^{ @autoreleasepool {
 			
@@ -4015,7 +4013,7 @@ enum GCDAsyncSocketConfig
 	
     struct sockaddr_un nativeAddr;
     nativeAddr.sun_family = AF_UNIX;
-    strcpy(nativeAddr.sun_path, path.fileSystemRepresentation);
+    strlcpy(nativeAddr.sun_path, path.fileSystemRepresentation, sizeof(nativeAddr.sun_path));
     nativeAddr.sun_len = SUN_LEN(&nativeAddr);
     NSData *interface = [NSData dataWithBytes:&nativeAddr length:sizeof(struct sockaddr_un)];
 	
@@ -4764,7 +4762,7 @@ enum GCDAsyncSocketConfig
 	}
 	
 	BOOL done        = NO;  // Completed read operation
-	NSError *error   = nil; // Error occured
+	NSError *error   = nil; // Error occurred
 	
 	NSUInteger totalBytesReadForCurrentRead = 0;
 	
@@ -6347,7 +6345,7 @@ enum GCDAsyncSocketConfig
 			NSDictionary *tlsSettings = tlsPacket->tlsSettings;
 			
 			NSNumber *value = [tlsSettings objectForKey:GCDAsyncSocketUseCFStreamForTLS];
-			if (value && [value boolValue] == YES)
+			if (value && [value boolValue])
 				useSecureTransport = NO;
 		}
 		#endif
@@ -6626,7 +6624,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	// Create SSLContext, and setup IO callbacks and connection ref
 	
-	BOOL isServer = [[tlsSettings objectForKey:(NSString *)kCFStreamSSLIsServer] boolValue];
+	BOOL isServer = [[tlsSettings objectForKey:(__bridge NSString *)kCFStreamSSLIsServer] boolValue];
 	
 	#if TARGET_OS_IPHONE || (__MAC_OS_X_VERSION_MIN_REQUIRED >= 1080)
 	{
@@ -6726,7 +6724,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	// 1. kCFStreamSSLPeerName
 	
-	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLPeerName];
+	value = [tlsSettings objectForKey:(__bridge NSString *)kCFStreamSSLPeerName];
 	if ([value isKindOfClass:[NSString class]])
 	{
 		NSString *peerName = (NSString *)value;
@@ -6751,7 +6749,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	// 2. kCFStreamSSLCertificates
 	
-	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLCertificates];
+	value = [tlsSettings objectForKey:(__bridge NSString *)kCFStreamSSLCertificates];
 	if ([value isKindOfClass:[NSArray class]])
 	{
 		CFArrayRef certs = (__bridge CFArrayRef)value;
@@ -6946,7 +6944,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	#pragma clang diagnostic push
 	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsAnyRoot];
+	value = [tlsSettings objectForKey:(__bridge NSString *)kCFStreamSSLAllowsAnyRoot];
 	#pragma clang diagnostic pop
 	if (value)
 	{
@@ -6961,7 +6959,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	#pragma clang diagnostic push
 	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredRoots];
+	value = [tlsSettings objectForKey:(__bridge NSString *)kCFStreamSSLAllowsExpiredRoots];
 	#pragma clang diagnostic pop
 	if (value)
 	{
@@ -6976,7 +6974,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	#pragma clang diagnostic push
 	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLValidatesCertificateChain];
+	value = [tlsSettings objectForKey:(__bridge NSString *)kCFStreamSSLValidatesCertificateChain];
 	#pragma clang diagnostic pop
 	if (value)
 	{
@@ -6991,7 +6989,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	#pragma clang diagnostic push
 	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLAllowsExpiredCertificates];
+	value = [tlsSettings objectForKey:(__bridge NSString *)kCFStreamSSLAllowsExpiredCertificates];
 	#pragma clang diagnostic pop
 	if (value)
 	{
@@ -7006,7 +7004,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	#pragma clang diagnostic push
 	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-	value = [tlsSettings objectForKey:(NSString *)kCFStreamSSLLevel];
+	value = [tlsSettings objectForKey:(__bridge NSString *)kCFStreamSSLLevel];
 	#pragma clang diagnostic pop
 	if (value)
 	{
@@ -7914,7 +7912,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 {
 	if (![self createReadAndWriteStream])
 	{
-		// Error occured creating streams (perhaps socket isn't open)
+		// Error occurred creating streams (perhaps socket isn't open)
 		return NO;
 	}
 	
