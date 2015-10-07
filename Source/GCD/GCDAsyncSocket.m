@@ -72,8 +72,40 @@
 #define GCDAsyncSocketLogLevel LOG_LEVEL_VERBOSE
 #endif
 
+#ifndef GCDAsyncSocketDynamicLoggingEnabled
+#define GCDAsyncSocketDynamicLoggingEnabled 0
+#endif
+
+#if GCDAsyncSocketDynamicLoggingEnabled
+static int logLevel = GCDAsyncSocketLogLevel;
+
+@interface GCDAsyncSocket (GCDAsyncSocketDynamicLogging)
+
++ (int)ddLogLevel;
++ (void)ddSetLogLevel:(int)level;
+
+@end
+
+@implementation GCDAsyncSocket (GCDAsyncSocketDynamicLogging)
+
++ (int)ddLogLevel
+{
+    return logLevel;
+}
+
++ (void)ddSetLogLevel:(int)level
+{
+    logLevel = level;
+}
+
+@end
+
+#else
+
 // Log levels : off, error, warn, info, verbose
 static const int logLevel = GCDAsyncSocketLogLevel;
+
+#endif
 
 #else
 
