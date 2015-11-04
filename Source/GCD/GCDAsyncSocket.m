@@ -1663,7 +1663,7 @@ enum GCDAsyncSocketConfig
 	return result;
 }
 
-- (BOOL)acceptOnUrl:(NSURL *)url error:(NSError **)errPtr;
+- (BOOL)acceptOnUrl:(NSURL *)url error:(NSError **)errPtr
 {
 	LogTrace();
 	
@@ -2393,7 +2393,7 @@ enum GCDAsyncSocketConfig
 	return result;
 }
 
-- (BOOL)connectToUrl:(NSURL *)url withTimeout:(NSTimeInterval)timeout error:(NSError **)errPtr;
+- (BOOL)connectToUrl:(NSURL *)url withTimeout:(NSTimeInterval)timeout error:(NSError **)errPtr
 {
 	LogTrace();
 	
@@ -2426,10 +2426,10 @@ enum GCDAsyncSocketConfig
 		
 		// Start the normal connection process
 		
-		NSError *err = nil;
-		if (![self connectWithAddressUN:connectInterfaceUN error:&err])
+		NSError *err2 = nil;
+		if (![self connectWithAddressUN:connectInterfaceUN error:&err2])
 		{
-			[self closeWithError:err];
+			[self closeWithError:err2];
 			
 			return_from_block;
 		}
@@ -4004,7 +4004,7 @@ enum GCDAsyncSocketConfig
 	if (interfaceAddr6Ptr) *interfaceAddr6Ptr = addr6;
 }
 
-- (NSData *)getInterfaceAddressFromUrl:(NSURL *)url;
+- (NSData *)getInterfaceAddressFromUrl:(NSURL *)url
 {
 	NSString *path = url.path;
 	if (path.length == 0) {
