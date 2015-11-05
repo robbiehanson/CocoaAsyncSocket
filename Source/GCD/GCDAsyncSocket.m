@@ -29,27 +29,11 @@
 #import <sys/un.h>
 #import <unistd.h>
 
-#if ! (__has_feature(objc_arc) || defined(__OBJC_GC__))
-#warning This file must be compiled with ARC. Use -fobjc-arc flag (or convert project to ARC). GC is also supported, but deprecated and not recommended.
+#if ! __has_feature(objc_arc)
+#warning This file must be compiled with ARC. Use -fobjc-arc flag (or convert project to ARC).
 // For more information see: https://github.com/robbiehanson/CocoaAsyncSocket/wiki/ARC
 #endif
 
-// Suppress warning about __bridge doing nothing in GC.
-// The fact that it does nothing under GC is just fine, and it must be there for ARC.
-#if defined(__OBJC_GC__) && defined(__clang__) && defined(__has_warning)
-	#if __has_warning("-Warc-bridge-casts-disallowed-in-nonarc")
-		#pragma clang diagnostic ignored "-Warc-bridge-casts-disallowed-in-nonarc"
-	#endif
-#endif
-
-// Objective-C GC does not allow weak variables on the stack.
-// Define _arcweak to mean __weak under ARC only.
-// Under GC __strong (the default) is fine since reference cycles are not a problem under GC.
-#if defined(__OBJC_GC__)
-	#define _arcweak
-#else
-	#define _arcweak __weak
-#endif
 
 #ifndef GCDAsyncSocketLoggingEnabled
 #define GCDAsyncSocketLoggingEnabled 0
@@ -1570,7 +1554,7 @@ enum GCDAsyncSocketConfig
 			int socketFD = socket4FD;
 			dispatch_source_t acceptSource = accept4Source;
 			
-			_arcweak GCDAsyncSocket *weakSelf = self;
+			__weak GCDAsyncSocket *weakSelf = self;
 			
 			dispatch_source_set_event_handler(accept4Source, ^{ @autoreleasepool {
 			#pragma clang diagnostic push
@@ -1618,7 +1602,7 @@ enum GCDAsyncSocketConfig
 			int socketFD = socket6FD;
 			dispatch_source_t acceptSource = accept6Source;
 			
-			_arcweak GCDAsyncSocket *weakSelf = self;
+			__weak GCDAsyncSocket *weakSelf = self;
 			
 			dispatch_source_set_event_handler(accept6Source, ^{ @autoreleasepool {
 			#pragma clang diagnostic push
@@ -2234,7 +2218,7 @@ enum GCDAsyncSocketConfig
 		NSString *hostCpy = [host copy];
 		
 		int aStateIndex = stateIndex;
-		_arcweak GCDAsyncSocket *weakSelf = self;
+		__weak GCDAsyncSocket *weakSelf = self;
 		
 		dispatch_queue_t globalConcurrentQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 		dispatch_async(globalConcurrentQueue, ^{ @autoreleasepool {
@@ -2628,7 +2612,7 @@ enum GCDAsyncSocketConfig
 	// Start the connection process in a background queue
 	
 	int aStateIndex = stateIndex;
-	_arcweak GCDAsyncSocket *weakSelf = self;
+	__weak GCDAsyncSocket *weakSelf = self;
 	
 	dispatch_queue_t globalConcurrentQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 	dispatch_async(globalConcurrentQueue, ^{
@@ -2913,7 +2897,7 @@ enum GCDAsyncSocketConfig
 	{
 		connectTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, socketQueue);
 		
-		_arcweak GCDAsyncSocket *weakSelf = self;
+		__weak GCDAsyncSocket *weakSelf = self;
 		
 		dispatch_source_set_event_handler(connectTimer, ^{ @autoreleasepool {
 		#pragma clang diagnostic push
@@ -4043,7 +4027,7 @@ enum GCDAsyncSocketConfig
 	
 	// Setup event handlers
 	
-	_arcweak GCDAsyncSocket *weakSelf = self;
+	__weak GCDAsyncSocket *weakSelf = self;
 	
 	dispatch_source_set_event_handler(readSource, ^{ @autoreleasepool {
 	#pragma clang diagnostic push
@@ -5567,7 +5551,7 @@ enum GCDAsyncSocketConfig
 	{
 		readTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, socketQueue);
 		
-		_arcweak GCDAsyncSocket *weakSelf = self;
+		__weak GCDAsyncSocket *weakSelf = self;
 		
 		dispatch_source_set_event_handler(readTimer, ^{ @autoreleasepool {
 		#pragma clang diagnostic push
@@ -6210,7 +6194,7 @@ enum GCDAsyncSocketConfig
 	{
 		writeTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, socketQueue);
 		
-		_arcweak GCDAsyncSocket *weakSelf = self;
+		__weak GCDAsyncSocket *weakSelf = self;
 		
 		dispatch_source_set_event_handler(writeTimer, ^{ @autoreleasepool {
 		#pragma clang diagnostic push
@@ -7110,7 +7094,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		int aStateIndex = stateIndex;
 		dispatch_queue_t theSocketQueue = socketQueue;
 		
-		_arcweak GCDAsyncSocket *weakSelf = self;
+		__weak GCDAsyncSocket *weakSelf = self;
 		
 		void (^comletionHandler)(BOOL) = ^(BOOL shouldTrust){ @autoreleasepool {
 		#pragma clang diagnostic push
