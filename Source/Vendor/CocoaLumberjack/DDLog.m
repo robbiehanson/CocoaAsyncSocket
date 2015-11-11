@@ -57,6 +57,13 @@
 
 static void *const GlobalLoggingQueueIdentityKey = (void *)&GlobalLoggingQueueIdentityKey;
 
+#if !TARGET_OS_IPHONE
+@interface NSObject (DDLackOfAppKitNSApplicationWorkaround)
+- (id)sharedApplication;
+- (NSUInteger)occlusionState;
+@end
+#endif
+
 
 @interface DDLoggerNode : NSObject {
 @public 
@@ -155,7 +162,7 @@ static unsigned int numProcessors;
     #else
         NSString *notificationName = nil;
 
-        if (NSApp)
+        if ([NSClassFromString(@"NSApplication") sharedApplication] != NULL)
         {
             notificationName = @"NSApplicationWillTerminateNotification";
         }
@@ -908,7 +915,7 @@ static char *dd_str_copy(const char *str)
                 #endif
                 floor(NSFoundationVersionNumber) > NSFoundationVersionNumber_iOS_6_1 // iOS 7+ (> iOS 6.1)
             #else
-                [[NSApplication sharedApplication] respondsToSelector:@selector(occlusionState)] // OS X 10.9+
+                [[NSClassFromString(@"NSApplication") sharedApplication] respondsToSelector:@selector(occlusionState)] // OS X 10.9+
             #endif
             ) {
             queueLabel = dd_str_copy(dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL));
@@ -925,7 +932,7 @@ static char *dd_str_copy(const char *str)
             #endif
             floor(NSFoundationVersionNumber) < NSFoundationVersionNumber_iOS_6_0 // < iOS 6.0
         #else
-            ![[NSApplication sharedApplication] respondsToSelector:@selector(occlusionState)] // < OS X 10.9
+            ![[NSClassFromString(@"NSApplication") sharedApplication] respondsToSelector:@selector(occlusionState)] // < OS X 10.9
         #endif
             ) {
             #pragma clang diagnostic push
