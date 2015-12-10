@@ -6341,7 +6341,7 @@ enum GCDAsyncSocketConfig
 		
 		#if TARGET_OS_IPHONE
 		{
-			GCDAsyncSpecialPacket *tlsPacket = (GCDAsyncSpecialPacket *)currentRe
+			GCDAsyncSpecialPacket *tlsPacket = (GCDAsyncSpecialPacket *)currentRead;
 			if (tlsPacket) {
 				NSDictionary *tlsSettings = tlsPacket->tlsSettings;
 				
