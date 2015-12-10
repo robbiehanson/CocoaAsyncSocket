@@ -2426,7 +2426,6 @@ enum GCDAsyncSocketConfig
 		
 		// Start the normal connection process
 		
-		NSError *err = nil;
 		if (![self connectWithAddressUN:connectInterfaceUN error:&err])
 		{
 			[self closeWithError:err];
