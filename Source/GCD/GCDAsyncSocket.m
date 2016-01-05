@@ -5087,7 +5087,7 @@ enum GCDAsyncSocketConfig
 			
 			if (result < 0)
 			{
-				if (errno == EWOULDBLOCK)
+				if (errno == EWOULDBLOCK || errno == EINTR)
 					waiting = YES;
 				else
 					error = [self errnoErrorWithReason:@"Error in read() function"];
@@ -6050,7 +6050,7 @@ enum GCDAsyncSocketConfig
 		// Check results
 		if (result < 0)
 		{
-			if (errno == EWOULDBLOCK)
+			if (errno == EWOULDBLOCK || errno == EINTR)
 			{
 				waiting = YES;
 			}
@@ -6468,7 +6468,7 @@ enum GCDAsyncSocketConfig
 		{
 			LogVerbose(@"%@: read errno = %i", THIS_METHOD, errno);
 			
-			if (errno != EWOULDBLOCK)
+			if (errno != EWOULDBLOCK || errno != EINTR)
 			{
 				socketError = YES;
 			}
@@ -6557,7 +6557,7 @@ enum GCDAsyncSocketConfig
 	
 	if (result < 0)
 	{
-		if (errno != EWOULDBLOCK)
+		if (errno != EWOULDBLOCK || errno != EINTR)
 		{
 			socketError = YES;
 		}
