@@ -2426,10 +2426,10 @@ enum GCDAsyncSocketConfig
 		
 		// Start the normal connection process
 		
-		NSError *err = nil;
-		if (![self connectWithAddressUN:connectInterfaceUN error:&err])
+		NSError *connectError = nil;
+		if (![self connectWithAddressUN:connectInterfaceUN error:&connectError])
 		{
-			[self closeWithError:err];
+			[self closeWithError:connectError];
 			
 			return_from_block;
 		}
