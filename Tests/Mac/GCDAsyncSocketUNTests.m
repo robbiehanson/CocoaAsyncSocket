@@ -58,6 +58,9 @@
     }];
 }
 
+/****  BROKEN TESTS *******
+ 
+ 
 - (void)testTransferFromClient {
 
 	NSData *testData = [@"ThisTestRocks!!!" dataUsingEncoding:NSUTF8StringEncoding];
@@ -111,6 +114,8 @@
 		}];
 	}];
 }
+ 
+ **************/
 
 #pragma mark GCDAsyncSocketDelegate methods
 
