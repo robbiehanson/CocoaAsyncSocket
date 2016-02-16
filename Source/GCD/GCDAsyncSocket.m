@@ -2426,7 +2426,6 @@ enum GCDAsyncSocketConfig
 		
 		// Start the normal connection process
 		
-		NSError *err = nil;
 		if (![self connectWithAddressUN:connectInterfaceUN error:&err])
 		{
 			[self closeWithError:err];
@@ -6342,11 +6341,13 @@ enum GCDAsyncSocketConfig
 		#if TARGET_OS_IPHONE
 		{
 			GCDAsyncSpecialPacket *tlsPacket = (GCDAsyncSpecialPacket *)currentRead;
-			NSDictionary *tlsSettings = tlsPacket->tlsSettings;
-			
-			NSNumber *value = [tlsSettings objectForKey:GCDAsyncSocketUseCFStreamForTLS];
-			if (value && [value boolValue])
-				useSecureTransport = NO;
+			if (tlsPacket) {
+				NSDictionary *tlsSettings = tlsPacket->tlsSettings;
+				
+				NSNumber *value = [tlsSettings objectForKey:GCDAsyncSocketUseCFStreamForTLS];
+				if (value && [value boolValue])
+					useSecureTransport = NO;
+			}
 		}
 		#endif
 		
