@@ -2226,7 +2226,7 @@ enum GCDAsyncSocketConfig
 		#pragma clang diagnostic warning "-Wimplicit-retain-self"
 			
 			NSError *lookupErr = nil;
-			NSMutableArray *addresses = [GCDAsyncSocket lookupHost:hostCpy port:port error:&lookupErr];
+			NSMutableArray *addresses = [[self class] lookupHost:hostCpy port:port error:&lookupErr];
 			
 			__strong GCDAsyncSocket *strongSelf = weakSelf;
 			if (strongSelf == nil) return_from_block;
@@ -2245,11 +2245,11 @@ enum GCDAsyncSocketConfig
 				
 				for (NSData *address in addresses)
 				{
-					if (!address4 && [GCDAsyncSocket isIPv4Address:address])
+					if (!address4 && [[self class] isIPv4Address:address])
 					{
 						address4 = address;
 					}
-					else if (!address6 && [GCDAsyncSocket isIPv6Address:address])
+					else if (!address6 && [[self class] isIPv6Address:address])
 					{
 						address6 = address;
 					}
@@ -2426,10 +2426,10 @@ enum GCDAsyncSocketConfig
 		
 		// Start the normal connection process
 		
-		NSError *err = nil;
-		if (![self connectWithAddressUN:connectInterfaceUN error:&err])
+		NSError *connectError = nil;
+		if (![self connectWithAddressUN:connectInterfaceUN error:&connectError])
 		{
-			[self closeWithError:err];
+			[self closeWithError:connectError];
 			
 			return_from_block;
 		}
@@ -7380,11 +7380,11 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 			[cfstreamThread cancel]; // set isCancelled flag
 			
 			// wake up the thread
-			[GCDAsyncSocket performSelector:@selector(ignore:)
-			                       onThread:cfstreamThread
-			                     withObject:[NSNull null]
-			                  waitUntilDone:NO];
-			
+            [[self class] performSelector:@selector(ignore:)
+                                 onThread:cfstreamThread
+                               withObject:[NSNull null]
+                            waitUntilDone:NO];
+            
 			cfstreamThread = nil;
 		}
 		
