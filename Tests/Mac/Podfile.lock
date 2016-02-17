@@ -1,5 +1,11 @@
 PODS:
-  - CocoaAsyncSocket (7.4.2)
+  - CocoaAsyncSocket (7.4.2):
+    - CocoaAsyncSocket/All (= 7.4.2)
+  - CocoaAsyncSocket/All (7.4.2):
+    - CocoaAsyncSocket/GCD
+    - CocoaAsyncSocket/RunLoop
+  - CocoaAsyncSocket/GCD (7.4.2)
+  - CocoaAsyncSocket/RunLoop (7.4.2)
 
 DEPENDENCIES:
   - CocoaAsyncSocket (from `../../CocoaAsyncSocket.podspec`)
@@ -9,6 +15,6 @@ EXTERNAL SOURCES:
     :path: "../../CocoaAsyncSocket.podspec"
 
 SPEC CHECKSUMS:
-  CocoaAsyncSocket: 9a291421ca6c4e66ab063c19dbc7c22e911a0a68
+  CocoaAsyncSocket: ea27dc2477a5e83223ca93531ad4508180744c35
 
 COCOAPODS: 0.39.0

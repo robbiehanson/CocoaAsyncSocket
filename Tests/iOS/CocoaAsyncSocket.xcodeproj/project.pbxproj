@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		B17C225A107E8B25BCF47805 /* Pods_CocoaAsyncSocketTestsiOS.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A8830B05174B8A9809FC5927 /* Pods_CocoaAsyncSocketTestsiOS.framework */; };
+		D900F31C1C7533EF00F0AEF0 /* SwiftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D900F31B1C7533EF00F0AEF0 /* SwiftTests.swift */; };
 		D938B4E41B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */; };
 /* End PBXBuildFile section */
 
@@ -15,6 +16,7 @@
 		6455353E60AD09B92947C2D9 /* Pods-CocoaAsyncSocketTestsiOS.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CocoaAsyncSocketTestsiOS.release.xcconfig"; path = "Pods/Target Support Files/Pods-CocoaAsyncSocketTestsiOS/Pods-CocoaAsyncSocketTestsiOS.release.xcconfig"; sourceTree = "<group>"; };
 		85DCC4EC43C445CCED7B55CD /* Pods-CocoaAsyncSocketTestsiOS.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CocoaAsyncSocketTestsiOS.debug.xcconfig"; path = "Pods/Target Support Files/Pods-CocoaAsyncSocketTestsiOS/Pods-CocoaAsyncSocketTestsiOS.debug.xcconfig"; sourceTree = "<group>"; };
 		A8830B05174B8A9809FC5927 /* Pods_CocoaAsyncSocketTestsiOS.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_CocoaAsyncSocketTestsiOS.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		D900F31B1C7533EF00F0AEF0 /* SwiftTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SwiftTests.swift; path = ../Shared/SwiftTests.swift; sourceTree = "<group>"; };
 		D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GCDAsyncSocketConnectionTests.m; path = ../Shared/GCDAsyncSocketConnectionTests.m; sourceTree = "<group>"; };
 		D9BC0D7F1A0457F40059D906 /* CocoaAsyncSocketTestsiOS.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CocoaAsyncSocketTestsiOS.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D9BC0D831A0457F40059D906 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -53,6 +55,7 @@
 			isa = PBXGroup;
 			children = (
 				D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */,
+				D900F31B1C7533EF00F0AEF0 /* SwiftTests.swift */,
 			);
 			name = Shared;
 			sourceTree = "<group>";
@@ -130,6 +133,7 @@
 		D9BC0D751A0457800059D906 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
+				LastSwiftUpdateCheck = 0720;
 				LastUpgradeCheck = 0630;
 				TargetAttributes = {
 					D9BC0D7E1A0457F40059D906 = {
@@ -218,6 +222,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D938B4E41B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m in Sources */,
+				D900F31C1C7533EF00F0AEF0 /* SwiftTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -285,6 +290,7 @@
 				MTL_ENABLE_DEBUG_INFO = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
 		};

@@ -24,7 +24,20 @@ Updated and maintained by Deusty LLC and the Apple development community.
                   'version, but is designed specifically for UDP. This includes queued non-blocking send/receive operations, full ' \
                   'delegate support, run-loop based, self-contained class, and support for IPv4 and IPv6.'
 
-  s.source_files = 'Source/{GCD,RunLoop}/*.{h,m}', 'Source/CocoaAsyncSocket.h'
+  s.default_subspec = 'All'
+
+  s.subspec 'All' do |ss|
+    ss.dependency 'CocoaAsyncSocket/GCD'
+    ss.dependency 'CocoaAsyncSocket/RunLoop'
+  end
+
+  s.subspec 'GCD' do |ss|
+    ss.source_files = 'Source/GCD/*.{h,m}'
+  end
+
+  s.subspec 'RunLoop' do |ss|
+    ss.source_files = 'Source/RunLoop/*.{h,m}'
+  end
 
   s.requires_arc = true
 
