@@ -40,9 +40,12 @@ You can also include it into your project by adding the source files directly, b
 Using Objective-C:
 
 ```obj-c
-@import CocoaAsyncSocket; // When using iOS 8+ frameworks
-// OR
-#import "CocoaAsyncSocket.h" // When not using frameworks, targeting iOS 7 or below
+// When using iOS 8+ frameworks
+@import CocoaAsyncSocket; 
+
+// OR when not using frameworks, targeting iOS 7 or below
+#import "GCDAsyncSocket.h" // for TCP
+#import "GCDAsyncUdpSocket.h" // for UDP
 ```
 
 Using Swift:
