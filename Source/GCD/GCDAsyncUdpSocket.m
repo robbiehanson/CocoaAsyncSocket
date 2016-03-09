@@ -4083,7 +4083,7 @@ enum GCDAsyncUdpSocketConfig
 	
 	LogTrace();
 	
-	sendTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, socketQueue);
+	sendTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, DISPATCH_TIMER_STRICT, socketQueue);
 	
 	dispatch_source_set_event_handler(sendTimer, ^{ @autoreleasepool {
 		

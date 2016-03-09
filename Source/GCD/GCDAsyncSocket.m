@@ -2895,7 +2895,7 @@ enum GCDAsyncSocketConfig
 {
 	if (timeout >= 0.0)
 	{
-		connectTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, socketQueue);
+		connectTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, DISPATCH_TIMER_STRICT, socketQueue);
 		
 		__weak GCDAsyncSocket *weakSelf = self;
 		
@@ -5549,7 +5549,7 @@ enum GCDAsyncSocketConfig
 {
 	if (timeout >= 0.0)
 	{
-		readTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, socketQueue);
+		readTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, DISPATCH_TIMER_STRICT, socketQueue);
 		
 		__weak GCDAsyncSocket *weakSelf = self;
 		
@@ -6192,7 +6192,7 @@ enum GCDAsyncSocketConfig
 {
 	if (timeout >= 0.0)
 	{
-		writeTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, socketQueue);
+		writeTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, DISPATCH_TIMER_STRICT, socketQueue);
 		
 		__weak GCDAsyncSocket *weakSelf = self;
 		
