@@ -4993,10 +4993,10 @@ enum GCDAsyncSocketConfig
 					
 					bytesRead += loop_bytesRead;
 					
-				} while ((result == noErr) && (bytesRead < bytesToRead));
+				} while ((result == noErr || result == errSSLPeerAuthCompleted) && (bytesRead < bytesToRead));
 				
 				
-				if (result != noErr)
+				if (result != noErr && result != errSSLPeerAuthCompleted)
 				{
 					if (result == errSSLWouldBlock)
 						waiting = YES;
