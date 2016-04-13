@@ -413,7 +413,7 @@ NSString *DDExtractFileNameWithoutExtension(const char *filePath, BOOL copy);
 
 /**
  * Some loggers may buffer IO for optimization purposes.
- * For example, a database logger may only save occasionaly as the disk IO is slow.
+ * For example, a database logger may only save occasionally as the disk IO is slow.
  * In such loggers, this method should be implemented to flush any pending IO.
  * 
  * This allows invocations of DDLog's flushLog method to be propogated to loggers that need it.
@@ -602,7 +602,7 @@ typedef int DDLogMessageOptions;
  * The DDLogger protocol specifies that an optional formatter can be added to a logger.
  * Most (but not all) loggers will want to support formatters.
  * 
- * However, writting getters and setters in a thread safe manner,
+ * However, writing getters and setters in a thread safe manner,
  * while still maintaining maximum speed for the logging process, is a difficult task.
  * 
  * To do it right, the implementation of the getter/setter has strict requiremenets:
