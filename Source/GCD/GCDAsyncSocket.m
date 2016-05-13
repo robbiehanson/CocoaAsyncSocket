@@ -2527,6 +2527,137 @@ enum GCDAsyncSocketConfig
 	[self closeWithError:error];
 }
 
+- (BOOL)bindSocket:(int)socketFD toInterface:(NSData *)connectInterface error:(NSError **)errPtr
+{
+    // Bind the socket to the desired interface (if needed)
+    
+    if (connectInterface)
+    {
+        LogVerbose(@"Binding socket...");
+        
+        if ([[self class] portFromAddress:connectInterface] > 0)
+        {
+            // Since we're going to be binding to a specific port,
+            // we should turn on reuseaddr to allow us to override sockets in time_wait.
+            
+            int reuseOn = 1;
+            setsockopt(socketFD, SOL_SOCKET, SO_REUSEADDR, &reuseOn, sizeof(reuseOn));
+        }
+        
+        const struct sockaddr *interfaceAddr = (const struct sockaddr *)[connectInterface bytes];
+        
+        int result = bind(socketFD, interfaceAddr, (socklen_t)[connectInterface length]);
+        if (result != 0)
+        {
+            if (errPtr)
+                *errPtr = [self errnoErrorWithReason:@"Error in bind() function"];
+            
+            return NO;
+        }
+    }
+    
+    return YES;
+}
+
+- (int)createSocket:(int)family connectInterface:(NSData *)connectInterface errPtr:(NSError **)errPtr
+{
+    int socketFD = socket(family, SOCK_STREAM, 0);
+    
+    if (socketFD == SOCKET_NULL)
+    {
+        if (errPtr)
+            *errPtr = [self errnoErrorWithReason:@"Error in socket() function"];
+        
+        return socketFD;
+    }
+    
+    if (![self bindSocket:socketFD toInterface:connectInterface error:errPtr])
+    {
+        [self closeSocket:socketFD];
+        
+        return SOCKET_NULL;
+    }
+    
+    // Prevent SIGPIPE signals
+    
+    int nosigpipe = 1;
+    setsockopt(socketFD, SOL_SOCKET, SO_NOSIGPIPE, &nosigpipe, sizeof(nosigpipe));
+    
+    return socketFD;
+}
+
+- (void)connectSocket:(int)socketFD address:(NSData *)address stateIndex:(int)aStateIndex
+{
+    // If there already is a socket connected, we close socketFD and return
+    if (self.isConnected)
+    {
+        [self closeSocket:socketFD];
+        return;
+    }
+    
+    // Start the connection process in a background queue
+    
+    __weak GCDAsyncSocket *weakSelf = self;
+    
+    dispatch_queue_t globalConcurrentQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_async(globalConcurrentQueue, ^{
+#pragma clang diagnostic push
+#pragma clang diagnostic warning "-Wimplicit-retain-self"
+        
+        int result = connect(socketFD, (const struct sockaddr *)[address bytes], (socklen_t)[address length]);
+        
+        __strong GCDAsyncSocket *strongSelf = weakSelf;
+        if (strongSelf == nil) return_from_block;
+        
+        dispatch_async(strongSelf->socketQueue, ^{ @autoreleasepool {
+            
+            if (strongSelf.isConnected)
+            {
+                [strongSelf closeSocket:socketFD];
+                return_from_block;
+            }
+            
+            if (result == 0)
+            {
+                [strongSelf didConnect:aStateIndex];
+            }
+            else
+            {
+                [strongSelf closeSocket:socketFD];
+                
+                // If there are no more sockets trying to connect, we inform the error to the delegate
+                if (strongSelf.socket4FD == SOCKET_NULL && strongSelf.socket6FD == SOCKET_NULL)
+                {
+                    NSError *error = [strongSelf errnoErrorWithReason:@"Error in connect() function"];
+                    [strongSelf didNotConnect:aStateIndex error:error];
+                }
+            }
+        }});
+        
+#pragma clang diagnostic pop
+    });
+    
+    LogVerbose(@"Connecting...");
+}
+
+- (void)closeSocket:(int)socketFD {
+    if (socketFD != SOCKET_NULL)
+    {
+        close(socketFD);
+        
+        if (socketFD == socket4FD)
+        {
+            LogVerbose(@"close(socket4FD)");
+            socket4FD = SOCKET_NULL;
+        }
+        else if (socketFD == socket6FD)
+        {
+            LogVerbose(@"close(socket6FD)");
+            socket6FD = SOCKET_NULL;
+        }
+    }
+}
+
 - (BOOL)connectWithAddress4:(NSData *)address4 address6:(NSData *)address6 error:(NSError **)errPtr
 {
 	LogTrace();
@@ -2540,111 +2671,56 @@ enum GCDAsyncSocketConfig
 	
 	BOOL preferIPv6 = (config & kPreferIPv6) ? YES : NO;
 	
-	BOOL useIPv6 = ((preferIPv6 && address6) || (address4 == nil));
+	// Create and bind the sockets
+    
+    if (address4)
+    {
+        LogVerbose(@"Creating IPv4 socket");
+        
+        socket4FD = [self createSocket:AF_INET connectInterface:connectInterface4 errPtr:errPtr];
+    }
+    
+    if (address6)
+    {
+        LogVerbose(@"Creating IPv6 socket");
+        
+        socket6FD = [self createSocket:AF_INET6 connectInterface:connectInterface6 errPtr:errPtr];
+    }
+    
+    if (socket4FD == SOCKET_NULL && socket6FD == SOCKET_NULL)
+    {
+        return NO;
+    }
 	
-	// Create the socket
+	int socketFD, alternateSocketFD;
+	NSData *address, *alternateAddress;
 	
-	int socketFD;
-	NSData *address;
-	NSData *connectInterface;
-	
-	if (useIPv6)
-	{
-		LogVerbose(@"Creating IPv6 socket");
-		
-		socket6FD = socket(AF_INET6, SOCK_STREAM, 0);
-		
-		socketFD = socket6FD;
-		address = address6;
-		connectInterface = connectInterface6;
-	}
-	else
-	{
-		LogVerbose(@"Creating IPv4 socket");
-		
-		socket4FD = socket(AF_INET, SOCK_STREAM, 0);
-		
-		socketFD = socket4FD;
-		address = address4;
-		connectInterface = connectInterface4;
-	}
-	
-	if (socketFD == SOCKET_NULL)
-	{
-		if (errPtr)
-			*errPtr = [self errnoErrorWithReason:@"Error in socket() function"];
-		
-		return NO;
-	}
-	
-	// Bind the socket to the desired interface (if needed)
-	
-	if (connectInterface)
-	{
-		LogVerbose(@"Binding socket...");
-		
-		if ([[self class] portFromAddress:connectInterface] > 0)
-		{
-			// Since we're going to be binding to a specific port,
-			// we should turn on reuseaddr to allow us to override sockets in time_wait.
-			
-			int reuseOn = 1;
-			setsockopt(socketFD, SOL_SOCKET, SO_REUSEADDR, &reuseOn, sizeof(reuseOn));
-		}
-		
-		const struct sockaddr *interfaceAddr = (const struct sockaddr *)[connectInterface bytes];
-		
-		int result = bind(socketFD, interfaceAddr, (socklen_t)[connectInterface length]);
-		if (result != 0)
-		{
-			if (errPtr)
-				*errPtr = [self errnoErrorWithReason:@"Error in bind() function"];
-			
-			return NO;
-		}
-	}
-	
-	// Prevent SIGPIPE signals
-	
-	int nosigpipe = 1;
-	setsockopt(socketFD, SOL_SOCKET, SO_NOSIGPIPE, &nosigpipe, sizeof(nosigpipe));
-	
-	// Start the connection process in a background queue
-	
-	int aStateIndex = stateIndex;
-	__weak GCDAsyncSocket *weakSelf = self;
-	
-	dispatch_queue_t globalConcurrentQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-	dispatch_async(globalConcurrentQueue, ^{
-	#pragma clang diagnostic push
-	#pragma clang diagnostic warning "-Wimplicit-retain-self"
-	
-		int result = connect(socketFD, (const struct sockaddr *)[address bytes], (socklen_t)[address length]);
-		
-		__strong GCDAsyncSocket *strongSelf = weakSelf;
-		if (strongSelf == nil) return_from_block;
-		
-		if (result == 0)
-		{
-			dispatch_async(strongSelf->socketQueue, ^{ @autoreleasepool {
-				
-				[strongSelf didConnect:aStateIndex];
-			}});
-		}
-		else
-		{
-			NSError *error = [strongSelf errnoErrorWithReason:@"Error in connect() function"];
-			
-			dispatch_async(strongSelf->socketQueue, ^{ @autoreleasepool {
-				
-				[strongSelf didNotConnect:aStateIndex error:error];
-			}});
-		}
-		
-	#pragma clang diagnostic pop
-	});
-	
-	LogVerbose(@"Connecting...");
+    if ((preferIPv6 && socket6FD) || socket4FD == SOCKET_NULL)
+    {
+        socketFD = socket6FD;
+        alternateSocketFD = socket4FD;
+        address = address6;
+        alternateAddress = address4;
+    }
+    else
+    {
+        socketFD = socket4FD;
+        alternateSocketFD = socket6FD;
+        address = address4;
+        alternateAddress = address6;
+    }
+
+    int aStateIndex = stateIndex;
+    
+    [self connectSocket:socketFD address:address stateIndex:aStateIndex];
+    
+    if (alternateAddress)
+    {
+        NSTimeInterval alternateAddressDelay = 0.5;
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(alternateAddressDelay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [self connectSocket:alternateSocketFD address:alternateAddress stateIndex:aStateIndex];
+        });
+    }
 	
 	return YES;
 }
