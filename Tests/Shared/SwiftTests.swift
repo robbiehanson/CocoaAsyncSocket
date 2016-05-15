@@ -56,7 +56,98 @@ class SwiftTests: XCTestCase, GCDAsyncSocketDelegate {
             }
         }
     }
+    
+    func testConnectionWithAnIPv4OnlyServer() {
+        serverSocket?.IPv6Enabled = false
+        do {
+            try serverSocket?.acceptOnPort(kTestPort)
+        } catch {
+            XCTFail("\(error)")
+        }
+        do {
+            try clientSocket?.connectToHost("127.0.0.1", onPort: kTestPort)
+        } catch {
+            XCTFail("\(error)")
+        }
+        expectation = expectationWithDescription("Test Full connnection")
+        waitForExpectationsWithTimeout(30) { (error: NSError?) -> Void in
+            if error != nil {
+                XCTFail("\(error)")
+            }
+            else {
+                if let isIPv4 = self.acceptedServerSocket?.isIPv4 {
+                    XCTAssertTrue(isIPv4)
+                }
+            }
+        }
+    }
 
+    func testConnectionWithAnIPv6OnlyServer() {
+        serverSocket?.IPv4Enabled = false
+        do {
+            try serverSocket?.acceptOnPort(kTestPort)
+        } catch {
+            XCTFail("\(error)")
+        }
+        do {
+            try clientSocket?.connectToHost("::1", onPort: kTestPort)
+        } catch {
+            XCTFail("\(error)")
+        }
+        expectation = expectationWithDescription("Test Full connnection")
+        waitForExpectationsWithTimeout(30) { (error: NSError?) -> Void in
+            if error != nil {
+                XCTFail("\(error)")
+            }
+            else {
+                if let isIPv6 = self.acceptedServerSocket?.isIPv6 {
+                    XCTAssertTrue(isIPv6)
+                }
+            }
+        }
+    }
+    
+    func testConnectionWithLocalhostWithClientPreferringIPv4() {
+        clientSocket?.IPv4PreferredOverIPv6 = true
+        
+        do {
+            try serverSocket?.acceptOnPort(kTestPort)
+        } catch {
+            XCTFail("\(error)")
+        }
+        do {
+            try clientSocket?.connectToHost("localhost", onPort: kTestPort)
+        } catch {
+            XCTFail("\(error)")
+        }
+        expectation = expectationWithDescription("Test Full connnection")
+        waitForExpectationsWithTimeout(30) { (error: NSError?) -> Void in
+            if error != nil {
+                XCTFail("\(error)")
+            }
+        }
+    }
+    
+    func testConnectionWithLocalhostWithClientPreferringIPv6() {
+        clientSocket?.IPv4PreferredOverIPv6 = false
+        
+        do {
+            try serverSocket?.acceptOnPort(kTestPort)
+        } catch {
+            XCTFail("\(error)")
+        }
+        do {
+            try clientSocket?.connectToHost("localhost", onPort: kTestPort)
+        } catch {
+            XCTFail("\(error)")
+        }
+        expectation = expectationWithDescription("Test Full connnection")
+        waitForExpectationsWithTimeout(30) { (error: NSError?) -> Void in
+            if error != nil {
+                XCTFail("\(error)")
+            }
+        }
+    }
     
     //MARK:- GCDAsyncSocketDelegate
     func socket(sock: GCDAsyncSocket!, didAcceptNewSocket newSocket: GCDAsyncSocket!) {

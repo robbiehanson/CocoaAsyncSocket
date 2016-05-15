@@ -2619,6 +2619,8 @@ enum GCDAsyncSocketConfig
             
             if (result == 0)
             {
+                [self closeUnusedSocket:socketFD];
+                
                 [strongSelf didConnect:aStateIndex];
             }
             else
@@ -2640,7 +2642,8 @@ enum GCDAsyncSocketConfig
     LogVerbose(@"Connecting...");
 }
 
-- (void)closeSocket:(int)socketFD {
+- (void)closeSocket:(int)socketFD
+{
     if (socketFD != SOCKET_NULL)
     {
         close(socketFD);
@@ -2655,6 +2658,18 @@ enum GCDAsyncSocketConfig
             LogVerbose(@"close(socket6FD)");
             socket6FD = SOCKET_NULL;
         }
+    }
+}
+
+- (void)closeUnusedSocket:(int)usedSocketFD
+{
+    if (usedSocketFD != socket4FD)
+    {
+        [self closeSocket:socket4FD];
+    }
+    else if (usedSocketFD != socket6FD)
+    {
+        [self closeSocket:socket6FD];
     }
 }
 
@@ -2716,7 +2731,7 @@ enum GCDAsyncSocketConfig
     
     if (alternateAddress)
     {
-        NSTimeInterval alternateAddressDelay = 0.5;
+        NSTimeInterval alternateAddressDelay = 0.3;
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(alternateAddressDelay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             [self connectSocket:alternateSocketFD address:alternateAddress stateIndex:aStateIndex];
         });
