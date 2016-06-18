@@ -11,8 +11,7 @@ import CocoaAsyncSocket
 
 class SwiftTests: XCTestCase, GCDAsyncSocketDelegate {
     
-    let kTestPort: UInt16 = 30301
-    
+    var portNumber: UInt16 = 0
     var clientSocket: GCDAsyncSocket?
     var serverSocket: GCDAsyncSocket?
     var acceptedServerSocket: GCDAsyncSocket?
@@ -21,6 +20,7 @@ class SwiftTests: XCTestCase, GCDAsyncSocketDelegate {
     override func setUp() {
         super.setUp()
         // Put setup code here. This method is called before the invocation of each test method in the class.
+        portNumber = randomValidPort()
         clientSocket = GCDAsyncSocket(delegate: self, delegateQueue: dispatch_get_main_queue())
         serverSocket = GCDAsyncSocket(delegate: self, delegateQueue: dispatch_get_main_queue())
     }
@@ -35,17 +35,24 @@ class SwiftTests: XCTestCase, GCDAsyncSocketDelegate {
         serverSocket = nil
         acceptedServerSocket = nil
     }
+    
+    private func randomValidPort() -> UInt16 {
+        let minPort = UInt32(1024)
+        let maxPort = UInt32(UINT16_MAX)
+        let value = maxPort - minPort + 1
+        return UInt16(minPort + arc4random_uniform(value))
+    }
 
     func testFullConnection() {
         // This is an example of a functional test case.
         // Use XCTAssert and related functions to verify your tests produce the correct results.
         do {
-            try serverSocket?.acceptOnPort(kTestPort)
+            try serverSocket?.acceptOnPort(portNumber)
         } catch {
             XCTFail("\(error)")
         }
         do {
-            try clientSocket?.connectToHost("127.0.0.1", onPort: kTestPort)
+            try clientSocket?.connectToHost("127.0.0.1", onPort: portNumber)
         } catch {
             XCTFail("\(error)")
         }
@@ -60,12 +67,12 @@ class SwiftTests: XCTestCase, GCDAsyncSocketDelegate {
     func testConnectionWithAnIPv4OnlyServer() {
         serverSocket?.IPv6Enabled = false
         do {
-            try serverSocket?.acceptOnPort(kTestPort)
+            try serverSocket?.acceptOnPort(portNumber)
         } catch {
             XCTFail("\(error)")
         }
         do {
-            try clientSocket?.connectToHost("127.0.0.1", onPort: kTestPort)
+            try clientSocket?.connectToHost("127.0.0.1", onPort: portNumber)
         } catch {
             XCTFail("\(error)")
         }
@@ -85,12 +92,12 @@ class SwiftTests: XCTestCase, GCDAsyncSocketDelegate {
     func testConnectionWithAnIPv6OnlyServer() {
         serverSocket?.IPv4Enabled = false
         do {
-            try serverSocket?.acceptOnPort(kTestPort)
+            try serverSocket?.acceptOnPort(portNumber)
         } catch {
             XCTFail("\(error)")
         }
         do {
-            try clientSocket?.connectToHost("::1", onPort: kTestPort)
+            try clientSocket?.connectToHost("::1", onPort: portNumber)
         } catch {
             XCTFail("\(error)")
         }
@@ -111,12 +118,12 @@ class SwiftTests: XCTestCase, GCDAsyncSocketDelegate {
         clientSocket?.IPv4PreferredOverIPv6 = true
         
         do {
-            try serverSocket?.acceptOnPort(kTestPort)
+            try serverSocket?.acceptOnPort(portNumber)
         } catch {
             XCTFail("\(error)")
         }
         do {
-            try clientSocket?.connectToHost("localhost", onPort: kTestPort)
+            try clientSocket?.connectToHost("localhost", onPort: portNumber)
         } catch {
             XCTFail("\(error)")
         }
@@ -132,12 +139,12 @@ class SwiftTests: XCTestCase, GCDAsyncSocketDelegate {
         clientSocket?.IPv4PreferredOverIPv6 = false
         
         do {
-            try serverSocket?.acceptOnPort(kTestPort)
+            try serverSocket?.acceptOnPort(portNumber)
         } catch {
             XCTFail("\(error)")
         }
         do {
-            try clientSocket?.connectToHost("localhost", onPort: kTestPort)
+            try clientSocket?.connectToHost("localhost", onPort: portNumber)
         } catch {
             XCTFail("\(error)")
         }
