@@ -123,6 +123,14 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
 
 @property (atomic, assign, readwrite, getter=isIPv4PreferredOverIPv6) BOOL IPv4PreferredOverIPv6;
 
+/** 
+ * When connecting to both IPv4 and IPv6 using Happy Eyeballs (RFC 6555) https://tools.ietf.org/html/rfc6555
+ * this is the delay between connecting to the preferred protocol and the fallback protocol.
+ *
+ * Defaults to 300ms.
+**/
+@property (atomic, assign, readwrite) NSTimeInterval alternateAddressDelay;
+
 /**
  * User data allows you to associate arbitrary information with the socket.
  * This data is not used internally by socket in any way.

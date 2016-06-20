@@ -914,6 +914,7 @@ enum GCDAsyncSocketConfig
 	void *IsOnSocketQueueOrTargetQueueKey;
 	
 	id userData;
+    NSTimeInterval alternateAddressDelay;
 }
 
 - (id)init
@@ -996,6 +997,7 @@ enum GCDAsyncSocketConfig
 		currentWrite = nil;
 		
 		preBuffer = [[GCDAsyncSocketPreBuffer alloc] initWithCapacity:(1024 * 4)];
+        alternateAddressDelay = 0.3;
 	}
 	return self;
 }
@@ -1303,6 +1305,28 @@ enum GCDAsyncSocketConfig
 		block();
 	else
 		dispatch_async(socketQueue, block);
+}
+
+- (NSTimeInterval) alternateAddressDelay {
+    __block NSTimeInterval delay;
+    dispatch_block_t block = ^{
+        delay = alternateAddressDelay;
+    };
+    if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
+        block();
+    else
+        dispatch_sync(socketQueue, block);
+    return delay;
+}
+
+- (void) setAlternateAddressDelay:(NSTimeInterval)delay {
+    dispatch_block_t block = ^{
+        alternateAddressDelay = delay;
+    };
+    if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
+        block();
+    else
+        dispatch_async(socketQueue, block);
 }
 
 - (id)userData
@@ -2731,8 +2755,7 @@ enum GCDAsyncSocketConfig
     
     if (alternateAddress)
     {
-        NSTimeInterval alternateAddressDelay = 0.3;
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(alternateAddressDelay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(alternateAddressDelay * NSEC_PER_SEC)), socketQueue, ^{
             [self connectSocket:alternateSocketFD address:alternateAddress stateIndex:aStateIndex];
         });
     }
