@@ -2668,7 +2668,8 @@ enum GCDAsyncSocketConfig
 
 - (void)closeSocket:(int)socketFD
 {
-    if (socketFD != SOCKET_NULL)
+    if (socketFD != SOCKET_NULL &&
+        (socketFD == socket6FD || socketFD == socket4FD))
     {
         close(socketFD);
         
