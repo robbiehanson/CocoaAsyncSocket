@@ -157,12 +157,12 @@ class SwiftTests: XCTestCase, GCDAsyncSocketDelegate {
     }
     
     //MARK:- GCDAsyncSocketDelegate
-    func socket(sock: GCDAsyncSocket!, didAcceptNewSocket newSocket: GCDAsyncSocket!) {
+    func socket(sock: GCDAsyncSocket, didAcceptNewSocket newSocket: GCDAsyncSocket) {
         NSLog("didAcceptNewSocket %@ %@", sock, newSocket)
         acceptedServerSocket = newSocket
     }
     
-    func socket(sock: GCDAsyncSocket!, didConnectToHost host: String!, port: UInt16) {
+    func socket(sock: GCDAsyncSocket, didConnectToHost host: String, port: UInt16) {
         NSLog("didConnectToHost %@ %@ %d", sock, host, port);
         expectation?.fulfill()
     }
