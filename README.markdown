@@ -56,7 +56,7 @@ import CocoaAsyncSocket
 
 ## TCP
 
-**GCDAsyncSocket** and **AsyncSocket** are TCP/IP socket networking libraries. Here are the key features available in both:
+**GCDAsyncSocket** is a TCP/IP socket networking library built atop Grand Central Dispatch. Here are the key features available:
 
 - Native objective-c, fully self-contained in one class.<br/>
   _No need to muck around with sockets or streams. This class handles everything for you._
@@ -76,22 +76,15 @@ import CocoaAsyncSocket
 - Support for TLS / SSL<br/>
   _Secure your socket with ease using just a single method call. Available for both client and server sockets._
 
-**GCDAsyncSocket** is built atop Grand Central Dispatch:
-
 - Fully GCD based and Thread-Safe<br/>
   _It runs entirely within its own GCD dispatch_queue, and is completely thread-safe. Further, the delegate methods are all invoked asynchronously onto a dispatch_queue of your choosing. This means parallel operation of your socket code, and your delegate/processing code._
 
 - The Latest Technology & Performance Optimizations<br/>
   _Internally the library takes advantage of technologies such as [kqueue's](http://en.wikipedia.org/wiki/Kqueue) to limit [system calls](http://en.wikipedia.org/wiki/System_call) and optimize buffer allocations. In other words, peak performance._
 
-**AsyncSocket** wraps CFSocket and CFStream:
-
-- Fully Run-loop based<br/>
-  _Use it on the main thread or a worker thread. It plugs into the NSRunLoop with configurable modes._
-
 ## UDP
 
-**GCDAsyncUdpSocket** and **AsyncUdpSocket** are UDP/IP socket networking libraries. Here are the key features available in both:
+**GCDAsyncUdpSocket** is a UDP/IP socket networking library built atop Grand Central Dispatch. Here are the key features available:
 
 - Native objective-c, fully self-contained in one class.<br/>
   _No need to muck around with low-level sockets. This class handles everything for you._
@@ -105,15 +98,8 @@ import CocoaAsyncSocket
 - Support for IPv4 and IPv6.<br/>
   _Automatically send/recv using IPv4 and/or IPv6. No more worrying about multiple sockets._
 
-**GCDAsyncUdpSocket** is built atop Grand Central Dispatch:
-
 - Fully GCD based and Thread-Safe<br/>
   _It runs entirely within its own GCD dispatch_queue, and is completely thread-safe. Further, the delegate methods are all invoked asynchronously onto a dispatch_queue of your choosing. This means parallel operation of your socket code, and your delegate/processing code._
-
-**AsyncUdpSocket** wraps CFSocket:
-
-- Fully Run-loop based<br/>
-  _Use it on the main thread or a worker thread. It plugs into the NSRunLoop with configurable modes._
 
 ***
 
