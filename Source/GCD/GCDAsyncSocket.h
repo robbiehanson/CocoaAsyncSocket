@@ -962,8 +962,8 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
  * 
  * See also: (BOOL)enableBackgroundingOnSocket
 **/
-- (CFReadStreamRef)readStream;
-- (CFWriteStreamRef)writeStream;
+- (nullable CFReadStreamRef)readStream;
+- (nullable CFWriteStreamRef)writeStream;
 
 /**
  * This method is only available from within the context of a performBlock: invocation.
@@ -1000,7 +1000,7 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
  * 
  * Provides access to the socket's SSLContext, if SSL/TLS has been started on the socket.
 **/
-- (SSLContextRef)sslContext;
+- (nullable SSLContextRef)sslContext;
 
 #pragma mark Utilities
 
@@ -1045,7 +1045,7 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
 #pragma mark -
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-@protocol GCDAsyncSocketDelegate
+@protocol GCDAsyncSocketDelegate <NSObject>
 @optional
 
 /**

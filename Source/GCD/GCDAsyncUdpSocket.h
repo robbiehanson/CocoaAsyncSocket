@@ -35,7 +35,7 @@ typedef NS_ENUM(NSInteger, GCDAsyncUdpSocketError) {
 
 @class GCDAsyncUdpSocket;
 
-@protocol GCDAsyncUdpSocketDelegate
+@protocol GCDAsyncUdpSocketDelegate <NSObject>
 @optional
 
 /**
@@ -960,8 +960,8 @@ typedef BOOL (^GCDAsyncUdpSocketSendFilterBlock)(NSData *data, NSData *address, 
  * However, if you need one for any reason,
  * these methods are a convenient way to get access to a safe instance of one.
 **/
-- (CFReadStreamRef)readStream;
-- (CFWriteStreamRef)writeStream;
+- (nullable CFReadStreamRef)readStream;
+- (nullable CFWriteStreamRef)writeStream;
 
 /**
  * This method is only available from within the context of a performBlock: invocation.

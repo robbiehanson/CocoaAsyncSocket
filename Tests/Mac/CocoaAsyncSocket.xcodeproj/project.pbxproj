@@ -8,16 +8,16 @@
 
 /* Begin PBXBuildFile section */
 		2DBCA5C81B8CF4F3004F3128 /* GCDAsyncSocketUNTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 2DBCA5C71B8CF4F3004F3128 /* GCDAsyncSocketUNTests.m */; };
-		C5817ED6954C81C5BFFB369D /* Pods_CocoaAsyncSocketTestsMac.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 349D39E69EC35E02747D830D /* Pods_CocoaAsyncSocketTestsMac.framework */; };
+		439EF337A9890757E22FAEC3 /* Pods_CocoaAsyncSocketTestsMac.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1859AD1F79C285DFDC07C37C /* Pods_CocoaAsyncSocketTestsMac.framework */; };
 		D900F31E1C753B2A00F0AEF0 /* SwiftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D900F31D1C753B2A00F0AEF0 /* SwiftTests.swift */; };
 		D938B4E51B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		08EFE8D9A08D54EDB815BD18 /* Pods-CocoaAsyncSocketTestsMac.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CocoaAsyncSocketTestsMac.debug.xcconfig"; path = "Pods/Target Support Files/Pods-CocoaAsyncSocketTestsMac/Pods-CocoaAsyncSocketTestsMac.debug.xcconfig"; sourceTree = "<group>"; };
+		1859AD1F79C285DFDC07C37C /* Pods_CocoaAsyncSocketTestsMac.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_CocoaAsyncSocketTestsMac.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		2DBCA5C71B8CF4F3004F3128 /* GCDAsyncSocketUNTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GCDAsyncSocketUNTests.m; sourceTree = SOURCE_ROOT; };
-		349D39E69EC35E02747D830D /* Pods_CocoaAsyncSocketTestsMac.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_CocoaAsyncSocketTestsMac.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		4460C5A7B492241459C411C9 /* Pods-CocoaAsyncSocketTestsMac.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CocoaAsyncSocketTestsMac.debug.xcconfig"; path = "Pods/Target Support Files/Pods-CocoaAsyncSocketTestsMac/Pods-CocoaAsyncSocketTestsMac.debug.xcconfig"; sourceTree = "<group>"; };
-		BDB8EE324743565611FC60D2 /* Pods-CocoaAsyncSocketTestsMac.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CocoaAsyncSocketTestsMac.release.xcconfig"; path = "Pods/Target Support Files/Pods-CocoaAsyncSocketTestsMac/Pods-CocoaAsyncSocketTestsMac.release.xcconfig"; sourceTree = "<group>"; };
+		4CB28BA2043D8CD03AFA18E8 /* Pods-CocoaAsyncSocketTestsMac.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CocoaAsyncSocketTestsMac.release.xcconfig"; path = "Pods/Target Support Files/Pods-CocoaAsyncSocketTestsMac/Pods-CocoaAsyncSocketTestsMac.release.xcconfig"; sourceTree = "<group>"; };
 		D900F31D1C753B2A00F0AEF0 /* SwiftTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SwiftTests.swift; path = ../Shared/SwiftTests.swift; sourceTree = "<group>"; };
 		D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GCDAsyncSocketConnectionTests.m; path = ../Shared/GCDAsyncSocketConnectionTests.m; sourceTree = "<group>"; };
 		D9BC0D8D1A0458EF0059D906 /* CocoaAsyncSocketTestsMac.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CocoaAsyncSocketTestsMac.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -29,26 +29,26 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C5817ED6954C81C5BFFB369D /* Pods_CocoaAsyncSocketTestsMac.framework in Frameworks */,
+				439EF337A9890757E22FAEC3 /* Pods_CocoaAsyncSocketTestsMac.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		7ACF152BD7CD12F9AA8833DD /* Pods */ = {
+		2DF9645286609056FA561D1D /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				4460C5A7B492241459C411C9 /* Pods-CocoaAsyncSocketTestsMac.debug.xcconfig */,
-				BDB8EE324743565611FC60D2 /* Pods-CocoaAsyncSocketTestsMac.release.xcconfig */,
+				08EFE8D9A08D54EDB815BD18 /* Pods-CocoaAsyncSocketTestsMac.debug.xcconfig */,
+				4CB28BA2043D8CD03AFA18E8 /* Pods-CocoaAsyncSocketTestsMac.release.xcconfig */,
 			);
 			name = Pods;
 			sourceTree = "<group>";
 		};
-		8A39D84502FB17BD9FB03CBB /* Frameworks */ = {
+		6BD64EE47346406202F80C93 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				349D39E69EC35E02747D830D /* Pods_CocoaAsyncSocketTestsMac.framework */,
+				1859AD1F79C285DFDC07C37C /* Pods_CocoaAsyncSocketTestsMac.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -76,8 +76,8 @@
 			children = (
 				D9873DA11A057F34004C014F /* Tests */,
 				D9BC0D801A0457F40059D906 /* Products */,
-				7ACF152BD7CD12F9AA8833DD /* Pods */,
-				8A39D84502FB17BD9FB03CBB /* Frameworks */,
+				2DF9645286609056FA561D1D /* Pods */,
+				6BD64EE47346406202F80C93 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -114,12 +114,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = D9BC0D951A0458EF0059D906 /* Build configuration list for PBXNativeTarget "CocoaAsyncSocketTestsMac" */;
 			buildPhases = (
-				3F5D3600EFCAC33250963F1A /* Check Pods Manifest.lock */,
+				4AB46844DACF12294B502E98 /* [CP] Check Pods Manifest.lock */,
 				D9BC0D891A0458EF0059D906 /* Sources */,
 				D9BC0D8A1A0458EF0059D906 /* Frameworks */,
 				D9BC0D8B1A0458EF0059D906 /* Resources */,
-				46E4B24E7D6621E48A697455 /* Copy Pods Resources */,
-				F2AB5BD430AF4C0FD63BBCD8 /* Embed Pods Frameworks */,
+				AA94AAA5A64A884AD2E4A6DD /* [CP] Embed Pods Frameworks */,
+				ADC6CEFA3FD08AEA679AEBA7 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -172,14 +172,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		3F5D3600EFCAC33250963F1A /* Check Pods Manifest.lock */ = {
+		4AB46844DACF12294B502E98 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputPaths = (
 			);
-			name = "Check Pods Manifest.lock";
+			name = "[CP] Check Pods Manifest.lock";
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -187,34 +187,34 @@
 			shellScript = "diff \"${PODS_ROOT}/../Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [[ $? != 0 ]] ; then\n    cat << EOM\nerror: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\nEOM\n    exit 1\nfi\n";
 			showEnvVarsInLog = 0;
 		};
-		46E4B24E7D6621E48A697455 /* Copy Pods Resources */ = {
+		AA94AAA5A64A884AD2E4A6DD /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputPaths = (
 			);
-			name = "Copy Pods Resources";
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-CocoaAsyncSocketTestsMac/Pods-CocoaAsyncSocketTestsMac-resources.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		F2AB5BD430AF4C0FD63BBCD8 /* Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-			);
-			name = "Embed Pods Frameworks";
+			name = "[CP] Embed Pods Frameworks";
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-CocoaAsyncSocketTestsMac/Pods-CocoaAsyncSocketTestsMac-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		ADC6CEFA3FD08AEA679AEBA7 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "[CP] Copy Pods Resources";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-CocoaAsyncSocketTestsMac/Pods-CocoaAsyncSocketTestsMac-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -253,7 +253,7 @@
 		};
 		D9BC0D931A0458EF0059D906 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 4460C5A7B492241459C411C9 /* Pods-CocoaAsyncSocketTestsMac.debug.xcconfig */;
+			baseConfigurationReference = 08EFE8D9A08D54EDB815BD18 /* Pods-CocoaAsyncSocketTestsMac.debug.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
@@ -303,7 +303,7 @@
 		};
 		D9BC0D941A0458EF0059D906 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = BDB8EE324743565611FC60D2 /* Pods-CocoaAsyncSocketTestsMac.release.xcconfig */;
+			baseConfigurationReference = 4CB28BA2043D8CD03AFA18E8 /* Pods-CocoaAsyncSocketTestsMac.release.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";

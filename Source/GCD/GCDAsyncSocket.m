@@ -6457,8 +6457,10 @@ enum GCDAsyncSocketConfig
 		#if TARGET_OS_IPHONE
 		{
 			GCDAsyncSpecialPacket *tlsPacket = (GCDAsyncSpecialPacket *)currentRead;
-			NSDictionary *tlsSettings = tlsPacket->tlsSettings;
-			
+            NSDictionary *tlsSettings = @{};
+            if (tlsPacket) {
+                tlsSettings = tlsPacket->tlsSettings;
+            }
 			NSNumber *value = [tlsSettings objectForKey:GCDAsyncSocketUseCFStreamForTLS];
 			if (value && [value boolValue])
 				useSecureTransport = NO;
