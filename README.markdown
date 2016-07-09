@@ -103,8 +103,13 @@ import CocoaAsyncSocket
 
 ***
 
-Can't find the answer to your question in any of the [wiki](https://github.com/robbiehanson/CocoaAsyncSocket/wiki) articles? Try the **[mailing list](http://groups.google.com/group/cocoaasyncsocket)**.
-<br/>
-<br/>
-Love the project? Wanna buy me a coffee? (or a beer :D) [![donation](http://www.paypal.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=2M8C699FQ8AW2)
+For those new(ish) to networking, it's recommended you **[read the wiki](https://github.com/robbiehanson/CocoaAsyncSocket/wiki)**.<br/>_Sockets might not work exactly like you think they do..._
+
+**Still got questions?** Try the **[CocoaAsyncSocket Mailing List](http://groups.google.com/group/cocoaasyncsocket)**.
+***
+
+Love the project? Wanna buy me a ☕️&nbsp;&nbsp;? (or a 🍺&nbsp;&nbsp;😀&nbsp;):
+
+[![donation-bitcoin](https://bitpay.com/img/donate-sm.png)](https://onename.com/robbiehanson)
+[![donation-paypal](https://www.paypal.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=CV6XGZTPQU9HY)
 
