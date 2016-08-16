@@ -55,7 +55,7 @@ typedef NS_ENUM(NSInteger, GCDAsyncUdpSocketError) {
  * This method is called if one of the connect methods are invoked, and the connection fails.
  * This may happen, for example, if a domain name is given for the host and the domain name is unable to be resolved.
 **/
-- (void)udpSocket:(GCDAsyncUdpSocket *)sock didNotConnect:(NSError *)error;
+- (void)udpSocket:(GCDAsyncUdpSocket *)sock didNotConnect:(NSError * _Nullable)error;
 
 /**
  * Called when the datagram with the given tag has been sent.
@@ -66,7 +66,7 @@ typedef NS_ENUM(NSInteger, GCDAsyncUdpSocketError) {
  * Called if an error occurs while trying to send a datagram.
  * This could be due to a timeout, or something more serious such as the data being too large to fit in a sigle packet.
 **/
-- (void)udpSocket:(GCDAsyncUdpSocket *)sock didNotSendDataWithTag:(long)tag dueToError:(NSError *)error;
+- (void)udpSocket:(GCDAsyncUdpSocket *)sock didNotSendDataWithTag:(long)tag dueToError:(NSError * _Nullable)error;
 
 /**
  * Called when the socket has received the requested datagram.
@@ -78,7 +78,7 @@ typedef NS_ENUM(NSInteger, GCDAsyncUdpSocketError) {
 /**
  * Called when the socket is closed.
 **/
-- (void)udpSocketDidClose:(GCDAsyncUdpSocket *)sock withError:(NSError *)error;
+- (void)udpSocketDidClose:(GCDAsyncUdpSocket *)sock withError:(NSError  * _Nullable)error;
 
 @end
 
