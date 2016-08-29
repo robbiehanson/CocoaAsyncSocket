@@ -1012,10 +1012,12 @@ enum GCDAsyncUdpSocketConfig
 	                       userInfo:userInfo];
 }
 
-- (NSError *)gaiError:(int)gai_error
+- (NSError *)gaiError:(int)gai_error tryingToLookUpHost:(NSString *)host andPort:(NSString *)port
 {
-	NSString *errMsg = [NSString stringWithCString:gai_strerror(gai_error) encoding:NSASCIIStringEncoding];
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+    NSString *errMsg = [NSString stringWithCString:gai_strerror(gai_error) encoding:NSASCIIStringEncoding];
+    NSDictionary *userInfo = [NSDictionary dictionaryWithObjectsAndKeys:errMsg, NSLocalizedDescriptionKey,
+                              host, @"host",
+                              port, @"port", nil];
 	
 	return [NSError errorWithDomain:@"kCFStreamErrorDomainNetDB" code:gai_error userInfo:userInfo];
 }
@@ -1184,7 +1186,7 @@ enum GCDAsyncUdpSocketConfig
 			
 			if (gai_error)
 			{
-				error = [self gaiError:gai_error];
+				error = [self gaiError:gai_error tryingToLookUpHost:host andPort:portStr];
 			}
 			else
 			{
@@ -1209,7 +1211,7 @@ enum GCDAsyncUdpSocketConfig
 				
 				if ([addresses count] == 0)
 				{
-					error = [self gaiError:EAI_FAIL];
+					error = [self gaiError:EAI_FAIL tryingToLookUpHost:host andPort:portStr];
 				}
 			}
 		}
