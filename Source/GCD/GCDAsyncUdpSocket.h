@@ -14,20 +14,9 @@
 #import <Availability.h>
 
 NS_ASSUME_NONNULL_BEGIN
-extern NSString *const GCDAsyncUdpSocketException;
-extern NSString *const GCDAsyncUdpSocketErrorDomain;
 
 extern NSString *const GCDAsyncUdpSocketQueueName;
 extern NSString *const GCDAsyncUdpSocketThreadName;
-
-typedef NS_ENUM(NSInteger, GCDAsyncUdpSocketError) {
-	GCDAsyncUdpSocketNoError = 0,          // Never used
-	GCDAsyncUdpSocketBadConfigError,       // Invalid configuration
-	GCDAsyncUdpSocketBadParamError,        // Invalid parameter was passed
-	GCDAsyncUdpSocketSendTimeoutError,     // A send operation timed out
-	GCDAsyncUdpSocketClosedError,          // The socket was closed
-	GCDAsyncUdpSocketOtherError,           // Description provided in userInfo
-};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark -

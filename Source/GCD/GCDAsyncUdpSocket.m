@@ -9,6 +9,7 @@
 //
 
 #import "GCDAsyncUdpSocket.h"
+#import "GCDNSErrorFactory.h"
 
 #if ! __has_feature(objc_arc)
 #warning This file must be compiled with ARC. Use -fobjc-arc flag (or convert project to ARC).
@@ -101,9 +102,6 @@ static const int logLevel = LOG_LEVEL_VERBOSE;
 
 
 @class GCDAsyncUdpSendPacket;
-
-NSString *const GCDAsyncUdpSocketException = @"GCDAsyncUdpSocketException";
-NSString *const GCDAsyncUdpSocketErrorDomain = @"GCDAsyncUdpSocketErrorDomain";
 
 NSString *const GCDAsyncUdpSocketQueueName = @"GCDAsyncUdpSocket";
 NSString *const GCDAsyncUdpSocketThreadName = @"GCDAsyncUdpSocket-CFStream";
@@ -991,93 +989,6 @@ enum GCDAsyncUdpSocketConfig
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#pragma mark Errors
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-- (NSError *)badConfigError:(NSString *)errMsg
-{
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
-	
-	return [NSError errorWithDomain:GCDAsyncUdpSocketErrorDomain
-	                           code:GCDAsyncUdpSocketBadConfigError
-	                       userInfo:userInfo];
-}
-
-- (NSError *)badParamError:(NSString *)errMsg
-{
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
-	
-	return [NSError errorWithDomain:GCDAsyncUdpSocketErrorDomain
-	                           code:GCDAsyncUdpSocketBadParamError
-	                       userInfo:userInfo];
-}
-
-- (NSError *)gaiError:(int)gai_error tryingToLookUpHost:(NSString *)host andPort:(NSString *)port
-{
-    NSString *errMsg = [NSString stringWithCString:gai_strerror(gai_error) encoding:NSASCIIStringEncoding];
-    NSDictionary *userInfo = [NSDictionary dictionaryWithObjectsAndKeys:errMsg, NSLocalizedDescriptionKey,
-                              host, @"host",
-                              port, @"port", nil];
-	
-	return [NSError errorWithDomain:@"kCFStreamErrorDomainNetDB" code:gai_error userInfo:userInfo];
-}
-
-- (NSError *)errnoErrorWithReason:(NSString *)reason
-{
-	NSString *errMsg = [NSString stringWithUTF8String:strerror(errno)];
-	NSDictionary *userInfo;
-	
-	if (reason)
-		userInfo = [NSDictionary dictionaryWithObjectsAndKeys:errMsg, NSLocalizedDescriptionKey,
-		                                                      reason, NSLocalizedFailureReasonErrorKey, nil];
-	else
-		userInfo = [NSDictionary dictionaryWithObjectsAndKeys:errMsg, NSLocalizedDescriptionKey, nil];
-	
-	return [NSError errorWithDomain:NSPOSIXErrorDomain code:errno userInfo:userInfo];
-}
-
-- (NSError *)errnoError
-{
-	return [self errnoErrorWithReason:nil];
-}
-
-/**
- * Returns a standard send timeout error.
-**/
-- (NSError *)sendTimeoutError
-{
-	NSString *errMsg = NSLocalizedStringWithDefaultValue(@"GCDAsyncUdpSocketSendTimeoutError",
-	                                                     @"GCDAsyncUdpSocket", [NSBundle mainBundle],
-	                                                     @"Send operation timed out", nil);
-	
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
-	
-	return [NSError errorWithDomain:GCDAsyncUdpSocketErrorDomain
-	                           code:GCDAsyncUdpSocketSendTimeoutError
-	                       userInfo:userInfo];
-}
-
-- (NSError *)socketClosedError
-{
-	NSString *errMsg = NSLocalizedStringWithDefaultValue(@"GCDAsyncUdpSocketClosedError",
-	                                                     @"GCDAsyncUdpSocket", [NSBundle mainBundle],
-	                                                     @"Socket closed", nil);
-	
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
-	
-	return [NSError errorWithDomain:GCDAsyncUdpSocketErrorDomain code:GCDAsyncUdpSocketClosedError userInfo:userInfo];
-}
-
-- (NSError *)otherError:(NSString *)errMsg
-{
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
-	
-	return [NSError errorWithDomain:GCDAsyncUdpSocketErrorDomain
-	                           code:GCDAsyncUdpSocketOtherError
-	                       userInfo:userInfo];
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Utilities
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1090,7 +1001,7 @@ enum GCDAsyncUdpSocketConfig
 		if (errPtr)
 		{
 			NSString *msg = @"Attempting to use socket without a delegate. Set a delegate first.";
-			*errPtr = [self badConfigError:msg];
+			*errPtr = [GCDAsyncUdpSocketError badConfigError:msg];
 		}
 		return NO;
 	}
@@ -1100,7 +1011,7 @@ enum GCDAsyncUdpSocketConfig
 		if (errPtr)
 		{
 			NSString *msg = @"Attempting to use socket without a delegate queue. Set a delegate queue first.";
-			*errPtr = [self badConfigError:msg];
+			*errPtr = [GCDAsyncUdpSocketError badConfigError:msg];
 		}
 		return NO;
 	}
@@ -1123,7 +1034,7 @@ enum GCDAsyncUdpSocketConfig
 	if (aHost == nil)
 	{
 		NSString *msg = @"The host param is nil. Should be domain name or IP address string.";
-		NSError *error = [self badParamError:msg];
+		NSError *error = [GCDAsyncUdpSocketError badParamError:msg];
 		
 		// We should still use dispatch_async since this method is expected to be asynchronous
 		
@@ -1186,7 +1097,7 @@ enum GCDAsyncUdpSocketConfig
 			
 			if (gai_error)
 			{
-				error = [self gaiError:gai_error tryingToLookUpHost:host andPort:portStr];
+				error = [GCDError gaiError:gai_error tryingToLookUpHost:host andPort:portStr];
 			}
 			else
 			{
@@ -1211,7 +1122,7 @@ enum GCDAsyncUdpSocketConfig
 				
 				if ([addresses count] == 0)
 				{
-					error = [self gaiError:EAI_FAIL tryingToLookUpHost:host andPort:portStr];
+					error = [GCDError gaiError:EAI_FAIL tryingToLookUpHost:host andPort:portStr];
 				}
 			}
 		}
@@ -1262,7 +1173,7 @@ enum GCDAsyncUdpSocketConfig
 	if (isIPv4Disabled && !resolvedIPv6Address)
 	{
 		NSString *msg = @"IPv4 has been disabled and DNS lookup found no IPv6 address(es).";
-		resultError = [self otherError:msg];
+		resultError = [GCDAsyncUdpSocketError otherError:msg];
 		
 		if (addressPtr) *addressPtr = resultAddress;
 		if (errorPtr) *errorPtr = resultError;
@@ -1273,7 +1184,7 @@ enum GCDAsyncUdpSocketConfig
 	if (isIPv6Disabled && !resolvedIPv4Address)
 	{
 		NSString *msg = @"IPv6 has been disabled and DNS lookup found no IPv4 address(es).";
-		resultError = [self otherError:msg];
+		resultError = [GCDAsyncUdpSocketError otherError:msg];
 		
 		if (addressPtr) *addressPtr = resultAddress;
 		if (errorPtr) *errorPtr = resultError;
@@ -1287,7 +1198,7 @@ enum GCDAsyncUdpSocketConfig
 	if (isIPv4Deactivated && !resolvedIPv6Address)
 	{
 		NSString *msg = @"IPv4 has been deactivated due to bind/connect, and DNS lookup found no IPv6 address(es).";
-		resultError = [self otherError:msg];
+		resultError = [GCDAsyncUdpSocketError otherError:msg];
 		
 		if (addressPtr) *addressPtr = resultAddress;
 		if (errorPtr) *errorPtr = resultError;
@@ -1298,7 +1209,7 @@ enum GCDAsyncUdpSocketConfig
 	if (isIPv6Deactivated && !resolvedIPv4Address)
 	{
 		NSString *msg = @"IPv6 has been deactivated due to bind/connect, and DNS lookup found no IPv4 address(es).";
-		resultError = [self otherError:msg];
+		resultError = [GCDAsyncUdpSocketError otherError:msg];
 		
 		if (addressPtr) *addressPtr = resultAddress;
 		if (errorPtr) *errorPtr = resultError;
@@ -1939,7 +1850,7 @@ enum GCDAsyncUdpSocketConfig
 		if (socketFD == SOCKET_NULL)
 		{
 			if (errPtr)
-				*errPtr = [self errnoErrorWithReason:@"Error in socket() function"];
+				*errPtr = [GCDError errnoErrorWithReason:@"Error in socket() function"];
 			
 			return SOCKET_NULL;
 		}
@@ -1952,7 +1863,7 @@ enum GCDAsyncUdpSocketConfig
 		if (status == -1)
 		{
 			if (errPtr)
-				*errPtr = [self errnoErrorWithReason:@"Error enabling non-blocking IO on socket (fcntl)"];
+				*errPtr = [GCDError errnoErrorWithReason:@"Error enabling non-blocking IO on socket (fcntl)"];
 			
 			close(socketFD);
 			return SOCKET_NULL;
@@ -1963,7 +1874,7 @@ enum GCDAsyncUdpSocketConfig
 		if (status == -1)
 		{
 			if (errPtr)
-				*errPtr = [self errnoErrorWithReason:@"Error enabling address reuse (setsockopt)"];
+				*errPtr = [GCDError errnoErrorWithReason:@"Error enabling address reuse (setsockopt)"];
 			
 			close(socketFD);
 			return SOCKET_NULL;
@@ -1974,7 +1885,7 @@ enum GCDAsyncUdpSocketConfig
 		if (status == -1)
 		{
 			if (errPtr)
-				*errPtr = [self errnoErrorWithReason:@"Error disabling sigpipe (setsockopt)"];
+				*errPtr = [GCDError errnoErrorWithReason:@"Error disabling sigpipe (setsockopt)"];
 			
 			close(socketFD);
 			return SOCKET_NULL;
@@ -2706,7 +2617,7 @@ enum GCDAsyncUdpSocketConfig
 		if (errPtr)
 		{
 			NSString *msg = @"Cannot bind a socket more than once.";
-			*errPtr = [self badConfigError:msg];
+			*errPtr = [GCDAsyncUdpSocketError badConfigError:msg];
 		}
 		return NO;
 	}
@@ -2716,7 +2627,7 @@ enum GCDAsyncUdpSocketConfig
 		if (errPtr)
 		{
 			NSString *msg = @"Cannot bind after connecting. If needed, bind first, then connect.";
-			*errPtr = [self badConfigError:msg];
+			*errPtr = [GCDAsyncUdpSocketError badConfigError:msg];
 		}
 		return NO;
 	}
@@ -2729,7 +2640,7 @@ enum GCDAsyncUdpSocketConfig
 		if (errPtr)
 		{
 			NSString *msg = @"Both IPv4 and IPv6 have been disabled. Must enable at least one protocol first.";
-			*errPtr = [self badConfigError:msg];
+			*errPtr = [GCDAsyncUdpSocketError badConfigError:msg];
 		}
 		return NO;
 	}
@@ -2766,7 +2677,7 @@ enum GCDAsyncUdpSocketConfig
 		if ((interface4 == nil) && (interface6 == nil))
 		{
 			NSString *msg = @"Unknown interface. Specify valid interface by name (e.g. \"en1\") or IP address.";
-			err = [self badParamError:msg];
+			err = [GCDAsyncUdpSocketError badParamError:msg];
 			
 			return_from_block;
 		}
@@ -2777,7 +2688,7 @@ enum GCDAsyncUdpSocketConfig
 		if (isIPv4Disabled && (interface6 == nil))
 		{
 			NSString *msg = @"IPv4 has been disabled and specified interface doesn't support IPv6.";
-			err = [self badParamError:msg];
+			err = [GCDAsyncUdpSocketError badParamError:msg];
 			
 			return_from_block;
 		}
@@ -2785,7 +2696,7 @@ enum GCDAsyncUdpSocketConfig
 		if (isIPv6Disabled && (interface4 == nil))
 		{
 			NSString *msg = @"IPv6 has been disabled and specified interface doesn't support IPv4.";
-			err = [self badParamError:msg];
+			err = [GCDAsyncUdpSocketError badParamError:msg];
 			
 			return_from_block;
 		}
@@ -2817,7 +2728,7 @@ enum GCDAsyncUdpSocketConfig
 				[self closeSockets];
 				
 				NSString *reason = @"Error in bind() function";
-				err = [self errnoErrorWithReason:reason];
+				err = [GCDError errnoErrorWithReason:reason];
 				
 				return_from_block;
 			}
@@ -2831,7 +2742,7 @@ enum GCDAsyncUdpSocketConfig
 				[self closeSockets];
 				
 				NSString *reason = @"Error in bind() function";
-				err = [self errnoErrorWithReason:reason];
+				err = [GCDError errnoErrorWithReason:reason];
 				
 				return_from_block;
 			}
@@ -2883,7 +2794,7 @@ enum GCDAsyncUdpSocketConfig
 		if (addressFamily == AF_UNSPEC)
 		{
 			NSString *msg = @"A valid IPv4 or IPv6 address was not given";
-			err = [self badParamError:msg];
+			err = [GCDAsyncUdpSocketError badParamError:msg];
 			
 			return_from_block;
 		}
@@ -2897,7 +2808,7 @@ enum GCDAsyncUdpSocketConfig
 		if (isIPv4Disabled && localAddr4)
 		{
 			NSString *msg = @"IPv4 has been disabled and an IPv4 address was passed.";
-			err = [self badParamError:msg];
+			err = [GCDAsyncUdpSocketError badParamError:msg];
 			
 			return_from_block;
 		}
@@ -2905,7 +2816,7 @@ enum GCDAsyncUdpSocketConfig
 		if (isIPv6Disabled && localAddr6)
 		{
 			NSString *msg = @"IPv6 has been disabled and an IPv6 address was passed.";
-			err = [self badParamError:msg];
+			err = [GCDAsyncUdpSocketError badParamError:msg];
 			
 			return_from_block;
 		}
@@ -2939,7 +2850,7 @@ enum GCDAsyncUdpSocketConfig
 				[self closeSockets];
 				
 				NSString *reason = @"Error in bind() function";
-				err = [self errnoErrorWithReason:reason];
+				err = [GCDError errnoErrorWithReason:reason];
 				
 				return_from_block;
 			}
@@ -2956,7 +2867,7 @@ enum GCDAsyncUdpSocketConfig
 				[self closeSockets];
 				
 				NSString *reason = @"Error in bind() function";
-				err = [self errnoErrorWithReason:reason];
+				err = [GCDError errnoErrorWithReason:reason];
 				
 				return_from_block;
 			}
@@ -3007,7 +2918,7 @@ enum GCDAsyncUdpSocketConfig
 		if (errPtr)
 		{
 			NSString *msg = @"Cannot connect a socket more than once.";
-			*errPtr = [self badConfigError:msg];
+			*errPtr = [GCDAsyncUdpSocketError badConfigError:msg];
 		}
 		return NO;
 	}
@@ -3020,7 +2931,7 @@ enum GCDAsyncUdpSocketConfig
 		if (errPtr)
 		{
 			NSString *msg = @"Both IPv4 and IPv6 have been disabled. Must enable at least one protocol first.";
-			*errPtr = [self badConfigError:msg];
+			*errPtr = [GCDAsyncUdpSocketError badConfigError:msg];
 		}
 		return NO;
 	}
@@ -3047,7 +2958,7 @@ enum GCDAsyncUdpSocketConfig
 		if (host == nil)
 		{
 			NSString *msg = @"The host param is nil. Should be domain name or IP address string.";
-			err = [self badParamError:msg];
+			err = [GCDAsyncUdpSocketError badParamError:msg];
 			
 			return_from_block;
 		}
@@ -3128,7 +3039,7 @@ enum GCDAsyncUdpSocketConfig
 		if (remoteAddr == nil)
 		{
 			NSString *msg = @"The address param is nil. Should be a valid address.";
-			err = [self badParamError:msg];
+			err = [GCDAsyncUdpSocketError badParamError:msg];
 			
 			return_from_block;
 		}
@@ -3250,7 +3161,7 @@ enum GCDAsyncUdpSocketConfig
 	if (status != 0)
 	{
 		if (errPtr)
-			*errPtr = [self errnoErrorWithReason:@"Error in connect() function"];
+			*errPtr = [GCDError errnoErrorWithReason:@"Error in connect() function"];
 		
 		return NO;
 	}
@@ -3270,7 +3181,7 @@ enum GCDAsyncUdpSocketConfig
 	if (status != 0)
 	{
 		if (errPtr)
-			*errPtr = [self errnoErrorWithReason:@"Error in connect() function"];
+			*errPtr = [GCDError errnoErrorWithReason:@"Error in connect() function"];
 		
 		return NO;
 	}
@@ -3297,7 +3208,7 @@ enum GCDAsyncUdpSocketConfig
 		if (errPtr)
 		{
 			NSString *msg = @"Must bind a socket before joining a multicast group.";
-			*errPtr = [self badConfigError:msg];
+			*errPtr = [GCDAsyncUdpSocketError badConfigError:msg];
 		}
 		return NO;
 	}
@@ -3307,7 +3218,7 @@ enum GCDAsyncUdpSocketConfig
 		if (errPtr)
 		{
 			NSString *msg = @"Cannot join a multicast group if connected.";
-			*errPtr = [self badConfigError:msg];
+			*errPtr = [GCDAsyncUdpSocketError badConfigError:msg];
 		}
 		return NO;
 	}
@@ -3364,7 +3275,7 @@ enum GCDAsyncUdpSocketConfig
 		if ((groupAddr4 == nil) && (groupAddr6 == nil))
 		{
 			NSString *msg = @"Unknown group. Specify valid group IP address.";
-			err = [self badParamError:msg];
+			err = [GCDAsyncUdpSocketError badParamError:msg];
 			
 			return_from_block;
 		}
@@ -3379,7 +3290,7 @@ enum GCDAsyncUdpSocketConfig
 		if ((interfaceAddr4 == nil) && (interfaceAddr6 == nil))
 		{
 			NSString *msg = @"Unknown interface. Specify valid interface by name (e.g. \"en1\") or IP address.";
-			err = [self badParamError:msg];
+			err = [GCDAsyncUdpSocketError badParamError:msg];
 			
 			return_from_block;
 		}
@@ -3398,7 +3309,7 @@ enum GCDAsyncUdpSocketConfig
 			int status = setsockopt(socket4FD, IPPROTO_IP, requestType, (const void *)&imreq, sizeof(imreq));
 			if (status != 0)
 			{
-				err = [self errnoErrorWithReason:@"Error in setsockopt() function"];
+				err = [GCDError errnoErrorWithReason:@"Error in setsockopt() function"];
 				
 				return_from_block;
 			}
@@ -3419,7 +3330,7 @@ enum GCDAsyncUdpSocketConfig
 			int status = setsockopt(socket6FD, IPPROTO_IPV6, requestType, (const void *)&imreq, sizeof(imreq));
 			if (status != 0)
 			{
-				err = [self errnoErrorWithReason:@"Error in setsockopt() function"];
+				err = [GCDError errnoErrorWithReason:@"Error in setsockopt() function"];
 				
 				return_from_block;
 			}
@@ -3432,7 +3343,7 @@ enum GCDAsyncUdpSocketConfig
 		else
 		{
 			NSString *msg = @"Socket, group, and interface do not have matching IP versions";
-			err = [self badParamError:msg];
+			err = [GCDAsyncUdpSocketError badParamError:msg];
 			
 			return_from_block;
 		}
@@ -3481,7 +3392,7 @@ enum GCDAsyncUdpSocketConfig
 			
 			if (error)
 			{
-				err = [self errnoErrorWithReason:@"Error in setsockopt() function"];
+				err = [GCDError errnoErrorWithReason:@"Error in setsockopt() function"];
 				
 				return_from_block;
 			}
@@ -3494,7 +3405,7 @@ enum GCDAsyncUdpSocketConfig
 			
 			if (error)
 			{
-				err = [self errnoErrorWithReason:@"Error in setsockopt() function"];
+				err = [GCDError errnoErrorWithReason:@"Error in setsockopt() function"];
 				
 				return_from_block;
 			}
@@ -3545,7 +3456,7 @@ enum GCDAsyncUdpSocketConfig
 			
 			if (error)
 			{
-				err = [self errnoErrorWithReason:@"Error in setsockopt() function"];
+				err = [GCDError errnoErrorWithReason:@"Error in setsockopt() function"];
 				
 				return_from_block;
 			}
@@ -3784,7 +3695,7 @@ enum GCDAsyncUdpSocketConfig
 		if (currentSend->resolveInProgress || currentSend->resolvedAddresses || currentSend->resolveError)
 		{
 			NSString *msg = @"Cannot specify destination of packet for connected socket";
-			error = [self badConfigError:msg];
+			error = [GCDAsyncUdpSocketError badConfigError:msg];
 		}
 		else
 		{
@@ -3810,7 +3721,7 @@ enum GCDAsyncUdpSocketConfig
 			if (currentSend->resolvedAddresses == nil)
 			{
 				NSString *msg = @"You must specify destination of packet for a non-connected socket";
-				error = [self badConfigError:msg];
+				error = [GCDAsyncUdpSocketError badConfigError:msg];
 			}
 			else
 			{
@@ -4008,7 +3919,7 @@ enum GCDAsyncUdpSocketConfig
 		if (errno == EAGAIN)
 			waitingForSocket = YES;
 		else
-			socketError = [self errnoErrorWithReason:@"Error in send() function."];
+			socketError = [GCDError errnoErrorWithReason:@"Error in send() function."];
 	}
 	
 	if (waitingForSocket)
@@ -4069,7 +3980,7 @@ enum GCDAsyncUdpSocketConfig
 {
 	LogTrace();
 	
-	[self notifyDidNotSendDataWithTag:currentSend->tag dueToError:[self sendTimeoutError]];
+	[self notifyDidNotSendDataWithTag:currentSend->tag dueToError:[GCDAsyncUdpSocketError sendTimeoutError]];
 	[self endCurrentSend];
 	[self maybeDequeueSend];
 }
@@ -4118,7 +4029,7 @@ enum GCDAsyncUdpSocketConfig
 				NSString *msg = @"Must bind socket before you can receive data. "
 				@"You can do this explicitly via bind, or implicitly via connect or by sending data.";
 				
-				err = [self badConfigError:msg];
+				err = [GCDAsyncUdpSocketError badConfigError:msg];
 				return_from_block;
 			}
 			
@@ -4164,7 +4075,7 @@ enum GCDAsyncUdpSocketConfig
 				NSString *msg = @"Must bind socket before you can receive data. "
 								@"You can do this explicitly via bind, or implicitly via connect or by sending data.";
 				
-				err = [self badConfigError:msg];
+				err = [GCDAsyncUdpSocketError badConfigError:msg];
 				return_from_block;
 			}
 			
@@ -4437,7 +4348,7 @@ enum GCDAsyncUdpSocketConfig
 		if (errno == EAGAIN)
 			waitingForSocket = YES;
 		else
-			socketError = [self errnoErrorWithReason:@"Error in recvfrom() function"];
+			socketError = [GCDError errnoErrorWithReason:@"Error in recvfrom() function"];
 	}
 	else
 	{
@@ -4574,7 +4485,7 @@ enum GCDAsyncUdpSocketConfig
 {
 	LogTrace();
 	
-	[self closeWithError:[self socketClosedError]];
+	[self closeWithError:[GCDAsyncUdpSocketError socketClosedError]];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -4753,7 +4664,7 @@ static void CFReadStreamCallback(CFReadStreamRef stream, CFStreamEventType type,
 				NSError *error = (__bridge_transfer NSError *)CFReadStreamCopyError(stream);
 				if (error == nil && type == kCFStreamEventEndEncountered)
 				{
-					error = [asyncUdpSocket socketClosedError];
+					error = [GCDAsyncUdpSocketError socketClosedError];
 				}
 				
 				dispatch_async(asyncUdpSocket->socketQueue, ^{ @autoreleasepool {
@@ -4805,7 +4716,7 @@ static void CFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType typ
 				NSError *error = (__bridge_transfer NSError *)CFWriteStreamCopyError(stream);
 				if (error == nil && type == kCFStreamEventEndEncountered)
 				{
-					error = [asyncUdpSocket socketClosedError];
+					error = [GCDAsyncUdpSocketError socketClosedError];
 				}
 				
 				dispatch_async(asyncUdpSocket->socketQueue, ^{ @autoreleasepool {
@@ -4849,7 +4760,7 @@ static void CFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType typ
 	
 	if (socket4FD == SOCKET_NULL && socket6FD == SOCKET_NULL)
 	{
-		err = [self otherError:@"Cannot create streams without a file descriptor"];
+		err = [GCDAsyncUdpSocketError otherError:@"Cannot create streams without a file descriptor"];
 		goto Failed;
 	}
 	
@@ -4862,7 +4773,7 @@ static void CFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType typ
 		CFStreamCreatePairWithSocket(NULL, (CFSocketNativeHandle)socket4FD, &readStream4, &writeStream4);
 		if (!readStream4 || !writeStream4)
 		{
-			err = [self otherError:@"Error in CFStreamCreatePairWithSocket() [IPv4]"];
+			err = [GCDAsyncUdpSocketError otherError:@"Error in CFStreamCreatePairWithSocket() [IPv4]"];
 			goto Failed;
 		}
 	}
@@ -4872,7 +4783,7 @@ static void CFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType typ
 		CFStreamCreatePairWithSocket(NULL, (CFSocketNativeHandle)socket6FD, &readStream6, &writeStream6);
 		if (!readStream6 || !writeStream6)
 		{
-			err = [self otherError:@"Error in CFStreamCreatePairWithSocket() [IPv6]"];
+			err = [GCDAsyncUdpSocketError otherError:@"Error in CFStreamCreatePairWithSocket() [IPv6]"];
 			goto Failed;
 		}
 	}
@@ -4944,7 +4855,7 @@ Failed:
 	{
 		if (readStream4 == NULL || writeStream4 == NULL)
 		{
-			err = [self otherError:@"Read/Write stream4 is null"];
+			err = [GCDAsyncUdpSocketError otherError:@"Read/Write stream4 is null"];
 			goto Failed;
 		}
 		
@@ -4953,7 +4864,7 @@ Failed:
 		
 		if (!r1 || !r2)
 		{
-			err = [self otherError:@"Error in CFStreamSetClient(), [IPv4]"];
+			err = [GCDAsyncUdpSocketError otherError:@"Error in CFStreamSetClient(), [IPv4]"];
 			goto Failed;
 		}
 	}
@@ -4962,7 +4873,7 @@ Failed:
 	{
 		if (readStream6 == NULL || writeStream6 == NULL)
 		{
-			err = [self otherError:@"Read/Write stream6 is null"];
+			err = [GCDAsyncUdpSocketError otherError:@"Read/Write stream6 is null"];
 			goto Failed;
 		}
 		
@@ -4971,7 +4882,7 @@ Failed:
 		
 		if (!r1 || !r2)
 		{
-			err = [self otherError:@"Error in CFStreamSetClient() [IPv6]"];
+			err = [GCDAsyncUdpSocketError otherError:@"Error in CFStreamSetClient() [IPv6]"];
 			goto Failed;
 		}
 	}
@@ -5033,7 +4944,7 @@ Failed:
 		
 		if (!r1 || !r2)
 		{
-			err = [self otherError:@"Error in CFStreamOpen() [IPv4]"];
+			err = [GCDAsyncUdpSocketError otherError:@"Error in CFStreamOpen() [IPv4]"];
 			goto Failed;
 		}
 	}
@@ -5045,7 +4956,7 @@ Failed:
 		
 		if (!r1 || !r2)
 		{
-			err = [self otherError:@"Error in CFStreamOpen() [IPv6]"];
+			err = [GCDAsyncUdpSocketError otherError:@"Error in CFStreamOpen() [IPv6]"];
 			goto Failed;
 		}
 	}

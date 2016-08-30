@@ -9,6 +9,7 @@
 //
 
 #import "GCDAsyncSocket.h"
+#import "GCDNSErrorFactory.h"
 
 #if TARGET_OS_IPHONE
 #import <CFNetwork/CFNetwork.h>
@@ -108,9 +109,6 @@ static const int logLevel = GCDAsyncSocketLogLevel;
 **/
 #define SOCKET_NULL -1
 
-
-NSString *const GCDAsyncSocketException = @"GCDAsyncSocketException";
-NSString *const GCDAsyncSocketErrorDomain = @"GCDAsyncSocketErrorDomain";
 
 NSString *const GCDAsyncSocketQueueName = @"GCDAsyncSocket";
 NSString *const GCDAsyncSocketThreadName = @"GCDAsyncSocket-CFStream";
@@ -1391,7 +1389,7 @@ enum GCDAsyncSocketConfig
 		if (socketFD == SOCKET_NULL)
 		{
 			NSString *reason = @"Error in socket() function";
-			err = [self errnoErrorWithReason:reason];
+			err = [GCDError errnoErrorWithReason:reason];
 			
 			return SOCKET_NULL;
 		}
@@ -1404,7 +1402,7 @@ enum GCDAsyncSocketConfig
 		if (status == -1)
 		{
 			NSString *reason = @"Error enabling non-blocking IO on socket (fcntl)";
-			err = [self errnoErrorWithReason:reason];
+			err = [GCDError errnoErrorWithReason:reason];
 			
 			LogVerbose(@"close(socketFD)");
 			close(socketFD);
@@ -1416,7 +1414,7 @@ enum GCDAsyncSocketConfig
 		if (status == -1)
 		{
 			NSString *reason = @"Error enabling address reuse (setsockopt)";
-			err = [self errnoErrorWithReason:reason];
+			err = [GCDError errnoErrorWithReason:reason];
 			
 			LogVerbose(@"close(socketFD)");
 			close(socketFD);
@@ -1429,7 +1427,7 @@ enum GCDAsyncSocketConfig
 		if (status == -1)
 		{
 			NSString *reason = @"Error in bind() function";
-			err = [self errnoErrorWithReason:reason];
+			err = [GCDError errnoErrorWithReason:reason];
 			
 			LogVerbose(@"close(socketFD)");
 			close(socketFD);
@@ -1442,7 +1440,7 @@ enum GCDAsyncSocketConfig
 		if (status == -1)
 		{
 			NSString *reason = @"Error in listen() function";
-			err = [self errnoErrorWithReason:reason];
+			err = [GCDError errnoErrorWithReason:reason];
 			
 			LogVerbose(@"close(socketFD)");
 			close(socketFD);
@@ -1459,7 +1457,7 @@ enum GCDAsyncSocketConfig
 		if (delegate == nil) // Must have delegate set
 		{
 			NSString *msg = @"Attempting to accept without a delegate. Set a delegate first.";
-			err = [self badConfigError:msg];
+			err = [GCDAsyncSocketError badConfigError:msg];
 			
 			return_from_block;
 		}
@@ -1467,7 +1465,7 @@ enum GCDAsyncSocketConfig
 		if (delegateQueue == NULL) // Must have delegate queue set
 		{
 			NSString *msg = @"Attempting to accept without a delegate queue. Set a delegate queue first.";
-			err = [self badConfigError:msg];
+			err = [GCDAsyncSocketError badConfigError:msg];
 			
 			return_from_block;
 		}
@@ -1478,7 +1476,7 @@ enum GCDAsyncSocketConfig
 		if (isIPv4Disabled && isIPv6Disabled) // Must have IPv4 or IPv6 enabled
 		{
 			NSString *msg = @"Both IPv4 and IPv6 have been disabled. Must enable at least one protocol first.";
-			err = [self badConfigError:msg];
+			err = [GCDAsyncSocketError badConfigError:msg];
 			
 			return_from_block;
 		}
@@ -1486,7 +1484,7 @@ enum GCDAsyncSocketConfig
 		if (![self isDisconnected]) // Must be disconnected
 		{
 			NSString *msg = @"Attempting to accept while connected or accepting connections. Disconnect first.";
-			err = [self badConfigError:msg];
+			err = [GCDAsyncSocketError badConfigError:msg];
 			
 			return_from_block;
 		}
@@ -1505,7 +1503,7 @@ enum GCDAsyncSocketConfig
 		if ((interface4 == nil) && (interface6 == nil))
 		{
 			NSString *msg = @"Unknown interface. Specify valid interface by name (e.g. \"en1\") or IP address.";
-			err = [self badParamError:msg];
+			err = [GCDAsyncSocketError badParamError:msg];
 			
 			return_from_block;
 		}
@@ -1513,7 +1511,7 @@ enum GCDAsyncSocketConfig
 		if (isIPv4Disabled && (interface6 == nil))
 		{
 			NSString *msg = @"IPv4 has been disabled and specified interface doesn't support IPv6.";
-			err = [self badParamError:msg];
+			err = [GCDAsyncSocketError badParamError:msg];
 			
 			return_from_block;
 		}
@@ -1521,7 +1519,7 @@ enum GCDAsyncSocketConfig
 		if (isIPv6Disabled && (interface4 == nil))
 		{
 			NSString *msg = @"IPv6 has been disabled and specified interface doesn't support IPv4.";
-			err = [self badParamError:msg];
+			err = [GCDAsyncSocketError badParamError:msg];
 			
 			return_from_block;
 		}
@@ -1704,7 +1702,7 @@ enum GCDAsyncSocketConfig
 		if (socketFD == SOCKET_NULL)
 		{
 			NSString *reason = @"Error in socket() function";
-			err = [self errnoErrorWithReason:reason];
+			err = [GCDError errnoErrorWithReason:reason];
 			
 			return SOCKET_NULL;
 		}
@@ -1717,7 +1715,7 @@ enum GCDAsyncSocketConfig
 		if (status == -1)
 		{
 			NSString *reason = @"Error enabling non-blocking IO on socket (fcntl)";
-			err = [self errnoErrorWithReason:reason];
+			err = [GCDError errnoErrorWithReason:reason];
 			
 			LogVerbose(@"close(socketFD)");
 			close(socketFD);
@@ -1729,7 +1727,7 @@ enum GCDAsyncSocketConfig
 		if (status == -1)
 		{
 			NSString *reason = @"Error enabling address reuse (setsockopt)";
-			err = [self errnoErrorWithReason:reason];
+			err = [GCDError errnoErrorWithReason:reason];
 			
 			LogVerbose(@"close(socketFD)");
 			close(socketFD);
@@ -1742,7 +1740,7 @@ enum GCDAsyncSocketConfig
 		if (status == -1)
 		{
 			NSString *reason = @"Error in bind() function";
-			err = [self errnoErrorWithReason:reason];
+			err = [GCDError errnoErrorWithReason:reason];
 			
 			LogVerbose(@"close(socketFD)");
 			close(socketFD);
@@ -1755,7 +1753,7 @@ enum GCDAsyncSocketConfig
 		if (status == -1)
 		{
 			NSString *reason = @"Error in listen() function";
-			err = [self errnoErrorWithReason:reason];
+			err = [GCDError errnoErrorWithReason:reason];
 			
 			LogVerbose(@"close(socketFD)");
 			close(socketFD);
@@ -1772,7 +1770,7 @@ enum GCDAsyncSocketConfig
 		if (delegate == nil) // Must have delegate set
 		{
 			NSString *msg = @"Attempting to accept without a delegate. Set a delegate first.";
-			err = [self badConfigError:msg];
+			err = [GCDAsyncSocketError badConfigError:msg];
 			
 			return_from_block;
 		}
@@ -1780,7 +1778,7 @@ enum GCDAsyncSocketConfig
 		if (delegateQueue == NULL) // Must have delegate queue set
 		{
 			NSString *msg = @"Attempting to accept without a delegate queue. Set a delegate queue first.";
-			err = [self badConfigError:msg];
+			err = [GCDAsyncSocketError badConfigError:msg];
 			
 			return_from_block;
 		}
@@ -1788,7 +1786,7 @@ enum GCDAsyncSocketConfig
 		if (![self isDisconnected]) // Must be disconnected
 		{
 			NSString *msg = @"Attempting to accept while connected or accepting connections. Disconnect first.";
-			err = [self badConfigError:msg];
+			err = [GCDAsyncSocketError badConfigError:msg];
 			
 			return_from_block;
 		}
@@ -1804,7 +1802,7 @@ enum GCDAsyncSocketConfig
 		if ([fileManager fileExistsAtPath:url.path]) {
 			if (![[NSFileManager defaultManager] removeItemAtURL:url error:&error]) {
 				NSString *msg = @"Could not remove previous unix domain socket at given url.";
-				err = [self otherError:msg];
+				err = [GCDAsyncSocketError otherError:msg];
 				
 				return_from_block;
 			}
@@ -1817,7 +1815,7 @@ enum GCDAsyncSocketConfig
 		if (interface == nil)
 		{
 			NSString *msg = @"Invalid unix domain url. Specify a valid file url that does not exist (e.g. \"file:///tmp/socket\")";
-			err = [self badParamError:msg];
+			err = [GCDAsyncSocketError badParamError:msg];
 			
 			return_from_block;
 		}
@@ -1907,7 +1905,7 @@ enum GCDAsyncSocketConfig
 		
 		if (childSocketFD == -1)
 		{
-			LogWarn(@"Accept failed with error: %@", [self errnoError]);
+			LogWarn(@"Accept failed with error: %@", [NSError errnoError]);
 			return NO;
 		}
 		
@@ -1924,7 +1922,7 @@ enum GCDAsyncSocketConfig
 		
 		if (childSocketFD == -1)
 		{
-			LogWarn(@"Accept failed with error: %@", [self errnoError]);
+			LogWarn(@"Accept failed with error: %@", [NSError errnoError]);
 			return NO;
 		}
 		
@@ -1941,7 +1939,7 @@ enum GCDAsyncSocketConfig
 		
 		if (childSocketFD == -1)
 		{
-			LogWarn(@"Accept failed with error: %@", [self errnoError]);
+			LogWarn(@"Accept failed with error: %@", [NSError errnoError]);
 			return NO;
 		}
 		
@@ -2040,7 +2038,7 @@ enum GCDAsyncSocketConfig
 		if (errPtr)
 		{
 			NSString *msg = @"Attempting to connect without a delegate. Set a delegate first.";
-			*errPtr = [self badConfigError:msg];
+			*errPtr = [GCDAsyncSocketError badConfigError:msg];
 		}
 		return NO;
 	}
@@ -2050,7 +2048,7 @@ enum GCDAsyncSocketConfig
 		if (errPtr)
 		{
 			NSString *msg = @"Attempting to connect without a delegate queue. Set a delegate queue first.";
-			*errPtr = [self badConfigError:msg];
+			*errPtr = [GCDAsyncSocketError badConfigError:msg];
 		}
 		return NO;
 	}
@@ -2060,7 +2058,7 @@ enum GCDAsyncSocketConfig
 		if (errPtr)
 		{
 			NSString *msg = @"Attempting to connect while connected or accepting connections. Disconnect first.";
-			*errPtr = [self badConfigError:msg];
+			*errPtr = [GCDAsyncSocketError badConfigError:msg];
 		}
 		return NO;
 	}
@@ -2073,7 +2071,7 @@ enum GCDAsyncSocketConfig
 		if (errPtr)
 		{
 			NSString *msg = @"Both IPv4 and IPv6 have been disabled. Must enable at least one protocol first.";
-			*errPtr = [self badConfigError:msg];
+			*errPtr = [GCDAsyncSocketError badConfigError:msg];
 		}
 		return NO;
 	}
@@ -2090,7 +2088,7 @@ enum GCDAsyncSocketConfig
 			if (errPtr)
 			{
 				NSString *msg = @"Unknown interface. Specify valid interface by name (e.g. \"en1\") or IP address.";
-				*errPtr = [self badParamError:msg];
+				*errPtr = [GCDAsyncSocketError badParamError:msg];
 			}
 			return NO;
 		}
@@ -2100,7 +2098,7 @@ enum GCDAsyncSocketConfig
 			if (errPtr)
 			{
 				NSString *msg = @"IPv4 has been disabled and specified interface doesn't support IPv6.";
-				*errPtr = [self badParamError:msg];
+				*errPtr = [GCDAsyncSocketError badParamError:msg];
 			}
 			return NO;
 		}
@@ -2110,7 +2108,7 @@ enum GCDAsyncSocketConfig
 			if (errPtr)
 			{
 				NSString *msg = @"IPv6 has been disabled and specified interface doesn't support IPv4.";
-				*errPtr = [self badParamError:msg];
+				*errPtr = [GCDAsyncSocketError badParamError:msg];
 			}
 			return NO;
 		}
@@ -2135,7 +2133,7 @@ enum GCDAsyncSocketConfig
 		if (errPtr)
 		{
 			NSString *msg = @"Attempting to connect without a delegate. Set a delegate first.";
-			*errPtr = [self badConfigError:msg];
+			*errPtr = [GCDAsyncSocketError badConfigError:msg];
 		}
 		return NO;
 	}
@@ -2145,7 +2143,7 @@ enum GCDAsyncSocketConfig
 		if (errPtr)
 		{
 			NSString *msg = @"Attempting to connect without a delegate queue. Set a delegate queue first.";
-			*errPtr = [self badConfigError:msg];
+			*errPtr = [GCDAsyncSocketError badConfigError:msg];
 		}
 		return NO;
 	}
@@ -2155,7 +2153,7 @@ enum GCDAsyncSocketConfig
 		if (errPtr)
 		{
 			NSString *msg = @"Attempting to connect while connected or accepting connections. Disconnect first.";
-			*errPtr = [self badConfigError:msg];
+			*errPtr = [GCDAsyncSocketError badConfigError:msg];
 		}
 		return NO;
 	}
@@ -2167,7 +2165,7 @@ enum GCDAsyncSocketConfig
 		if (errPtr)
 		{
 			NSString *msg = @"Unknown interface. Specify valid interface by name (e.g. \"en1\") or IP address.";
-			*errPtr = [self badParamError:msg];
+			*errPtr = [GCDAsyncSocketError badParamError:msg];
 		}
 		return NO;
 	}
@@ -2216,7 +2214,7 @@ enum GCDAsyncSocketConfig
 		if ([host length] == 0)
 		{
 			NSString *msg = @"Invalid host parameter (nil or \"\"). Should be a domain name or IP address string.";
-			preConnectErr = [self badParamError:msg];
+			preConnectErr = [GCDAsyncSocketError badParamError:msg];
 			
 			return_from_block;
 		}
@@ -2357,7 +2355,7 @@ enum GCDAsyncSocketConfig
 		if ((address4 == nil) && (address6 == nil))
 		{
 			NSString *msg = @"A valid IPv4 or IPv6 address was not given";
-			err = [self badParamError:msg];
+			err = [GCDAsyncSocketError badParamError:msg];
 			
 			return_from_block;
 		}
@@ -2368,7 +2366,7 @@ enum GCDAsyncSocketConfig
 		if (isIPv4Disabled && (address4 != nil))
 		{
 			NSString *msg = @"IPv4 has been disabled and an IPv4 address was passed.";
-			err = [self badParamError:msg];
+			err = [GCDAsyncSocketError badParamError:msg];
 			
 			return_from_block;
 		}
@@ -2376,7 +2374,7 @@ enum GCDAsyncSocketConfig
 		if (isIPv6Disabled && (address6 != nil))
 		{
 			NSString *msg = @"IPv6 has been disabled and an IPv6 address was passed.";
-			err = [self badParamError:msg];
+			err = [GCDAsyncSocketError badParamError:msg];
 			
 			return_from_block;
 		}
@@ -2431,7 +2429,7 @@ enum GCDAsyncSocketConfig
 		if ([url.path length] == 0)
 		{
 			NSString *msg = @"Invalid unix domain socket url.";
-			err = [self badParamError:msg];
+			err = [GCDAsyncSocketError badParamError:msg];
 			
 			return_from_block;
 		}
@@ -2502,7 +2500,7 @@ enum GCDAsyncSocketConfig
 	{
 		NSString *msg = @"IPv4 has been disabled and DNS lookup found no IPv6 address.";
 		
-		[self closeWithError:[self otherError:msg]];
+		[self closeWithError:[GCDAsyncSocketError otherError:msg]];
 		return;
 	}
 	
@@ -2510,7 +2508,7 @@ enum GCDAsyncSocketConfig
 	{
 		NSString *msg = @"IPv6 has been disabled and DNS lookup found no IPv4 address.";
 		
-		[self closeWithError:[self otherError:msg]];
+		[self closeWithError:[GCDAsyncSocketError otherError:msg]];
 		return;
 	}
 	
@@ -2574,7 +2572,7 @@ enum GCDAsyncSocketConfig
         if (result != 0)
         {
             if (errPtr)
-                *errPtr = [self errnoErrorWithReason:@"Error in bind() function"];
+                *errPtr = [GCDError errnoErrorWithReason:@"Error in bind() function"];
             
             return NO;
         }
@@ -2590,7 +2588,7 @@ enum GCDAsyncSocketConfig
     if (socketFD == SOCKET_NULL)
     {
         if (errPtr)
-            *errPtr = [self errnoErrorWithReason:@"Error in socket() function"];
+            *errPtr = [GCDError errnoErrorWithReason:@"Error in socket() function"];
         
         return socketFD;
     }
@@ -2654,7 +2652,7 @@ enum GCDAsyncSocketConfig
                 // If there are no more sockets trying to connect, we inform the error to the delegate
                 if (strongSelf.socket4FD == SOCKET_NULL && strongSelf.socket6FD == SOCKET_NULL)
                 {
-                    NSError *error = [strongSelf errnoErrorWithReason:@"Error in connect() function"];
+                    NSError *error = [GCDError errnoErrorWithReason:@"Error in connect() function"];
                     [strongSelf didNotConnect:aStateIndex error:error];
                 }
             }
@@ -2783,7 +2781,7 @@ enum GCDAsyncSocketConfig
 	if (socketFD == SOCKET_NULL)
 	{
 		if (errPtr)
-			*errPtr = [self errnoErrorWithReason:@"Error in socket() function"];
+			*errPtr = [GCDError errnoErrorWithReason:@"Error in socket() function"];
 		
 		return NO;
 	}
@@ -2801,7 +2799,7 @@ enum GCDAsyncSocketConfig
 //	if (result != 0)
 //	{
 //		if (errPtr)
-//			*errPtr = [self errnoErrorWithReason:@"Error in bind() function"];
+//			*errPtr = [GCDError errnoErrorWithReason:@"Error in bind() function"];
 //		
 //		return NO;
 //	}
@@ -2831,7 +2829,7 @@ enum GCDAsyncSocketConfig
 		{
 			// TODO: Bad file descriptor
 			perror("connect");
-			NSError *error = [self errnoErrorWithReason:@"Error in connect() function"];
+			NSError *error = [GCDError errnoErrorWithReason:@"Error in connect() function"];
 			
 			dispatch_async(socketQueue, ^{ @autoreleasepool {
 				
@@ -2884,13 +2882,13 @@ enum GCDAsyncSocketConfig
 		
 		if (![self createReadAndWriteStream])
 		{
-			[self closeWithError:[self otherError:@"Error creating CFStreams"]];
+			[self closeWithError:[GCDAsyncSocketError otherError:@"Error creating CFStreams"]];
 			return;
 		}
 		
 		if (![self registerForStreamCallbacksIncludingReadWrite:NO])
 		{
-			[self closeWithError:[self otherError:@"Error in CFStreamSetClient"]];
+			[self closeWithError:[GCDAsyncSocketError otherError:@"Error in CFStreamSetClient"]];
 			return;
 		}
 		
@@ -2907,13 +2905,13 @@ enum GCDAsyncSocketConfig
 		
 		if (![self addStreamsToRunLoop])
 		{
-			[self closeWithError:[self otherError:@"Error in CFStreamScheduleWithRunLoop"]];
+			[self closeWithError:[GCDAsyncSocketError otherError:@"Error in CFStreamScheduleWithRunLoop"]];
 			return;
 		}
 		
 		if (![self openStreams])
 		{
-			[self closeWithError:[self otherError:@"Error creating CFStreams"]];
+			[self closeWithError:[GCDAsyncSocketError otherError:@"Error creating CFStreams"]];
 			return;
 		}
 		
@@ -2972,7 +2970,7 @@ enum GCDAsyncSocketConfig
 	if (result == -1)
 	{
 		NSString *errMsg = @"Error enabling non-blocking IO on socket (fcntl)";
-		[self closeWithError:[self otherError:errMsg]];
+		[self closeWithError:[GCDAsyncSocketError otherError:errMsg]];
 		
 		return;
 	}
@@ -3079,7 +3077,7 @@ enum GCDAsyncSocketConfig
 	LogTrace();
 	
 	[self endConnectTimeout];
-	[self closeWithError:[self connectTimeoutError]];
+	[self closeWithError:[GCDAsyncSocketError connectTimeoutError]];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3354,130 +3352,6 @@ enum GCDAsyncSocketConfig
 	{
 		[self closeWithError:nil];
 	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#pragma mark Errors
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-- (NSError *)badConfigError:(NSString *)errMsg
-{
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
-	
-	return [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketBadConfigError userInfo:userInfo];
-}
-
-- (NSError *)badParamError:(NSString *)errMsg
-{
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
-	
-	return [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketBadParamError userInfo:userInfo];
-}
-
-+ (NSError *)gaiError:(int)gai_error tryingToLookUpHost:(NSString *)host andPort:(NSString *)port
-{
-    NSString *errMsg = [NSString stringWithCString:gai_strerror(gai_error) encoding:NSASCIIStringEncoding];
-    NSDictionary *userInfo = [NSDictionary dictionaryWithObjectsAndKeys:errMsg, NSLocalizedDescriptionKey,
-                              host, @"host",
-                              port, @"port", nil];
-	
-	return [NSError errorWithDomain:@"kCFStreamErrorDomainNetDB" code:gai_error userInfo:userInfo];
-}
-
-- (NSError *)errnoErrorWithReason:(NSString *)reason
-{
-	NSString *errMsg = [NSString stringWithUTF8String:strerror(errno)];
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObjectsAndKeys:errMsg, NSLocalizedDescriptionKey,
-	                                                                    reason, NSLocalizedFailureReasonErrorKey, nil];
-	
-	return [NSError errorWithDomain:NSPOSIXErrorDomain code:errno userInfo:userInfo];
-}
-
-- (NSError *)errnoError
-{
-	NSString *errMsg = [NSString stringWithUTF8String:strerror(errno)];
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
-	
-	return [NSError errorWithDomain:NSPOSIXErrorDomain code:errno userInfo:userInfo];
-}
-
-- (NSError *)sslError:(OSStatus)ssl_error
-{
-	NSString *msg = @"Error code definition can be found in Apple's SecureTransport.h";
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:msg forKey:NSLocalizedRecoverySuggestionErrorKey];
-	
-	return [NSError errorWithDomain:@"kCFStreamErrorDomainSSL" code:ssl_error userInfo:userInfo];
-}
-
-- (NSError *)connectTimeoutError
-{
-	NSString *errMsg = NSLocalizedStringWithDefaultValue(@"GCDAsyncSocketConnectTimeoutError",
-	                                                     @"GCDAsyncSocket", [NSBundle mainBundle],
-	                                                     @"Attempt to connect to host timed out", nil);
-	
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
-	
-	return [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketConnectTimeoutError userInfo:userInfo];
-}
-
-/**
- * Returns a standard AsyncSocket maxed out error.
-**/
-- (NSError *)readMaxedOutError
-{
-	NSString *errMsg = NSLocalizedStringWithDefaultValue(@"GCDAsyncSocketReadMaxedOutError",
-														 @"GCDAsyncSocket", [NSBundle mainBundle],
-														 @"Read operation reached set maximum length", nil);
-	
-	NSDictionary *info = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
-	
-	return [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketReadMaxedOutError userInfo:info];
-}
-
-/**
- * Returns a standard AsyncSocket write timeout error.
-**/
-- (NSError *)readTimeoutError
-{
-	NSString *errMsg = NSLocalizedStringWithDefaultValue(@"GCDAsyncSocketReadTimeoutError",
-	                                                     @"GCDAsyncSocket", [NSBundle mainBundle],
-	                                                     @"Read operation timed out", nil);
-	
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
-	
-	return [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketReadTimeoutError userInfo:userInfo];
-}
-
-/**
- * Returns a standard AsyncSocket write timeout error.
-**/
-- (NSError *)writeTimeoutError
-{
-	NSString *errMsg = NSLocalizedStringWithDefaultValue(@"GCDAsyncSocketWriteTimeoutError",
-	                                                     @"GCDAsyncSocket", [NSBundle mainBundle],
-	                                                     @"Write operation timed out", nil);
-	
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
-	
-	return [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketWriteTimeoutError userInfo:userInfo];
-}
-
-- (NSError *)connectionClosedError
-{
-	NSString *errMsg = NSLocalizedStringWithDefaultValue(@"GCDAsyncSocketClosedError",
-	                                                     @"GCDAsyncSocket", [NSBundle mainBundle],
-	                                                     @"Socket closed by remote peer", nil);
-	
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
-	
-	return [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketClosedError userInfo:userInfo];
-}
-
-- (NSError *)otherError:(NSString *)errMsg
-{
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
-	
-	return [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketOtherError userInfo:userInfo];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -4952,7 +4826,7 @@ enum GCDAsyncSocketConfig
 				
 				if (currentRead->bytesDone >= currentRead->maxLength)
 				{
-					error = [self readMaxedOutError];
+					error = [GCDAsyncSocketError readMaxedOutError];
 				}
 			}
 		}
@@ -5128,7 +5002,7 @@ enum GCDAsyncSocketConfig
 						}
 						else
 						{
-							error = [self sslError:result];
+							error = [GCDAsyncSocketError sslError:result];
 						}
 					}
 					// It's possible that bytesRead > 0, even if the result was errSSLWouldBlock.
@@ -5207,7 +5081,7 @@ enum GCDAsyncSocketConfig
 				if (errno == EWOULDBLOCK)
 					waiting = YES;
 				else
-					error = [self errnoErrorWithReason:@"Error in read() function"];
+					error = [GCDError errnoErrorWithReason:@"Error in read() function"];
 				
 				socketFDBytesAvailable = 0;
 			}
@@ -5355,7 +5229,7 @@ enum GCDAsyncSocketConfig
 					
 					if (currentRead->bytesDone >= currentRead->maxLength)
 					{
-						error = [self readMaxedOutError];
+						error = [GCDAsyncSocketError readMaxedOutError];
 					}
 				}
 			}
@@ -5494,7 +5368,7 @@ enum GCDAsyncSocketConfig
 		
 		if ([self usingSecureTransportForTLS])
 		{
-			error = [self sslError:errSSLClosedAbort];
+			error = [GCDAsyncSocketError sslError:errSSLClosedAbort];
 		}
 	}
 	else if (flags & kReadStreamClosed)
@@ -5573,16 +5447,16 @@ enum GCDAsyncSocketConfig
 			{
 				if (sslErrCode != noErr && sslErrCode != errSSLClosedGraceful)
 				{
-					error = [self sslError:sslErrCode];
+					error = [GCDAsyncSocketError sslError:sslErrCode];
 				}
 				else
 				{
-					error = [self connectionClosedError];
+					error = [GCDAsyncSocketError connectionClosedError];
 				}
 			}
 			else
 			{
-				error = [self connectionClosedError];
+				error = [GCDAsyncSocketError connectionClosedError];
 			}
 		}
 		[self closeWithError:error];
@@ -5757,7 +5631,7 @@ enum GCDAsyncSocketConfig
 		{
 			LogVerbose(@"ReadTimeout");
 			
-			[self closeWithError:[self readTimeoutError]];
+			[self closeWithError:[GCDAsyncSocketError readTimeoutError]];
 		}
 	}
 }
@@ -6084,7 +5958,7 @@ enum GCDAsyncSocketConfig
 					}
 					else
 					{
-						error = [self sslError:result];
+						error = [GCDAsyncSocketError sslError:result];
 					}
 					
 					// Can't write any new data since we were unable to write the cached data.
@@ -6133,7 +6007,7 @@ enum GCDAsyncSocketConfig
 						}
 						else
 						{
-							error = [self sslError:result];
+							error = [GCDAsyncSocketError sslError:result];
 						}
 						
 						keepLooping = NO;
@@ -6173,7 +6047,7 @@ enum GCDAsyncSocketConfig
 			}
 			else
 			{
-				error = [self errnoErrorWithReason:@"Error in write() function"];
+				error = [GCDError errnoErrorWithReason:@"Error in write() function"];
 			}
 		}
 		else
@@ -6266,7 +6140,7 @@ enum GCDAsyncSocketConfig
 	
 	if (error)
 	{
-		[self closeWithError:[self errnoErrorWithReason:@"Error in write() function"]];
+		[self closeWithError:[GCDError errnoErrorWithReason:@"Error in write() function"]];
 	}
 	
 	// Do not add any code here without first adding a return statement in the error case above.
@@ -6400,7 +6274,7 @@ enum GCDAsyncSocketConfig
 		{
 			LogVerbose(@"WriteTimeout");
 			
-			[self closeWithError:[self writeTimeoutError]];
+			[self closeWithError:[GCDAsyncSocketError writeTimeoutError]];
 		}
 	}
 }
@@ -6736,7 +6610,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	{
 		NSAssert(NO, @"Logic error");
 		
-		[self closeWithError:[self otherError:@"Logic error"]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Logic error"]];
 		return;
 	}
 	NSDictionary *tlsSettings = tlsPacket->tlsSettings;
@@ -6754,7 +6628,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		
 		if (sslContext == NULL)
 		{
-			[self closeWithError:[self otherError:@"Error in SSLCreateContext"]];
+			[self closeWithError:[GCDAsyncSocketError otherError:@"Error in SSLCreateContext"]];
 			return;
 		}
 	}
@@ -6763,7 +6637,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		status = SSLNewContext(isServer, &sslContext);
 		if (status != noErr)
 		{
-			[self closeWithError:[self otherError:@"Error in SSLNewContext"]];
+			[self closeWithError:[GCDAsyncSocketError otherError:@"Error in SSLNewContext"]];
 			return;
 		}
 	}
@@ -6772,14 +6646,14 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	status = SSLSetIOFuncs(sslContext, &SSLReadFunction, &SSLWriteFunction);
 	if (status != noErr)
 	{
-		[self closeWithError:[self otherError:@"Error in SSLSetIOFuncs"]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Error in SSLSetIOFuncs"]];
 		return;
 	}
 	
 	status = SSLSetConnection(sslContext, (__bridge SSLConnectionRef)self);
 	if (status != noErr)
 	{
-		[self closeWithError:[self otherError:@"Error in SSLSetConnection"]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Error in SSLSetConnection"]];
 		return;
 	}
 
@@ -6789,14 +6663,14 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	{
 		if (isServer)
 		{
-			[self closeWithError:[self otherError:@"Manual trust validation is not supported for server sockets"]];
+			[self closeWithError:[GCDAsyncSocketError otherError:@"Manual trust validation is not supported for server sockets"]];
 			return;
 		}
 		
 		status = SSLSetSessionOption(sslContext, kSSLSessionOptionBreakOnServerAuth, true);
 		if (status != noErr)
 		{
-			[self closeWithError:[self otherError:@"Error in SSLSetSessionOption"]];
+			[self closeWithError:[GCDAsyncSocketError otherError:@"Error in SSLSetSessionOption"]];
 			return;
 		}
 		
@@ -6812,7 +6686,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		status = SSLSetEnableCertVerify(sslContext, NO);
 		if (status != noErr)
 		{
-			[self closeWithError:[self otherError:@"Error in SSLSetEnableCertVerify"]];
+			[self closeWithError:[GCDAsyncSocketError otherError:@"Error in SSLSetEnableCertVerify"]];
 			return;
 		}
 		
@@ -6854,7 +6728,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		status = SSLSetPeerDomainName(sslContext, peer, peerLen);
 		if (status != noErr)
 		{
-			[self closeWithError:[self otherError:@"Error in SSLSetPeerDomainName"]];
+			[self closeWithError:[GCDAsyncSocketError otherError:@"Error in SSLSetPeerDomainName"]];
 			return;
 		}
 	}
@@ -6862,7 +6736,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	{
 		NSAssert(NO, @"Invalid value for kCFStreamSSLPeerName. Value must be of type NSString.");
 		
-		[self closeWithError:[self otherError:@"Invalid value for kCFStreamSSLPeerName."]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Invalid value for kCFStreamSSLPeerName."]];
 		return;
 	}
 	
@@ -6876,7 +6750,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		status = SSLSetCertificate(sslContext, certs);
 		if (status != noErr)
 		{
-			[self closeWithError:[self otherError:@"Error in SSLSetCertificate"]];
+			[self closeWithError:[GCDAsyncSocketError otherError:@"Error in SSLSetCertificate"]];
 			return;
 		}
 	}
@@ -6884,7 +6758,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	{
 		NSAssert(NO, @"Invalid value for kCFStreamSSLCertificates. Value must be of type NSArray.");
 		
-		[self closeWithError:[self otherError:@"Invalid value for kCFStreamSSLCertificates."]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Invalid value for kCFStreamSSLCertificates."]];
 		return;
 	}
 	
@@ -6898,7 +6772,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		status = SSLSetPeerID(sslContext, [peerIdData bytes], [peerIdData length]);
 		if (status != noErr)
 		{
-			[self closeWithError:[self otherError:@"Error in SSLSetPeerID"]];
+			[self closeWithError:[GCDAsyncSocketError otherError:@"Error in SSLSetPeerID"]];
 			return;
 		}
 	}
@@ -6908,7 +6782,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		             @" (You can convert strings to data using a method like"
 		             @" [string dataUsingEncoding:NSUTF8StringEncoding])");
 		
-		[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLPeerID."]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Invalid value for GCDAsyncSocketSSLPeerID."]];
 		return;
 	}
 	
@@ -6923,7 +6797,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 			status = SSLSetProtocolVersionMin(sslContext, minProtocol);
 			if (status != noErr)
 			{
-				[self closeWithError:[self otherError:@"Error in SSLSetProtocolVersionMin"]];
+				[self closeWithError:[GCDAsyncSocketError otherError:@"Error in SSLSetProtocolVersionMin"]];
 				return;
 			}
 		}
@@ -6932,7 +6806,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	{
 		NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLProtocolVersionMin. Value must be of type NSNumber.");
 		
-		[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLProtocolVersionMin."]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Invalid value for GCDAsyncSocketSSLProtocolVersionMin."]];
 		return;
 	}
 	
@@ -6947,7 +6821,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 			status = SSLSetProtocolVersionMax(sslContext, maxProtocol);
 			if (status != noErr)
 			{
-				[self closeWithError:[self otherError:@"Error in SSLSetProtocolVersionMax"]];
+				[self closeWithError:[GCDAsyncSocketError otherError:@"Error in SSLSetProtocolVersionMax"]];
 				return;
 			}
 		}
@@ -6956,7 +6830,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	{
 		NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLProtocolVersionMax. Value must be of type NSNumber.");
 		
-		[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLProtocolVersionMax."]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Invalid value for GCDAsyncSocketSSLProtocolVersionMax."]];
 		return;
 	}
 	
@@ -6968,7 +6842,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		status = SSLSetSessionOption(sslContext, kSSLSessionOptionFalseStart, [value boolValue]);
 		if (status != noErr)
 		{
-			[self closeWithError:[self otherError:@"Error in SSLSetSessionOption (kSSLSessionOptionFalseStart)"]];
+			[self closeWithError:[GCDAsyncSocketError otherError:@"Error in SSLSetSessionOption (kSSLSessionOptionFalseStart)"]];
 			return;
 		}
 	}
@@ -6976,7 +6850,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	{
 		NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLSessionOptionFalseStart. Value must be of type NSNumber.");
 		
-		[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLSessionOptionFalseStart."]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Invalid value for GCDAsyncSocketSSLSessionOptionFalseStart."]];
 		return;
 	}
 	
@@ -6989,7 +6863,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		if (status != noErr)
 		{
 			[self closeWithError:
-			  [self otherError:@"Error in SSLSetSessionOption (kSSLSessionOptionSendOneByteRecord)"]];
+			  [GCDAsyncSocketError otherError:@"Error in SSLSetSessionOption (kSSLSessionOptionSendOneByteRecord)"]];
 			return;
 		}
 	}
@@ -6998,7 +6872,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLSessionOptionSendOneByteRecord."
 		             @" Value must be of type NSNumber.");
 		
-		[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLSessionOptionSendOneByteRecord."]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Invalid value for GCDAsyncSocketSSLSessionOptionSendOneByteRecord."]];
 		return;
 	}
 	
@@ -7021,7 +6895,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		status = SSLSetEnabledCiphers(sslContext, ciphers, numberCiphers);
 		if (status != noErr)
 		{
-			[self closeWithError:[self otherError:@"Error in SSLSetEnabledCiphers"]];
+			[self closeWithError:[GCDAsyncSocketError otherError:@"Error in SSLSetEnabledCiphers"]];
 			return;
 		}
 	}
@@ -7029,7 +6903,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	{
 		NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLCipherSuites. Value must be of type NSArray.");
 		
-		[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLCipherSuites."]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Invalid value for GCDAsyncSocketSSLCipherSuites."]];
 		return;
 	}
 	
@@ -7044,7 +6918,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		status = SSLSetDiffieHellmanParams(sslContext, [diffieHellmanData bytes], [diffieHellmanData length]);
 		if (status != noErr)
 		{
-			[self closeWithError:[self otherError:@"Error in SSLSetDiffieHellmanParams"]];
+			[self closeWithError:[GCDAsyncSocketError otherError:@"Error in SSLSetDiffieHellmanParams"]];
 			return;
 		}
 	}
@@ -7052,7 +6926,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	{
 		NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLDiffieHellmanParameters. Value must be of type NSData.");
 		
-		[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLDiffieHellmanParameters."]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Invalid value for GCDAsyncSocketSSLDiffieHellmanParameters."]];
 		return;
 	}
 	#endif
@@ -7070,7 +6944,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		NSAssert(NO, @"Security option unavailable - kCFStreamSSLAllowsAnyRoot"
 		             @" - You must use manual trust evaluation");
 		
-		[self closeWithError:[self otherError:@"Security option unavailable - kCFStreamSSLAllowsAnyRoot"]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Security option unavailable - kCFStreamSSLAllowsAnyRoot"]];
 		return;
 	}
 	
@@ -7085,7 +6959,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		NSAssert(NO, @"Security option unavailable - kCFStreamSSLAllowsExpiredRoots"
 		             @" - You must use manual trust evaluation");
 		
-		[self closeWithError:[self otherError:@"Security option unavailable - kCFStreamSSLAllowsExpiredRoots"]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Security option unavailable - kCFStreamSSLAllowsExpiredRoots"]];
 		return;
 	}
 	
@@ -7100,7 +6974,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		NSAssert(NO, @"Security option unavailable - kCFStreamSSLValidatesCertificateChain"
 		             @" - You must use manual trust evaluation");
 		
-		[self closeWithError:[self otherError:@"Security option unavailable - kCFStreamSSLValidatesCertificateChain"]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Security option unavailable - kCFStreamSSLValidatesCertificateChain"]];
 		return;
 	}
 	
@@ -7115,7 +6989,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		NSAssert(NO, @"Security option unavailable - kCFStreamSSLAllowsExpiredCertificates"
 		             @" - You must use manual trust evaluation");
 		
-		[self closeWithError:[self otherError:@"Security option unavailable - kCFStreamSSLAllowsExpiredCertificates"]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Security option unavailable - kCFStreamSSLAllowsExpiredCertificates"]];
 		return;
 	}
 	
@@ -7130,7 +7004,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		NSAssert(NO, @"Security option unavailable - kCFStreamSSLLevel"
 		             @" - You must use GCDAsyncSocketSSLProtocolVersionMin & GCDAsyncSocketSSLProtocolVersionMax");
 		
-		[self closeWithError:[self otherError:@"Security option unavailable - kCFStreamSSLLevel"]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Security option unavailable - kCFStreamSSLLevel"]];
 		return;
 	}
 	
@@ -7206,7 +7080,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		status = SSLCopyPeerTrust(sslContext, &trust);
 		if (status != noErr)
 		{
-			[self closeWithError:[self sslError:status]];
+			[self closeWithError:[GCDAsyncSocketError sslError:status]];
 			return;
 		}
 		
@@ -7255,7 +7129,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 			NSString *msg = @"GCDAsyncSocketManuallyEvaluateTrust specified in tlsSettings,"
 			                @" but delegate doesn't implement socket:shouldTrustPeer:";
 			
-			[self closeWithError:[self otherError:msg]];
+			[self closeWithError:[GCDAsyncSocketError otherError:msg]];
 			return;
 		}
 	}
@@ -7269,7 +7143,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	}
 	else
 	{
-		[self closeWithError:[self sslError:status]];
+		[self closeWithError:[GCDAsyncSocketError sslError:status]];
 	}
 }
 
@@ -7299,7 +7173,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	}
 	else
 	{
-		[self closeWithError:[self sslError:errSSLPeerBadCert]];
+		[self closeWithError:[GCDAsyncSocketError sslError:errSSLPeerBadCert]];
 	}
 }
 
@@ -7361,7 +7235,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	{
 		NSString *msg = @"Invalid TLS transition. Handshake has already been read from socket.";
 		
-		[self closeWithError:[self otherError:msg]];
+		[self closeWithError:[GCDAsyncSocketError otherError:msg]];
 		return;
 	}
 	
@@ -7376,19 +7250,19 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	if (![self createReadAndWriteStream])
 	{
-		[self closeWithError:[self otherError:@"Error in CFStreamCreatePairWithSocket"]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Error in CFStreamCreatePairWithSocket"]];
 		return;
 	}
 	
 	if (![self registerForStreamCallbacksIncludingReadWrite:YES])
 	{
-		[self closeWithError:[self otherError:@"Error in CFStreamSetClient"]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Error in CFStreamSetClient"]];
 		return;
 	}
 	
 	if (![self addStreamsToRunLoop])
 	{
-		[self closeWithError:[self otherError:@"Error in CFStreamScheduleWithRunLoop"]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Error in CFStreamScheduleWithRunLoop"]];
 		return;
 	}
 	
@@ -7425,13 +7299,13 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	if (!r1 && !r2) // Yes, the && is correct - workaround for apple bug.
 	{
-		[self closeWithError:[self otherError:@"Error in CFStreamSetProperty"]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Error in CFStreamSetProperty"]];
 		return;
 	}
 	
 	if (![self openStreams])
 	{
-		[self closeWithError:[self otherError:@"Error in CFStreamOpen"]];
+		[self closeWithError:[GCDAsyncSocketError otherError:@"Error in CFStreamOpen"]];
 		return;
 	}
 	
@@ -7607,7 +7481,7 @@ static void CFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType type
 			
 			if (error == nil && type == kCFStreamEventEndEncountered)
 			{
-				error = [asyncSocket connectionClosedError];
+				error = [GCDAsyncSocketError connectionClosedError];
 			}
 			
 			dispatch_async(asyncSocket->socketQueue, ^{ @autoreleasepool {
@@ -7674,7 +7548,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 			
 			if (error == nil && type == kCFStreamEventEndEncountered)
 			{
-				error = [asyncSocket connectionClosedError];
+				error = [GCDAsyncSocketError connectionClosedError];
 			}
 			
 			dispatch_async(asyncSocket->socketQueue, ^{ @autoreleasepool {
@@ -8157,7 +8031,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 		
 		if (gai_error)
 		{
-			error = [self gaiError:gai_error tryingToLookUpHost:host andPort:portStr];
+			error = [GCDError gaiError:gai_error tryingToLookUpHost:host andPort:portStr];
 		}
 		else
 		{
@@ -8203,7 +8077,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 			
 			if ([addresses count] == 0)
 			{
-                error = [self gaiError:EAI_FAIL tryingToLookUpHost:host andPort:portStr];
+                error = [GCDError gaiError:EAI_FAIL tryingToLookUpHost:host andPort:portStr];
 			}
 		}
 	}
