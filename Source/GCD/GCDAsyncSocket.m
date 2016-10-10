@@ -914,7 +914,7 @@ enum GCDAsyncSocketConfig
 	void *IsOnSocketQueueOrTargetQueueKey;
 	
 	id userData;
-    NSTimeInterval alternateAddressDelay;
+    int connectionAttemptTimeout;
 }
 
 - (id)init
@@ -997,7 +997,7 @@ enum GCDAsyncSocketConfig
 		currentWrite = nil;
 		
 		preBuffer = [[GCDAsyncSocketPreBuffer alloc] initWithCapacity:(1024 * 4)];
-        alternateAddressDelay = 0.3;
+        connectionAttemptTimeout = 2;
 	}
 	return self;
 }
@@ -1307,21 +1307,21 @@ enum GCDAsyncSocketConfig
 		dispatch_async(socketQueue, block);
 }
 
-- (NSTimeInterval) alternateAddressDelay {
-    __block NSTimeInterval delay;
+- (int) connectionAttemptTimeout {
+    __block int timeout;
     dispatch_block_t block = ^{
-        delay = alternateAddressDelay;
+        timeout = connectionAttemptTimeout;
     };
     if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
         block();
     else
         dispatch_sync(socketQueue, block);
-    return delay;
+    return timeout;
 }
 
-- (void) setAlternateAddressDelay:(NSTimeInterval)delay {
+- (void) setConnectionAttemptTimeout:(int)timeout {
     dispatch_block_t block = ^{
-        alternateAddressDelay = delay;
+        connectionAttemptTimeout = timeout;
     };
     if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
         block();
@@ -2251,6 +2251,8 @@ enum GCDAsyncSocketConfig
 			
 			NSError *lookupErr = nil;
 			NSMutableArray *addresses = [[self class] lookupHost:hostCpy port:port error:&lookupErr];
+			NSMutableArray *address4es = [NSMutableArray new];
+			NSMutableArray *address6es = [NSMutableArray new];
 			
 			__strong GCDAsyncSocket *strongSelf = weakSelf;
 			if (strongSelf == nil) return_from_block;
@@ -2264,24 +2266,21 @@ enum GCDAsyncSocketConfig
 			}
 			else
 			{
-				NSData *address4 = nil;
-				NSData *address6 = nil;
-				
 				for (NSData *address in addresses)
 				{
-					if (!address4 && [[self class] isIPv4Address:address])
+					if ([[self class] isIPv4Address:address])
 					{
-						address4 = address;
+						[address4es addObject:address];
 					}
-					else if (!address6 && [[self class] isIPv6Address:address])
+					else if ([[self class] isIPv6Address:address])
 					{
-						address6 = address;
+						[address6es addObject:address];
 					}
 				}
 				
 				dispatch_async(strongSelf->socketQueue, ^{ @autoreleasepool {
 					
-					[strongSelf lookup:aStateIndex didSucceedWithAddress4:address4 address6:address6];
+					[strongSelf lookup:aStateIndex didSucceedWithAddress4es:address4es address6es:address6es];
 				}});
 			}
 			
@@ -2390,8 +2389,11 @@ enum GCDAsyncSocketConfig
 		
 		// We've made it past all the checks.
 		// It's time to start the connection process.
-		
-		if (![self connectWithAddress4:address4 address6:address6 error:&err])
+
+		NSArray *address4es = address4 == nil ? nil : @[address4];
+		NSArray *address6es = address6 == nil ? nil : @[address6];
+
+		if (![self connectWithAddress4es:address4es address6es:address6es error:&err])
 		{
 			return_from_block;
 		}
@@ -2477,12 +2479,12 @@ enum GCDAsyncSocketConfig
 	return result;
 }
 
-- (void)lookup:(int)aStateIndex didSucceedWithAddress4:(NSData *)address4 address6:(NSData *)address6
+- (void)lookup:(int)aStateIndex didSucceedWithAddress4es:(NSArray *)address4es address6es:(NSArray *)address6es
 {
 	LogTrace();
 	
 	NSAssert(dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey), @"Must be dispatched on socketQueue");
-	NSAssert(address4 || address6, @"Expected at least one valid address");
+	NSAssert(address4es.count + address6es.count > 0, @"Expected at least one valid address");
 	
 	if (aStateIndex != stateIndex)
 	{
@@ -2498,7 +2500,7 @@ enum GCDAsyncSocketConfig
 	BOOL isIPv4Disabled = (config & kIPv4Disabled) ? YES : NO;
 	BOOL isIPv6Disabled = (config & kIPv6Disabled) ? YES : NO;
 	
-	if (isIPv4Disabled && (address6 == nil))
+	if (isIPv4Disabled && address6es.count == 0)
 	{
 		NSString *msg = @"IPv4 has been disabled and DNS lookup found no IPv6 address.";
 		
@@ -2506,7 +2508,7 @@ enum GCDAsyncSocketConfig
 		return;
 	}
 	
-	if (isIPv6Disabled && (address4 == nil))
+	if (isIPv6Disabled && address4es.count == 0)
 	{
 		NSString *msg = @"IPv6 has been disabled and DNS lookup found no IPv4 address.";
 		
@@ -2517,7 +2519,7 @@ enum GCDAsyncSocketConfig
 	// Start the normal connection process
 	
 	NSError *err = nil;
-	if (![self connectWithAddress4:address4 address6:address6 error:&err])
+	if (![self connectWithAddress4es:address4es address6es:address6es error:&err])
 	{
 		[self closeWithError:err];
 	}
@@ -2610,60 +2612,64 @@ enum GCDAsyncSocketConfig
     return socketFD;
 }
 
-- (void)connectSocket:(int)socketFD address:(NSData *)address stateIndex:(int)aStateIndex
+- (BOOL)connectSocket:(int)socketFD address:(NSData *)address stateIndex:(int)aStateIndex withTimeout:(int)timeout
 {
-    // If there already is a socket connected, we close socketFD and return
-    if (self.isConnected)
-    {
-        [self closeSocket:socketFD];
-        return;
-    }
-    
-    // Start the connection process in a background queue
-    
-    __weak GCDAsyncSocket *weakSelf = self;
-    
-    dispatch_queue_t globalConcurrentQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-    dispatch_async(globalConcurrentQueue, ^{
-#pragma clang diagnostic push
-#pragma clang diagnostic warning "-Wimplicit-retain-self"
-        
-        int result = connect(socketFD, (const struct sockaddr *)[address bytes], (socklen_t)[address length]);
-        
-        __strong GCDAsyncSocket *strongSelf = weakSelf;
-        if (strongSelf == nil) return_from_block;
-        
-        dispatch_async(strongSelf->socketQueue, ^{ @autoreleasepool {
-            
-            if (strongSelf.isConnected)
-            {
-                [strongSelf closeSocket:socketFD];
-                return_from_block;
-            }
-            
-            if (result == 0)
-            {
-                [self closeUnusedSocket:socketFD];
-                
-                [strongSelf didConnect:aStateIndex];
-            }
-            else
-            {
-                [strongSelf closeSocket:socketFD];
-                
-                // If there are no more sockets trying to connect, we inform the error to the delegate
-                if (strongSelf.socket4FD == SOCKET_NULL && strongSelf.socket6FD == SOCKET_NULL)
-                {
-                    NSError *error = [strongSelf errnoErrorWithReason:@"Error in connect() function"];
-                    [strongSelf didNotConnect:aStateIndex error:error];
-                }
-            }
-        }});
-        
-#pragma clang diagnostic pop
-    });
-    
-    LogVerbose(@"Connecting...");
+	// If there already is a socket connected, we close socketFD and return
+	if (self.isConnected)
+	{
+		[self closeSocket:socketFD];
+		return NO;
+	}
+
+	fd_set rset;
+	fd_set wset;
+	struct timeval tv;
+	int error = 0;
+
+	int orginalFlags = fcntl(socketFD, F_GETFL, 0);
+	fcntl(socketFD, F_SETFL, orginalFlags | O_NONBLOCK);
+
+	int result = connect(socketFD, (const struct sockaddr *)[address bytes], (socklen_t)[address length]);
+
+	if (result < 0 && errno != EINPROGRESS)
+	{
+		[self closeSocket:socketFD];
+		return NO;
+	}
+
+	if (result != 0)
+	{
+		FD_ZERO(&rset);
+		FD_SET(socketFD, &rset);
+		wset = rset;
+		tv.tv_sec = timeout;
+		tv.tv_usec = 0;
+		if ((result = select(socketFD + 1, &rset, &wset, NULL, timeout ? &tv : NULL)) == 0) {
+			[self closeSocket:socketFD];
+			errno = ETIMEDOUT;
+			return NO;
+		}
+
+		if (FD_ISSET(socketFD, &rset) || FD_ISSET(socketFD, &wset)) {
+			socklen_t len = sizeof(error);
+			if (getsockopt(socketFD, SOL_SOCKET, SO_ERROR, &error, &len) < 0) {
+				return NO;
+			}
+		}
+	}
+
+	fcntl(socketFD, F_SETFL, orginalFlags);
+
+	if (error) {
+		[self closeSocket:socketFD];
+		errno = error;
+		return NO;
+	}
+
+	dispatch_async(self->socketQueue, ^{ @autoreleasepool {
+		[self didConnect:aStateIndex];
+	}});
+	return YES;
 }
 
 - (void)closeSocket:(int)socketFD
@@ -2698,70 +2704,127 @@ enum GCDAsyncSocketConfig
     }
 }
 
-- (BOOL)connectWithAddress4:(NSData *)address4 address6:(NSData *)address6 error:(NSError **)errPtr
+- (BOOL)connectWithAddress4es:(NSArray *)address4es address6es:(NSArray *)address6es error:(NSError **)errPtr
 {
 	LogTrace();
 	
-	NSAssert(dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey), @"Must be dispatched on socketQueue");
-	
-	LogVerbose(@"IPv4: %@:%hu", [[self class] hostFromAddress:address4], [[self class] portFromAddress:address4]);
-	LogVerbose(@"IPv6: %@:%hu", [[self class] hostFromAddress:address6], [[self class] portFromAddress:address6]);
-	
-	// Determine socket type
-	
-	BOOL preferIPv6 = (config & kPreferIPv6) ? YES : NO;
-	
+    NSAssert(dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey), @"Must be dispatched on socketQueue");
+
+    BOOL preferIPv6 = (config & kPreferIPv6) ? YES : NO;
+
+    // Start the connection process in a background queue
+
+    NSArray *addresses = preferIPv6 ? [address6es arrayByAddingObjectsFromArray:address4es] : [address4es arrayByAddingObjectsFromArray:address6es];
+    int aStateIndex = stateIndex;
+    __weak GCDAsyncSocket *weakSelf = self;
+
+	dispatch_queue_t globalConcurrentQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+	dispatch_async(globalConcurrentQueue, ^{
+#pragma clang diagnostic push
+#pragma clang diagnostic warning "-Wimplicit-retain-self"
+
+		__strong GCDAsyncSocket *strongSelf = weakSelf;
+		if (strongSelf == nil) return_from_block;
+
+		NSError *err = nil;
+
+		NSUInteger length = addresses.count;
+		for (NSUInteger i = 0; i < length; i++) {
+			NSData *address = addresses[i];
+			NSData *address4 = [[strongSelf class] isIPv4Address:address] ? address : nil;
+			NSData *address6 = [[strongSelf class] isIPv6Address:address] ? address : nil;
+
+			BOOL success = [strongSelf connectWithAddress4:address4 address6:address6 stateIndex:aStateIndex error:&err withTimeout:[self connectionAttemptTimeout]];
+			if (success)
+			{
+				dispatch_async(strongSelf->socketQueue, ^{ @autoreleasepool {
+					[strongSelf didConnect:aStateIndex];
+				}});
+				return_from_block;
+			}
+			else {
+				NSUInteger nextI = i + 1;
+				BOOL shouldUseFailover = NO;
+				__strong id theDelegate = strongSelf->delegate;
+
+				if ([theDelegate respondsToSelector:@selector(socket:shouldFailoverToAddressIndex:withAddressTotal:)] && nextI < length)
+				{
+					shouldUseFailover = [theDelegate socket:strongSelf shouldFailoverToAddressIndex:nextI + 1 withAddressTotal:length];
+				}
+
+				BOOL failed = err != nil || !shouldUseFailover;
+				if (failed)
+				{
+					break;
+				}
+			}
+		}
+
+		NSError *error = err != nil ? err : [strongSelf errnoErrorWithReason:@"Error in connect() function"];
+		dispatch_async(strongSelf->socketQueue, ^{ @autoreleasepool {
+			[strongSelf didNotConnect:aStateIndex error:error];
+		}});
+
+#pragma clang diagnostic pop
+	});
+
+    LogVerbose(@"Connecting...");
+
+    return YES;
+}
+
+- (BOOL)connectWithAddress4:(NSData *)address4 address6:(NSData *)address6 stateIndex:(int)aStateIndex error:(NSError **)errPtr withTimeout:(int)timeout
+{
+	LogTrace();
+
+	if (address4 != nil)
+	{
+		LogVerbose(@"IPv4: %@:%hu", [[strongSelf class] hostFromAddress:address4], [[strongSelf class] portFromAddress:address4]);
+	}
+	if (address6 != nil)
+	{
+		LogVerbose(@"IPv6: %@:%hu", [[strongSelf class] hostFromAddress:address6], [[strongSelf class] portFromAddress:address6]);
+	}
+
+	NSAssert(address4 || address6, @"Expecting one address.");
+	NSAssert(!(address4 && address6), @"Expecting one address.");
+
 	// Create and bind the sockets
-    
-    if (address4)
+
+    if (address4 != nil)
     {
         LogVerbose(@"Creating IPv4 socket");
-        
+
         socket4FD = [self createSocket:AF_INET connectInterface:connectInterface4 errPtr:errPtr];
     }
-    
-    if (address6)
+
+    if (address6 != nil)
     {
         LogVerbose(@"Creating IPv6 socket");
-        
+
         socket6FD = [self createSocket:AF_INET6 connectInterface:connectInterface6 errPtr:errPtr];
     }
-    
+
     if (socket4FD == SOCKET_NULL && socket6FD == SOCKET_NULL)
     {
         return NO;
     }
-	
-	int socketFD, alternateSocketFD;
-	NSData *address, *alternateAddress;
-	
-    if ((preferIPv6 && socket6FD != SOCKET_NULL) || socket4FD == SOCKET_NULL)
-    {
-        socketFD = socket6FD;
-        alternateSocketFD = socket4FD;
-        address = address6;
-        alternateAddress = address4;
-    }
-    else
-    {
-        socketFD = socket4FD;
-        alternateSocketFD = socket6FD;
-        address = address4;
-        alternateAddress = address6;
-    }
 
-    int aStateIndex = stateIndex;
-    
-    [self connectSocket:socketFD address:address stateIndex:aStateIndex];
-    
-    if (alternateAddress)
-    {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(alternateAddressDelay * NSEC_PER_SEC)), socketQueue, ^{
-            [self connectSocket:alternateSocketFD address:alternateAddress stateIndex:aStateIndex];
-        });
-    }
-	
-	return YES;
+	int socketFD;
+	NSData *address;
+
+	if (socket4FD == SOCKET_NULL)
+	{
+		socketFD = socket6FD;
+		address = address6;
+	}
+	else
+	{
+		socketFD = socket4FD;
+		address = address4;
+	}
+
+    return [self connectSocket:socketFD address:address stateIndex:aStateIndex withTimeout:timeout];
 }
 
 - (BOOL)connectWithAddressUN:(NSData *)address error:(NSError **)errPtr

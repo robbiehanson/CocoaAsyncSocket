@@ -128,12 +128,14 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
 @property (atomic, assign, readwrite, getter=isIPv4PreferredOverIPv6) BOOL IPv4PreferredOverIPv6;
 
 /** 
- * When connecting to both IPv4 and IPv6 using Happy Eyeballs (RFC 6555) https://tools.ietf.org/html/rfc6555
- * this is the delay between connecting to the preferred protocol and the fallback protocol.
+ * When connecting to a FQDN which have multiple DNS A records this is the timeout
+ * for connecting to each given record.
+ * *NOTE* This is a different value than the one given to -(BOOL)connectTo...withTimeout(NSTimeInterval)timeout
+ * *NOTE* That records times timeout can be less than the value for the overall timeout.
  *
- * Defaults to 300ms.
+ * Defaults to 2s.
 **/
-@property (atomic, assign, readwrite) NSTimeInterval alternateAddressDelay;
+@property (atomic, assign, readwrite) int connectionAttemptTimeout;
 
 /**
  * User data allows you to associate arbitrary information with the socket.
@@ -1085,6 +1087,12 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
  * The host parameter will be an IP address, not a DNS name.
 **/
 - (void)socket:(GCDAsyncSocket *)sock didConnectToHost:(NSString *)host port:(uint16_t)port;
+
+/**
+ * Called when a socket fails to connect and there are multiple addresses for the given host.
+ * Return YES to allow using a failover address, the default is NO.
+ **/
+- (BOOL)socket:(GCDAsyncSocket *)sock shouldFailoverToAddressIndex:(NSUInteger)addressIndex withAddressTotal:(NSUInteger)addressTotal;
 
 /**
  * Called when a socket connects and is ready for reading and writing.
