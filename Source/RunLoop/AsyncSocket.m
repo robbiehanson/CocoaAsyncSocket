@@ -668,7 +668,12 @@ static void MyCFWriteStreamCallback(CFWriteStreamRef stream, CFStreamEventType t
 #pragma mark -
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-implementations"
+
 @implementation AsyncSocket
+
+#pragma clang diagnostic pop
 
 - (id)init
 {
@@ -4249,7 +4254,10 @@ static void MyCFSocketCallback (CFSocketRef sref, CFSocketCallBackType type, CFD
 {
 	@autoreleasepool {
 	
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 		AsyncSocket *theSocket = (__bridge AsyncSocket *)pInfo;
+#pragma clang diagnostic pop
 		NSData *address = [(__bridge NSData *)inAddress copy];
 		
 		[theSocket doCFSocketCallback:type forSocket:sref withAddress:address withData:pData];
@@ -4265,7 +4273,10 @@ static void MyCFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType ty
 {
 	@autoreleasepool {
 	
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 		AsyncSocket *theSocket = (__bridge AsyncSocket *)pInfo;
+#pragma clang diagnostic pop
 		[theSocket doCFReadStreamCallback:type forStream:stream];
 	
 	}
@@ -4279,7 +4290,10 @@ static void MyCFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType 
 {
 	@autoreleasepool {
 	
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 		AsyncSocket *theSocket = (__bridge AsyncSocket *)pInfo;
+#pragma clang diagnostic pop
 		[theSocket doCFWriteStreamCallback:type forStream:stream];
 	
 	}
