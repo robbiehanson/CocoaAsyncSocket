@@ -128,6 +128,7 @@ NSString *const GCDAsyncSocketSSLCipherSuites = @"GCDAsyncSocketSSLCipherSuites"
 #if !TARGET_OS_IPHONE
 NSString *const GCDAsyncSocketSSLDiffieHellmanParameters = @"GCDAsyncSocketSSLDiffieHellmanParameters";
 #endif
+NSString *const GCDAsyncSocketSSLClientSideAuthenticate = @"GCDAsyncSocketSSLClientSideAuthenticate";
 
 enum GCDAsyncSocketFlags
 {
@@ -6785,13 +6786,8 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	BOOL shouldManuallyEvaluateTrust = [[tlsSettings objectForKey:GCDAsyncSocketManuallyEvaluateTrust] boolValue];
 	if (shouldManuallyEvaluateTrust)
 	{
-		if (isServer)
-		{
-			[self closeWithError:[self otherError:@"Manual trust validation is not supported for server sockets"]];
-			return;
-		}
-		
-		status = SSLSetSessionOption(sslContext, kSSLSessionOptionBreakOnServerAuth, true);
+        SSLSessionOption option = isServer ? kSSLSessionOptionBreakOnClientAuth : kSSLSessionOptionBreakOnServerAuth;
+		status = SSLSetSessionOption(sslContext, option, true);
 		if (status != noErr)
 		{
 			[self closeWithError:[self otherError:@"Error in SSLSetSessionOption"]];
@@ -6829,13 +6825,14 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	//  7. GCDAsyncSocketSSLSessionOptionSendOneByteRecord
 	//  8. GCDAsyncSocketSSLCipherSuites
 	//  9. GCDAsyncSocketSSLDiffieHellmanParameters (Mac)
+    // 10. GCDAsyncSocketSSLClientSideAuthenticate
 	//
 	// Deprecated (throw error):
-	// 10. kCFStreamSSLAllowsAnyRoot
-	// 11. kCFStreamSSLAllowsExpiredRoots
-	// 12. kCFStreamSSLAllowsExpiredCertificates
-	// 13. kCFStreamSSLValidatesCertificateChain
-	// 14. kCFStreamSSLLevel
+	// 11. kCFStreamSSLAllowsAnyRoot
+	// 12. kCFStreamSSLAllowsExpiredRoots
+	// 13. kCFStreamSSLAllowsExpiredCertificates
+	// 14. kCFStreamSSLValidatesCertificateChain
+	// 15. kCFStreamSSLLevel
 	
 	id value;
 	
@@ -7054,10 +7051,30 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		return;
 	}
 	#endif
+    
+    // 10. GCDAsyncSocketSSLClientSideAuthenticate
+    
+    value = [tlsSettings objectForKey:GCDAsyncSocketSSLClientSideAuthenticate];
+    if ([value isKindOfClass:[NSNumber class]])
+    {
+        status = SSLSetClientSideAuthenticate(sslContext, [value intValue]);
+        if (status != noErr)
+        {
+            [self closeWithError: [self otherError:@"Error in SSLSetClientSideAuthenticate"]];
+            return;
+        }
+    }
+    else if (value)
+    {
+        NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLClientSideAuthenticate. Value must be of type NSNumber.");
+        
+        [self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLClientSideAuthenticate."]];
+        return;
+    }
 	
 	// DEPRECATED checks
 	
-	// 10. kCFStreamSSLAllowsAnyRoot
+	// 11. kCFStreamSSLAllowsAnyRoot
 	
 	#pragma clang diagnostic push
 	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -7072,7 +7089,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		return;
 	}
 	
-	// 11. kCFStreamSSLAllowsExpiredRoots
+	// 12. kCFStreamSSLAllowsExpiredRoots
 	
 	#pragma clang diagnostic push
 	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -7087,7 +7104,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		return;
 	}
 	
-	// 12. kCFStreamSSLValidatesCertificateChain
+	// 13. kCFStreamSSLValidatesCertificateChain
 	
 	#pragma clang diagnostic push
 	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -7102,7 +7119,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		return;
 	}
 	
-	// 13. kCFStreamSSLAllowsExpiredCertificates
+	// 14. kCFStreamSSLAllowsExpiredCertificates
 	
 	#pragma clang diagnostic push
 	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -7117,7 +7134,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		return;
 	}
 	
-	// 14. kCFStreamSSLLevel
+	// 15. kCFStreamSSLLevel
 	
 	#pragma clang diagnostic push
 	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
