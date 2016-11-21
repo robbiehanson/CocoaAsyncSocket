@@ -1855,7 +1855,7 @@ enum GCDAsyncSocketConfig
 		
 		dispatch_source_set_cancel_handler(acceptUNSource, ^{
 			
-#if NEEDS_DISPATCH_RETAIN_RELEASE
+#if !OS_OBJECT_USE_OBJC
 			LogVerbose(@"dispatch_release(accept4Source)");
 			dispatch_release(acceptSource);
 #endif
