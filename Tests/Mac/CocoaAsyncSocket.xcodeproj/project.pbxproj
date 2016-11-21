@@ -1,0 +1,372 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		2DBCA5C81B8CF4F3004F3128 /* GCDAsyncSocketUNTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 2DBCA5C71B8CF4F3004F3128 /* GCDAsyncSocketUNTests.m */; };
+		439EF337A9890757E22FAEC3 /* Pods_CocoaAsyncSocketTestsMac.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1859AD1F79C285DFDC07C37C /* Pods_CocoaAsyncSocketTestsMac.framework */; };
+		D900F31E1C753B2A00F0AEF0 /* SwiftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D900F31D1C753B2A00F0AEF0 /* SwiftTests.swift */; };
+		D938B4E51B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		08EFE8D9A08D54EDB815BD18 /* Pods-CocoaAsyncSocketTestsMac.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CocoaAsyncSocketTestsMac.debug.xcconfig"; path = "Pods/Target Support Files/Pods-CocoaAsyncSocketTestsMac/Pods-CocoaAsyncSocketTestsMac.debug.xcconfig"; sourceTree = "<group>"; };
+		1859AD1F79C285DFDC07C37C /* Pods_CocoaAsyncSocketTestsMac.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_CocoaAsyncSocketTestsMac.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		2DBCA5C71B8CF4F3004F3128 /* GCDAsyncSocketUNTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GCDAsyncSocketUNTests.m; sourceTree = SOURCE_ROOT; };
+		4CB28BA2043D8CD03AFA18E8 /* Pods-CocoaAsyncSocketTestsMac.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CocoaAsyncSocketTestsMac.release.xcconfig"; path = "Pods/Target Support Files/Pods-CocoaAsyncSocketTestsMac/Pods-CocoaAsyncSocketTestsMac.release.xcconfig"; sourceTree = "<group>"; };
+		D900F31D1C753B2A00F0AEF0 /* SwiftTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SwiftTests.swift; path = ../Shared/SwiftTests.swift; sourceTree = "<group>"; };
+		D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GCDAsyncSocketConnectionTests.m; path = ../Shared/GCDAsyncSocketConnectionTests.m; sourceTree = "<group>"; };
+		D9BC0D8D1A0458EF0059D906 /* CocoaAsyncSocketTestsMac.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CocoaAsyncSocketTestsMac.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D9BC0D901A0458EF0059D906 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D9BC0D8A1A0458EF0059D906 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				439EF337A9890757E22FAEC3 /* Pods_CocoaAsyncSocketTestsMac.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		2DF9645286609056FA561D1D /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				08EFE8D9A08D54EDB815BD18 /* Pods-CocoaAsyncSocketTestsMac.debug.xcconfig */,
+				4CB28BA2043D8CD03AFA18E8 /* Pods-CocoaAsyncSocketTestsMac.release.xcconfig */,
+			);
+			name = Pods;
+			sourceTree = "<group>";
+		};
+		6BD64EE47346406202F80C93 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				1859AD1F79C285DFDC07C37C /* Pods_CocoaAsyncSocketTestsMac.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		D938B4E61B752ED800FE8AB3 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */,
+				D900F31D1C753B2A00F0AEF0 /* SwiftTests.swift */,
+			);
+			name = Shared;
+			sourceTree = "<group>";
+		};
+		D9873DA11A057F34004C014F /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				D938B4E61B752ED800FE8AB3 /* Shared */,
+				D9BC0D8E1A0458EF0059D906 /* Mac */,
+			);
+			name = Tests;
+			sourceTree = "<group>";
+		};
+		D9BC0D741A0457800059D906 = {
+			isa = PBXGroup;
+			children = (
+				D9873DA11A057F34004C014F /* Tests */,
+				D9BC0D801A0457F40059D906 /* Products */,
+				2DF9645286609056FA561D1D /* Pods */,
+				6BD64EE47346406202F80C93 /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		D9BC0D801A0457F40059D906 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D9BC0D8D1A0458EF0059D906 /* CocoaAsyncSocketTestsMac.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D9BC0D8E1A0458EF0059D906 /* Mac */ = {
+			isa = PBXGroup;
+			children = (
+				2DBCA5C71B8CF4F3004F3128 /* GCDAsyncSocketUNTests.m */,
+				D9BC0D8F1A0458EF0059D906 /* Supporting Files */,
+			);
+			name = Mac;
+			path = CocoaAsyncSocketTestsMac;
+			sourceTree = "<group>";
+		};
+		D9BC0D8F1A0458EF0059D906 /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				D9BC0D901A0458EF0059D906 /* Info.plist */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D9BC0D8C1A0458EF0059D906 /* CocoaAsyncSocketTestsMac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D9BC0D951A0458EF0059D906 /* Build configuration list for PBXNativeTarget "CocoaAsyncSocketTestsMac" */;
+			buildPhases = (
+				4AB46844DACF12294B502E98 /* [CP] Check Pods Manifest.lock */,
+				D9BC0D891A0458EF0059D906 /* Sources */,
+				D9BC0D8A1A0458EF0059D906 /* Frameworks */,
+				D9BC0D8B1A0458EF0059D906 /* Resources */,
+				AA94AAA5A64A884AD2E4A6DD /* [CP] Embed Pods Frameworks */,
+				ADC6CEFA3FD08AEA679AEBA7 /* [CP] Copy Pods Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CocoaAsyncSocketTestsMac;
+			productName = CocoaAsyncSocketTestsMac;
+			productReference = D9BC0D8D1A0458EF0059D906 /* CocoaAsyncSocketTestsMac.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D9BC0D751A0457800059D906 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 0720;
+				LastUpgradeCheck = 0730;
+				TargetAttributes = {
+					D9BC0D8C1A0458EF0059D906 = {
+						CreatedOnToolsVersion = 6.1;
+					};
+				};
+			};
+			buildConfigurationList = D9BC0D781A0457800059D906 /* Build configuration list for PBXProject "CocoaAsyncSocket" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = D9BC0D741A0457800059D906;
+			productRefGroup = D9BC0D801A0457F40059D906 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D9BC0D8C1A0458EF0059D906 /* CocoaAsyncSocketTestsMac */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D9BC0D8B1A0458EF0059D906 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		4AB46844DACF12294B502E98 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_ROOT}/../Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [[ $? != 0 ]] ; then\n    cat << EOM\nerror: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\nEOM\n    exit 1\nfi\n";
+			showEnvVarsInLog = 0;
+		};
+		AA94AAA5A64A884AD2E4A6DD /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-CocoaAsyncSocketTestsMac/Pods-CocoaAsyncSocketTestsMac-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		ADC6CEFA3FD08AEA679AEBA7 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "[CP] Copy Pods Resources";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-CocoaAsyncSocketTestsMac/Pods-CocoaAsyncSocketTestsMac-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D9BC0D891A0458EF0059D906 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D900F31E1C753B2A00F0AEF0 /* SwiftTests.swift in Sources */,
+				2DBCA5C81B8CF4F3004F3128 /* GCDAsyncSocketUNTests.m in Sources */,
+				D938B4E51B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		D9BC0D791A0457800059D906 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ENABLE_TESTABILITY = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				ONLY_ACTIVE_ARCH = YES;
+			};
+			name = Debug;
+		};
+		D9BC0D7A1A0457800059D906 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+			};
+			name = Release;
+		};
+		D9BC0D931A0458EF0059D906 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 08EFE8D9A08D54EDB815BD18 /* Pods-CocoaAsyncSocketTestsMac.debug.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COMBINE_HIDPI_IMAGES = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(DEVELOPER_FRAMEWORKS_DIR)",
+					"$(inherited)",
+				);
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.chrisballinger.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		D9BC0D941A0458EF0059D906 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 4CB28BA2043D8CD03AFA18E8 /* Pods-CocoaAsyncSocketTestsMac.release.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COMBINE_HIDPI_IMAGES = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(DEVELOPER_FRAMEWORKS_DIR)",
+					"$(inherited)",
+				);
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.chrisballinger.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D9BC0D781A0457800059D906 /* Build configuration list for PBXProject "CocoaAsyncSocket" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D9BC0D791A0457800059D906 /* Debug */,
+				D9BC0D7A1A0457800059D906 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D9BC0D951A0458EF0059D906 /* Build configuration list for PBXNativeTarget "CocoaAsyncSocketTestsMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D9BC0D931A0458EF0059D906 /* Debug */,
+				D9BC0D941A0458EF0059D906 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = D9BC0D751A0457800059D906 /* Project object */;
+}

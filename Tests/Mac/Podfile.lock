@@ -1,0 +1,18 @@
+PODS:
+  - CocoaAsyncSocket (7.5.0):
+    - CocoaAsyncSocket/GCD (= 7.5.0)
+  - CocoaAsyncSocket/GCD (7.5.0)
+
+DEPENDENCIES:
+  - CocoaAsyncSocket (from `../../CocoaAsyncSocket.podspec`)
+
+EXTERNAL SOURCES:
+  CocoaAsyncSocket:
+    :path: "../../CocoaAsyncSocket.podspec"
+
+SPEC CHECKSUMS:
+  CocoaAsyncSocket: 3baeb1ddd969f81cf9fca81053ae49ef2d1cbbfa
+
+PODFILE CHECKSUM: e2d5a11e69cc6a8c9e8f637d8505ac427b7b8e02
+
+COCOAPODS: 1.0.1

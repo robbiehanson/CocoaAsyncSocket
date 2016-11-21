@@ -26,6 +26,7 @@ typedef NS_ENUM(NSInteger, AsyncUdpSocketError) {
 	AsyncUdpSocketReceiveTimeoutError
 };
 
+__deprecated_msg("The RunLoop versions of CocoaAsyncSocket are deprecated and will be removed in a future release. Please migrate to GCDAsyncUdpSocket.")
 @interface AsyncUdpSocket : NSObject
 {
 	CFSocketRef theSocket4;            // IPv4 socket
@@ -315,6 +316,7 @@ typedef NS_ENUM(NSInteger, AsyncUdpSocketError) {
 #pragma mark -
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+__deprecated_msg("The RunLoop versions of CocoaAsyncSocket are deprecated and will be removed in a future release. Please migrate to GCDAsyncUdpSocket.")
 @protocol AsyncUdpSocketDelegate
 @optional
 
