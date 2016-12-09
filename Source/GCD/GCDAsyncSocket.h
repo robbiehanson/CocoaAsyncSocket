@@ -420,7 +420,7 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
  * The given buffer will automatically be increased in size if needed.
  * 
  * If the timeout value is negative, the read operation will not use a timeout.
- * If the buffer if nil, the socket will create a buffer for you.
+ * If the buffer is nil, the socket will create a buffer for you.
  * 
  * If the bufferOffset is greater than the length of the given buffer,
  * the method will do nothing, and the delegate will not be called.
@@ -442,7 +442,7 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
  * A maximum of length bytes will be read.
  * 
  * If the timeout value is negative, the read operation will not use a timeout.
- * If the buffer if nil, a buffer will automatically be created for you.
+ * If the buffer is nil, a buffer will automatically be created for you.
  * If maxLength is zero, no length restriction is enforced.
  * 
  * If the bufferOffset is greater than the length of the given buffer,
@@ -474,7 +474,7 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
  * The given buffer will automatically be increased in size if needed.
  * 
  * If the timeout value is negative, the read operation will not use a timeout.
- * If the buffer if nil, a buffer will automatically be created for you.
+ * If the buffer is nil, a buffer will automatically be created for you.
  * 
  * If the length is 0, this method does nothing and the delegate is not called.
  * If the bufferOffset is greater than the length of the given buffer,
@@ -520,7 +520,7 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
  * The given buffer will automatically be increased in size if needed.
  * 
  * If the timeout value is negative, the read operation will not use a timeout.
- * If the buffer if nil, a buffer will automatically be created for you.
+ * If the buffer is nil, a buffer will automatically be created for you.
  * 
  * If the bufferOffset is greater than the length of the given buffer,
  * the method will do nothing (except maybe print a warning), and the delegate will not be called.
@@ -585,7 +585,7 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
  * The given buffer will automatically be increased in size if needed.
  * 
  * If the timeout value is negative, the read operation will not use a timeout.
- * If the buffer if nil, a buffer will automatically be created for you.
+ * If the buffer is nil, a buffer will automatically be created for you.
  * 
  * If maxLength is zero, no length restriction is enforced.
  * Otherwise if maxLength bytes are read without completing the read,
