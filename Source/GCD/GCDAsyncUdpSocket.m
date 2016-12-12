@@ -1199,9 +1199,17 @@ enum GCDAsyncUdpSocketConfig
 					}
 					else if (res->ai_family == AF_INET6)
 					{
-						// Found IPv6 address
-						// Wrap the native address structure and add to list
-						
+
+                        // Fixes connection issues with IPv6, it is the same solution for udp socket.
+                        // https://github.com/robbiehanson/CocoaAsyncSocket/issues/429#issuecomment-222477158
+                        struct sockaddr_in6 *sockaddr = (struct sockaddr_in6 *)res->ai_addr;
+                        in_port_t *portPtr = &sockaddr->sin6_port;
+                        if ((portPtr != NULL) && (*portPtr == 0)) {
+                            *portPtr = htons(port);
+                        }
+
+                        // Found IPv6 address
+                        // Wrap the native address structure and add to list
 						[addresses addObject:[NSData dataWithBytes:res->ai_addr length:res->ai_addrlen]];
 					}
 				}
