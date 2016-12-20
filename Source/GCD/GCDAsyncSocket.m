@@ -8347,6 +8347,11 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	return [NSData dataWithBytes:"\x0D\x0A" length:2];
 }
 
++ (NSData *)DoubleCRLFData
+{
+	return [NSData dataWithBytes:"\x0D\x0A\x0D\x0A" length:4];
+}
+
 + (NSData *)CRData
 {
 	return [NSData dataWithBytes:"\x0D" length:1];

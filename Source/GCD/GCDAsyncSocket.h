@@ -1034,10 +1034,11 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
 /**
  * A few common line separators, for use with the readDataToData:... methods.
 **/
-+ (NSData *)CRLFData;   // 0x0D0A
-+ (NSData *)CRData;     // 0x0D
-+ (NSData *)LFData;     // 0x0A
-+ (NSData *)ZeroData;   // 0x00
++ (NSData *)CRLFData;       // 0x0D0A
++ (NSData *)DoubleCRLFData; // 0x0D0A0D0A
++ (NSData *)CRData;         // 0x0D
++ (NSData *)LFData;         // 0x0A
++ (NSData *)ZeroData;       // 0x00
 
 @end
 
