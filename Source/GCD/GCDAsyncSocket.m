@@ -1980,10 +1980,10 @@ enum GCDAsyncSocketConfig
 			
 			// Create GCDAsyncSocket instance for accepted socket
 			
-            GCDAsyncSocket *acceptedSocket = [[GCDAsyncSocket alloc] initWithDelegate:theDelegate
-                                                                        delegateQueue:delegateQueue
-                                                                          socketQueue:childSocketQueue];
-			
+            GCDAsyncSocket *acceptedSocket = [[[self class] alloc] initWithDelegate:theDelegate
+                                                                      delegateQueue:delegateQueue
+                                                                        socketQueue:childSocketQueue];
+
 			if (socketType == 0)
 				acceptedSocket->socket4FD = childSocketFD;
 			else if (socketType == 1)
