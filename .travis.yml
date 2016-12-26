@@ -1,13 +1,19 @@
-osx_image: xcode7.3
+osx_image: xcode8.1
 language: objective-c
 
+before_install:
+  # Fix Travis  xcodebuild exited with 65 https://github.com/travis-ci/travis-ci/issues/6675#issuecomment-257964767
+  - export IOS_SIMULATOR_UDID=`instruments -s devices | grep "iPhone 6 (10.1" | awk -F '[ ]' '{print $4}' | awk -F '[\[]' '{print $2}' | sed 's/.$//'`
+  - echo $IOS_SIMULATOR_UDID
+  - open -a "simulator" --args -CurrentDeviceUDID $IOS_SIMULATOR_UDID
+
 install:
-  - gem install cocoapods -v 1.0.1 --no-rdoc --no-ri
-  - pod install --project-directory=./Tests/iOS --no-repo-update
-  - pod install --project-directory=./Tests/Mac --no-repo-update
+  - pod install --project-directory=./Tests/iOS
+  - pod install --project-directory=./Tests/Mac
 
 script:
-  - xctool -workspace ./Tests/iOS/CocoaAsyncSocket.xcworkspace -scheme CocoaAsyncSocketTestsiOS -sdk iphonesimulator -arch x86_64 test
-  - xctool -workspace ./Tests/Mac/CocoaAsyncSocket.xcworkspace -scheme CocoaAsyncSocketTestsMac -sdk macosx -arch x86_64 test
-  - xctool -project CocoaAsyncSocket.xcodeproj -scheme "iOS Framework" -sdk iphonesimulator -arch x86_64 build
-  - xctool -project CocoaAsyncSocket.xcodeproj -scheme "Mac Framework" -sdk macosx  -arch x86_64 build
+  - set -o pipefail
+  - travis_retry xcodebuild -workspace ./Tests/iOS/CocoaAsyncSocket.xcworkspace -scheme CocoaAsyncSocketTestsiOS -sdk iphonesimulator -destination 'name=iPhone 6' test | xcpretty -c
+  - xcodebuild -workspace ./Tests/Mac/CocoaAsyncSocket.xcworkspace -scheme CocoaAsyncSocketTestsMac -sdk macosx -destination 'platform=OS X,arch=x86_64' test | xcpretty -c
+  - travis_retry xcodebuild -project CocoaAsyncSocket.xcodeproj -scheme "iOS Framework" -sdk iphonesimulator -destination 'name=iPhone 6' build | xcpretty -c
+  - xcodebuild -project CocoaAsyncSocket.xcodeproj -scheme "Mac Framework" -sdk macosx -destination 'platform=OS X,arch=x86_64' build | xcpretty -c

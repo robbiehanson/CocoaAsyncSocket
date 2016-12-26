@@ -333,7 +333,7 @@ extern NSString *const GCDAsyncSocketSSLDiffieHellmanParameters;
  * Returns whether the socket is disconnected or connected.
  * 
  * A disconnected socket may be recycled.
- * That is, it can used again for connecting or listening.
+ * That is, it can be used again for connecting or listening.
  * 
  * If a socket is in the process of connecting, it may be neither disconnected nor connected.
 **/
