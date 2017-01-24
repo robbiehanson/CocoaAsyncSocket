@@ -258,6 +258,16 @@ typedef BOOL (^GCDAsyncUdpSocketSendFilterBlock)(NSData *data, NSData *address, 
 - (nullable id)userData;
 - (void)setUserData:(nullable id)arbitraryUserData;
 
+/**
+ * Sets the Time-To-Live value for IP Packet
+ **/
+- (BOOL)setTTL:(int)ttlValue error:(NSError **)errPtr;
+
+/**
+ * Helpper fuction to set the socket options on SocketQueue
+ **/
+- (BOOL)setSocketOption:(int)option optionName:(int)optionName optionValue:(const void *)value error:(NSError **)errPtr;
+
 #pragma mark Diagnostics
 
 /**
@@ -474,6 +484,11 @@ typedef BOOL (^GCDAsyncUdpSocketSendFilterBlock)(NSData *data, NSData *address, 
 
 - (BOOL)leaveMulticastGroup:(NSString *)group error:(NSError **)errPtr;
 - (BOOL)leaveMulticastGroup:(NSString *)group onInterface:(nullable NSString *)interface error:(NSError **)errPtr;
+
+/**
+ * Sets the Time-To-Live value for Multicast IP Packets
+ **/
+- (BOOL)setMulticastTTL:(int)ttlValue error:(NSError **)errPtr;
 
 #pragma mark Reuse Port
 

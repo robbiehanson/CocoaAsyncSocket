@@ -898,6 +898,72 @@ enum GCDAsyncUdpSocketConfig
 		dispatch_async(socketQueue, block);
 }
 
+- (BOOL)setTTL:(int)ttlValue error:(NSError **)errPtr
+{
+    return [self setSocketOption:IPPROTO_IP optionName:IP_TTL optionValue:&ttlValue error:errPtr];
+}
+
+- (BOOL)setSocketOption:(int)option optionName:(int)optionName optionValue:(const void *)value error:(NSError **)errPtr
+{
+    __block BOOL result = NO;
+    __block NSError *err = nil;
+    
+    dispatch_block_t block = ^{ @autoreleasepool {
+        
+        if (![self preOp:&err])
+        {
+            return_from_block;
+        }
+        
+        if ((flags & kDidCreateSockets) == 0)
+        {
+            if (![self createSockets:&err])
+            {
+                return_from_block;
+            }
+        }
+        
+        int socketFD = SOCKET_NULL;
+        
+        if ( socket4FD != SOCKET_NULL)
+        {
+            socketFD = socket4FD;
+        }
+        else
+        {
+            if ( socket6FD != SOCKET_NULL)
+            {
+                socketFD = socket6FD;
+            }
+            else
+            {
+                return_from_block;
+            }
+        }
+        
+        int error = setsockopt(socketFD, option, optionName, &value, sizeof(value));
+        
+        if (error)
+        {
+            err = [self errnoErrorWithReason:@"Error in setsockopt() function"];
+
+            return_from_block;
+        }
+        
+        result = YES;
+    }};
+    
+    if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
+        block();
+    else
+        dispatch_sync(socketQueue, block);
+    
+    if (errPtr)
+        *errPtr = err;
+    
+    return result;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Delegate Helpers
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3446,6 +3512,10 @@ enum GCDAsyncUdpSocketConfig
 		*errPtr = err;
 	
 	return result;
+}
+
+- (BOOL)setMulticastTTL:(int)ttlValue error:(NSError **)errPtr {
+    return [self setSocketOption:IPPROTO_IP optionName:IP_MULTICAST_TTL optionValue:&ttlValue error:errPtr];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
