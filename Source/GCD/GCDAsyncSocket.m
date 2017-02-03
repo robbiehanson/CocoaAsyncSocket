@@ -1954,6 +1954,8 @@ enum GCDAsyncSocketConfig
 	if (result == -1)
 	{
 		LogWarn(@"Error enabling non-blocking IO on accepted socket (fcntl)");
+		LogVerbose(@"close(childSocketFD)");
+		close(childSocketFD);
 		return NO;
 	}
 	
