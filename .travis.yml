@@ -1,4 +1,4 @@
-osx_image: xcode8.1
+osx_image: xcode8.2
 language: objective-c
 
 before_install:
@@ -8,8 +8,11 @@ before_install:
   - open -a "simulator" --args -CurrentDeviceUDID $IOS_SIMULATOR_UDID
 
 install:
-  - pod install --project-directory=./Tests/iOS
-  - pod install --project-directory=./Tests/Mac
+  - cd Tests
+  - bundle install
+  - bundle exec pod install --project-directory=./iOS
+  - bundle exec pod install --project-directory=./Mac
+  - cd ../
 
 script:
   - set -o pipefail
