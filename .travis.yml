@@ -18,5 +18,5 @@ script:
   - set -o pipefail
   - travis_retry xcodebuild -workspace ./Tests/iOS/CocoaAsyncSocket.xcworkspace -scheme CocoaAsyncSocketTestsiOS -sdk iphonesimulator -destination "id=$IOS_SIMULATOR_UDID" test | xcpretty -c
   - xcodebuild -workspace ./Tests/Mac/CocoaAsyncSocket.xcworkspace -scheme CocoaAsyncSocketTestsMac -sdk macosx -destination 'platform=OS X,arch=x86_64' test | xcpretty -c
-  - xcodebuild -project CocoaAsyncSocket.xcodeproj -scheme "iOS Framework" -sdk iphonesimulator -destination "id=$IOS_SIMULATOR_UDID" build | xcpretty -c
-  - xcodebuild -project CocoaAsyncSocket.xcodeproj -scheme "Mac Framework" -sdk macosx -destination 'platform=OS X,arch=x86_64' build | xcpretty -c
+  - xcodebuild -project Tests/Framework/CocoaAsyncSocketTests.xcodeproj -scheme "CocoaAsyncSocketTests (iOS)" -sdk iphonesimulator -destination "id=$IOS_SIMULATOR_UDID" test | xcpretty -c
+  - xcodebuild -project Tests/Framework/CocoaAsyncSocketTests.xcodeproj -scheme "CocoaAsyncSocketTests (macOS)" -sdk macosx -destination 'platform=OS X,arch=x86_64' test | xcpretty -c
