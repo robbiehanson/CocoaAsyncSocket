@@ -373,8 +373,8 @@ enum GCDAsyncUdpSocketConfig
 			#endif
 		}
 		
-		max4ReceiveSize = 9216;
-		max6ReceiveSize = 9216;
+		max4ReceiveSize = 65535;
+		max6ReceiveSize = 65535;
 		
 		socket4FD = SOCKET_NULL;
 		socket6FD = SOCKET_NULL;
@@ -1985,6 +1985,40 @@ enum GCDAsyncUdpSocketConfig
 			close(socketFD);
 			return SOCKET_NULL;
 		}
+        
+        /**
+         * The theoretical maximum size of any IPv4 UDP packet is UINT16_MAX = 65535.
+         * The theoretical maximum size of any IPv6 UDP packet is UINT32_MAX = 4294967295.
+         *
+         * The default maximum size of the UDP buffer in iOS is 9216 bytes.
+         *
+         * This is the reason of #222(GCD does not necessarily return the size of an entire UDP packet) and
+         *  #535(GCDAsyncUDPSocket can not send data when data is greater than 9K)
+         *
+         *
+         * Enlarge the maximum size of UDP packet.
+         * I can not ensure the protocol type now so that the max size is set to 65535 :)
+         **/
+        int maximumBufferSize = 65535;
+      
+        status = setsockopt(socketFD, SOL_SOCKET, SO_SNDBUF, (const char*)&maximumBufferSize, sizeof(int));
+        if (status == -1)
+        {
+            if (errPtr)
+                *errPtr = [self errnoErrorWithReason:@"Error setting send buffer size (setsockopt)"];
+            close(socketFD);
+            return SOCKET_NULL;
+        }
+        
+        status = setsockopt(socketFD, SOL_SOCKET, SO_RCVBUF, (const char*)&maximumBufferSize, sizeof(int));
+        if (status == -1)
+        {
+            if (errPtr)
+                *errPtr = [self errnoErrorWithReason:@"Error setting receive buffer size (setsockopt)"];
+            close(socketFD);
+            return SOCKET_NULL;
+        }
+
 		
 		return socketFD;
 	};
