@@ -166,6 +166,8 @@ enum GCDAsyncUdpSocketConfig
 	
 	uint16_t max4ReceiveSize;
 	uint32_t max6ReceiveSize;
+    
+    uint16_t maxSendSize;
 	
 	int socket4FD;
 	int socket6FD;
@@ -376,6 +378,8 @@ enum GCDAsyncUdpSocketConfig
 		max4ReceiveSize = 65535;
 		max6ReceiveSize = 65535;
 		
+        maxSendSize = 9216;
+        
 		socket4FD = SOCKET_NULL;
 		socket6FD = SOCKET_NULL;
 		
@@ -864,6 +868,37 @@ enum GCDAsyncUdpSocketConfig
 		dispatch_async(socketQueue, block);
 }
 
+- (void)setMaxSendBufferSize:(uint16_t)max
+{
+    dispatch_block_t block = ^{
+        
+        LogVerbose(@"%@ %u", THIS_METHOD, (unsigned)max);
+        
+        maxSendSize = max;
+    };
+    
+    if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
+        block();
+    else
+        dispatch_async(socketQueue, block);
+}
+
+- (uint32_t)maxSendBufferSize
+{
+    __block uint32_t result = 0;
+    
+    dispatch_block_t block = ^{
+        
+        result = maxSendSize;
+    };
+    
+    if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
+        block();
+    else
+        dispatch_sync(socketQueue, block);
+    
+    return result;
+}
 
 - (id)userData
 {
@@ -1999,9 +2034,8 @@ enum GCDAsyncUdpSocketConfig
          * Enlarge the maximum size of UDP packet.
          * I can not ensure the protocol type now so that the max size is set to 65535 :)
          **/
-        int maximumBufferSize = 65535;
       
-        status = setsockopt(socketFD, SOL_SOCKET, SO_SNDBUF, (const char*)&maximumBufferSize, sizeof(int));
+        status = setsockopt(socketFD, SOL_SOCKET, SO_SNDBUF, (const char*)&maxSendSize, sizeof(int));
         if (status == -1)
         {
             if (errPtr)
@@ -2010,7 +2044,7 @@ enum GCDAsyncUdpSocketConfig
             return SOCKET_NULL;
         }
         
-        status = setsockopt(socketFD, SOL_SOCKET, SO_RCVBUF, (const char*)&maximumBufferSize, sizeof(int));
+        status = setsockopt(socketFD, SOL_SOCKET, SO_RCVBUF, (const char*)&maxSendSize, sizeof(int));
         if (status == -1)
         {
             if (errPtr)
@@ -3626,6 +3660,8 @@ enum GCDAsyncUdpSocketConfig
 		LogWarn(@"Ignoring attempt to send nil/empty data.");
 		return;
 	}
+    
+    
 	
 	GCDAsyncUdpSendPacket *packet = [[GCDAsyncUdpSendPacket alloc] initWithData:data timeout:timeout tag:tag];
 	

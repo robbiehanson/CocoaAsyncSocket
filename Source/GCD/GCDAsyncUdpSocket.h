@@ -252,6 +252,21 @@ typedef BOOL (^GCDAsyncUdpSocketSendFilterBlock)(NSData *data, NSData *address, 
 - (void)setMaxReceiveIPv6BufferSize:(uint32_t)max;
 
 /**
+ * Gets/Sets the maximum size of the buffer that will be allocated for send operations.
+ * The default maximum size is 65535 bytes.
+ * 
+ * Given that a typical link MTU is 1500 bytes, a large UDP datagram will have to be 
+ * fragmented, and that’s both expensive and risky (if one fragment goes missing, the
+ * entire datagram is lost).  You are much better off sending a large number of smaller
+ * UDP datagrams, preferably using a path MTU algorithm to avoid fragmentation.
+ *
+ * You must set it before the sockt is created otherwise it won't work.
+ *
+ **/
+- (uint32_t)maxSendBufferSize;
+- (void)setMaxSendBufferSize:(uint16_t)max;
+
+/**
  * User data allows you to associate arbitrary information with the socket.
  * This data is not used internally in any way.
 **/
