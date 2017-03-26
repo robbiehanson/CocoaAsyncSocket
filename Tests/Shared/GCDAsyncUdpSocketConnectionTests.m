@@ -66,7 +66,7 @@
 
 - (uint32_t) randomLengthOfInvaildPacket {
     uint32_t minLength = 65536;
-    uint32_t maxLength = UINT16_MAX;
+    uint32_t maxLength = (uint32_t)self.testData.length;
     return minLength + arc4random_uniform(maxLength - minLength + 1);
 }
 
@@ -78,7 +78,7 @@
     XCTAssertTrue(success, @"UDP Server failed setting up socket on port %d %@", self.portNumber, error);
     
     NSData * sendData = [self.testData subdataWithRange:NSMakeRange(0, arc4random_uniform(9217))];
-    NSLog(@"DATA Length is %ld",sendData.length);
+    NSLog(@"Send data Length is %ld",sendData.length);
     self.sendDataLength = sendData.length;
     
     [self.clientSocket sendData:sendData toHost:@"127.0.0.1" port:self.portNumber withTimeout:30 tag:0];
@@ -99,7 +99,7 @@
     XCTAssertTrue(success, @"UDP Server failed setting up socket on port %d %@", self.portNumber, error);
     
     NSData * sendData = [self.testData subdataWithRange:NSMakeRange(0, [self randomLengthOfLargePacket])];
-    NSLog(@"DATA Length is %ld",sendData.length);
+    NSLog(@"Send data Length is %ld",sendData.length);
     self.sendDataLength = sendData.length;
     [self.clientSocket sendData:sendData toHost:@"127.0.0.1" port:self.portNumber withTimeout:30 tag:0];
     
@@ -118,8 +118,8 @@
     success = [self.serverSocket bindToPort:self.portNumber error:&error] && [self.serverSocket beginReceiving:&error];
     XCTAssertTrue(success, @"UDP Server failed setting up socket on port %d %@", self.portNumber, error);
     
-    NSData * sendData = [self.testData subdataWithRange:NSMakeRange(0, [self randomLengthOfLargePacket])];
-    NSLog(@"DATA Length is %ld",sendData.length);
+    NSData * sendData = [self.testData subdataWithRange:NSMakeRange(0, [self randomLengthOfInvaildPacket])];
+    NSLog(@"Send data Length is %ld",sendData.length);
     self.sendDataLength = sendData.length;
     [self.clientSocket sendData:sendData toHost:@"127.0.0.1" port:self.portNumber withTimeout:30 tag:0];
     
@@ -131,19 +131,73 @@
     }];
 }
 
+- (void)testAlterMaxSendBufferSizeWithVaildValue
+{
+    NSError * error = nil;
+    BOOL success = NO;
+    
+    uint16_t dataLength = arc4random_uniform(UINT16_MAX);
+    NSLog(@"random data length is %hu",dataLength);
+    
+    success = [self.serverSocket bindToPort:self.portNumber error:&error] && [self.serverSocket beginReceiving:&error];
+    XCTAssertTrue(success, @"UDP Server failed setting up socket on port %d %@", self.portNumber, error);
+    
+    NSData * sendData = [self.testData subdataWithRange:NSMakeRange(0, dataLength)];
+    NSLog(@"Send data Length is %ld",sendData.length);
+    
+    self.clientSocket.maxSendBufferSize = dataLength;
+    [self.clientSocket sendData:sendData toHost:@"127.0.0.1" port:self.portNumber withTimeout:30 tag:0];
+    self.sendDataLength = dataLength;
+    XCTAssertTrue(self.clientSocket.maxSendBufferSize == dataLength, @"Alter socket maxSendBufferSize fail on port %d %@", self.portNumber, error);
+    
+    self.expectation = [self expectationWithDescription:@"Test Altering maxSendBufferSize With Vaild Value"];
+    [self waitForExpectationsWithTimeout:30 handler:^(NSError *error) {
+        if (error) {
+            NSLog(@"Error establishing altering maxSendBufferSize with vaild value ");
+        }
+    }];
+}
+
+- (void)testAlterMaxSendBufferSizeWithInvaildValue
+{
+    NSError * error = nil;
+    BOOL success = NO;
+    
+    uint16_t dataLength = arc4random_uniform(UINT16_MAX);
+    NSLog(@"random data length is %hu",dataLength);
+    
+    success = [self.serverSocket bindToPort:self.portNumber error:&error] && [self.serverSocket beginReceiving:&error];
+    XCTAssertTrue(success, @"UDP Server failed setting up socket on port %d %@", self.portNumber, error);
+    
+    NSData * sendData = [self.testData subdataWithRange:NSMakeRange(0, dataLength + 1)];
+    NSLog(@"Send data Length is %ld",sendData.length);
+    
+    self.clientSocket.maxSendBufferSize = dataLength;
+    [self.clientSocket sendData:sendData toHost:@"127.0.0.1" port:self.portNumber withTimeout:30 tag:0];
+    self.sendDataLength = dataLength;
+    XCTAssertTrue(self.clientSocket.maxSendBufferSize == dataLength, @"Alter socket maxSendBufferSize fail on port %d %@", self.portNumber, error);
+    
+    self.expectation = [self expectationWithDescription:@"Test Altering maxSendBufferSize With Invaild Value"];
+    [self waitForExpectationsWithTimeout:30 handler:^(NSError *error) {
+        if (error) {
+            NSLog(@"Error establishing altering maxSendBufferSize with invaild value ");
+        }
+    }];
+}
+
 #pragma mark GCDAsyncUdpSocketDelegate methods
 /**
  * Called when the datagram with the given tag has been sent.
  **/
 - (void)udpSocket:(GCDAsyncUdpSocket *)sock didSendDataWithTag:(long)tag
 {
-    NSLog(@"send data");
+    NSLog(@"Send data");
 }
 
 
 - (void)udpSocketDidClose:(GCDAsyncUdpSocket *)sock withError:(NSError  * _Nullable)error
 {
-    NSLog(@"closr error is %@",error);
+    NSLog(@"Close socket, error is %@",error);
     [self.expectation fulfill];
 }
 
@@ -152,6 +206,7 @@
 withFilterContext:(nullable id)filterContext
 {
     XCTAssertTrue(data.length == self.sendDataLength, @"UDP packet is truncated on port %d", self.portNumber);
+    NSLog(@"Receive data");
     [self.expectation fulfill];
 }
 
