@@ -883,9 +883,9 @@ enum GCDAsyncUdpSocketConfig
         dispatch_async(socketQueue, block);
 }
 
-- (uint32_t)maxSendBufferSize
+- (uint16_t)maxSendBufferSize
 {
-    __block uint32_t result = 0;
+    __block uint16_t result = 0;
     
     dispatch_block_t block = ^{
         

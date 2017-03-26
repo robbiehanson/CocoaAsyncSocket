@@ -231,7 +231,7 @@ typedef BOOL (^GCDAsyncUdpSocketSendFilterBlock)(NSData *data, NSData *address, 
 
 /**
  * Gets/Sets the maximum size of the buffer that will be allocated for receive operations.
- * The default maximum size is 9216 bytes.
+ * The default maximum size is 65535 bytes.
  * 
  * The theoretical maximum size of any IPv4 UDP packet is UINT16_MAX = 65535.
  * The theoretical maximum size of any IPv6 UDP packet is UINT32_MAX = 4294967295.
@@ -263,7 +263,7 @@ typedef BOOL (^GCDAsyncUdpSocketSendFilterBlock)(NSData *data, NSData *address, 
  * You must set it before the sockt is created otherwise it won't work.
  *
  **/
-- (uint32_t)maxSendBufferSize;
+- (uint16_t)maxSendBufferSize;
 - (void)setMaxSendBufferSize:(uint16_t)max;
 
 /**
