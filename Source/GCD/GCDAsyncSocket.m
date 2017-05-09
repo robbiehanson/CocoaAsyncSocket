@@ -1036,6 +1036,69 @@ enum GCDAsyncSocketConfig
 	LogInfo(@"%@ - %@ (finish)", THIS_METHOD, self);
 }
 
+#pragma mark -
+
++ (nullable instancetype)socketFromConnectedSocketFD:(int)socketFD socketQueue:(nullable dispatch_queue_t)sq error:(NSError**)error {
+  return [self socketFromConnectedSocketFD:socketFD delegate:nil delegateQueue:NULL socketQueue:sq error:error];
+}
+
++ (nullable instancetype)socketFromConnectedSocketFD:(int)socketFD delegate:(nullable id<GCDAsyncSocketDelegate>)aDelegate delegateQueue:(nullable dispatch_queue_t)dq error:(NSError**)error {
+  return [self socketFromConnectedSocketFD:socketFD delegate:aDelegate delegateQueue:dq socketQueue:NULL error:error];
+}
+
++ (nullable instancetype)socketFromConnectedSocketFD:(int)socketFD delegate:(nullable id<GCDAsyncSocketDelegate>)aDelegate delegateQueue:(nullable dispatch_queue_t)dq socketQueue:(nullable dispatch_queue_t)sq error:(NSError**)error
+{
+  __block BOOL errorOccured = NO;
+  
+  GCDAsyncSocket *socket = [[[self class] alloc] initWithDelegate:aDelegate delegateQueue:dq socketQueue:sq];
+  
+  dispatch_sync(socket->socketQueue, ^{ @autoreleasepool {
+    struct sockaddr addr;
+    socklen_t addr_size = sizeof(struct sockaddr);
+    int retVal = getpeername(socketFD, (struct sockaddr *)&addr, &addr_size);
+    if (retVal)
+    {
+      NSString *errMsg = NSLocalizedStringWithDefaultValue(@"GCDAsyncSocketOtherError",
+                                                           @"GCDAsyncSocket", [NSBundle mainBundle],
+                                                           @"Attempt to create socket from socket FD failed. getpeername() failed", nil);
+      
+      NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+
+      errorOccured = YES;
+      if (error)
+        *error = [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketOtherError userInfo:userInfo];
+      return;
+    }
+    
+    if (addr.sa_family == AF_INET)
+    {
+      socket->socket4FD = socketFD;
+    }
+    else if (addr.sa_family == AF_INET6)
+    {
+      socket->socket6FD = socketFD;
+    }
+    else
+    {
+      NSString *errMsg = NSLocalizedStringWithDefaultValue(@"GCDAsyncSocketOtherError",
+                                                           @"GCDAsyncSocket", [NSBundle mainBundle],
+                                                           @"Attempt to create socket from socket FD failed. socket FD is neither IPv4 nor IPv6", nil);
+      
+      NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+      
+      errorOccured = YES;
+      if (error)
+        *error = [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketOtherError userInfo:userInfo];
+      return;
+    }
+    
+    socket->flags = kSocketStarted;
+    [socket didConnect:socket->stateIndex];
+  }});
+  
+  return errorOccured? nil: socket;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Configuration
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
