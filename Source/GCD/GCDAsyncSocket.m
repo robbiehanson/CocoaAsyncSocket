@@ -1039,16 +1039,18 @@ enum GCDAsyncSocketConfig
 #pragma mark -
 
 + (nullable instancetype)socketFromConnectedSocketFD:(int)socketFD socketQueue:(nullable dispatch_queue_t)sq error:(NSError**)error {
-  return [GCDAsyncSocket socketFromConnectedSocketFD:socketFD delegate:nil delegateQueue:NULL socketQueue:sq error:error];
+  return [self socketFromConnectedSocketFD:socketFD delegate:nil delegateQueue:NULL socketQueue:sq error:error];
 }
 
 + (nullable instancetype)socketFromConnectedSocketFD:(int)socketFD delegate:(nullable id<GCDAsyncSocketDelegate>)aDelegate delegateQueue:(nullable dispatch_queue_t)dq error:(NSError**)error {
-  return [GCDAsyncSocket socketFromConnectedSocketFD:socketFD delegate:aDelegate delegateQueue:dq socketQueue:NULL error:error];
+  return [self socketFromConnectedSocketFD:socketFD delegate:aDelegate delegateQueue:dq socketQueue:NULL error:error];
 }
 
 + (nullable instancetype)socketFromConnectedSocketFD:(int)socketFD delegate:(nullable id<GCDAsyncSocketDelegate>)aDelegate delegateQueue:(nullable dispatch_queue_t)dq socketQueue:(nullable dispatch_queue_t)sq error:(NSError**)error
 {
-  GCDAsyncSocket *socket = [[GCDAsyncSocket alloc] initWithDelegate:aDelegate delegateQueue:dq socketQueue:sq];
+  __block BOOL errorOccured = NO;
+  
+  GCDAsyncSocket *socket = [[[self class] alloc] initWithDelegate:aDelegate delegateQueue:dq socketQueue:sq];
   
   dispatch_sync(socket->socketQueue, ^{ @autoreleasepool {
     struct sockaddr addr;
@@ -1062,7 +1064,9 @@ enum GCDAsyncSocketConfig
       
       NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
 
-      *error = [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketOtherError userInfo:userInfo];
+      errorOccured = YES;
+      if (error)
+        *error = [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketOtherError userInfo:userInfo];
       return;
     }
     
@@ -1082,7 +1086,9 @@ enum GCDAsyncSocketConfig
       
       NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
       
-      *error = [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketOtherError userInfo:userInfo];
+      errorOccured = YES;
+      if (error)
+        *error = [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketOtherError userInfo:userInfo];
       return;
     }
     
@@ -1090,7 +1096,7 @@ enum GCDAsyncSocketConfig
     [socket didConnect:socket->stateIndex];
   }});
   
-  return *error == nil? socket: nil;
+  return errorOccured? nil: socket;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
