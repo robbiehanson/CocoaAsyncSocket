@@ -8,6 +8,8 @@
 
 #import <Foundation/Foundation.h>
 #import <XCTest/XCTest.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 @import CocoaAsyncSocket;
 
 @interface GCDAsyncSocketConnectionTests : XCTestCase <GCDAsyncSocketDelegate>
@@ -123,7 +125,7 @@
 }
 
 - (void)testConnectionWithLocalhostWithClientPreferringIPv6 {
-    [self.clientSocket setIPv4PreferredOverIPv6:NO];
+  [self.clientSocket setIPv4PreferredOverIPv6:NO];
 
     NSError *error = nil;
     BOOL success = NO;
@@ -138,6 +140,62 @@
             NSLog(@"Error establishing test connection");
         }
     }];
+}
+
+- (void)testConnectionWithLocalhostWithConnectedSocketFD4 {
+  [self.serverSocket setIPv6Enabled:NO];
+  
+  NSError *error = nil;
+  BOOL success = NO;
+  success = [self.serverSocket acceptOnPort:self.portNumber error:&error];
+  XCTAssertTrue(success, @"Server failed setting up socket on port %d %@", self.portNumber, error);
+
+  int socketFD4;
+  struct sockaddr_in addr;
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(self.portNumber);
+  addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+  
+  socketFD4 = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  XCTAssertTrue(socketFD4 >=0, @"Failed to create IPv4 socket");
+  
+  int errorCode = connect(socketFD4, (struct sockaddr *)&addr, sizeof(addr));
+  XCTAssertTrue(errorCode == 0, @"Failed to connect to server");
+
+  GCDAsyncSocket *socket = [GCDAsyncSocket socketFromConnectedSocketFD:socketFD4 delegate:nil delegateQueue:NULL error:&error];
+  XCTAssertTrue(socket && !error, @"Failed to create socket from socket FD");
+  
+  XCTAssertTrue([socket isConnected], @"GCDAsyncSocket is should connected");
+  XCTAssertTrue([socket.connectedHost isEqualToString:@"127.0.0.1"], @"Something is wrong with GCDAsyncSocket. Connected host is wrong");
+  XCTAssertTrue(socket.connectedPort == self.portNumber, @"Something is wrong with the GCDAsyncSocket. Connected port is wrong");
+}
+
+- (void)testConnectionWithLocalhostWithConnectedSocketFD6 {
+  [self.serverSocket setIPv4Enabled:NO];
+  
+  NSError *error = nil;
+  BOOL success = NO;
+  success = [self.serverSocket acceptOnPort:self.portNumber error:&error];
+  XCTAssertTrue(success, @"Server failed setting up socket on port %d %@", self.portNumber, error);
+  
+  int socketFD6;
+  struct sockaddr_in6 addr;
+  addr.sin6_family = AF_INET6;
+  addr.sin6_port = htons(self.portNumber);
+  inet_pton(AF_INET6, "::1", &addr.sin6_addr);
+  
+  socketFD6 = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
+  XCTAssertTrue(socketFD6 >=0, @"Failed to create IPv6 socket");
+  
+  int errorCode = connect(socketFD6, (struct sockaddr *)&addr, sizeof(addr));
+  XCTAssertTrue(errorCode == 0, @"Failed to connect to server");
+  
+  GCDAsyncSocket *socket = [GCDAsyncSocket socketFromConnectedSocketFD:socketFD6 delegate:nil delegateQueue:NULL error:&error];
+  XCTAssertTrue(socket && !error, @"Failed to create socket from socket FD");
+
+  XCTAssertTrue([socket isConnected], @"GCDAsyncSocket is should connected");
+  XCTAssertTrue([socket.connectedHost isEqualToString:@"::1"], @"Something is wrong with GCDAsyncSocket. Connected host is wrong");
+  XCTAssertTrue(socket.connectedPort == self.portNumber, @"Something is wrong with the GCDAsyncSocket. Connected port is wrong");
 }
 
 #pragma mark GCDAsyncSocketDelegate methods
