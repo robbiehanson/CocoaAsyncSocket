@@ -182,7 +182,7 @@ enum GCDAsyncSocketConfig
  * and store additional yet unread data in a "prebuffer".
  * 
  * The prebuffer is entirely drained before we read from the socket again.
- * In other words, a large chunk of data is written is written to the prebuffer.
+ * In other words, a large chunk of data is written to the prebuffer.
  * The prebuffer is then drained via a series of one or more reads (for subsequent read request(s)).
  * 
  * A ring buffer was once used for this purpose.
