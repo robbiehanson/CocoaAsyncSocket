@@ -1,5 +1,6 @@
 #import "DDDispatchQueueLogFormatter.h"
-#import <libkern/OSAtomic.h>
+#import <pthread/pthread.h>
+#include <stdatomic.h>
 
 /**
  * Welcome to Cocoa Lumberjack!
@@ -18,10 +19,10 @@
 
 @implementation DDDispatchQueueLogFormatter
 {
-    int32_t atomicLoggerCount;
+    atomic_int atomicLoggerCount;
     NSDateFormatter *threadUnsafeDateFormatter; // Use [self stringFromDate]
     
-    OSSpinLock lock;
+    pthread_mutex_t _mutex;
     
     NSUInteger _minQueueLength;           // _prefix == Only access via atomic property
     NSUInteger _maxQueueLength;           // _prefix == Only access via atomic property
@@ -60,25 +61,25 @@
 {
     NSString *result = nil;
     
-    OSSpinLockLock(&lock);
+    pthread_mutex_lock(&_mutex);
     {
         result = _replacements[longLabel];
     }
-    OSSpinLockUnlock(&lock);
+    pthread_mutex_unlock(&_mutex);
     
     return result;
 }
 
 - (void)setReplacementString:(NSString *)shortLabel forQueueLabel:(NSString *)longLabel
 {
-    OSSpinLockLock(&lock);
+    pthread_mutex_lock(&_mutex);
     {
         if (shortLabel)
             _replacements[longLabel] = shortLabel;
         else
             [_replacements removeObjectForKey:longLabel];
     }
-    OSSpinLockUnlock(&lock);
+    pthread_mutex_unlock(&_mutex);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -87,7 +88,14 @@
 
 - (NSString *)stringFromDate:(NSDate *)date
 {
-    int32_t loggerCount = OSAtomicAdd32(0, &atomicLoggerCount);
+    int32_t loggerCount = atomic_fetch_add_explicit(&atomicLoggerCount, 0, memory_order_relaxed);
+    
+    NSString *calendarIdentifier = nil;
+#if defined(__IPHONE_8_0) || defined(__MAC_10_10)
+    calendarIdentifier = NSCalendarIdentifierGregorian;
+#else
+    calendarIdentifier = NSGregorianCalendar;
+#endif
     
     if (loggerCount <= 1)
     {
@@ -100,7 +108,7 @@
             [threadUnsafeDateFormatter setDateFormat:dateFormatString];
         }
         
-        [threadUnsafeDateFormatter setCalendar:[[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar]];
+        [threadUnsafeDateFormatter setCalendar:[[NSCalendar alloc] initWithCalendarIdentifier:calendarIdentifier]];
         return [threadUnsafeDateFormatter stringFromDate:date];
     }
     else
@@ -122,7 +130,7 @@
             threadDictionary[key] = dateFormatter;
         }
         
-        [dateFormatter setCalendar:[[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar]];
+        [dateFormatter setCalendar:[[NSCalendar alloc] initWithCalendarIdentifier:calendarIdentifier]];
         return [dateFormatter stringFromDate:date];
     }
 }
@@ -182,11 +190,11 @@
         else
             fullLabel = logMessage->threadName;
         
-        OSSpinLockLock(&lock);
+        pthread_mutex_lock(&_mutex);
         {
             abrvLabel = _replacements[fullLabel];
         }
-        OSSpinLockUnlock(&lock);
+        pthread_mutex_unlock(&_mutex);
         
         if (abrvLabel)
             queueThreadLabel = abrvLabel;
@@ -242,12 +250,12 @@
 
 - (void)didAddToLogger:(id <DDLogger>)logger
 {
-    OSAtomicIncrement32(&atomicLoggerCount);
+    atomic_fetch_add_explicit(&atomicLoggerCount, 1, memory_order_relaxed);
 }
 
 - (void)willRemoveFromLogger:(id <DDLogger>)logger
 {
-    OSAtomicDecrement32(&atomicLoggerCount);
+    atomic_fetch_add_explicit(&atomicLoggerCount, -1, memory_order_relaxed);
 }
 
 @end

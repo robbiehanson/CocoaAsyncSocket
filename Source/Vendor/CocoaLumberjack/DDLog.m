@@ -142,7 +142,7 @@ static unsigned int numProcessors;
         
         // Figure out how many processors are available.
         // This may be used later for an optimization on uniprocessor machines.
-        
+#if !TARGET_OS_TV
         host_basic_info_data_t hostInfo;
         mach_msg_type_number_t infoCount;
         
@@ -155,7 +155,7 @@ static unsigned int numProcessors;
         numProcessors = MAX(result, one);
         
         NSLogDebug(@"DDLog: numProcessors = %u", numProcessors);
-            
+#endif
         
     #if TARGET_OS_IPHONE
         NSString *notificationName = @"UIApplicationWillTerminateNotification";

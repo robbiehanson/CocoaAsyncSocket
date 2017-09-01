@@ -1,18 +1,23 @@
+// Software License Agreement (BSD License)
+//
+// Copyright (c) 2010-2016, Deusty, LLC
+// All rights reserved.
+//
+// Redistribution and use of this software in source and binary forms,
+// with or without modification, are permitted provided that the following conditions are met:
+//
+// * Redistributions of source code must retain the above copyright notice,
+//   this list of conditions and the following disclaimer.
+//
+// * Neither the name of Deusty nor the names of its contributors may be used
+//   to endorse or promote products derived from this software without specific
+//   prior written permission of Deusty, LLC.
+
 #import "DDContextFilterLogFormatter.h"
-#import <libkern/OSAtomic.h>
+#import <pthread/pthread.h>
 
-/**
- * Welcome to Cocoa Lumberjack!
- * 
- * The project page has a wealth of documentation if you have any questions.
- * https://github.com/CocoaLumberjack/CocoaLumberjack
- * 
- * If you're new to the project you may wish to read the "Getting Started" wiki.
- * https://github.com/CocoaLumberjack/CocoaLumberjack/wiki/GettingStarted
-**/
-
-#if ! __has_feature(objc_arc)
-#warning This file must be compiled with ARC. Use -fobjc-arc flag (or convert project to ARC).
+#if !__has_feature(objc_arc)
+#error This file must be compiled with ARC. Use -fobjc-arc flag (or convert project to ARC).
 #endif
 
 @interface DDLoggingContextSet : NSObject
@@ -128,63 +133,67 @@
 #pragma mark -
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-@implementation DDLoggingContextSet
-{
-    OSSpinLock lock;
-    NSMutableSet *set;
+
+@interface DDLoggingContextSet () {
+    pthread_mutex_t _mutex;
+    NSMutableSet *_set;
 }
 
-- (id)init
-{
-    if ((self = [super init]))
-    {
-        set = [[NSMutableSet alloc] init];
+@end
+
+
+@implementation DDLoggingContextSet
+
+- (instancetype)init {
+    if ((self = [super init])) {
+        _set = [[NSMutableSet alloc] init];
+        pthread_mutex_init(&_mutex, NULL);
     }
+
     return self;
 }
 
-
-- (void)addToSet:(int)loggingContext
-{
-    OSSpinLockLock(&lock);
-    {
-        [set addObject:@(loggingContext)];
-    }
-    OSSpinLockUnlock(&lock);
+- (void)dealloc {
+    pthread_mutex_destroy(&_mutex);
 }
 
-- (void)removeFromSet:(int)loggingContext
-{
-    OSSpinLockLock(&lock);
+- (void)addToSet:(int)loggingContext {
+    pthread_mutex_lock(&_mutex);
     {
-        [set removeObject:@(loggingContext)];
+        [_set addObject:@(loggingContext)];
     }
-    OSSpinLockUnlock(&lock);
+    pthread_mutex_unlock(&_mutex);
 }
 
-- (NSArray *)currentSet
-{
+- (void)removeFromSet:(int)loggingContext {
+    pthread_mutex_lock(&_mutex);
+    {
+        [_set removeObject:@(loggingContext)];
+    }
+    pthread_mutex_unlock(&_mutex);
+}
+
+- (NSArray *)currentSet {
     NSArray *result = nil;
-    
-    OSSpinLockLock(&lock);
+
+    pthread_mutex_lock(&_mutex);
     {
-        result = [set allObjects];
+        result = [_set allObjects];
     }
-    OSSpinLockUnlock(&lock);
-    
+    pthread_mutex_unlock(&_mutex);
+
     return result;
 }
 
-- (BOOL)isInSet:(int)loggingContext
-{
+- (BOOL)isInSet:(int)loggingContext {
     BOOL result = NO;
-    
-    OSSpinLockLock(&lock);
+
+    pthread_mutex_lock(&_mutex);
     {
-        result = [set containsObject:@(loggingContext)];
+        result = [_set containsObject:@(loggingContext)];
     }
-    OSSpinLockUnlock(&lock);
-    
+    pthread_mutex_unlock(&_mutex);
+
     return result;
 }
 

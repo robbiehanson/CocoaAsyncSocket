@@ -7916,10 +7916,10 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 		return NO;
 	}
 	
-	BOOL r1, r2;
-	
 	LogVerbose(@"Enabling backgrouding on socket");
 	
+#if !TARGET_OS_TV
+    BOOL r1, r2;
 	r1 = CFReadStreamSetProperty(readStream, kCFStreamNetworkServiceType, kCFStreamNetworkServiceTypeVoIP);
 	r2 = CFWriteStreamSetProperty(writeStream, kCFStreamNetworkServiceType, kCFStreamNetworkServiceTypeVoIP);
 	
@@ -7927,7 +7927,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	{
 		return NO;
 	}
-	
+#endif
 	if (!caveat)
 	{
 		if (![self openStreams])

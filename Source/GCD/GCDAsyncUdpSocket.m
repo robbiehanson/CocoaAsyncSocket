@@ -1920,7 +1920,7 @@ enum GCDAsyncUdpSocketConfig
 	flags |= kReceive6SourceSuspended;
 }
 
-- (BOOL)createSocket4:(BOOL)useIPv4 socket6:(BOOL)useIPv6 error:(NSError **)errPtr
+- (BOOL)createSocket4:(BOOL)useIPv4 socket6:(BOOL)useIPv6 error:(__autoreleasing NSError **)errPtr
 {
 	LogTrace();
 	
