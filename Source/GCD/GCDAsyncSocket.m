@@ -7593,10 +7593,17 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	BOOL isCancelled = [currentThread isCancelled];
 	
-	while (!isCancelled && [currentRunLoop runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]])
-	{
-		isCancelled = [currentThread isCancelled];
-	}
+    @try
+    {
+        while (!isCancelled && [currentRunLoop runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]])
+        {
+            isCancelled = [currentThread isCancelled];
+        }
+    }
+    @catch (NSException *exeption)
+    {
+        LogError(@"Caught Exception: %@", exception);
+    }
 	
 	LogInfo(@"CFStreamThread: Stopped");
 }}
