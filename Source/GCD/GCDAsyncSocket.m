@@ -3143,7 +3143,6 @@ enum GCDAsyncSocketConfig
 {
 	LogTrace();
 	
-	[self endConnectTimeout];
 	[self closeWithError:[self connectTimeoutError]];
 }
 
