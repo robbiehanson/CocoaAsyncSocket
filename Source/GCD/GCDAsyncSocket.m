@@ -5492,6 +5492,12 @@ enum GCDAsyncSocketConfig
 	else if (totalBytesReadForCurrentRead > 0)
 	{
 		// We're not done read type #2 or #3 yet, but we have read in some bytes
+		//
+		// We ensure that `waiting` is set in order to resume the readSource (if it is suspended). It is
+		// possible to reach this point and `waiting` not be set, if the current read's length is
+		// sufficiently large. In that case, we may have read to some upperbound successfully, but
+		// that upperbound could be smaller than the desired length.
+		waiting = YES;
 
 		__strong id theDelegate = delegate;
 		
