@@ -51,7 +51,7 @@ class TestServer: NSObject {
 
 	var onAccept: Callback = {}
 
-	var port: UInt16 = 1234
+	var port: UInt16 = randomValidPort()
 
 	var lastAcceptedSocket: GCDAsyncSocket? = nil
 
@@ -77,7 +77,7 @@ class TestServer: NSObject {
 			fatalError("Failed to accept on port \(self.port): \(error)")
 		}
 
-		waiter.wait(for: [didAccept], timeout: 0.1)
+		waiter.wait(for: [didAccept], timeout: 1)
 
 		guard let accepted = self.lastAcceptedSocket else {
 			fatalError("No socket connected")

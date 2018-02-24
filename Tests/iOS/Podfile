@@ -1,5 +1,7 @@
 source 'https://github.com/CocoaPods/Specs.git'
 
+ENV["COCOAPODS_DISABLE_STATS"] = "true"
+
 use_frameworks!
 
 target :CocoaAsyncSocketTestsiOS do

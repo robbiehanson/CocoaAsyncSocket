@@ -1,11 +1,27 @@
 import XCTest
+import CocoaAsyncSocket
 
 class GCDAsyncSocketReadTests: XCTestCase {
+    
+    override func setUp() {
+        super.setUp()
+        TestSocket.waiterDelegate = self
+    }
+    
+    override func tearDown() {
+        super.tearDown()
+    }
+    
+    func test_repeatedConnections() {
+        let maxIterations = 100
+        for i in 0..<maxIterations {
+            debugPrint("Running test #\(i)/\(maxIterations)")
+            test_whenBytesAvailableIsLessThanReadLength_readDoesNotTimeout()
+        }
+    }
 
 	func test_whenBytesAvailableIsLessThanReadLength_readDoesNotTimeout() {
-		TestSocket.waiterDelegate = self
-
-		let (client, server) = TestSocket.createSecurePair()
+        let (client, server) = TestSocket.createSecurePair()
 
 		// Write once to fire the readSource on the client, also causing the
 		// readSource to be suspended.
