@@ -18,30 +18,21 @@ class TestSocket: NSObject {
 	 */
 	static var waiterDelegate: XCTWaiterDelegate? = nil
 
-	static func connect(to server: TestServer) -> TestSocket {
-		let socket = TestSocket()
-		socket.connect(on: server.port)
+	lazy var queue: DispatchQueue = { [unowned self] in
+		return DispatchQueue(label: "com.asyncSocket.\(self)")
+	}()
 
-		return socket
-	}
-
-	var socket: GCDAsyncSocket {
-		didSet {
-			socket.delegate = self
-			socket.delegateQueue = self.queue
-		}
-	}
-
-	let queue: DispatchQueue = DispatchQueue(label: "com.asyncSocket.TestSocketDelegate")
+	let socket: GCDAsyncSocket
 
 	// MARK: Convience callbacks
 
-	typealias Callback = () -> Void
+	typealias Callback = Optional<() -> Void>
 
-	var onSecure: Callback = {}
-	var onRead: Callback = {}
-	var onWrite: Callback = {}
-	var onDisconnect: Callback = {}
+	var onConnect: Callback
+	var onSecure: Callback
+	var onRead: Callback
+	var onWrite: Callback
+	var onDisconnect: Callback
 
 	// MARK: Counters
 
@@ -50,17 +41,34 @@ class TestSocket: NSObject {
 
 	override convenience init() {
 		self.init(socket: GCDAsyncSocket())
+	}
+
+	init(socket: GCDAsyncSocket) {
+		self.socket = socket
+		super.init()
 
 		self.socket.delegate = self
 		self.socket.delegateQueue = self.queue
 	}
 
-	init(socket: GCDAsyncSocket) {
-		self.socket = socket
-	}
+	func close() {
+		let waiter = XCTWaiter(delegate: TestSocket.waiterDelegate)
+		let didDisconnect = XCTestExpectation(description: "Disconnected")
 
-	deinit {
-		self.socket.disconnect()
+		self.queue.async {
+			guard self.socket.isConnected else {
+				didDisconnect.fulfill()
+				return
+			}
+
+			self.onDisconnect = {
+				didDisconnect.fulfill()
+			}
+
+			self.socket.disconnect()
+		}
+
+		waiter.wait(for: [didDisconnect], timeout: 0.1)
 	}
 }
 
@@ -95,9 +103,7 @@ extension TestSocket {
 		}
 
 		self.socket.readData(toLength: length, withTimeout: 0.1, tag: 1)
-		waiter.wait(for: [didRead], timeout: 0.5)
-
-		self.bytesWritten += Int(length)
+		waiter.wait(for: [didRead], timeout: 0.2)
 	}
 
 	/**
@@ -117,7 +123,9 @@ extension TestSocket {
 		let fakeData = Data(repeating: 0, count: length)
 		self.socket.write(fakeData, withTimeout: 0.1, tag: 1)
 
-		waiter.wait(for: [didWrite], timeout: 0.5)
+		waiter.wait(for: [didWrite], timeout: 0.2)
+
+		self.bytesWritten += Int(length)
 	}
 
 	/**
@@ -153,63 +161,28 @@ extension TestSocket {
 
 extension TestSocket: GCDAsyncSocketDelegate {
 
+	func socket(_ sock: GCDAsyncSocket, didConnectToHost host: String, port: UInt16) {
+		self.onConnect?()
+	}
+
 	func socketDidSecure(_ sock: GCDAsyncSocket) {
-		self.onSecure()
-		self.onSecure = {}
+		self.onSecure?()
 	}
 
 	func socket(_ sock: GCDAsyncSocket, didWriteDataWithTag tag: Int) {
-		self.onWrite()
-		self.onWrite = {}
+		self.onWrite?()
 	}
 
 	func socket(_ sock: GCDAsyncSocket, didRead data: Data, withTag tag: Int) {
 		self.bytesRead += data.count
-
-		self.onRead()
-		self.onRead = {}
+		self.onRead?()
 	}
 
 	func socketDidDisconnect(_ sock: GCDAsyncSocket, withError err: Error?) {
-		self.onDisconnect()
-		self.onDisconnect = {}
+		self.onDisconnect?()
 	}
 
 	func socket(_ sock: GCDAsyncSocket, didReceive trust: SecTrust, completionHandler: @escaping (Bool) -> Void) {
 		completionHandler(true) // Trust all the things!!
-	}
-}
-
-// MARK: Factory
-
-extension TestSocket {
-
-	static func createPair() -> (client: TestSocket, accepted: TestSocket) {
-		let server = TestServer()
-		let client = TestSocket.connect(to: server)
-
-		let accepted = server.accept()
-
-		return (client, accepted)
-	}
-
-	static func createSecurePair() -> (client: TestSocket, accepted: TestSocket) {
-		let (client, accepted) = self.createPair()
-
-		let waiter = XCTWaiter(delegate: self.waiterDelegate)
-		let didSecure = XCTestExpectation(description: "Socket did secure")
-		didSecure.expectedFulfillmentCount = 2
-
-		accepted.startTLS(as: .server) {
-			didSecure.fulfill()
-		}
-
-		client.startTLS(as: .client) {
-			didSecure.fulfill()
-		}
-
-		waiter.wait(for: [didSecure], timeout: 2.0)
-
-		return (client, accepted)
 	}
 }
