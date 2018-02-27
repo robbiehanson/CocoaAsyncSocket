@@ -21,8 +21,8 @@ class SwiftTests: XCTestCase, GCDAsyncSocketDelegate {
         super.setUp()
         // Put setup code here. This method is called before the invocation of each test method in the class.
         portNumber = randomValidPort()
-        clientSocket = GCDAsyncSocket(delegate: self, delegateQueue: dispatch_get_main_queue())
-        serverSocket = GCDAsyncSocket(delegate: self, delegateQueue: dispatch_get_main_queue())
+        clientSocket = GCDAsyncSocket(delegate: self, delegateQueue: DispatchQueue.main)
+        serverSocket = GCDAsyncSocket(delegate: self, delegateQueue: DispatchQueue.main)
     }
     
     override func tearDown() {
@@ -36,7 +36,7 @@ class SwiftTests: XCTestCase, GCDAsyncSocketDelegate {
         acceptedServerSocket = nil
     }
     
-    private func randomValidPort() -> UInt16 {
+    fileprivate func randomValidPort() -> UInt16 {
         let minPort = UInt32(1024)
         let maxPort = UInt32(UINT16_MAX)
         let value = maxPort - minPort + 1
@@ -47,38 +47,34 @@ class SwiftTests: XCTestCase, GCDAsyncSocketDelegate {
         // This is an example of a functional test case.
         // Use XCTAssert and related functions to verify your tests produce the correct results.
         do {
-            try serverSocket?.acceptOnPort(portNumber)
+            try serverSocket?.accept(onPort: portNumber)
         } catch {
             XCTFail("\(error)")
         }
         do {
-            try clientSocket?.connectToHost("127.0.0.1", onPort: portNumber)
+            try clientSocket?.connect(toHost: "127.0.0.1", onPort: portNumber)
         } catch {
             XCTFail("\(error)")
         }
-        expectation = expectationWithDescription("Test Full connnection")
-        waitForExpectationsWithTimeout(30) { (error: NSError?) -> Void in
-            if error != nil {
-                XCTFail("\(error)")
-            }
-        }
+        expectation = self.expectation(description: "Test Full connnection")
+        waitForExpectations(timeout: 30, handler: nil)
     }
     
     func testConnectionWithAnIPv4OnlyServer() {
-        serverSocket?.IPv6Enabled = false
+        serverSocket?.isIPv6Enabled = false
         do {
-            try serverSocket?.acceptOnPort(portNumber)
+            try serverSocket?.accept(onPort: portNumber)
         } catch {
             XCTFail("\(error)")
         }
         do {
-            try clientSocket?.connectToHost("127.0.0.1", onPort: portNumber)
+            try clientSocket?.connect(toHost: "127.0.0.1", onPort: portNumber)
         } catch {
             XCTFail("\(error)")
         }
-        expectation = expectationWithDescription("Test Full connnection")
-        waitForExpectationsWithTimeout(30) { (error: NSError?) -> Void in
-            if error != nil {
+        expectation = self.expectation(description: "Test Full connnection")
+        waitForExpectations(timeout: 30, handler: { (error) in
+            if let error = error {
                 XCTFail("\(error)")
             }
             else {
@@ -86,24 +82,24 @@ class SwiftTests: XCTestCase, GCDAsyncSocketDelegate {
                     XCTAssertTrue(isIPv4)
                 }
             }
-        }
+        })
     }
 
     func testConnectionWithAnIPv6OnlyServer() {
-        serverSocket?.IPv4Enabled = false
+        serverSocket?.isIPv4Enabled = false
         do {
-            try serverSocket?.acceptOnPort(portNumber)
+            try serverSocket?.accept(onPort: portNumber)
         } catch {
             XCTFail("\(error)")
         }
         do {
-            try clientSocket?.connectToHost("::1", onPort: portNumber)
+            try clientSocket?.connect(toHost: "::1", onPort: portNumber)
         } catch {
             XCTFail("\(error)")
         }
-        expectation = expectationWithDescription("Test Full connnection")
-        waitForExpectationsWithTimeout(30) { (error: NSError?) -> Void in
-            if error != nil {
+        expectation = self.expectation(description: "Test Full connnection")
+        waitForExpectations(timeout: 30, handler: { (error) in
+            if let error = error {
                 XCTFail("\(error)")
             }
             else {
@@ -111,58 +107,118 @@ class SwiftTests: XCTestCase, GCDAsyncSocketDelegate {
                     XCTAssertTrue(isIPv6)
                 }
             }
-        }
+        })
     }
     
     func testConnectionWithLocalhostWithClientPreferringIPv4() {
-        clientSocket?.IPv4PreferredOverIPv6 = true
+        clientSocket?.isIPv4PreferredOverIPv6 = true
         
         do {
-            try serverSocket?.acceptOnPort(portNumber)
+            try serverSocket?.accept(onPort: portNumber)
         } catch {
             XCTFail("\(error)")
         }
         do {
-            try clientSocket?.connectToHost("localhost", onPort: portNumber)
+            try clientSocket?.connect(toHost: "localhost", onPort: portNumber)
         } catch {
             XCTFail("\(error)")
         }
-        expectation = expectationWithDescription("Test Full connnection")
-        waitForExpectationsWithTimeout(30) { (error: NSError?) -> Void in
-            if error != nil {
-                XCTFail("\(error)")
-            }
-        }
+        expectation = self.expectation(description: "Test Full connnection")
+        waitForExpectations(timeout: 30, handler: nil)
     }
     
     func testConnectionWithLocalhostWithClientPreferringIPv6() {
-        clientSocket?.IPv4PreferredOverIPv6 = false
+        clientSocket?.isIPv4PreferredOverIPv6 = false
         
         do {
-            try serverSocket?.acceptOnPort(portNumber)
+            try serverSocket?.accept(onPort: portNumber)
         } catch {
             XCTFail("\(error)")
         }
         do {
-            try clientSocket?.connectToHost("localhost", onPort: portNumber)
+            try clientSocket?.connect(toHost: "localhost", onPort: portNumber)
         } catch {
             XCTFail("\(error)")
         }
-        expectation = expectationWithDescription("Test Full connnection")
-        waitForExpectationsWithTimeout(30) { (error: NSError?) -> Void in
-            if error != nil {
-                XCTFail("\(error)")
+        expectation = self.expectation(description: "Test Full connnection")
+        waitForExpectations(timeout: 30, handler: nil)
+    }
+  
+    func testConnectionWithLocalhostWithConnectedSocketFD4() {
+        serverSocket?.isIPv6Enabled = false;
+        
+        do {
+            try serverSocket?.accept(onPort: portNumber)
+        } catch {
+            XCTFail("\(error)")
+        }
+        
+        var addr = sockaddr_in()
+        addr.sin_family = sa_family_t(AF_INET)
+        addr.sin_port = _OSSwapInt16(in_port_t(portNumber))
+        addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+        
+        let socketFD4 = Darwin.socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)
+        XCTAssertTrue(socketFD4 >= 0, "Failed to create IPv4 socket");
+        
+        withUnsafeMutablePointer(to: &addr) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                let errorCode = Darwin.connect(socketFD4, $0, socklen_t(MemoryLayout.size(ofValue: addr)));
+                XCTAssertTrue(errorCode == 0, "Failed to connect to server");
             }
+        }
+        
+        do {
+            let socket = try GCDAsyncSocket.init(fromConnectedSocketFD: socketFD4, delegate: nil, delegateQueue: nil)
+            XCTAssertTrue(socket.isConnected, "GCDAsyncSocket is should connected");
+            XCTAssertTrue(socket.connectedHost == "127.0.0.1", "Something is wrong with GCDAsyncSocket. Connected host is wrong");
+            XCTAssertTrue(socket.connectedPort == self.portNumber, "Something is wrong with the GCDAsyncSocket. Connected port is wrong");
+        } catch {
+            XCTFail("\(error)")
         }
     }
     
+    func testConnectionWithLocalhostWithConnectedSocketFD6() {
+        serverSocket?.isIPv4Enabled = false;
+        
+        do {
+            try serverSocket?.accept(onPort: portNumber)
+        } catch {
+            XCTFail("\(error)")
+        }
+        
+        var addr = sockaddr_in6()
+        addr.sin6_family = sa_family_t(AF_INET6)
+        addr.sin6_port = _OSSwapInt16(in_port_t(portNumber))
+        inet_pton(AF_INET6, "::1", &addr.sin6_addr);
+        
+        let socketFD6 = Darwin.socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP)
+        XCTAssertTrue(socketFD6 >= 0, "Failed to create IPv4 socket");
+        
+        withUnsafeMutablePointer(to: &addr) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                let errorCode = Darwin.connect(socketFD6, $0, socklen_t(MemoryLayout.size(ofValue: addr)));
+                XCTAssertTrue(errorCode == 0, "Failed to connect to server");
+            }
+        }
+        
+        do {
+            let socket = try GCDAsyncSocket.init(fromConnectedSocketFD: socketFD6, delegate: nil, delegateQueue: nil)
+            XCTAssertTrue(socket.isConnected, "GCDAsyncSocket is should connected");
+            XCTAssertTrue(socket.connectedHost == "::1", "Something is wrong with GCDAsyncSocket. Connected host is wrong");
+            XCTAssertTrue(socket.connectedPort == self.portNumber, "Something is wrong with the GCDAsyncSocket. Connected port is wrong");
+        } catch {
+            XCTFail("\(error)")
+        }
+    }
+  
     //MARK:- GCDAsyncSocketDelegate
-    func socket(sock: GCDAsyncSocket, didAcceptNewSocket newSocket: GCDAsyncSocket) {
+    func socket(_ sock: GCDAsyncSocket, didAcceptNewSocket newSocket: GCDAsyncSocket) {
         NSLog("didAcceptNewSocket %@ %@", sock, newSocket)
         acceptedServerSocket = newSocket
     }
     
-    func socket(sock: GCDAsyncSocket, didConnectToHost host: String, port: UInt16) {
+    func socket(_ sock: GCDAsyncSocket, didConnectToHost host: String, port: UInt16) {
         NSLog("didConnectToHost %@ %@ %d", sock, host, port);
         expectation?.fulfill()
     }

@@ -8,6 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		3DBF1443075C0A4D4C354F47 /* Pods_CocoaAsyncSocketTestsiOS.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3450C99B20EAAD2EE977DCA4 /* Pods_CocoaAsyncSocketTestsiOS.framework */; };
+		AB7D0A8E204086EA00132F7B /* GCDAsyncSocketReadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB7D0A8D204086EA00132F7B /* GCDAsyncSocketReadTests.swift */; };
+		AB7D0A90204098EC00132F7B /* SecureSocketServer.p12 in Resources */ = {isa = PBXBuildFile; fileRef = AB7D0A8F204098EC00132F7B /* SecureSocketServer.p12 */; };
+		AB7D0A9220409EBE00132F7B /* TestSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB7D0A9120409EBE00132F7B /* TestSocket.swift */; };
+		AB7D0A942040E85700132F7B /* TestServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB7D0A932040E85700132F7B /* TestServer.swift */; };
 		D900F31C1C7533EF00F0AEF0 /* SwiftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D900F31B1C7533EF00F0AEF0 /* SwiftTests.swift */; };
 		D938B4E41B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */; };
 /* End PBXBuildFile section */
@@ -16,6 +20,10 @@
 		24CF40A2B4FD55194610FDE8 /* Pods-CocoaAsyncSocketTestsiOS.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CocoaAsyncSocketTestsiOS.release.xcconfig"; path = "Pods/Target Support Files/Pods-CocoaAsyncSocketTestsiOS/Pods-CocoaAsyncSocketTestsiOS.release.xcconfig"; sourceTree = "<group>"; };
 		309937FC1303F47F4D3D208A /* Pods-CocoaAsyncSocketTestsiOS.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CocoaAsyncSocketTestsiOS.debug.xcconfig"; path = "Pods/Target Support Files/Pods-CocoaAsyncSocketTestsiOS/Pods-CocoaAsyncSocketTestsiOS.debug.xcconfig"; sourceTree = "<group>"; };
 		3450C99B20EAAD2EE977DCA4 /* Pods_CocoaAsyncSocketTestsiOS.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_CocoaAsyncSocketTestsiOS.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB7D0A8D204086EA00132F7B /* GCDAsyncSocketReadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GCDAsyncSocketReadTests.swift; path = ../Shared/GCDAsyncSocketReadTests.swift; sourceTree = "<group>"; };
+		AB7D0A8F204098EC00132F7B /* SecureSocketServer.p12 */ = {isa = PBXFileReference; lastKnownFileType = file; name = SecureSocketServer.p12; path = ../Shared/SecureSocketServer.p12; sourceTree = "<group>"; };
+		AB7D0A9120409EBE00132F7B /* TestSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TestSocket.swift; path = ../Shared/TestSocket.swift; sourceTree = "<group>"; };
+		AB7D0A932040E85700132F7B /* TestServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TestServer.swift; path = ../Shared/TestServer.swift; sourceTree = "<group>"; };
 		D900F31B1C7533EF00F0AEF0 /* SwiftTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SwiftTests.swift; path = ../Shared/SwiftTests.swift; sourceTree = "<group>"; };
 		D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GCDAsyncSocketConnectionTests.m; path = ../Shared/GCDAsyncSocketConnectionTests.m; sourceTree = "<group>"; };
 		D9BC0D7F1A0457F40059D906 /* CocoaAsyncSocketTestsiOS.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CocoaAsyncSocketTestsiOS.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -56,6 +64,10 @@
 			children = (
 				D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */,
 				D900F31B1C7533EF00F0AEF0 /* SwiftTests.swift */,
+				AB7D0A8D204086EA00132F7B /* GCDAsyncSocketReadTests.swift */,
+				AB7D0A9120409EBE00132F7B /* TestSocket.swift */,
+				AB7D0A932040E85700132F7B /* TestServer.swift */,
+				AB7D0A8F204098EC00132F7B /* SecureSocketServer.p12 */,
 			);
 			name = Shared;
 			sourceTree = "<group>";
@@ -134,10 +146,11 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 0720;
-				LastUpgradeCheck = 0730;
+				LastUpgradeCheck = 0810;
 				TargetAttributes = {
 					D9BC0D7E1A0457F40059D906 = {
 						CreatedOnToolsVersion = 6.1;
+						LastSwiftMigration = 0810;
 					};
 				};
 			};
@@ -163,6 +176,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AB7D0A90204098EC00132F7B /* SecureSocketServer.p12 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -181,7 +195,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_ROOT}/../Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [[ $? != 0 ]] ; then\n    cat << EOM\nerror: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\nEOM\n    exit 1\nfi\n";
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n";
 			showEnvVarsInLog = 0;
 		};
 		7594E80B245258DFDE2891DC /* [CP] Embed Pods Frameworks */ = {
@@ -221,6 +235,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AB7D0A9220409EBE00132F7B /* TestSocket.swift in Sources */,
+				AB7D0A942040E85700132F7B /* TestServer.swift in Sources */,
+				AB7D0A8E204086EA00132F7B /* GCDAsyncSocketReadTests.swift in Sources */,
 				D938B4E41B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m in Sources */,
 				D900F31C1C7533EF00F0AEF0 /* SwiftTests.swift in Sources */,
 			);
@@ -232,7 +249,24 @@
 		D9BC0D791A0457800059D906 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				ONLY_ACTIVE_ARCH = YES;
@@ -242,8 +276,26 @@
 		D9BC0D7A1A0457800059D906 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
 			};
 			name = Release;
 		};
@@ -289,6 +341,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 3.0;
 			};
 			name = Debug;
 		};
@@ -327,6 +380,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.chrisballinger.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				SWIFT_VERSION = 3.0;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;

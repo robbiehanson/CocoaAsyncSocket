@@ -1036,6 +1036,69 @@ enum GCDAsyncSocketConfig
 	LogInfo(@"%@ - %@ (finish)", THIS_METHOD, self);
 }
 
+#pragma mark -
+
++ (nullable instancetype)socketFromConnectedSocketFD:(int)socketFD socketQueue:(nullable dispatch_queue_t)sq error:(NSError**)error {
+  return [self socketFromConnectedSocketFD:socketFD delegate:nil delegateQueue:NULL socketQueue:sq error:error];
+}
+
++ (nullable instancetype)socketFromConnectedSocketFD:(int)socketFD delegate:(nullable id<GCDAsyncSocketDelegate>)aDelegate delegateQueue:(nullable dispatch_queue_t)dq error:(NSError**)error {
+  return [self socketFromConnectedSocketFD:socketFD delegate:aDelegate delegateQueue:dq socketQueue:NULL error:error];
+}
+
++ (nullable instancetype)socketFromConnectedSocketFD:(int)socketFD delegate:(nullable id<GCDAsyncSocketDelegate>)aDelegate delegateQueue:(nullable dispatch_queue_t)dq socketQueue:(nullable dispatch_queue_t)sq error:(NSError* __autoreleasing *)error
+{
+  __block BOOL errorOccured = NO;
+  
+  GCDAsyncSocket *socket = [[[self class] alloc] initWithDelegate:aDelegate delegateQueue:dq socketQueue:sq];
+  
+  dispatch_sync(socket->socketQueue, ^{ @autoreleasepool {
+    struct sockaddr addr;
+    socklen_t addr_size = sizeof(struct sockaddr);
+    int retVal = getpeername(socketFD, (struct sockaddr *)&addr, &addr_size);
+    if (retVal)
+    {
+      NSString *errMsg = NSLocalizedStringWithDefaultValue(@"GCDAsyncSocketOtherError",
+                                                           @"GCDAsyncSocket", [NSBundle mainBundle],
+                                                           @"Attempt to create socket from socket FD failed. getpeername() failed", nil);
+      
+      NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+
+      errorOccured = YES;
+      if (error)
+        *error = [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketOtherError userInfo:userInfo];
+      return;
+    }
+    
+    if (addr.sa_family == AF_INET)
+    {
+      socket->socket4FD = socketFD;
+    }
+    else if (addr.sa_family == AF_INET6)
+    {
+      socket->socket6FD = socketFD;
+    }
+    else
+    {
+      NSString *errMsg = NSLocalizedStringWithDefaultValue(@"GCDAsyncSocketOtherError",
+                                                           @"GCDAsyncSocket", [NSBundle mainBundle],
+                                                           @"Attempt to create socket from socket FD failed. socket FD is neither IPv4 nor IPv6", nil);
+      
+      NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+      
+      errorOccured = YES;
+      if (error)
+        *error = [NSError errorWithDomain:GCDAsyncSocketErrorDomain code:GCDAsyncSocketOtherError userInfo:userInfo];
+      return;
+    }
+    
+    socket->flags = kSocketStarted;
+    [socket didConnect:socket->stateIndex];
+  }});
+  
+  return errorOccured? nil: socket;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Configuration
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1954,6 +2017,8 @@ enum GCDAsyncSocketConfig
 	if (result == -1)
 	{
 		LogWarn(@"Error enabling non-blocking IO on accepted socket (fcntl)");
+		LogVerbose(@"close(childSocketFD)");
+		close(childSocketFD);
 		return NO;
 	}
 	
@@ -5427,6 +5492,12 @@ enum GCDAsyncSocketConfig
 	else if (totalBytesReadForCurrentRead > 0)
 	{
 		// We're not done read type #2 or #3 yet, but we have read in some bytes
+		//
+		// We ensure that `waiting` is set in order to resume the readSource (if it is suspended). It is
+		// possible to reach this point and `waiting` not be set, if the current read's length is
+		// sufficiently large. In that case, we may have read to some upperbound successfully, but
+		// that upperbound could be smaller than the desired length.
+		waiting = YES;
 
 		__strong id theDelegate = delegate;
 		
@@ -7806,11 +7877,12 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 		LogVerbose(@"Adding streams to runloop...");
 		
 		[[self class] startCFStreamThreadIfNeeded];
-		[[self class] performSelector:@selector(scheduleCFStreams:)
-		                     onThread:cfstreamThread
-		                   withObject:self
-		                waitUntilDone:YES];
-		
+        dispatch_sync(cfstreamThreadSetupQueue, ^{
+            [[self class] performSelector:@selector(scheduleCFStreams:)
+                                 onThread:cfstreamThread
+                               withObject:self
+                            waitUntilDone:YES];
+        });
 		flags |= kAddedStreamsToRunLoop;
 	}
 	
@@ -7827,11 +7899,13 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	if (flags & kAddedStreamsToRunLoop)
 	{
 		LogVerbose(@"Removing streams from runloop...");
-		
-		[[self class] performSelector:@selector(unscheduleCFStreams:)
-		                     onThread:cfstreamThread
-		                   withObject:self
-		                waitUntilDone:YES];
+        
+        dispatch_sync(cfstreamThreadSetupQueue, ^{
+            [[self class] performSelector:@selector(unscheduleCFStreams:)
+                                 onThread:cfstreamThread
+                               withObject:self
+                            waitUntilDone:YES];
+        });
 		[[self class] stopCFStreamThreadIfNeeded];
 		
 		flags &= ~kAddedStreamsToRunLoop;

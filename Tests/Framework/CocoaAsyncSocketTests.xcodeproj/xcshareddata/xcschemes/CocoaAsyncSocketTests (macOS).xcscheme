@@ -9,15 +9,15 @@
          <BuildActionEntry
             buildForTesting = "YES"
             buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "7D8B70C31BCFA15700D8E273"
-               BuildableName = "CocoaAsyncSocket.framework"
-               BlueprintName = "tvOS CocoaAsyncSocket"
-               ReferencedContainer = "container:CocoaAsyncSocket.xcodeproj">
+               BlueprintIdentifier = "D9BC0D8C1A0458EF0059D906"
+               BuildableName = "CocoaAsyncSocketTests.xctest"
+               BlueprintName = "CocoaAsyncSocketTests (macOS)"
+               ReferencedContainer = "container:CocoaAsyncSocketTests.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -29,6 +29,16 @@
       language = ""
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "D9BC0D8C1A0458EF0059D906"
+               BuildableName = "CocoaAsyncSocketTests.xctest"
+               BlueprintName = "CocoaAsyncSocketTests (macOS)"
+               ReferencedContainer = "container:CocoaAsyncSocketTests.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <AdditionalOptions>
       </AdditionalOptions>
@@ -47,10 +57,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "7D8B70C31BCFA15700D8E273"
-            BuildableName = "CocoaAsyncSocket.framework"
-            BlueprintName = "tvOS CocoaAsyncSocket"
-            ReferencedContainer = "container:CocoaAsyncSocket.xcodeproj">
+            BlueprintIdentifier = "D9BC0D8C1A0458EF0059D906"
+            BuildableName = "CocoaAsyncSocketTests.xctest"
+            BlueprintName = "CocoaAsyncSocketTests (macOS)"
+            ReferencedContainer = "container:CocoaAsyncSocketTests.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <AdditionalOptions>
@@ -65,10 +75,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "7D8B70C31BCFA15700D8E273"
-            BuildableName = "CocoaAsyncSocket.framework"
-            BlueprintName = "tvOS CocoaAsyncSocket"
-            ReferencedContainer = "container:CocoaAsyncSocket.xcodeproj">
+            BlueprintIdentifier = "D9BC0D8C1A0458EF0059D906"
+            BuildableName = "CocoaAsyncSocketTests.xctest"
+            BlueprintName = "CocoaAsyncSocketTests (macOS)"
+            ReferencedContainer = "container:CocoaAsyncSocketTests.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
    </ProfileAction>
