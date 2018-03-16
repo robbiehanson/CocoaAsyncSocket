@@ -9,6 +9,13 @@
 import XCTest
 import CocoaAsyncSocket
 
+public func randomValidPort() -> UInt16 {
+    let minPort = UInt32(1024)
+    let maxPort = UInt32(UINT16_MAX)
+    let value = maxPort - minPort + 1
+    return UInt16(minPort + arc4random_uniform(value))
+}
+
 class SwiftTests: XCTestCase, GCDAsyncSocketDelegate {
     
     var portNumber: UInt16 = 0
@@ -34,13 +41,6 @@ class SwiftTests: XCTestCase, GCDAsyncSocketDelegate {
         clientSocket = nil
         serverSocket = nil
         acceptedServerSocket = nil
-    }
-    
-    fileprivate func randomValidPort() -> UInt16 {
-        let minPort = UInt32(1024)
-        let maxPort = UInt32(UINT16_MAX)
-        let value = maxPort - minPort + 1
-        return UInt16(minPort + arc4random_uniform(value))
     }
 
     func testFullConnection() {

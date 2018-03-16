@@ -27,7 +27,7 @@
 /* Begin PBXFileReference section */
 		6C55C7D11B7838B1006A7440 /* CocoaAsyncSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CocoaAsyncSocket.h; path = Source/CocoaAsyncSocket.h; sourceTree = SOURCE_ROOT; };
 		6CD990101B77868C0011A685 /* CocoaAsyncSocket.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = CocoaAsyncSocket.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		6CD990151B77868C0011A685 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; name = Info.plist; path = Source/Info.plist; sourceTree = "<group>"; };
+		6CD990151B77868C0011A685 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		6CD9902C1B7789680011A685 /* GCDAsyncSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GCDAsyncSocket.h; path = Source/GCD/GCDAsyncSocket.h; sourceTree = SOURCE_ROOT; };
 		6CD9902D1B7789680011A685 /* GCDAsyncSocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GCDAsyncSocket.m; path = Source/GCD/GCDAsyncSocket.m; sourceTree = SOURCE_ROOT; };
 		6CD9902E1B7789680011A685 /* GCDAsyncUdpSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GCDAsyncUdpSocket.h; path = Source/GCD/GCDAsyncUdpSocket.h; sourceTree = SOURCE_ROOT; };
@@ -64,7 +64,7 @@
 		6CD990061B77868C0011A685 = {
 			isa = PBXGroup;
 			children = (
-				6CD990121B77868C0011A685 /* CocoaAsyncSocket */,
+				6CD990121B77868C0011A685 /* Source */,
 				6CD990111B77868C0011A685 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -79,14 +79,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		6CD990121B77868C0011A685 /* CocoaAsyncSocket */ = {
+		6CD990121B77868C0011A685 /* Source */ = {
 			isa = PBXGroup;
 			children = (
 				6CD9902A1B7789220011A685 /* GCD */,
 				6CD990151B77868C0011A685 /* Info.plist */,
 				6C55C7D11B7838B1006A7440 /* CocoaAsyncSocket.h */,
 			);
-			path = CocoaAsyncSocket;
+			path = Source;
 			sourceTree = "<group>";
 		};
 		6CD9902A1B7789220011A685 /* GCD */ = {
@@ -97,8 +97,7 @@
 				6CD9902E1B7789680011A685 /* GCDAsyncUdpSocket.h */,
 				6CD9902F1B7789680011A685 /* GCDAsyncUdpSocket.m */,
 			);
-			name = GCD;
-			path = Source/GCD;
+			path = GCD;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
