@@ -4194,7 +4194,7 @@ enum GCDAsyncSocketConfig
     struct sockaddr_un nativeAddr;
     nativeAddr.sun_family = AF_UNIX;
     strlcpy(nativeAddr.sun_path, path.fileSystemRepresentation, sizeof(nativeAddr.sun_path));
-    nativeAddr.sun_len = SUN_LEN(&nativeAddr);
+    nativeAddr.sun_len = (unsigned char)SUN_LEN(&nativeAddr);
     NSData *interface = [NSData dataWithBytes:&nativeAddr length:sizeof(struct sockaddr_un)];
 	
 	return interface;
