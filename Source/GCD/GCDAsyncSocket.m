@@ -441,8 +441,7 @@ enum GCDAsyncSocketConfig
 	if (readLength > 0)
 	{
 		// Read a specific length of data
-		
-		result = MIN(defaultValue, (readLength - bytesDone));
+		result = readLength - bytesDone;
 		
 		// There is no need to prebuffer since we know exactly how much data we need to read.
 		// Even if the buffer isn't currently big enough to fit this amount of data,
