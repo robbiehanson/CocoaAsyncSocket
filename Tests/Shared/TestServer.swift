@@ -145,7 +145,7 @@ extension TestServer {
 		self.accept()
 		client.connect(on: self.port)
 
-		let result = waiter.wait(for: [didConnect], timeout: 2.0)
+		let _ = waiter.wait(for: [didConnect], timeout: 2.0)
 
 		guard let accepted = self.lastAcceptedSocket else {
 			fatalError("No socket connected on \(self.port)")
