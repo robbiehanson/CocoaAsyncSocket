@@ -47,51 +47,62 @@ class TestServer: NSObject {
 		}
 	}()
 
+	private static func randomValidPort() -> UInt16 {
+		let minPort = UInt32(1024)
+		let maxPort = UInt32(UINT16_MAX)
+		let value = maxPort - minPort + 1
+
+		return UInt16(minPort + arc4random_uniform(value))
+	}
+
+	// MARK: Convenience Callbacks
+
 	typealias Callback = TestSocket.Callback
 
-	var onAccept: Callback = {}
+	var onAccept: Callback
+	var onDisconnect: Callback
 
-	var port: UInt16 = 1234
+	let port: UInt16 = TestServer.randomValidPort()
+	let queue = DispatchQueue(label: "com.asyncSocket.TestServerDelegate")
+	let socket: GCDAsyncSocket
 
-	var lastAcceptedSocket: GCDAsyncSocket? = nil
+	var lastAcceptedSocket: TestSocket? = nil
 
-	lazy var socket: GCDAsyncSocket = { [weak self] in
-		let label = "com.asyncSocket.TestServerDelegate"
-		let queue = DispatchQueue(label: label)
+	override init() {
+		self.socket = GCDAsyncSocket()
+		super.init()
 
-		return GCDAsyncSocket(delegate: self, delegateQueue: queue)
-		}()
+		self.socket.delegate = self
+		self.socket.delegateQueue = self.queue
+	}
 
-	func accept() -> TestSocket {
-		let waiter = XCTWaiter(delegate: TestSocket.waiterDelegate)
-		let didAccept = XCTestExpectation(description: "Accepted socket")
-
-		self.onAccept = {
-			didAccept.fulfill()
-		}
-
+	func accept() {
 		do {
 			try self.socket.accept(onPort: self.port)
 		}
 		catch {
 			fatalError("Failed to accept on port \(self.port): \(error)")
 		}
-
-		waiter.wait(for: [didAccept], timeout: 0.1)
-
-		guard let accepted = self.lastAcceptedSocket else {
-			fatalError("No socket connected")
-		}
-
-		let socket = TestSocket(socket: accepted)
-		accepted.delegate = socket
-		accepted.delegateQueue = socket.queue
-
-		return socket
 	}
 
-	deinit {
-		self.socket.disconnect()
+	func close() {
+		let waiter = XCTWaiter(delegate: TestSocket.waiterDelegate)
+		let didDisconnect = XCTestExpectation(description: "Server disconnected")
+
+		self.queue.async {
+			guard self.socket.isConnected else {
+				didDisconnect.fulfill()
+				return
+			}
+
+			self.onDisconnect = {
+				didDisconnect.fulfill()
+			}
+
+			self.socket.disconnect()
+		}
+
+		waiter.wait(for: [didDisconnect], timeout: 0.2)
 	}
 }
 
@@ -100,9 +111,66 @@ class TestServer: NSObject {
 extension TestServer: GCDAsyncSocketDelegate {
 
 	func socket(_ sock: GCDAsyncSocket, didAcceptNewSocket newSocket: GCDAsyncSocket) {
-		self.lastAcceptedSocket = newSocket
+		self.lastAcceptedSocket = TestSocket(socket: newSocket)
 
-		self.onAccept()
-		self.onAccept = {}
+		self.onAccept?()
+		self.onAccept = nil
+	}
+
+	func socketDidDisconnect(_ sock: GCDAsyncSocket, withError err: Error?) {
+		self.onDisconnect?()
+		self.onDisconnect = nil
+	}
+}
+
+// MARK: Factory
+
+extension TestServer {
+
+	func createPair() -> (client: TestSocket, accepted: TestSocket) {
+		let waiter = XCTWaiter(delegate: TestSocket.waiterDelegate)
+		let didConnect = XCTestExpectation(description: "Pair connected")
+		didConnect.expectedFulfillmentCount = 2
+
+		let client = TestSocket()
+
+		self.onAccept = {
+			didConnect.fulfill()
+		}
+
+		client.onConnect = {
+			didConnect.fulfill()
+		}
+
+		self.accept()
+		client.connect(on: self.port)
+
+		let _ = waiter.wait(for: [didConnect], timeout: 2.0)
+
+		guard let accepted = self.lastAcceptedSocket else {
+			fatalError("No socket connected on \(self.port)")
+		}
+
+		return (client, accepted)
+	}
+
+	func createSecurePair() -> (client: TestSocket, accepted: TestSocket) {
+		let (client, accepted) = self.createPair()
+
+		let waiter = XCTWaiter(delegate: TestSocket.waiterDelegate)
+		let didSecure = XCTestExpectation(description: "Socket did secure")
+		didSecure.expectedFulfillmentCount = 2
+
+		accepted.startTLS(as: .server) {
+			didSecure.fulfill()
+		}
+
+		client.startTLS(as: .client) {
+			didSecure.fulfill()
+		}
+
+		waiter.wait(for: [didSecure], timeout: 0.2)
+
+		return (client, accepted)
 	}
 }

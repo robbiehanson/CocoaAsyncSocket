@@ -1,11 +1,5 @@
-osx_image: xcode9.1
+osx_image: xcode9.2
 language: objective-c
-
-before_install:
-  # Fix Travis  xcodebuild exited with 65 https://github.com/travis-ci/travis-ci/issues/6675#issuecomment-257964767
-  - export IOS_SIMULATOR_UDID=`instruments -s devices | grep -m 1 "iPhone 8 (11" | awk -F '[ ]' '{print $4}' | awk -F '[\[]' '{print $2}' | sed 's/.$//'`
-  - echo $IOS_SIMULATOR_UDID
-  - open -a "simulator" --args -CurrentDeviceUDID $IOS_SIMULATOR_UDID
 
 install:
   - cd Tests
@@ -15,8 +9,5 @@ install:
   - cd ../
 
 script:
-  - set -o pipefail
-  - travis_retry xcodebuild -workspace ./Tests/iOS/CocoaAsyncSocket.xcworkspace -scheme CocoaAsyncSocketTestsiOS -sdk iphonesimulator -destination "id=$IOS_SIMULATOR_UDID" test | xcpretty -c
-  - xcodebuild -workspace ./Tests/Mac/CocoaAsyncSocket.xcworkspace -scheme CocoaAsyncSocketTestsMac -sdk macosx -destination 'platform=OS X,arch=x86_64' test | xcpretty -c
-  - xcodebuild -project Tests/Framework/CocoaAsyncSocketTests.xcodeproj -scheme "CocoaAsyncSocketTests (iOS)" -sdk iphonesimulator -destination "id=$IOS_SIMULATOR_UDID" test | xcpretty -c
-  - xcodebuild -project Tests/Framework/CocoaAsyncSocketTests.xcodeproj -scheme "CocoaAsyncSocketTests (macOS)" -sdk macosx -destination 'platform=OS X,arch=x86_64' test | xcpretty -c
+  - export IOS_VERSION="11.2" # waiting for xcode9.3 on Travis
+  - bash Tests/test-all.sh
