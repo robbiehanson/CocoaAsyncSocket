@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name     = 'CocoaAsyncSocket'
-  s.version  = '7.6.1'
+  s.version  = '7.6.3'
   s.license  = { :type => 'public domain', :text => <<-LICENSE
 Public Domain License
 
@@ -28,10 +28,9 @@ Updated and maintained by Deusty LLC and the Apple development community.
 
   s.requires_arc = true
 
-  # dispatch_queue_set_specific() is available in OS X v10.7+ and iOS 5.0+
   s.ios.deployment_target = '5.0'
   s.tvos.deployment_target = '9.0'
-  s.osx.deployment_target = '10.7'
+  s.osx.deployment_target = '10.8'
 
   s.ios.frameworks = 'CFNetwork', 'Security'
   s.tvos.frameworks = 'CFNetwork', 'Security'
