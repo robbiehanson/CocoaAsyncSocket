@@ -1,5 +1,5 @@
 PODS:
-  - CocoaAsyncSocket (7.6.1)
+  - CocoaAsyncSocket (7.6.3)
 
 DEPENDENCIES:
   - CocoaAsyncSocket (from `../../CocoaAsyncSocket.podspec`)
@@ -9,7 +9,7 @@ EXTERNAL SOURCES:
     :path: ../../CocoaAsyncSocket.podspec
 
 SPEC CHECKSUMS:
-  CocoaAsyncSocket: d2e2218081934d7a558199990af5db45b2e832a0
+  CocoaAsyncSocket: 97224bc66770fec0bc5fb373a752a62406cd31ee
 
 PODFILE CHECKSUM: e2d5a11e69cc6a8c9e8f637d8505ac427b7b8e02
 

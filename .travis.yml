@@ -1,12 +1,6 @@
 osx_image: xcode9.2
 language: objective-c
 
-# before_install:
-#   # Fix Travis  xcodebuild exited with 65 https://github.com/travis-ci/travis-ci/issues/6675#issuecomment-257964767
-#   - export IOS_SIMULATOR_UDID=`instruments -s devices | grep -m 1 "iPhone 8 (11" | awk -F '[ ]' '{print $4}' | awk -F '[\[]' '{print $2}' | sed 's/.$//'`
-#   - echo $IOS_SIMULATOR_UDID
-#   - open -a "simulator" --args -CurrentDeviceUDID $IOS_SIMULATOR_UDID
-
 install:
   - cd Tests
   - bundle install
