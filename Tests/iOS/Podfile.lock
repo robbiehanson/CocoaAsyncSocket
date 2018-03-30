@@ -6,11 +6,11 @@ DEPENDENCIES:
 
 EXTERNAL SOURCES:
   CocoaAsyncSocket:
-    :path: "../../CocoaAsyncSocket.podspec"
+    :path: ../../CocoaAsyncSocket.podspec
 
 SPEC CHECKSUMS:
-  CocoaAsyncSocket: 7eadd3f59e1a6c84e2aefc93e9ff7b55156fe174
+  CocoaAsyncSocket: d2e2218081934d7a558199990af5db45b2e832a0
 
 PODFILE CHECKSUM: 7ab0033c45d6145d209ac97a4d0f7905792ec3af
 
-COCOAPODS: 1.2.1
+COCOAPODS: 1.4.0
