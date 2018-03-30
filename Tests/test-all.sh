@@ -3,8 +3,6 @@
 set -e
 set -o pipefail
 
-# Get iOS device UUID
-
 SCRIPT_DIR="$(dirname $0)"
 CODE_SIGNING="CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO"
 
@@ -21,6 +19,7 @@ if [ "${CI}" == "true" ] && [[ -z "${USE_XCPRETTY}" ]] ; then
 fi
 
 if [ "${USE_XCPRETTY}" == "true" ] ; then
+	echo "Using xcpretty..."
 	XCPRETTY=" | xcpretty -c"
 else
 	XCPRETTY=""
@@ -28,7 +27,15 @@ fi
 
 # Run all of the tests
 
-xcodebuild -workspace ./${SCRIPT_DIR}/iOS/CocoaAsyncSocket.xcworkspace -scheme CocoaAsyncSocketTestsiOS -sdk iphonesimulator -destination "${IOS_DESTINATION}" build test ${CODE_SIGNING} ${XCPRETTY}
-xcodebuild -workspace ./${SCRIPT_DIR}/Mac/CocoaAsyncSocket.xcworkspace -scheme CocoaAsyncSocketTestsMac -sdk macosx -destination "${MACOS_DESTINATION}" build test ${CODE_SIGNING} ${XCPRETTY}
-xcodebuild -project ./${SCRIPT_DIR}/Framework/CocoaAsyncSocketTests.xcodeproj -scheme "CocoaAsyncSocketTests (iOS)" -sdk iphonesimulator -destination "${IOS_DESTINATION}" build test ${CODE_SIGNING} ${XCPRETTY}
-xcodebuild -project ./${SCRIPT_DIR}/Framework/CocoaAsyncSocketTests.xcodeproj -scheme "CocoaAsyncSocketTests (macOS)" -sdk macosx -destination "${MACOS_DESTINATION}" build test ${CODE_SIGNING} ${XCPRETTY}
+POD_TEST_IOS="xcodebuild -workspace ./${SCRIPT_DIR}/iOS/CocoaAsyncSocket.xcworkspace -scheme CocoaAsyncSocketTestsiOS -sdk iphonesimulator -destination \"${IOS_DESTINATION}\" test ${CODE_SIGNING} ${XCPRETTY}"
+POD_TEST_MAC="xcodebuild -workspace ./${SCRIPT_DIR}/Mac/CocoaAsyncSocket.xcworkspace -scheme CocoaAsyncSocketTestsMac -sdk macosx -destination \"${MACOS_DESTINATION}\" test ${CODE_SIGNING} ${XCPRETTY}"
+FRAMEWORK_IOS="xcodebuild -project ./${SCRIPT_DIR}/Framework/CocoaAsyncSocketTests.xcodeproj -scheme \"CocoaAsyncSocketTests (iOS)\" -sdk iphonesimulator -destination \"${IOS_DESTINATION}\" test ${CODE_SIGNING} ${XCPRETTY}"
+FRAMEWORK_MAC="xcodebuild -project ./${SCRIPT_DIR}/Framework/CocoaAsyncSocketTests.xcodeproj -scheme \"CocoaAsyncSocketTests (macOS)\" -sdk macosx -destination \"${MACOS_DESTINATION}\" test ${CODE_SIGNING} ${XCPRETTY}"
+
+declare -a TESTS=("${POD_TEST_IOS}" "${POD_TEST_MAC}" "${FRAMEWORK_IOS}" "${FRAMEWORK_MAC}")
+
+for TEST in "${TESTS[@]}"
+do
+   echo "Running test: ${TEST}"
+   eval ${TEST}	
+done
