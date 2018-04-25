@@ -8106,6 +8106,9 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 		return NO;
 	}
 	
+#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 90000
+    return NO;
+#else // __IPHONE_OS_VERSION_MIN_REQUIRED >= 90000
 	BOOL r1, r2;
 	
 	LogVerbose(@"Enabling backgrouding on socket");
@@ -8127,6 +8130,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	}
 	
 	return YES;
+#endif // __IPHONE_OS_VERSION_MIN_REQUIRED >= 90000
 }
 
 /**
