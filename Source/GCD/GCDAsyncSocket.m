@@ -1198,7 +1198,7 @@ enum GCDAsyncSocketConfig
 	[self setDelegateQueue:newDelegateQueue synchronously:YES];
 }
 
-- (void)getDelegate:(__autoreleasing id<GCDAsyncSocketDelegate> *)delegatePtr delegateQueue:(__autoreleasing dispatch_queue_t *)delegateQueuePtr
+- (void)getDelegate:(__autoreleasing id<GCDAsyncSocketDelegate> *)delegatePtr delegateQueue:(dispatch_queue_t *)delegateQueuePtr
 {
 	if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
 	{

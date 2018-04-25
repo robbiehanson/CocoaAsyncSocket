@@ -107,7 +107,7 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
 @property (atomic, assign, readwrite, nullable) dispatch_queue_t delegateQueue;
 #endif
 
-- (void)getDelegate:(__autoreleasing id<GCDAsyncSocketDelegate> __nullable * __nullable)delegatePtr delegateQueue:(__autoreleasing dispatch_queue_t __nullable * __nullable)delegateQueuePtr;
+- (void)getDelegate:(__autoreleasing id<GCDAsyncSocketDelegate> __nullable * __nullable)delegatePtr delegateQueue:(dispatch_queue_t __nullable * __nullable)delegateQueuePtr;
 - (void)setDelegate:(nullable id<GCDAsyncSocketDelegate>)delegate delegateQueue:(nullable dispatch_queue_t)delegateQueue;
 
 /**
