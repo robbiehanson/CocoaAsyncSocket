@@ -92,11 +92,11 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
 /**
  * Create GCDAsyncSocket from already connect BSD socket file descriptor
 **/
-+ (nullable instancetype)socketFromConnectedSocketFD:(int)socketFD socketQueue:(nullable dispatch_queue_t)sq error:(NSError**)error;
++ (nullable instancetype)socketFromConnectedSocketFD:(int)socketFD socketQueue:(nullable dispatch_queue_t)sq error:(NSError * __autoreleasing *)error;
 
-+ (nullable instancetype)socketFromConnectedSocketFD:(int)socketFD delegate:(nullable id<GCDAsyncSocketDelegate>)aDelegate delegateQueue:(nullable dispatch_queue_t)dq error:(NSError**)error;
++ (nullable instancetype)socketFromConnectedSocketFD:(int)socketFD delegate:(nullable id<GCDAsyncSocketDelegate>)aDelegate delegateQueue:(nullable dispatch_queue_t)dq error:(NSError * __autoreleasing *)error;
 
-+ (nullable instancetype)socketFromConnectedSocketFD:(int)socketFD delegate:(nullable id<GCDAsyncSocketDelegate>)aDelegate delegateQueue:(nullable dispatch_queue_t)dq socketQueue:(nullable dispatch_queue_t)sq error:(NSError **)error;
++ (nullable instancetype)socketFromConnectedSocketFD:(int)socketFD delegate:(nullable id<GCDAsyncSocketDelegate>)aDelegate delegateQueue:(nullable dispatch_queue_t)dq socketQueue:(nullable dispatch_queue_t)sq error:(NSError * __autoreleasing *)error;
 
 #pragma mark Configuration
 
@@ -107,7 +107,7 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
 @property (atomic, assign, readwrite, nullable) dispatch_queue_t delegateQueue;
 #endif
 
-- (void)getDelegate:(id<GCDAsyncSocketDelegate> __nullable * __nullable)delegatePtr delegateQueue:(dispatch_queue_t __nullable * __nullable)delegateQueuePtr;
+- (void)getDelegate:(__autoreleasing id<GCDAsyncSocketDelegate> __nullable * __nullable)delegatePtr delegateQueue:(__autoreleasing dispatch_queue_t __nullable * __nullable)delegateQueuePtr;
 - (void)setDelegate:(nullable id<GCDAsyncSocketDelegate>)delegate delegateQueue:(nullable dispatch_queue_t)delegateQueue;
 
 /**
@@ -159,7 +159,7 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
  * 
  * The socket will listen on all available interfaces (e.g. wifi, ethernet, etc)
 **/
-- (BOOL)acceptOnPort:(uint16_t)port error:(NSError **)errPtr;
+- (BOOL)acceptOnPort:(uint16_t)port error:(NSError * __autoreleasing *)errPtr;
 
 /**
  * This method is the same as acceptOnPort:error: with the
@@ -177,7 +177,7 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
  * 
  * To accept connections on any interface pass nil, or simply use the acceptOnPort:error: method.
 **/
-- (BOOL)acceptOnInterface:(nullable NSString *)interface port:(uint16_t)port error:(NSError **)errPtr;
+- (BOOL)acceptOnInterface:(nullable NSString *)interface port:(uint16_t)port error:(NSError * __autoreleasing *)errPtr;
 
 /**
  * Tells the socket to begin listening and accepting connections on the unix domain at the given url.
@@ -186,7 +186,7 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
  *
  * The socket will listen on all available interfaces (e.g. wifi, ethernet, etc)
  **/
-- (BOOL)acceptOnUrl:(NSURL *)url error:(NSError **)errPtr;
+- (BOOL)acceptOnUrl:(NSURL *)url error:(NSError * __autoreleasing *)errPtr;
 
 #pragma mark Connecting
 
@@ -196,7 +196,7 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
  * This method invokes connectToHost:onPort:viaInterface:withTimeout:error:
  * and uses the default interface, and no timeout.
 **/
-- (BOOL)connectToHost:(NSString *)host onPort:(uint16_t)port error:(NSError **)errPtr;
+- (BOOL)connectToHost:(NSString *)host onPort:(uint16_t)port error:(NSError * __autoreleasing *)errPtr;
 
 /**
  * Connects to the given host and port with an optional timeout.
@@ -206,7 +206,7 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
 - (BOOL)connectToHost:(NSString *)host
                onPort:(uint16_t)port
           withTimeout:(NSTimeInterval)timeout
-                error:(NSError **)errPtr;
+                error:(NSError * __autoreleasing *)errPtr;
 
 /**
  * Connects to the given host & port, via the optional interface, with an optional timeout.
@@ -244,7 +244,7 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
                onPort:(uint16_t)port
          viaInterface:(nullable NSString *)interface
           withTimeout:(NSTimeInterval)timeout
-                error:(NSError **)errPtr;
+                error:(NSError * __autoreleasing *)errPtr;
 
 /**
  * Connects to the given address, specified as a sockaddr structure wrapped in a NSData object.
@@ -256,13 +256,13 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
  * 
  * This method invokes connectToAdd
 **/
-- (BOOL)connectToAddress:(NSData *)remoteAddr error:(NSError **)errPtr;
+- (BOOL)connectToAddress:(NSData *)remoteAddr error:(NSError * __autoreleasing *)errPtr;
 
 /**
  * This method is the same as connectToAddress:error: with an additional timeout option.
  * To not time out use a negative time interval, or simply use the connectToAddress:error: method.
 **/
-- (BOOL)connectToAddress:(NSData *)remoteAddr withTimeout:(NSTimeInterval)timeout error:(NSError **)errPtr;
+- (BOOL)connectToAddress:(NSData *)remoteAddr withTimeout:(NSTimeInterval)timeout error:(NSError * __autoreleasing *)errPtr;
 
 /**
  * Connects to the given address, using the specified interface and timeout.
@@ -302,11 +302,11 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
 - (BOOL)connectToAddress:(NSData *)remoteAddr
             viaInterface:(nullable NSString *)interface
              withTimeout:(NSTimeInterval)timeout
-                   error:(NSError **)errPtr;
+                   error:(NSError * __autoreleasing *)errPtr;
 /**
  * Connects to the unix domain socket at the given url, using the specified timeout.
  */
-- (BOOL)connectToUrl:(NSURL *)url withTimeout:(NSTimeInterval)timeout error:(NSError **)errPtr;
+- (BOOL)connectToUrl:(NSURL *)url withTimeout:(NSTimeInterval)timeout error:(NSError * __autoreleasing *)errPtr;
 
 #pragma mark Disconnecting
 
@@ -1024,7 +1024,7 @@ typedef NS_ENUM(NSInteger, GCDAsyncSocketError) {
  *   The addresses are specifically for TCP connections.
  *   You can filter the addresses, if needed, using the other utility methods provided by the class.
 **/
-+ (nullable NSMutableArray *)lookupHost:(NSString *)host port:(uint16_t)port error:(NSError **)errPtr;
++ (nullable NSMutableArray *)lookupHost:(NSString *)host port:(uint16_t)port error:(NSError * __autoreleasing *)errPtr;
 
 /**
  * Extracting host and port information from raw address data.

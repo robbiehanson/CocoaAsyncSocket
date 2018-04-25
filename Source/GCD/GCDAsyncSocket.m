@@ -1037,11 +1037,11 @@ enum GCDAsyncSocketConfig
 
 #pragma mark -
 
-+ (nullable instancetype)socketFromConnectedSocketFD:(int)socketFD socketQueue:(nullable dispatch_queue_t)sq error:(NSError**)error {
++ (nullable instancetype)socketFromConnectedSocketFD:(int)socketFD socketQueue:(nullable dispatch_queue_t)sq error:(NSError * __autoreleasing *)error {
   return [self socketFromConnectedSocketFD:socketFD delegate:nil delegateQueue:NULL socketQueue:sq error:error];
 }
 
-+ (nullable instancetype)socketFromConnectedSocketFD:(int)socketFD delegate:(nullable id<GCDAsyncSocketDelegate>)aDelegate delegateQueue:(nullable dispatch_queue_t)dq error:(NSError**)error {
++ (nullable instancetype)socketFromConnectedSocketFD:(int)socketFD delegate:(nullable id<GCDAsyncSocketDelegate>)aDelegate delegateQueue:(nullable dispatch_queue_t)dq error:(NSError * __autoreleasing *)error {
   return [self socketFromConnectedSocketFD:socketFD delegate:aDelegate delegateQueue:dq socketQueue:NULL error:error];
 }
 
@@ -1198,7 +1198,7 @@ enum GCDAsyncSocketConfig
 	[self setDelegateQueue:newDelegateQueue synchronously:YES];
 }
 
-- (void)getDelegate:(id<GCDAsyncSocketDelegate> *)delegatePtr delegateQueue:(dispatch_queue_t *)delegateQueuePtr
+- (void)getDelegate:(__autoreleasing id<GCDAsyncSocketDelegate> *)delegatePtr delegateQueue:(__autoreleasing dispatch_queue_t *)delegateQueuePtr
 {
 	if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
 	{
@@ -1428,12 +1428,12 @@ enum GCDAsyncSocketConfig
 #pragma mark Accepting
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-- (BOOL)acceptOnPort:(uint16_t)port error:(NSError **)errPtr
+- (BOOL)acceptOnPort:(uint16_t)port error:(NSError * __autoreleasing *)errPtr
 {
 	return [self acceptOnInterface:nil port:port error:errPtr];
 }
 
-- (BOOL)acceptOnInterface:(NSString *)inInterface port:(uint16_t)port error:(NSError **)errPtr
+- (BOOL)acceptOnInterface:(NSString *)inInterface port:(uint16_t)port error:(NSError * __autoreleasing *)errPtr
 {
 	LogTrace();
 	
@@ -1749,7 +1749,7 @@ enum GCDAsyncSocketConfig
 	return result;
 }
 
-- (BOOL)acceptOnUrl:(NSURL *)url error:(NSError **)errPtr;
+- (BOOL)acceptOnUrl:(NSURL *)url error:(NSError * __autoreleasing *)errPtr;
 {
 	LogTrace();
 	
@@ -2095,7 +2095,7 @@ enum GCDAsyncSocketConfig
  * It is shared between the connectToHost and connectToAddress methods.
  * 
 **/
-- (BOOL)preConnectWithInterface:(NSString *)interface error:(NSError **)errPtr
+- (BOOL)preConnectWithInterface:(NSString *)interface error:(NSError * __autoreleasing *)errPtr
 {
 	NSAssert(dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey), @"Must be dispatched on socketQueue");
 	
@@ -2190,7 +2190,7 @@ enum GCDAsyncSocketConfig
 	return YES;
 }
 
-- (BOOL)preConnectWithUrl:(NSURL *)url error:(NSError **)errPtr
+- (BOOL)preConnectWithUrl:(NSURL *)url error:(NSError * __autoreleasing *)errPtr
 {
 	NSAssert(dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey), @"Must be dispatched on socketQueue");
 	
@@ -2245,7 +2245,7 @@ enum GCDAsyncSocketConfig
 	return YES;
 }
 
-- (BOOL)connectToHost:(NSString*)host onPort:(uint16_t)port error:(NSError **)errPtr
+- (BOOL)connectToHost:(NSString*)host onPort:(uint16_t)port error:(NSError * __autoreleasing *)errPtr
 {
 	return [self connectToHost:host onPort:port withTimeout:-1 error:errPtr];
 }
@@ -2253,7 +2253,7 @@ enum GCDAsyncSocketConfig
 - (BOOL)connectToHost:(NSString *)host
                onPort:(uint16_t)port
           withTimeout:(NSTimeInterval)timeout
-                error:(NSError **)errPtr
+                error:(NSError * __autoreleasing *)errPtr
 {
 	return [self connectToHost:host onPort:port viaInterface:nil withTimeout:timeout error:errPtr];
 }
@@ -2262,7 +2262,7 @@ enum GCDAsyncSocketConfig
                onPort:(uint16_t)port
          viaInterface:(NSString *)inInterface
           withTimeout:(NSTimeInterval)timeout
-                error:(NSError **)errPtr
+                error:(NSError * __autoreleasing *)errPtr
 {
 	LogTrace();
 	
@@ -2367,12 +2367,12 @@ enum GCDAsyncSocketConfig
 	return result;
 }
 
-- (BOOL)connectToAddress:(NSData *)remoteAddr error:(NSError **)errPtr
+- (BOOL)connectToAddress:(NSData *)remoteAddr error:(NSError * __autoreleasing *)errPtr
 {
 	return [self connectToAddress:remoteAddr viaInterface:nil withTimeout:-1 error:errPtr];
 }
 
-- (BOOL)connectToAddress:(NSData *)remoteAddr withTimeout:(NSTimeInterval)timeout error:(NSError **)errPtr
+- (BOOL)connectToAddress:(NSData *)remoteAddr withTimeout:(NSTimeInterval)timeout error:(NSError * __autoreleasing *)errPtr
 {
 	return [self connectToAddress:remoteAddr viaInterface:nil withTimeout:timeout error:errPtr];
 }
@@ -2380,7 +2380,7 @@ enum GCDAsyncSocketConfig
 - (BOOL)connectToAddress:(NSData *)inRemoteAddr
             viaInterface:(NSString *)inInterface
              withTimeout:(NSTimeInterval)timeout
-                   error:(NSError **)errPtr
+                   error:(NSError * __autoreleasing *)errPtr
 {
 	LogTrace();
 	
@@ -2481,7 +2481,7 @@ enum GCDAsyncSocketConfig
 	return result;
 }
 
-- (BOOL)connectToUrl:(NSURL *)url withTimeout:(NSTimeInterval)timeout error:(NSError **)errPtr;
+- (BOOL)connectToUrl:(NSURL *)url withTimeout:(NSTimeInterval)timeout error:(NSError * __autoreleasing *)errPtr;
 {
 	LogTrace();
 	
@@ -2615,7 +2615,7 @@ enum GCDAsyncSocketConfig
 	[self closeWithError:error];
 }
 
-- (BOOL)bindSocket:(int)socketFD toInterface:(NSData *)connectInterface error:(NSError **)errPtr
+- (BOOL)bindSocket:(int)socketFD toInterface:(NSData *)connectInterface error:(NSError * __autoreleasing *)errPtr
 {
     // Bind the socket to the desired interface (if needed)
     
@@ -2647,7 +2647,7 @@ enum GCDAsyncSocketConfig
     return YES;
 }
 
-- (int)createSocket:(int)family connectInterface:(NSData *)connectInterface errPtr:(NSError **)errPtr
+- (int)createSocket:(int)family connectInterface:(NSData *)connectInterface errPtr:(NSError * __autoreleasing *)errPtr
 {
     int socketFD = socket(family, SOCK_STREAM, 0);
     
@@ -2762,7 +2762,7 @@ enum GCDAsyncSocketConfig
     }
 }
 
-- (BOOL)connectWithAddress4:(NSData *)address4 address6:(NSData *)address6 error:(NSError **)errPtr
+- (BOOL)connectWithAddress4:(NSData *)address4 address6:(NSData *)address6 error:(NSError * __autoreleasing *)errPtr
 {
 	LogTrace();
 	
@@ -2828,7 +2828,7 @@ enum GCDAsyncSocketConfig
 	return YES;
 }
 
-- (BOOL)connectWithAddressUN:(NSData *)address error:(NSError **)errPtr
+- (BOOL)connectWithAddressUN:(NSData *)address error:(NSError * __autoreleasing *)errPtr
 {
 	LogTrace();
 	
@@ -4022,8 +4022,8 @@ enum GCDAsyncSocketConfig
  * 
  * The returned value is a 'struct sockaddr' wrapped in an NSMutableData object.
 **/
-- (void)getInterfaceAddress4:(NSMutableData **)interfaceAddr4Ptr
-                    address6:(NSMutableData **)interfaceAddr6Ptr
+- (void)getInterfaceAddress4:(NSMutableData * __autoreleasing *)interfaceAddr4Ptr
+                    address6:(NSMutableData * __autoreleasing *)interfaceAddr6Ptr
              fromDescription:(NSString *)interfaceDescription
                         port:(uint16_t)port
 {
@@ -8179,7 +8179,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 #pragma mark Class Utilities
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-+ (NSMutableArray *)lookupHost:(NSString *)host port:(uint16_t)port error:(NSError **)errPtr
++ (NSMutableArray *)lookupHost:(NSString *)host port:(uint16_t)port error:(NSError * __autoreleasing *)errPtr
 {
 	LogTrace();
 	
@@ -8371,12 +8371,12 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	return NO;
 }
 
-+ (BOOL)getHost:(NSString **)hostPtr port:(uint16_t *)portPtr fromAddress:(NSData *)address
++ (BOOL)getHost:(NSString * __autoreleasing *)hostPtr port:(uint16_t *)portPtr fromAddress:(NSData *)address
 {
 	return [self getHost:hostPtr port:portPtr family:NULL fromAddress:address];
 }
 
-+ (BOOL)getHost:(NSString **)hostPtr port:(uint16_t *)portPtr family:(sa_family_t *)afPtr fromAddress:(NSData *)address
++ (BOOL)getHost:(NSString * __autoreleasing *)hostPtr port:(uint16_t *)portPtr family:(sa_family_t *)afPtr fromAddress:(NSData *)address
 {
 	if ([address length] >= sizeof(struct sockaddr))
 	{
