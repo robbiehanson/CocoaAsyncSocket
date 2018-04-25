@@ -7514,7 +7514,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 
 #if TARGET_OS_IPHONE
 
-+ (void)ignore:(id)_
++ (void)ignore:(id)__unused _
 {}
 
 + (void)startCFStreamThreadIfNeeded
@@ -8098,7 +8098,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	return writeStream;
 }
 
-- (BOOL)enableBackgroundingOnSocketWithCaveat:(BOOL)caveat
+- (BOOL)enableBackgroundingOnSocketWithCaveat:(BOOL)__unused caveat
 {
 	if (![self createReadAndWriteStream])
 	{

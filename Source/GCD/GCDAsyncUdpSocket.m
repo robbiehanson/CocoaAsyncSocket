@@ -4729,7 +4729,7 @@ enum GCDAsyncUdpSocketConfig
 
 static NSThread *listenerThread;
 
-+ (void)ignore:(id)_
++ (void)ignore:(id)__unused _
 {}
 
 + (void)startListenerThreadIfNeeded
@@ -5072,7 +5072,7 @@ Failed:
 	return NO;
 }
 
-- (BOOL)addStreamsToRunLoop:(NSError * __autoreleasing *)errPtr
+- (BOOL)addStreamsToRunLoop:(NSError * __autoreleasing *)__unused errPtr
 {
 	LogTrace();
 	
@@ -5185,7 +5185,7 @@ Failed:
 
 #endif
 
-- (void)applicationWillEnterForeground:(NSNotification *)notification
+- (void)applicationWillEnterForeground:(NSNotification *)__unused notification
 {
 	LogTrace();
 	
