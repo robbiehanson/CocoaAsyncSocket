@@ -1453,7 +1453,7 @@ enum GCDAsyncSocketConfig
 		if (socketFD == SOCKET_NULL)
 		{
 			NSString *reason = @"Error in socket() function";
-			err = [self errnoErrorWithReason:reason];
+			err = [self errorWithErrno:errno reason:reason];
 			
 			return SOCKET_NULL;
 		}
@@ -1466,7 +1466,7 @@ enum GCDAsyncSocketConfig
 		if (status == -1)
 		{
 			NSString *reason = @"Error enabling non-blocking IO on socket (fcntl)";
-			err = [self errnoErrorWithReason:reason];
+			err = [self errorWithErrno:errno reason:reason];
 			
 			LogVerbose(@"close(socketFD)");
 			close(socketFD);
@@ -1478,7 +1478,7 @@ enum GCDAsyncSocketConfig
 		if (status == -1)
 		{
 			NSString *reason = @"Error enabling address reuse (setsockopt)";
-			err = [self errnoErrorWithReason:reason];
+			err = [self errorWithErrno:errno reason:reason];
 			
 			LogVerbose(@"close(socketFD)");
 			close(socketFD);
@@ -1491,7 +1491,7 @@ enum GCDAsyncSocketConfig
 		if (status == -1)
 		{
 			NSString *reason = @"Error in bind() function";
-			err = [self errnoErrorWithReason:reason];
+			err = [self errorWithErrno:errno reason:reason];
 			
 			LogVerbose(@"close(socketFD)");
 			close(socketFD);
@@ -1504,7 +1504,7 @@ enum GCDAsyncSocketConfig
 		if (status == -1)
 		{
 			NSString *reason = @"Error in listen() function";
-			err = [self errnoErrorWithReason:reason];
+			err = [self errorWithErrno:errno reason:reason];
 			
 			LogVerbose(@"close(socketFD)");
 			close(socketFD);
@@ -1766,7 +1766,7 @@ enum GCDAsyncSocketConfig
 		if (socketFD == SOCKET_NULL)
 		{
 			NSString *reason = @"Error in socket() function";
-			err = [self errnoErrorWithReason:reason];
+			err = [self errorWithErrno:errno reason:reason];
 			
 			return SOCKET_NULL;
 		}
@@ -1779,7 +1779,7 @@ enum GCDAsyncSocketConfig
 		if (status == -1)
 		{
 			NSString *reason = @"Error enabling non-blocking IO on socket (fcntl)";
-			err = [self errnoErrorWithReason:reason];
+			err = [self errorWithErrno:errno reason:reason];
 			
 			LogVerbose(@"close(socketFD)");
 			close(socketFD);
@@ -1791,7 +1791,7 @@ enum GCDAsyncSocketConfig
 		if (status == -1)
 		{
 			NSString *reason = @"Error enabling address reuse (setsockopt)";
-			err = [self errnoErrorWithReason:reason];
+			err = [self errorWithErrno:errno reason:reason];
 			
 			LogVerbose(@"close(socketFD)");
 			close(socketFD);
@@ -1804,7 +1804,7 @@ enum GCDAsyncSocketConfig
 		if (status == -1)
 		{
 			NSString *reason = @"Error in bind() function";
-			err = [self errnoErrorWithReason:reason];
+			err = [self errorWithErrno:errno reason:reason];
 			
 			LogVerbose(@"close(socketFD)");
 			close(socketFD);
@@ -1817,7 +1817,7 @@ enum GCDAsyncSocketConfig
 		if (status == -1)
 		{
 			NSString *reason = @"Error in listen() function";
-			err = [self errnoErrorWithReason:reason];
+			err = [self errorWithErrno:errno reason:reason];
 			
 			LogVerbose(@"close(socketFD)");
 			close(socketFD);
@@ -2638,7 +2638,7 @@ enum GCDAsyncSocketConfig
         if (result != 0)
         {
             if (errPtr)
-                *errPtr = [self errnoErrorWithReason:@"Error in bind() function"];
+                *errPtr = [self errorWithErrno:errno reason:@"Error in bind() function"];
             
             return NO;
         }
@@ -2654,7 +2654,7 @@ enum GCDAsyncSocketConfig
     if (socketFD == SOCKET_NULL)
     {
         if (errPtr)
-            *errPtr = [self errnoErrorWithReason:@"Error in socket() function"];
+            *errPtr = [self errorWithErrno:errno reason:@"Error in socket() function"];
         
         return socketFD;
     }
@@ -2693,6 +2693,7 @@ enum GCDAsyncSocketConfig
 #pragma clang diagnostic warning "-Wimplicit-retain-self"
         
         int result = connect(socketFD, (const struct sockaddr *)[address bytes], (socklen_t)[address length]);
+        int err = errno;
         
         __strong GCDAsyncSocket *strongSelf = weakSelf;
         if (strongSelf == nil) return_from_block;
@@ -2718,7 +2719,7 @@ enum GCDAsyncSocketConfig
                 // If there are no more sockets trying to connect, we inform the error to the delegate
                 if (strongSelf.socket4FD == SOCKET_NULL && strongSelf.socket6FD == SOCKET_NULL)
                 {
-                    NSError *error = [strongSelf errnoErrorWithReason:@"Error in connect() function"];
+                    NSError *error = [strongSelf errorWithErrno:err reason:@"Error in connect() function"];
                     [strongSelf didNotConnect:aStateIndex error:error];
                 }
             }
@@ -2847,7 +2848,7 @@ enum GCDAsyncSocketConfig
 	if (socketFD == SOCKET_NULL)
 	{
 		if (errPtr)
-			*errPtr = [self errnoErrorWithReason:@"Error in socket() function"];
+			*errPtr = [self errorWithErrno:errno reason:@"Error in socket() function"];
 		
 		return NO;
 	}
@@ -2895,7 +2896,7 @@ enum GCDAsyncSocketConfig
 		{
 			// TODO: Bad file descriptor
 			perror("connect");
-			NSError *error = [self errnoErrorWithReason:@"Error in connect() function"];
+			NSError *error = [self errorWithErrno:errno reason:@"Error in connect() function"];
 			
             dispatch_async(self->socketQueue, ^{ @autoreleasepool {
 				
@@ -3446,13 +3447,13 @@ enum GCDAsyncSocketConfig
 	return [NSError errorWithDomain:@"kCFStreamErrorDomainNetDB" code:gai_error userInfo:userInfo];
 }
 
-- (NSError *)errnoErrorWithReason:(NSString *)reason
+- (NSError *)errorWithErrno:(int)err reason:(NSString *)reason
 {
-	NSString *errMsg = [NSString stringWithUTF8String:strerror(errno)];
+	NSString *errMsg = [NSString stringWithUTF8String:strerror(err)];
 	NSDictionary *userInfo = [NSDictionary dictionaryWithObjectsAndKeys:errMsg, NSLocalizedDescriptionKey,
 	                                                                    reason, NSLocalizedFailureReasonErrorKey, nil];
 	
-	return [NSError errorWithDomain:NSPOSIXErrorDomain code:errno userInfo:userInfo];
+	return [NSError errorWithDomain:NSPOSIXErrorDomain code:err userInfo:userInfo];
 }
 
 - (NSError *)errnoError
@@ -5269,7 +5270,7 @@ enum GCDAsyncSocketConfig
 				if (errno == EWOULDBLOCK)
 					waiting = YES;
 				else
-					error = [self errnoErrorWithReason:@"Error in read() function"];
+					error = [self errorWithErrno:errno reason:@"Error in read() function"];
 				
 				socketFDBytesAvailable = 0;
 			}
@@ -6241,7 +6242,7 @@ enum GCDAsyncSocketConfig
 			}
 			else
 			{
-				error = [self errnoErrorWithReason:@"Error in write() function"];
+				error = [self errorWithErrno:errno reason:@"Error in write() function"];
 			}
 		}
 		else
@@ -6334,7 +6335,7 @@ enum GCDAsyncSocketConfig
 	
 	if (error)
 	{
-		[self closeWithError:[self errnoErrorWithReason:@"Error in write() function"]];
+		[self closeWithError:[self errorWithErrno:errno reason:@"Error in write() function"]];
 	}
 	
 	// Do not add any code here without first adding a return statement in the error case above.
