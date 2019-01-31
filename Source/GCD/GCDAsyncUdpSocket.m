@@ -474,7 +474,7 @@ enum GCDAsyncUdpSocketConfig
 #pragma mark Configuration
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-- (id)delegate
+- (id<GCDAsyncUdpSocketDelegate>)delegate
 {
 	if (dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey))
 	{
