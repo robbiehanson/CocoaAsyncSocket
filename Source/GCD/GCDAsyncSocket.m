@@ -8278,7 +8278,7 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 					// Found IPv6 address.
 					// Wrap the native address structure, and add to results.
 					
-					struct sockaddr_in6 *sockaddr = (struct sockaddr_in6 *)res->ai_addr;
+					struct sockaddr_in6 *sockaddr = (struct sockaddr_in6 *)(void *)res->ai_addr;
 					in_port_t *portPtr = &sockaddr->sin6_port;
 					if ((portPtr != NULL) && (*portPtr == 0)) {
 					        *portPtr = htons(port);
