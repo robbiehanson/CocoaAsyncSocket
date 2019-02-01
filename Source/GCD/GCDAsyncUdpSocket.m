@@ -1038,7 +1038,7 @@ enum GCDAsyncUdpSocketConfig
 
 - (NSError *)badConfigError:(NSString *)errMsg
 {
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+	NSDictionary *userInfo = @{NSLocalizedDescriptionKey : errMsg};
 	
 	return [NSError errorWithDomain:GCDAsyncUdpSocketErrorDomain
 	                           code:GCDAsyncUdpSocketBadConfigError
@@ -1047,7 +1047,7 @@ enum GCDAsyncUdpSocketConfig
 
 - (NSError *)badParamError:(NSString *)errMsg
 {
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+	NSDictionary *userInfo = @{NSLocalizedDescriptionKey : errMsg};
 	
 	return [NSError errorWithDomain:GCDAsyncUdpSocketErrorDomain
 	                           code:GCDAsyncUdpSocketBadParamError
@@ -1057,7 +1057,7 @@ enum GCDAsyncUdpSocketConfig
 - (NSError *)gaiError:(int)gai_error
 {
 	NSString *errMsg = [NSString stringWithCString:gai_strerror(gai_error) encoding:NSASCIIStringEncoding];
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+	NSDictionary *userInfo = @{NSLocalizedDescriptionKey : errMsg};
 	
 	return [NSError errorWithDomain:@"kCFStreamErrorDomainNetDB" code:gai_error userInfo:userInfo];
 }
@@ -1068,10 +1068,10 @@ enum GCDAsyncUdpSocketConfig
 	NSDictionary *userInfo;
 	
 	if (reason)
-		userInfo = [NSDictionary dictionaryWithObjectsAndKeys:errMsg, NSLocalizedDescriptionKey,
-		                                                      reason, NSLocalizedFailureReasonErrorKey, nil];
+		userInfo = @{NSLocalizedDescriptionKey : errMsg,
+					 NSLocalizedFailureReasonErrorKey : reason};
 	else
-		userInfo = [NSDictionary dictionaryWithObjectsAndKeys:errMsg, NSLocalizedDescriptionKey, nil];
+		userInfo = @{NSLocalizedDescriptionKey : errMsg};
 	
 	return [NSError errorWithDomain:NSPOSIXErrorDomain code:errno userInfo:userInfo];
 }
@@ -1090,7 +1090,7 @@ enum GCDAsyncUdpSocketConfig
 	                                                     @"GCDAsyncUdpSocket", [NSBundle mainBundle],
 	                                                     @"Send operation timed out", nil);
 	
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+	NSDictionary *userInfo = @{NSLocalizedDescriptionKey : errMsg};
 	
 	return [NSError errorWithDomain:GCDAsyncUdpSocketErrorDomain
 	                           code:GCDAsyncUdpSocketSendTimeoutError
@@ -1103,14 +1103,14 @@ enum GCDAsyncUdpSocketConfig
 	                                                     @"GCDAsyncUdpSocket", [NSBundle mainBundle],
 	                                                     @"Socket closed", nil);
 	
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+	NSDictionary *userInfo = @{NSLocalizedDescriptionKey : errMsg};
 	
 	return [NSError errorWithDomain:GCDAsyncUdpSocketErrorDomain code:GCDAsyncUdpSocketClosedError userInfo:userInfo];
 }
 
 - (NSError *)otherError:(NSString *)errMsg
 {
-	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:errMsg forKey:NSLocalizedDescriptionKey];
+	NSDictionary *userInfo = @{NSLocalizedDescriptionKey : errMsg};
 	
 	return [NSError errorWithDomain:GCDAsyncUdpSocketErrorDomain
 	                           code:GCDAsyncUdpSocketOtherError
