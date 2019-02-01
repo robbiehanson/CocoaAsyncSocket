@@ -7583,7 +7583,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		if (++cfstreamThreadRetainCount == 1)
 		{
 			cfstreamThread = [[NSThread alloc] initWithTarget:self
-			                                         selector:@selector(cfstreamThread)
+			                                         selector:@selector(cfstreamThread:)
 			                                           object:nil];
 			[cfstreamThread start];
 		}
@@ -7629,7 +7629,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	}});
 }
 
-+ (void)cfstreamThread { @autoreleasepool
++ (void)cfstreamThread:(id)unused { @autoreleasepool
 {
 	[[NSThread currentThread] setName:GCDAsyncSocketThreadName];
 	

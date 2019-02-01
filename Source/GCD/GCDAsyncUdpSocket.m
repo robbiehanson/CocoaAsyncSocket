@@ -4745,13 +4745,13 @@ static NSThread *listenerThread;
 	dispatch_once(&predicate, ^{
 		
 		listenerThread = [[NSThread alloc] initWithTarget:self
-		                                         selector:@selector(listenerThread)
+		                                         selector:@selector(listenerThread:)
 		                                           object:nil];
 		[listenerThread start];
 	});
 }
 
-+ (void)listenerThread
++ (void)listenerThread:(id)unused
 {
 	@autoreleasepool {
 	
