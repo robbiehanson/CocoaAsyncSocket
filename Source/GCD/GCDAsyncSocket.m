@@ -1905,7 +1905,11 @@ enum GCDAsyncSocketConfig
         int socketFD = self->socketUN;
         dispatch_source_t acceptSource = self->acceptUNSource;
 		
+		__weak GCDAsyncSocket *weakSelf = self;
+		
         dispatch_source_set_event_handler(self->acceptUNSource, ^{ @autoreleasepool {
+			
+			__strong GCDAsyncSocket *strongSelf = weakSelf;
 			
 			LogVerbose(@"eventUNBlock");
 			
@@ -1914,7 +1918,7 @@ enum GCDAsyncSocketConfig
 			
 			LogVerbose(@"numPendingConnections: %lu", numPendingConnections);
 			
-			while ([self doAccept:socketFD] && (++i < numPendingConnections));
+			while ([strongSelf doAccept:socketFD] && (++i < numPendingConnections));
 		}});
 		
         dispatch_source_set_cancel_handler(self->acceptUNSource, ^{
