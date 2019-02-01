@@ -202,7 +202,7 @@ enum GCDAsyncSocketConfig
 	uint8_t *writePointer;
 }
 
-- (instancetype)initWithCapacity:(size_t)numBytes;
+- (instancetype)initWithCapacity:(size_t)numBytes NS_DESIGNATED_INITIALIZER;
 
 - (void)ensureCapacityForWrite:(size_t)numBytes;
 
@@ -224,6 +224,13 @@ enum GCDAsyncSocketConfig
 @end
 
 @implementation GCDAsyncSocketPreBuffer
+
+// Cover the superclass' designated initializer
+- (instancetype)init NS_UNAVAILABLE
+{
+	NSAssert(0, @"Use the designated initializer");
+	return nil;
+}
 
 - (instancetype)initWithCapacity:(size_t)numBytes
 {
@@ -354,7 +361,7 @@ enum GCDAsyncSocketConfig
                      timeout:(NSTimeInterval)t
                   readLength:(NSUInteger)l
                   terminator:(NSData *)e
-                         tag:(long)i;
+                         tag:(long)i NS_DESIGNATED_INITIALIZER;
 
 - (void)ensureCapacityForAdditionalDataOfLength:(NSUInteger)bytesToRead;
 
@@ -369,6 +376,13 @@ enum GCDAsyncSocketConfig
 @end
 
 @implementation GCDAsyncReadPacket
+
+// Cover the superclass' designated initializer
+- (instancetype)init NS_UNAVAILABLE
+{
+	NSAssert(0, @"Use the designated initializer");
+	return nil;
+}
 
 - (instancetype)initWithData:(NSMutableData *)d
                  startOffset:(NSUInteger)s
@@ -807,10 +821,17 @@ enum GCDAsyncSocketConfig
 	long tag;
 	NSTimeInterval timeout;
 }
-- (instancetype)initWithData:(NSData *)d timeout:(NSTimeInterval)t tag:(long)i;
+- (instancetype)initWithData:(NSData *)d timeout:(NSTimeInterval)t tag:(long)i NS_DESIGNATED_INITIALIZER;
 @end
 
 @implementation GCDAsyncWritePacket
+
+// Cover the superclass' designated initializer
+- (instancetype)init NS_UNAVAILABLE
+{
+	NSAssert(0, @"Use the designated initializer");
+	return nil;
+}
 
 - (instancetype)initWithData:(NSData *)d timeout:(NSTimeInterval)t tag:(long)i
 {
@@ -840,10 +861,17 @@ enum GCDAsyncSocketConfig
   @public
 	NSDictionary *tlsSettings;
 }
-- (instancetype)initWithTLSSettings:(NSDictionary *)settings;
+- (instancetype)initWithTLSSettings:(NSDictionary *)settings NS_DESIGNATED_INITIALIZER;
 @end
 
 @implementation GCDAsyncSpecialPacket
+
+// Cover the superclass' designated initializer
+- (instancetype)init NS_UNAVAILABLE
+{
+	NSAssert(0, @"Use the designated initializer");
+	return nil;
+}
 
 - (instancetype)initWithTLSSettings:(NSDictionary *)settings
 {

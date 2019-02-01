@@ -181,7 +181,7 @@ typedef BOOL (^GCDAsyncUdpSocketSendFilterBlock)(NSData *data, NSData *address, 
 - (instancetype)init;
 - (instancetype)initWithSocketQueue:(nullable dispatch_queue_t)sq;
 - (instancetype)initWithDelegate:(nullable id <GCDAsyncUdpSocketDelegate>)aDelegate delegateQueue:(nullable dispatch_queue_t)dq;
-- (instancetype)initWithDelegate:(nullable id <GCDAsyncUdpSocketDelegate>)aDelegate delegateQueue:(nullable dispatch_queue_t)dq socketQueue:(nullable dispatch_queue_t)sq;
+- (instancetype)initWithDelegate:(nullable id <GCDAsyncUdpSocketDelegate>)aDelegate delegateQueue:(nullable dispatch_queue_t)dq socketQueue:(nullable dispatch_queue_t)sq NS_DESIGNATED_INITIALIZER;
 
 #pragma mark Configuration
 

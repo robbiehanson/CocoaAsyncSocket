@@ -281,11 +281,18 @@ enum GCDAsyncUdpSocketConfig
 	int addressFamily;
 }
 
-- (instancetype)initWithData:(NSData *)d timeout:(NSTimeInterval)t tag:(long)i;
+- (instancetype)initWithData:(NSData *)d timeout:(NSTimeInterval)t tag:(long)i NS_DESIGNATED_INITIALIZER;
 
 @end
 
 @implementation GCDAsyncUdpSendPacket
+
+// Cover the superclass' designated initializer
+- (instancetype)init NS_UNAVAILABLE
+{
+	NSAssert(0, @"Use the designated initializer");
+	return nil;
+}
 
 - (instancetype)initWithData:(NSData *)d timeout:(NSTimeInterval)t tag:(long)i
 {
@@ -317,7 +324,7 @@ enum GCDAsyncUdpSocketConfig
 	NSError *error;
 }
 
-- (instancetype)init;
+- (instancetype)init NS_DESIGNATED_INITIALIZER;
 
 @end
 
