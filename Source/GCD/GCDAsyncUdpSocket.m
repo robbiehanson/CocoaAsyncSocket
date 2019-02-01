@@ -5185,6 +5185,7 @@ Failed:
 
 #endif
 
+#if TARGET_OS_IPHONE
 - (void)applicationWillEnterForeground:(NSNotification *)notification
 {
 	LogTrace();
@@ -5203,6 +5204,7 @@ Failed:
 	else
 		dispatch_async(socketQueue, block);
 }
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Advanced
