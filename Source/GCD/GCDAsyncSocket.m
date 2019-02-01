@@ -861,7 +861,7 @@ enum GCDAsyncSocketConfig
   @public
 	NSDictionary *tlsSettings;
 }
-- (instancetype)initWithTLSSettings:(NSDictionary *)settings NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithTLSSettings:(NSDictionary <NSString*,NSObject*>*)settings NS_DESIGNATED_INITIALIZER;
 @end
 
 @implementation GCDAsyncSpecialPacket
@@ -873,7 +873,7 @@ enum GCDAsyncSocketConfig
 	return nil;
 }
 
-- (instancetype)initWithTLSSettings:(NSDictionary *)settings
+- (instancetype)initWithTLSSettings:(NSDictionary <NSString*,NSObject*>*)settings
 {
 	if((self = [super init]))
 	{
@@ -4093,7 +4093,8 @@ enum GCDAsyncSocketConfig
 	}
 	if ([components count] > 1 && port == 0)
 	{
-		long portL = strtol([[components objectAtIndex:1] UTF8String], NULL, 10);
+		NSString *temp = [components objectAtIndex:1];
+		long portL = strtol([temp UTF8String], NULL, 10);
 		
 		if (portL > 0 && portL <= UINT16_MAX)
 		{
@@ -6861,7 +6862,8 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	// Create SSLContext, and setup IO callbacks and connection ref
 	
-	BOOL isServer = [[tlsSettings objectForKey:(__bridge NSString *)kCFStreamSSLIsServer] boolValue];
+	NSNumber *isServerNumber = [tlsSettings objectForKey:(__bridge NSString *)kCFStreamSSLIsServer];
+	BOOL isServer = [isServerNumber boolValue];
 	
 	#if TARGET_OS_IPHONE || (__MAC_OS_X_VERSION_MIN_REQUIRED >= 1080)
 	{
@@ -6902,8 +6904,8 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	}
 
 
-	BOOL shouldManuallyEvaluateTrust = [[tlsSettings objectForKey:GCDAsyncSocketManuallyEvaluateTrust] boolValue];
-	if (shouldManuallyEvaluateTrust)
+	NSNumber *shouldManuallyEvaluateTrust = [tlsSettings objectForKey:GCDAsyncSocketManuallyEvaluateTrust];
+	if ([shouldManuallyEvaluateTrust boolValue])
 	{
 		if (isServer)
 		{
@@ -6957,7 +6959,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	// 13. kCFStreamSSLValidatesCertificateChain
 	// 14. kCFStreamSSLLevel
 	
-	id value;
+	NSObject *value;
 	
 	// 1. kCFStreamSSLPeerName
 	
@@ -6989,9 +6991,9 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	value = [tlsSettings objectForKey:(__bridge NSString *)kCFStreamSSLCertificates];
 	if ([value isKindOfClass:[NSArray class]])
 	{
-		CFArrayRef certs = (__bridge CFArrayRef)value;
+		NSArray *certs = (NSArray *)value;
 		
-		status = SSLSetCertificate(sslContext, certs);
+		status = SSLSetCertificate(sslContext, (__bridge CFArrayRef)certs);
 		if (status != noErr)
 		{
 			[self closeWithError:[self otherError:@"Error in SSLSetCertificate"]];
@@ -7083,7 +7085,8 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	value = [tlsSettings objectForKey:GCDAsyncSocketSSLSessionOptionFalseStart];
 	if ([value isKindOfClass:[NSNumber class]])
 	{
-		status = SSLSetSessionOption(sslContext, kSSLSessionOptionFalseStart, [value boolValue]);
+		NSNumber *falseStart = (NSNumber *)value;
+		status = SSLSetSessionOption(sslContext, kSSLSessionOptionFalseStart, [falseStart boolValue]);
 		if (status != noErr)
 		{
 			[self closeWithError:[self otherError:@"Error in SSLSetSessionOption (kSSLSessionOptionFalseStart)"]];
@@ -7103,7 +7106,8 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	value = [tlsSettings objectForKey:GCDAsyncSocketSSLSessionOptionSendOneByteRecord];
 	if ([value isKindOfClass:[NSNumber class]])
 	{
-		status = SSLSetSessionOption(sslContext, kSSLSessionOptionSendOneByteRecord, [value boolValue]);
+		NSNumber *oneByteRecord = (NSNumber *)value;
+		status = SSLSetSessionOption(sslContext, kSSLSessionOptionSendOneByteRecord, [oneByteRecord boolValue]);
 		if (status != noErr)
 		{
 			[self closeWithError:
