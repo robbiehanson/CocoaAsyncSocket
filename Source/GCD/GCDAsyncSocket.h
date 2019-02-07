@@ -308,6 +308,12 @@ typedef NS_ERROR_ENUM(GCDAsyncSocketErrorDomain, GCDAsyncSocketError) {
  */
 - (BOOL)connectToUrl:(NSURL *)url withTimeout:(NSTimeInterval)timeout error:(NSError **)errPtr;
 
+/**
+ * Iterates over the given NetService's addresses in order, and invokes connectToAddress:error:. Stops at the
+ * first invocation that succeeds and returns YES; otherwise returns NO.
+ */
+- (BOOL)connectToNetService:(NSNetService *)netService error:(NSError **)errPtr;
+
 #pragma mark Disconnecting
 
 /**

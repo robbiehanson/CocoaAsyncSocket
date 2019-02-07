@@ -2542,6 +2542,21 @@ enum GCDAsyncSocketConfig
 	return result;
 }
 
+- (BOOL)connectToNetService:(NSNetService *)netService error:(NSError **)errPtr
+{
+	NSArray* addresses = [netService addresses];
+	for (NSData* address in addresses)
+	{
+		BOOL result = [self connectToAddress:address error:errPtr];
+		if (result)
+		{
+			return YES;
+		}
+	}
+	
+	return NO;
+}
+
 - (void)lookup:(int)aStateIndex didSucceedWithAddress4:(NSData *)address4 address6:(NSData *)address6
 {
 	LogTrace();
