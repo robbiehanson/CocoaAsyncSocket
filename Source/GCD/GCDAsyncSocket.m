@@ -1864,8 +1864,9 @@ enum GCDAsyncSocketConfig
 		
 		NSError *error = nil;
 		NSFileManager *fileManager = [NSFileManager defaultManager];
-		if ([fileManager fileExistsAtPath:url.path]) {
-			if (![[NSFileManager defaultManager] removeItemAtURL:url error:&error]) {
+		NSString *urlPath = url.path;
+		if (urlPath && [fileManager fileExistsAtPath:urlPath]) {
+			if (![fileManager removeItemAtURL:url error:&error]) {
 				NSString *msg = @"Could not remove previous unix domain socket at given url.";
 				err = [self otherError:msg];
 				
