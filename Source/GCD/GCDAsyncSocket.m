@@ -1625,6 +1625,7 @@ enum GCDAsyncSocketConfig
 				{
 					LogVerbose(@"close(socket4FD)");
                     close(self->socket4FD);
+                    self->socket4FD = SOCKET_NULL;
 				}
 				
 				return_from_block;
