@@ -1919,15 +1919,15 @@ enum GCDAsyncSocketConfig
         dispatch_source_set_cancel_handler(self->acceptUNSource, ^{
 			
 #if NEEDS_DISPATCH_RETAIN_RELEASE
-			LogVerbose(@"dispatch_release(accept4Source)");
+			LogVerbose(@"dispatch_release(acceptUNSource)");
 			dispatch_release(acceptSource);
 #endif
 			
-			LogVerbose(@"close(socket4FD)");
+			LogVerbose(@"close(socketUN)");
 			close(socketFD);
 		});
 		
-		LogVerbose(@"dispatch_resume(accept4Source)");
+		LogVerbose(@"dispatch_resume(acceptUNSource)");
         dispatch_resume(self->acceptUNSource);
 		
         self->flags |= kSocketStarted;
