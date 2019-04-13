@@ -20,7 +20,7 @@ extern NSString *const GCDAsyncUdpSocketErrorDomain;
 extern NSString *const GCDAsyncUdpSocketQueueName;
 extern NSString *const GCDAsyncUdpSocketThreadName;
 
-typedef NS_ENUM(NSInteger, GCDAsyncUdpSocketError) {
+typedef NS_ERROR_ENUM(GCDAsyncUdpSocketErrorDomain, GCDAsyncUdpSocketError) {
 	GCDAsyncUdpSocketNoError = 0,          // Never used
 	GCDAsyncUdpSocketBadConfigError,       // Invalid configuration
 	GCDAsyncUdpSocketBadParamError,        // Invalid parameter was passed
