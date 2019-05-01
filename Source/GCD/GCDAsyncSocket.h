@@ -747,7 +747,7 @@ typedef NS_ERROR_ENUM(GCDAsyncSocketErrorDomain, GCDAsyncSocketError) {
  * 
  * - GCDAsyncSocketSSLCipherSuites
  *     The values must be of type NSArray.
- *     Each item within the array must be a NSNumber, encapsulating
+ *     Each item within the array must be a NSNumber, encapsulating an SSLCipherSuite.
  *     See Apple's documentation for SSLSetEnabledCiphers.
  *     See also the SSLCipherSuite typedef.
  *
