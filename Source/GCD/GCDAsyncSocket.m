@@ -1864,8 +1864,9 @@ enum GCDAsyncSocketConfig
 		
 		NSError *error = nil;
 		NSFileManager *fileManager = [NSFileManager defaultManager];
-		if ([fileManager fileExistsAtPath:url.path]) {
-			if (![[NSFileManager defaultManager] removeItemAtURL:url error:&error]) {
+		NSString *urlPath = url.path;
+		if (urlPath && [fileManager fileExistsAtPath:urlPath]) {
+			if (![fileManager removeItemAtURL:url error:&error]) {
 				NSString *msg = @"Could not remove previous unix domain socket at given url.";
 				err = [self otherError:msg];
 				
@@ -2540,6 +2541,21 @@ enum GCDAsyncSocketConfig
 	}
 	
 	return result;
+}
+
+- (BOOL)connectToNetService:(NSNetService *)netService error:(NSError **)errPtr
+{
+	NSArray* addresses = [netService addresses];
+	for (NSData* address in addresses)
+	{
+		BOOL result = [self connectToAddress:address error:errPtr];
+		if (result)
+		{
+			return YES;
+		}
+	}
+	
+	return NO;
 }
 
 - (void)lookup:(int)aStateIndex didSucceedWithAddress4:(NSData *)address4 address6:(NSData *)address6
