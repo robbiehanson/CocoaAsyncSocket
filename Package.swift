@@ -23,5 +23,10 @@ let package = Package(
             name: "CocoaAsyncSocket",
             dependencies: ["CocoaLumberjack"],
             path: "Source/GCD"),
+        .testTarget(
+            name: "CocoaAsyncSocketSwiftTest",
+            dependencies: ["CocoaAsyncSocket"],
+            path: "Tests/CocoaAsyncSocketSwiftTest")
+        
     ]
 )
