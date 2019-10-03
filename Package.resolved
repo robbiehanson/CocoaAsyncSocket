@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "CocoaLumberjack",
+        "repositoryURL": "https://github.com/CocoaLumberjack/CocoaLumberjack.git",
+        "state": {
+          "branch": null,
+          "revision": "ded5f5999c853e7fef61fc27db100b169db0e21f",
+          "version": "3.6.0"
+        }
+      }
+    ]
+  },
+  "version": 1
+}
