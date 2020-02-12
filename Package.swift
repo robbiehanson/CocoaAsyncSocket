@@ -20,6 +20,7 @@ let package = Package(
         .target(
             name: "CocoaAsyncSocket",
             dependencies: [],
-            path: "Source/GCD")
+            path: "Source/GCD",
+            publicHeadersPath: "")
     ]
 )
