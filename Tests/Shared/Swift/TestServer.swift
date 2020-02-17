@@ -21,9 +21,8 @@ class TestServer: NSObject {
 	 *    https://developer.apple.com/documentation/security/certificate_key_and_trust_services/identities/importing_an_identity
 	 */
 	static var identity: SecIdentity = {
-		let bundle = Bundle(for: TestServer.self)
 
-		guard let url = bundle.url(forResource: "SecureSocketServer", withExtension: "p12") else {
+		guard let url = credentialsFileURL else {
 			fatalError("Missing the server cert resource from the bundle")
 		}
 
@@ -47,6 +46,20 @@ class TestServer: NSObject {
 		}
 	}()
 
+    static private var credentialsFileURL: URL? {
+        let fileName = "SecureSocketServer"
+        let fileExtension = "p12"
+
+    #if SWIFT_PACKAGE
+        let thisSourceFile = URL(fileURLWithPath: #file)
+        let thisSourceDirectory = thisSourceFile.deletingLastPathComponent()
+        return thisSourceDirectory.appendingPathComponent("\(fileName).\(fileExtension)")
+    #else
+        let bundle = Bundle(for: TestServer.self)
+        return bundle.url(forResource: fileName, withExtension: fileExtension)
+    #endif
+    }
+
 	private static func randomValidPort() -> UInt16 {
 		let minPort = UInt32(1024)
 		let maxPort = UInt32(UINT16_MAX)
@@ -59,8 +72,8 @@ class TestServer: NSObject {
 
 	typealias Callback = TestSocket.Callback
 
-	var onAccept: Callback
-	var onDisconnect: Callback
+	var onAccept: Callback = nil
+	var onDisconnect: Callback = nil
 
 	let port: UInt16 = TestServer.randomValidPort()
 	let queue = DispatchQueue(label: "com.asyncSocket.TestServerDelegate")

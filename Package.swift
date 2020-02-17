@@ -21,6 +21,14 @@ let package = Package(
             name: "CocoaAsyncSocket",
             dependencies: [],
             path: "Source/GCD",
-            publicHeadersPath: "")
+            publicHeadersPath: ""),
+
+        .testTarget(name: "SharedObjCTests",
+                    dependencies: ["CocoaAsyncSocket"],
+                    path: "Tests/Shared/ObjC"),
+
+        .testTarget(name: "SharedSwiftTests",
+                    dependencies: ["CocoaAsyncSocket"],
+                    path: "Tests/Shared/Swift")
     ]
 )
