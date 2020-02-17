@@ -1,4 +1,4 @@
-osx_image: xcode9.2
+osx_image: xcode11.3
 language: objective-c
 
 install:
@@ -11,3 +11,5 @@ install:
 script:
   - export IOS_VERSION="11.2" # waiting for xcode9.3 on Travis
   - bash Tests/test-all.sh
+  - swift build
+  - swift test

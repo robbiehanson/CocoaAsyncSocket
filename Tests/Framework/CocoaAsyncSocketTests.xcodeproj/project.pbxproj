@@ -8,27 +8,30 @@
 
 /* Begin PBXBuildFile section */
 		2DBCA5C81B8CF4F3004F3128 /* GCDAsyncSocketUNTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 2DBCA5C71B8CF4F3004F3128 /* GCDAsyncSocketUNTests.m */; };
-		D900F31E1C753B2A00F0AEF0 /* SwiftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D900F31D1C753B2A00F0AEF0 /* SwiftTests.swift */; };
-		D938B4E51B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */; };
+		8710851223FAA4D90004F896 /* GCDAsyncUdpSocketConnectionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 8710851023FAA4D90004F896 /* GCDAsyncUdpSocketConnectionTests.m */; };
+		8710851323FAA4D90004F896 /* GCDAsyncUdpSocketConnectionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 8710851023FAA4D90004F896 /* GCDAsyncUdpSocketConnectionTests.m */; };
+		8710851423FAA4D90004F896 /* GCDAsyncUdpSocketConnectionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 8710851023FAA4D90004F896 /* GCDAsyncUdpSocketConnectionTests.m */; };
+		8710851523FAA4D90004F896 /* GCDAsyncSocketConnectionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 8710851123FAA4D90004F896 /* GCDAsyncSocketConnectionTests.m */; };
+		8710851623FAA4D90004F896 /* GCDAsyncSocketConnectionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 8710851123FAA4D90004F896 /* GCDAsyncSocketConnectionTests.m */; };
+		8710851723FAA4D90004F896 /* GCDAsyncSocketConnectionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 8710851123FAA4D90004F896 /* GCDAsyncSocketConnectionTests.m */; };
+		8710851E23FAA4E00004F896 /* TestServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8710851923FAA4E00004F896 /* TestServer.swift */; };
+		8710851F23FAA4E00004F896 /* TestServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8710851923FAA4E00004F896 /* TestServer.swift */; };
+		8710852023FAA4E00004F896 /* TestServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8710851923FAA4E00004F896 /* TestServer.swift */; };
+		8710852123FAA4E00004F896 /* SwiftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8710851A23FAA4E00004F896 /* SwiftTests.swift */; };
+		8710852223FAA4E00004F896 /* SwiftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8710851A23FAA4E00004F896 /* SwiftTests.swift */; };
+		8710852323FAA4E00004F896 /* SwiftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8710851A23FAA4E00004F896 /* SwiftTests.swift */; };
+		8710852423FAA4E00004F896 /* SecureSocketServer.p12 in Resources */ = {isa = PBXBuildFile; fileRef = 8710851B23FAA4E00004F896 /* SecureSocketServer.p12 */; };
+		8710852523FAA4E00004F896 /* SecureSocketServer.p12 in Resources */ = {isa = PBXBuildFile; fileRef = 8710851B23FAA4E00004F896 /* SecureSocketServer.p12 */; };
+		8710852623FAA4E00004F896 /* SecureSocketServer.p12 in Resources */ = {isa = PBXBuildFile; fileRef = 8710851B23FAA4E00004F896 /* SecureSocketServer.p12 */; };
+		8710852723FAA4E00004F896 /* TestSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8710851C23FAA4E00004F896 /* TestSocket.swift */; };
+		8710852823FAA4E00004F896 /* TestSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8710851C23FAA4E00004F896 /* TestSocket.swift */; };
+		8710852923FAA4E00004F896 /* TestSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8710851C23FAA4E00004F896 /* TestSocket.swift */; };
+		8710852A23FAA4E00004F896 /* GCDAsyncSocketReadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8710851D23FAA4E00004F896 /* GCDAsyncSocketReadTests.swift */; };
+		8710852B23FAA4E00004F896 /* GCDAsyncSocketReadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8710851D23FAA4E00004F896 /* GCDAsyncSocketReadTests.swift */; };
+		8710852C23FAA4E00004F896 /* GCDAsyncSocketReadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8710851D23FAA4E00004F896 /* GCDAsyncSocketReadTests.swift */; };
 		D9486AE61E62BA0F002FE3B3 /* CocoaAsyncSocket.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D9486AE11E62B9F8002FE3B3 /* CocoaAsyncSocket.framework */; };
-		D9486AEB1E62BA66002FE3B3 /* SwiftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D900F31D1C753B2A00F0AEF0 /* SwiftTests.swift */; };
-		D9486AED1E62BA66002FE3B3 /* GCDAsyncSocketConnectionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */; };
 		D9486AF81E62BADC002FE3B3 /* CocoaAsyncSocket.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D9486ADF1E62B9F8002FE3B3 /* CocoaAsyncSocket.framework */; };
-		D9486AFD1E62BB3D002FE3B3 /* SwiftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D900F31D1C753B2A00F0AEF0 /* SwiftTests.swift */; };
-		D9486AFF1E62BB3D002FE3B3 /* GCDAsyncSocketConnectionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */; };
 		D9486B0A1E62BB62002FE3B3 /* CocoaAsyncSocket.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D9486AE31E62B9F8002FE3B3 /* CocoaAsyncSocket.framework */; };
-		D9E64D4B206EE7E100B4630F /* SecureSocketServer.p12 in Resources */ = {isa = PBXBuildFile; fileRef = D9E64D47206EE7E000B4630F /* SecureSocketServer.p12 */; };
-		D9E64D4C206EE7E100B4630F /* SecureSocketServer.p12 in Resources */ = {isa = PBXBuildFile; fileRef = D9E64D47206EE7E000B4630F /* SecureSocketServer.p12 */; };
-		D9E64D4D206EE7E100B4630F /* SecureSocketServer.p12 in Resources */ = {isa = PBXBuildFile; fileRef = D9E64D47206EE7E000B4630F /* SecureSocketServer.p12 */; };
-		D9E64D4E206EE7E100B4630F /* GCDAsyncSocketReadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9E64D48206EE7E100B4630F /* GCDAsyncSocketReadTests.swift */; };
-		D9E64D4F206EE7E100B4630F /* GCDAsyncSocketReadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9E64D48206EE7E100B4630F /* GCDAsyncSocketReadTests.swift */; };
-		D9E64D50206EE7E100B4630F /* GCDAsyncSocketReadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9E64D48206EE7E100B4630F /* GCDAsyncSocketReadTests.swift */; };
-		D9E64D51206EE7E100B4630F /* TestServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9E64D49206EE7E100B4630F /* TestServer.swift */; };
-		D9E64D52206EE7E100B4630F /* TestServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9E64D49206EE7E100B4630F /* TestServer.swift */; };
-		D9E64D53206EE7E100B4630F /* TestServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9E64D49206EE7E100B4630F /* TestServer.swift */; };
-		D9E64D54206EE7E100B4630F /* TestSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9E64D4A206EE7E100B4630F /* TestSocket.swift */; };
-		D9E64D55206EE7E100B4630F /* TestSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9E64D4A206EE7E100B4630F /* TestSocket.swift */; };
-		D9E64D56206EE7E100B4630F /* TestSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9E64D4A206EE7E100B4630F /* TestSocket.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -78,17 +81,18 @@
 
 /* Begin PBXFileReference section */
 		2DBCA5C71B8CF4F3004F3128 /* GCDAsyncSocketUNTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GCDAsyncSocketUNTests.m; path = ../Mac/GCDAsyncSocketUNTests.m; sourceTree = SOURCE_ROOT; };
-		D900F31D1C753B2A00F0AEF0 /* SwiftTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SwiftTests.swift; path = ../Shared/SwiftTests.swift; sourceTree = "<group>"; };
-		D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GCDAsyncSocketConnectionTests.m; path = ../Shared/GCDAsyncSocketConnectionTests.m; sourceTree = "<group>"; };
+		8710851023FAA4D90004F896 /* GCDAsyncUdpSocketConnectionTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GCDAsyncUdpSocketConnectionTests.m; sourceTree = "<group>"; };
+		8710851123FAA4D90004F896 /* GCDAsyncSocketConnectionTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GCDAsyncSocketConnectionTests.m; sourceTree = "<group>"; };
+		8710851923FAA4E00004F896 /* TestServer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestServer.swift; sourceTree = "<group>"; };
+		8710851A23FAA4E00004F896 /* SwiftTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SwiftTests.swift; sourceTree = "<group>"; };
+		8710851B23FAA4E00004F896 /* SecureSocketServer.p12 */ = {isa = PBXFileReference; lastKnownFileType = file; path = SecureSocketServer.p12; sourceTree = "<group>"; };
+		8710851C23FAA4E00004F896 /* TestSocket.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestSocket.swift; sourceTree = "<group>"; };
+		8710851D23FAA4E00004F896 /* GCDAsyncSocketReadTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GCDAsyncSocketReadTests.swift; sourceTree = "<group>"; };
 		D9486AD81E62B9F8002FE3B3 /* CocoaAsyncSocket.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = CocoaAsyncSocket.xcodeproj; path = ../../CocoaAsyncSocket.xcodeproj; sourceTree = "<group>"; };
 		D9486AF41E62BA66002FE3B3 /* CocoaAsyncSocketTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CocoaAsyncSocketTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D9486B061E62BB3D002FE3B3 /* CocoaAsyncSocketTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CocoaAsyncSocketTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D9BC0D8D1A0458EF0059D906 /* CocoaAsyncSocketTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CocoaAsyncSocketTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D9BC0D901A0458EF0059D906 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; name = Info.plist; path = ../Shared/Info.plist; sourceTree = "<group>"; };
-		D9E64D47206EE7E000B4630F /* SecureSocketServer.p12 */ = {isa = PBXFileReference; lastKnownFileType = file; name = SecureSocketServer.p12; path = ../Shared/SecureSocketServer.p12; sourceTree = "<group>"; };
-		D9E64D48206EE7E100B4630F /* GCDAsyncSocketReadTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = GCDAsyncSocketReadTests.swift; path = ../Shared/GCDAsyncSocketReadTests.swift; sourceTree = "<group>"; };
-		D9E64D49206EE7E100B4630F /* TestServer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = TestServer.swift; path = ../Shared/TestServer.swift; sourceTree = "<group>"; };
-		D9E64D4A206EE7E100B4630F /* TestSocket.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = TestSocket.swift; path = ../Shared/TestSocket.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -126,15 +130,34 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		8710850F23FAA4D90004F896 /* ObjC */ = {
+			isa = PBXGroup;
+			children = (
+				8710851023FAA4D90004F896 /* GCDAsyncUdpSocketConnectionTests.m */,
+				8710851123FAA4D90004F896 /* GCDAsyncSocketConnectionTests.m */,
+			);
+			name = ObjC;
+			path = ../Shared/ObjC;
+			sourceTree = "<group>";
+		};
+		8710851823FAA4E00004F896 /* Swift */ = {
+			isa = PBXGroup;
+			children = (
+				8710851923FAA4E00004F896 /* TestServer.swift */,
+				8710851A23FAA4E00004F896 /* SwiftTests.swift */,
+				8710851B23FAA4E00004F896 /* SecureSocketServer.p12 */,
+				8710851C23FAA4E00004F896 /* TestSocket.swift */,
+				8710851D23FAA4E00004F896 /* GCDAsyncSocketReadTests.swift */,
+			);
+			name = Swift;
+			path = ../Shared/Swift;
+			sourceTree = "<group>";
+		};
 		D938B4E61B752ED800FE8AB3 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
-				D9E64D48206EE7E100B4630F /* GCDAsyncSocketReadTests.swift */,
-				D9E64D47206EE7E000B4630F /* SecureSocketServer.p12 */,
-				D9E64D49206EE7E100B4630F /* TestServer.swift */,
-				D9E64D4A206EE7E100B4630F /* TestSocket.swift */,
-				D938B4E31B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m */,
-				D900F31D1C753B2A00F0AEF0 /* SwiftTests.swift */,
+				8710850F23FAA4D90004F896 /* ObjC */,
+				8710851823FAA4E00004F896 /* Swift */,
 			);
 			name = Shared;
 			sourceTree = "<group>";
@@ -325,7 +348,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D9E64D4C206EE7E100B4630F /* SecureSocketServer.p12 in Resources */,
+				8710852523FAA4E00004F896 /* SecureSocketServer.p12 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -333,7 +356,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D9E64D4D206EE7E100B4630F /* SecureSocketServer.p12 in Resources */,
+				8710852623FAA4E00004F896 /* SecureSocketServer.p12 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -341,7 +364,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D9E64D4B206EE7E100B4630F /* SecureSocketServer.p12 in Resources */,
+				8710852423FAA4E00004F896 /* SecureSocketServer.p12 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -352,11 +375,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D9486AEB1E62BA66002FE3B3 /* SwiftTests.swift in Sources */,
-				D9486AED1E62BA66002FE3B3 /* GCDAsyncSocketConnectionTests.m in Sources */,
-				D9E64D52206EE7E100B4630F /* TestServer.swift in Sources */,
-				D9E64D4F206EE7E100B4630F /* GCDAsyncSocketReadTests.swift in Sources */,
-				D9E64D55206EE7E100B4630F /* TestSocket.swift in Sources */,
+				8710851323FAA4D90004F896 /* GCDAsyncUdpSocketConnectionTests.m in Sources */,
+				8710851623FAA4D90004F896 /* GCDAsyncSocketConnectionTests.m in Sources */,
+				8710851F23FAA4E00004F896 /* TestServer.swift in Sources */,
+				8710852823FAA4E00004F896 /* TestSocket.swift in Sources */,
+				8710852B23FAA4E00004F896 /* GCDAsyncSocketReadTests.swift in Sources */,
+				8710852223FAA4E00004F896 /* SwiftTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -364,11 +388,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D9486AFD1E62BB3D002FE3B3 /* SwiftTests.swift in Sources */,
-				D9486AFF1E62BB3D002FE3B3 /* GCDAsyncSocketConnectionTests.m in Sources */,
-				D9E64D53206EE7E100B4630F /* TestServer.swift in Sources */,
-				D9E64D50206EE7E100B4630F /* GCDAsyncSocketReadTests.swift in Sources */,
-				D9E64D56206EE7E100B4630F /* TestSocket.swift in Sources */,
+				8710851423FAA4D90004F896 /* GCDAsyncUdpSocketConnectionTests.m in Sources */,
+				8710851723FAA4D90004F896 /* GCDAsyncSocketConnectionTests.m in Sources */,
+				8710852023FAA4E00004F896 /* TestServer.swift in Sources */,
+				8710852923FAA4E00004F896 /* TestSocket.swift in Sources */,
+				8710852C23FAA4E00004F896 /* GCDAsyncSocketReadTests.swift in Sources */,
+				8710852323FAA4E00004F896 /* SwiftTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -376,12 +401,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D9E64D54206EE7E100B4630F /* TestSocket.swift in Sources */,
-				D9E64D4E206EE7E100B4630F /* GCDAsyncSocketReadTests.swift in Sources */,
-				D9E64D51206EE7E100B4630F /* TestServer.swift in Sources */,
-				D900F31E1C753B2A00F0AEF0 /* SwiftTests.swift in Sources */,
+				8710851E23FAA4E00004F896 /* TestServer.swift in Sources */,
+				8710851523FAA4D90004F896 /* GCDAsyncSocketConnectionTests.m in Sources */,
+				8710852723FAA4E00004F896 /* TestSocket.swift in Sources */,
+				8710852123FAA4E00004F896 /* SwiftTests.swift in Sources */,
+				8710852A23FAA4E00004F896 /* GCDAsyncSocketReadTests.swift in Sources */,
 				2DBCA5C81B8CF4F3004F3128 /* GCDAsyncSocketUNTests.m in Sources */,
-				D938B4E51B752ED500FE8AB3 /* GCDAsyncSocketConnectionTests.m in Sources */,
+				8710851223FAA4D90004F896 /* GCDAsyncUdpSocketConnectionTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

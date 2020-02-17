@@ -160,10 +160,12 @@ class SwiftTests: XCTestCase, GCDAsyncSocketDelegate {
         
         let socketFD4 = Darwin.socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)
         XCTAssertTrue(socketFD4 >= 0, "Failed to create IPv4 socket");
-        
+
+        let addrSize = MemoryLayout.size(ofValue: addr)
+
         withUnsafeMutablePointer(to: &addr) {
             $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                let errorCode = Darwin.connect(socketFD4, $0, socklen_t(MemoryLayout.size(ofValue: addr)));
+                let errorCode = Darwin.connect(socketFD4, $0, socklen_t(addrSize));
                 XCTAssertTrue(errorCode == 0, "Failed to connect to server");
             }
         }
@@ -194,10 +196,12 @@ class SwiftTests: XCTestCase, GCDAsyncSocketDelegate {
         
         let socketFD6 = Darwin.socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP)
         XCTAssertTrue(socketFD6 >= 0, "Failed to create IPv4 socket");
-        
+
+        let addrSize = MemoryLayout.size(ofValue: addr)
+
         withUnsafeMutablePointer(to: &addr) {
             $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                let errorCode = Darwin.connect(socketFD6, $0, socklen_t(MemoryLayout.size(ofValue: addr)));
+                let errorCode = Darwin.connect(socketFD6, $0, socklen_t(addrSize));
                 XCTAssertTrue(errorCode == 0, "Failed to connect to server");
             }
         }

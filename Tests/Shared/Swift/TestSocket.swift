@@ -28,11 +28,11 @@ class TestSocket: NSObject {
 
 	typealias Callback = Optional<() -> Void>
 
-	var onConnect: Callback
-	var onSecure: Callback
-	var onRead: Callback
-	var onWrite: Callback
-	var onDisconnect: Callback
+	var onConnect: Callback = nil
+	var onSecure: Callback = nil
+	var onRead: Callback = nil
+	var onWrite: Callback = nil
+	var onDisconnect: Callback = nil
 
 	// MARK: Counters
 

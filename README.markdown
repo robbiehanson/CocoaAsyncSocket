@@ -31,6 +31,15 @@ The project is currently configured to build for **iOS**, **tvOS** and **Mac**. 
 
 Select the correct framework(s) and drag it into your project.
 
+#### Swift Package Manager
+
+Simply add the package dependency to your Package.swift and depend on "CocoaAsyncSocket" in the necessary targets:
+```swift
+dependencies: [
+    .package(url: "https://github.com/robbiehanson/CocoaAsyncSocket", from: "7.6.3")
+]
+```
+
 #### Manual
 
 You can also include it into your project by adding the source files directly, but you should probably be using a dependency manager to keep up to date.
