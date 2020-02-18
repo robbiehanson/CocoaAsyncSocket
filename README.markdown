@@ -36,7 +36,7 @@ Select the correct framework(s) and drag it into your project.
 Simply add the package dependency to your Package.swift and depend on "CocoaAsyncSocket" in the necessary targets:
 ```swift
 dependencies: [
-    .package(url: "https://github.com/robbiehanson/CocoaAsyncSocket", from: "7.6.3")
+    .package(url: "https://github.com/robbiehanson/CocoaAsyncSocket", from: "7.6.4")
 ]
 ```
 
