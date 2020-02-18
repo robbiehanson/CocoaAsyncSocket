@@ -2,8 +2,8 @@ osx_image: xcode11.3
 language: objective-c
 
 install:
-  - cd Tests
   - bundle install
+  - cd Tests
   - bundle exec pod install --project-directory=./iOS
   - bundle exec pod install --project-directory=./Mac
   - cd ../
@@ -13,3 +13,4 @@ script:
   - bash Tests/test-all.sh
   - swift build
   - swift test
+  - bundle exec pod lib lint
