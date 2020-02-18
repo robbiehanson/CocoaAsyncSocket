@@ -14,3 +14,4 @@ script:
   - swift build
   - swift test
   - bundle exec pod lib lint
+  - carthage build --no-skip-current && for platform in Mac iOS tvOS; do test -d Carthage/Build/${platform}/CocoaAsyncSocket.framework || exit 1; done
