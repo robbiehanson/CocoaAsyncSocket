@@ -88,9 +88,9 @@
 		8710851B23FAA4E00004F896 /* SecureSocketServer.p12 */ = {isa = PBXFileReference; lastKnownFileType = file; path = SecureSocketServer.p12; sourceTree = "<group>"; };
 		8710851C23FAA4E00004F896 /* TestSocket.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestSocket.swift; sourceTree = "<group>"; };
 		8710851D23FAA4E00004F896 /* GCDAsyncSocketReadTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GCDAsyncSocketReadTests.swift; sourceTree = "<group>"; };
-		D92A3B8B23FB9B250089F6C3 /* CocoaAsyncSocketTests (macOS).xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "CocoaAsyncSocketTests (macOS).xctestplan"; sourceTree = "<group>"; };
-		D92A3B8C23FB9B680089F6C3 /* CocoaAsyncSocketTests (iOS).xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "CocoaAsyncSocketTests (iOS).xctestplan"; sourceTree = "<group>"; };
-		D92A3B8D23FB9B7E0089F6C3 /* CocoaAsyncSocketTests (tvOS).xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "CocoaAsyncSocketTests (tvOS).xctestplan"; sourceTree = "<group>"; };
+		D92A3B9323FBA8400089F6C3 /* CocoaAsyncSocketTests (iOS).xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "CocoaAsyncSocketTests (iOS).xctestplan"; sourceTree = "<group>"; };
+		D92A3B9423FBA8400089F6C3 /* CocoaAsyncSocketTests (tvOS).xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "CocoaAsyncSocketTests (tvOS).xctestplan"; sourceTree = "<group>"; };
+		D92A3B9523FBA8400089F6C3 /* CocoaAsyncSocketTests (macOS).xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "CocoaAsyncSocketTests (macOS).xctestplan"; sourceTree = "<group>"; };
 		D9486AD81E62B9F8002FE3B3 /* CocoaAsyncSocket.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = CocoaAsyncSocket.xcodeproj; path = ../../CocoaAsyncSocket.xcodeproj; sourceTree = "<group>"; };
 		D9486AF41E62BA66002FE3B3 /* CocoaAsyncSocketTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CocoaAsyncSocketTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D9486B061E62BB3D002FE3B3 /* CocoaAsyncSocketTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CocoaAsyncSocketTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -178,6 +178,9 @@
 		D9873DA11A057F34004C014F /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				D92A3B9323FBA8400089F6C3 /* CocoaAsyncSocketTests (iOS).xctestplan */,
+				D92A3B9523FBA8400089F6C3 /* CocoaAsyncSocketTests (macOS).xctestplan */,
+				D92A3B9423FBA8400089F6C3 /* CocoaAsyncSocketTests (tvOS).xctestplan */,
 				D938B4E61B752ED800FE8AB3 /* Shared */,
 				D9BC0D8E1A0458EF0059D906 /* Mac */,
 			);
@@ -189,9 +192,6 @@
 			children = (
 				D9486AD81E62B9F8002FE3B3 /* CocoaAsyncSocket.xcodeproj */,
 				D9873DA11A057F34004C014F /* Tests */,
-				D92A3B8B23FB9B250089F6C3 /* CocoaAsyncSocketTests (macOS).xctestplan */,
-				D92A3B8C23FB9B680089F6C3 /* CocoaAsyncSocketTests (iOS).xctestplan */,
-				D92A3B8D23FB9B7E0089F6C3 /* CocoaAsyncSocketTests (tvOS).xctestplan */,
 				D9BC0D801A0457F40059D906 /* Products */,
 				6BD64EE47346406202F80C93 /* Frameworks */,
 			);

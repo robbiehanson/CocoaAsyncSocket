@@ -9,7 +9,6 @@
     }
   ],
   "defaultOptions" : {
-    "codeCoverage" : false,
     "targetForVariableExpansion" : {
       "containerPath" : "container:CocoaAsyncSocketTests.xcodeproj",
       "identifier" : "D9BC0D8C1A0458EF0059D906",
