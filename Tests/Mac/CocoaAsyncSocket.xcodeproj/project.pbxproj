@@ -30,6 +30,7 @@
 		871084F323FA9C140004F896 /* SecureSocketServer.p12 */ = {isa = PBXFileReference; lastKnownFileType = file; path = SecureSocketServer.p12; sourceTree = "<group>"; };
 		871084F423FA9C140004F896 /* TestSocket.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestSocket.swift; sourceTree = "<group>"; };
 		871084F523FA9C140004F896 /* GCDAsyncSocketReadTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GCDAsyncSocketReadTests.swift; sourceTree = "<group>"; };
+		D92A3B9123FB9DF70089F6C3 /* CocoaAsyncSocketTestsMac.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = file; path = CocoaAsyncSocketTestsMac.xctestplan; sourceTree = SOURCE_ROOT; };
 		D9BC0D8D1A0458EF0059D906 /* CocoaAsyncSocketTestsMac.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CocoaAsyncSocketTestsMac.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D9BC0D901A0458EF0059D906 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -136,6 +137,7 @@
 			isa = PBXGroup;
 			children = (
 				D9BC0D901A0458EF0059D906 /* Info.plist */,
+				D92A3B9123FB9DF70089F6C3 /* CocoaAsyncSocketTestsMac.xctestplan */,
 			);
 			name = "Supporting Files";
 			sourceTree = "<group>";
