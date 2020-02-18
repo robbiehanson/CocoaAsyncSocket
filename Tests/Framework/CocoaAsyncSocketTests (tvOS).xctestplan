@@ -1,0 +1,28 @@
+{
+  "configurations" : [
+    {
+      "id" : "C61183F8-7DFD-424D-9790-E803AA51DE9A",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:CocoaAsyncSocketTests.xcodeproj",
+      "identifier" : "D9486AF91E62BB3D002FE3B3",
+      "name" : "CocoaAsyncSocketTests (tvOS)"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:CocoaAsyncSocketTests.xcodeproj",
+        "identifier" : "D9486AF91E62BB3D002FE3B3",
+        "name" : "CocoaAsyncSocketTests (tvOS)"
+      }
+    }
+  ],
+  "version" : 1
+}

@@ -1,0 +1,28 @@
+{
+  "configurations" : [
+    {
+      "id" : "6F9A4B26-F3B5-4EF1-8DED-DF070B3D3C07",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:CocoaAsyncSocketTests.xcodeproj",
+      "identifier" : "D9486AE71E62BA66002FE3B3",
+      "name" : "CocoaAsyncSocketTests (iOS)"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:CocoaAsyncSocketTests.xcodeproj",
+        "identifier" : "D9486AE71E62BA66002FE3B3",
+        "name" : "CocoaAsyncSocketTests (iOS)"
+      }
+    }
+  ],
+  "version" : 1
+}

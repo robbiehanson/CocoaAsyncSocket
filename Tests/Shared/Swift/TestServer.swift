@@ -115,7 +115,7 @@ class TestServer: NSObject {
 			self.socket.disconnect()
 		}
 
-		waiter.wait(for: [didDisconnect], timeout: 0.2)
+		waiter.wait(for: [didDisconnect], timeout: TestSocket.waiterTimeout)
 	}
 }
 
@@ -158,7 +158,7 @@ extension TestServer {
 		self.accept()
 		client.connect(on: self.port)
 
-		let _ = waiter.wait(for: [didConnect], timeout: 2.0)
+		let _ = waiter.wait(for: [didConnect], timeout: TestSocket.waiterTimeout)
 
 		guard let accepted = self.lastAcceptedSocket else {
 			fatalError("No socket connected on \(self.port)")
@@ -182,7 +182,7 @@ extension TestServer {
 			didSecure.fulfill()
 		}
 
-		waiter.wait(for: [didSecure], timeout: 0.2)
+        waiter.wait(for: [didSecure], timeout: TestSocket.waiterTimeout)
 
 		return (client, accepted)
 	}

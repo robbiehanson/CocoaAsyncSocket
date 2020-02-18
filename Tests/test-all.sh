@@ -7,7 +7,7 @@ SCRIPT_DIR="$(dirname $0)"
 CODE_SIGNING="CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO"
 
 if [[ -z "${IOS_VERSION}" ]] ; then
-	IOS_VERSION="11.3"
+	IOS_VERSION="13.3"
 fi
 
 IOS_DESTINATION="platform=iOS Simulator,name=iPhone 8,OS=${IOS_VERSION}"
