@@ -354,6 +354,7 @@ enum GCDAsyncSocketConfig
 	BOOL bufferOwner;
 	NSUInteger originalBufferLength;
 	long tag;
+    bool isHeader;
 }
 - (instancetype)initWithData:(NSMutableData *)d
                  startOffset:(NSUInteger)s
@@ -400,6 +401,7 @@ enum GCDAsyncSocketConfig
 		readLength = l;
 		term = [e copy];
 		tag = i;
+        isHeader = NO;
 		
 		if (d)
 		{
@@ -4496,6 +4498,16 @@ enum GCDAsyncSocketConfig
             bufferOffset:(NSUInteger)offset
                      tag:(long)tag
 {
+    [self readDataToLength:length withTimeout:timeout buffer:buffer bufferOffset:offset header:NO tag:tag];
+}
+
+- (void)readDataToLength:(NSUInteger)length
+             withTimeout:(NSTimeInterval)timeout
+                  buffer:(NSMutableData *)buffer
+            bufferOffset:(NSUInteger)offset
+                  header:(BOOL)header
+                     tag:(long)tag
+{
 	if (length == 0) {
 		LogWarn(@"Cannot read: length == 0");
 		return;
@@ -4512,7 +4524,8 @@ enum GCDAsyncSocketConfig
 	                                                           readLength:length
 	                                                           terminator:nil
 	                                                                  tag:tag];
-	
+    packet->isHeader = header;
+
 	dispatch_async(socketQueue, ^{ @autoreleasepool {
 		
 		LogTrace();
@@ -4526,6 +4539,11 @@ enum GCDAsyncSocketConfig
 	
 	// Do not rely on the block being run in order to release the packet,
 	// as the queue might get released without the block completing.
+}
+
+- (void)readHeaderToLength:(NSUInteger)length withTimeout:(NSTimeInterval)timeout tag:(long)tag
+{
+    [self readDataToLength:length withTimeout:timeout buffer:nil bufferOffset:0 header:NO tag:tag];
 }
 
 - (void)readDataToData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag
@@ -4554,6 +4572,17 @@ enum GCDAsyncSocketConfig
              maxLength:(NSUInteger)maxLength
                    tag:(long)tag
 {
+    [self readDataToData:data withTimeout:timeout buffer:buffer bufferOffset:offset maxLength:maxLength header:NO tag:tag];
+}
+
+- (void)readDataToData:(NSData *)data
+           withTimeout:(NSTimeInterval)timeout
+                buffer:(NSMutableData *)buffer
+          bufferOffset:(NSUInteger)offset
+             maxLength:(NSUInteger)maxLength
+                header:(BOOL)header
+                   tag:(long)tag
+{
 	if ([data length] == 0) {
 		LogWarn(@"Cannot read: [data length] == 0");
 		return;
@@ -4574,8 +4603,9 @@ enum GCDAsyncSocketConfig
 	                                                           readLength:0
 	                                                           terminator:data
 	                                                                  tag:tag];
-	
-	dispatch_async(socketQueue, ^{ @autoreleasepool {
+    packet->isHeader = header;
+
+    dispatch_async(socketQueue, ^{ @autoreleasepool {
 		
 		LogTrace();
 		
@@ -4588,6 +4618,11 @@ enum GCDAsyncSocketConfig
 	
 	// Do not rely on the block being run in order to release the packet,
 	// as the queue might get released without the block completing.
+}
+
+- (void)readHeaderToData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag
+{
+    [self readDataToData:data withTimeout:timeout buffer:nil bufferOffset:0 maxLength:0 header:YES tag:tag];
 }
 
 - (float)progressOfReadReturningTag:(long *)tagPtr bytesDone:(NSUInteger *)donePtr total:(NSUInteger *)totalPtr
@@ -4654,7 +4689,7 @@ enum GCDAsyncSocketConfig
 	{
 		if ([readQueue count] > 0)
 		{
-			// Dequeue the next object in the write queue
+			// Dequeue the next object in the read queue
 			currentRead = [readQueue objectAtIndex:0];
 			[readQueue removeObjectAtIndex:0];
 			
@@ -5757,15 +5792,41 @@ enum GCDAsyncSocketConfig
 	
 	__strong id<GCDAsyncSocketDelegate> theDelegate = delegate;
 
-	if (delegateQueue && [theDelegate respondsToSelector:@selector(socket:didReadData:withTag:)])
-	{
-		GCDAsyncReadPacket *theRead = currentRead; // Ensure currentRead retained since result may not own buffer
-		
-		dispatch_async(delegateQueue, ^{ @autoreleasepool {
-			
-			[theDelegate socket:self didReadData:result withTag:theRead->tag];
-		}});
-	}
+    // if this was just a header, call didReadHeader
+    if (currentRead->isHeader && delegateQueue && [theDelegate respondsToSelector:@selector(socket:didReadHeader:withTag:)])
+    {
+        // ask delegate how long the rest of the message is
+        NSUInteger length = [theDelegate socket:self didReadHeader:result withTag:currentRead->tag];
+        
+        if (length == 0) {
+            LogWarn(@"Cannot read: length == 0");
+        }
+        else
+        {
+            // make a new read for the remainder of this message
+            GCDAsyncReadPacket *newPacket = [[GCDAsyncReadPacket alloc] initWithData:nil
+                                                                         startOffset:0
+                                                                           maxLength:0
+                                                                             timeout:currentRead->timeout
+                                                                          readLength:length
+                                                                          terminator:nil
+                                                                                 tag:currentRead->tag];
+            // place it at the head of the queue
+            [readQueue insertObject:newPacket atIndex:0];
+            
+            // maybeDequeueRead will be called when this method returns
+        }
+    }
+    // otherwise, call didReadData
+    else if (delegateQueue && [theDelegate respondsToSelector:@selector(socket:didReadData:withTag:)])
+    {
+        GCDAsyncReadPacket *theRead = currentRead; // Ensure currentRead retained since result may not own buffer
+        
+        dispatch_async(delegateQueue, ^{ @autoreleasepool {
+            
+            [theDelegate socket:self didReadData:result withTag:theRead->tag];
+        }});
+    }
 	
 	[self endCurrentRead];
 }

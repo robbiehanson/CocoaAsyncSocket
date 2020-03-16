@@ -638,6 +638,29 @@ typedef NS_ERROR_ENUM(GCDAsyncSocketErrorDomain, GCDAsyncSocketError) {
                    tag:(long)tag;
 
 /**
+ * Reads the given number of bytes as a header to a message of unknown length.
+ * Once the header is read, the delegate method socket:didReadHeader:withTag: is called.
+ * Here you can return the length of the remaining message, which will be read out immediately -
+ * ahead of any other queued reads.
+ *
+ * If the timeout value is negative, the read operation will not use a timeout.
+ *
+ * If the length is 0, this method does nothing and the delegate is not called.
+ **/
+- (void)readHeaderToLength:(NSUInteger)length withTimeout:(NSTimeInterval)timeout tag:(long)tag;
+
+/**
+ * Reads bytes until (and including) the passed "data" parameter, which acts as a separator.
+ * Treats this read as a header to a message of unknown length.
+ * Once the header is read, the delegate method socket:didReadHeader:withTag: is called.
+ * Here you can return the length of the remaining message, which will be read out immediately -
+ * ahead of any other queued reads.
+ *
+ * If the timeout value is negative, the read operation will not use a timeout.
+ **/
+- (void)readHeaderToData:(NSData *)data withTimeout:(NSTimeInterval)timeout tag:(long)tag;
+
+/**
  * Returns progress of the current read, from 0.0 to 1.0, or NaN if no current read (use isnan() to check).
  * The parameters "tag", "done" and "total" will be filled in if they aren't NULL.
 **/
@@ -1112,6 +1135,12 @@ typedef NS_ERROR_ENUM(GCDAsyncSocketErrorDomain, GCDAsyncSocketError) {
  * Not called if there is an error.
 **/
 - (void)socket:(GCDAsyncSocket *)sock didReadData:(NSData *)data withTag:(long)tag;
+
+/**
+ * Called when a socket has completed reading the requested header into memory.
+ * Return the number of bytes remaining in the message, this will be read out immediately.
+ **/
+- (NSUInteger)socket:(GCDAsyncSocket *)sock didReadHeader:(NSData *)data withTag:(long)tag;
 
 /**
  * Called when a socket has read in data, but has not yet completed the read.
