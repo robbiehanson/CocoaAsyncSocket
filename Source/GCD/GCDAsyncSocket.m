@@ -7201,7 +7201,6 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
                      @" - iOS 11.0, macOS 10.13 required");
             [self closeWithError:[self otherError:@"Security option unavailable - GCDAsyncSocketSSLALPN"]];
         }
-
     }
     else if (value)
     {
@@ -7210,7 +7209,6 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
         [self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLALPN."]];
         return;
     }
-    
     
 	// DEPRECATED checks
 	
