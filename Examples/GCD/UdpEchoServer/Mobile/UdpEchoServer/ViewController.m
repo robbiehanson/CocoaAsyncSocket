@@ -8,7 +8,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 #define FORMAT(format, ...) [NSString stringWithFormat:(format), ##__VA_ARGS__]
 
 
-@interface ViewController ()
+@interface ViewController () <WKNavigationDelegate>
 {
 	BOOL isRunning;
 	GCDAsyncUdpSocket *udpSocket;
@@ -148,16 +148,13 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	                 completion:NULL];
 }
 
-- (void)webView:(UIWebView *)webView didFailLoadWithError:(NSError *)error
-{
-	DDLogError(@"webView:didFailLoadWithError: %@", error);
+- (void)webView:(WKWebView *)webView didFailNavigation:(WKNavigation *)navigation withError:(NSError *)error {
+    DDLogError(@"webView:didFailNavigation: %@", error);
 }
 
-- (void)webViewDidFinishLoad:(UIWebView *)sender
-{
-	NSString *scrollToBottom = @"window.scrollTo(document.body.scrollWidth, document.body.scrollHeight);";
-	
-    [sender stringByEvaluatingJavaScriptFromString:scrollToBottom];
+- (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
+    NSString *scrollToBottom = @"window.scrollTo(document.body.scrollWidth, document.body.scrollHeight);";
+    [webView evaluateJavaScript:scrollToBottom completionHandler:nil];
 }
 
 - (void)logError:(NSString *)msg
