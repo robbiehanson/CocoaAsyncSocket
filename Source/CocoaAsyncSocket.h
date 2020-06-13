@@ -6,7 +6,7 @@
 //  CocoaAsyncSocket project is in the public domain.
 //
 
-@import Foundation;
+#import <Foundation/Foundation.h>
 
 //! Project version number for CocoaAsyncSocket.
 FOUNDATION_EXPORT double cocoaAsyncSocketVersionNumber;
