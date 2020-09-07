@@ -13,5 +13,6 @@ script:
   - bash Tests/test-all.sh
   - swift build
   - swift test
+  - swift package generate-xcodeproj --output spm-generated.xcodeproj && xcodebuild -project spm-generated.xcodeproj && rm -rf spm-generated.xcodeproj
   - bundle exec pod lib lint
   - carthage build --no-skip-current && for platform in Mac iOS tvOS; do test -d Carthage/Build/${platform}/CocoaAsyncSocket.framework || exit 1; done

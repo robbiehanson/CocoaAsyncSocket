@@ -25,7 +25,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		6C55C7D11B7838B1006A7440 /* CocoaAsyncSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CocoaAsyncSocket.h; path = Source/CocoaAsyncSocket.h; sourceTree = SOURCE_ROOT; };
+		6C55C7D11B7838B1006A7440 /* CocoaAsyncSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CocoaAsyncSocket.h; path = Source/GCD/CocoaAsyncSocket.h; sourceTree = SOURCE_ROOT; };
 		6CD990101B77868C0011A685 /* CocoaAsyncSocket.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = CocoaAsyncSocket.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		6CD990151B77868C0011A685 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; name = Info.plist; path = Source/Info.plist; sourceTree = "<group>"; };
 		6CD9902C1B7789680011A685 /* GCDAsyncSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GCDAsyncSocket.h; path = Source/GCD/GCDAsyncSocket.h; sourceTree = SOURCE_ROOT; };
@@ -84,7 +84,6 @@
 			children = (
 				6CD9902A1B7789220011A685 /* GCD */,
 				6CD990151B77868C0011A685 /* Info.plist */,
-				6C55C7D11B7838B1006A7440 /* CocoaAsyncSocket.h */,
 			);
 			path = CocoaAsyncSocket;
 			sourceTree = "<group>";
@@ -92,6 +91,7 @@
 		6CD9902A1B7789220011A685 /* GCD */ = {
 			isa = PBXGroup;
 			children = (
+				6C55C7D11B7838B1006A7440 /* CocoaAsyncSocket.h */,
 				6CD9902C1B7789680011A685 /* GCDAsyncSocket.h */,
 				6CD9902D1B7789680011A685 /* GCDAsyncSocket.m */,
 				6CD9902E1B7789680011A685 /* GCDAsyncUdpSocket.h */,
