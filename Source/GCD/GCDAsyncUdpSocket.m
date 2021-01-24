@@ -3570,10 +3570,10 @@ enum GCDAsyncUdpSocketConfig
             struct in_addr interface_addr = nativeIface->sin_addr;
             int status = setsockopt(self->socket4FD, IPPROTO_IP, IP_MULTICAST_IF, &interface_addr, sizeof(interface_addr));
             if (status != 0) {
-                 err = [self errnoErrorWithReason:@"Error in setsockopt() function"];
+                err = [self errnoErrorWithReason:@"Error in setsockopt() function"];
                 return_from_block;
-                result = YES;
-          }
+            }
+            result = YES;
         }
         
      }};
