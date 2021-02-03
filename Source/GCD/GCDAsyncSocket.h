@@ -78,7 +78,7 @@ typedef NS_ERROR_ENUM(GCDAsyncSocketErrorDomain, GCDAsyncSocketError) {
  * use the socket, or you will get an error.
  * 
  * The socket queue is optional.
- * If you pass NULL, GCDAsyncSocket will automatically create it's own socket queue.
+ * If you pass NULL, GCDAsyncSocket will automatically create its own socket queue.
  * If you choose to provide a socket queue, the socket queue must not be a concurrent queue.
  * If you choose to provide a socket queue, and the socket queue has a configured target queue,
  * then please see the discussion for the method markSocketQueueTargetQueue.
