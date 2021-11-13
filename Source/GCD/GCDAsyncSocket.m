@@ -7683,6 +7683,11 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	NSThread *currentThread = [NSThread currentThread];
 	NSRunLoop *currentRunLoop = [NSRunLoop currentRunLoop];
+
+      if (currentThread == nil || currentRunLoop == nil)
+      {
+          return;
+      }
 	
 	BOOL isCancelled = [currentThread isCancelled];
 	
