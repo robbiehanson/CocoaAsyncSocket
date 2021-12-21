@@ -734,6 +734,14 @@ typedef NS_ERROR_ENUM(GCDAsyncSocketErrorDomain, GCDAsyncSocketError) {
  *     This is optional for iOS. If not supplied, a NO value is the default.
  *     This is not needed for Mac OS X, and the value is ignored.
  *
+ * - GCDAsyncSocketSSLClientSideAuthenticate
+ *     The value must be of type NSNumber, encapsulating a SSLAuthenticate value.
+ *     If you set GCDAsyncSocketManuallyEvaluateTrust and kCFStreamSSLIsServer
+ *     both to be true, you must also set this value to a SSLAuthenticate
+ *     that's not kNeverAuthenticate.
+ *     See Apple's documentation for SSLSetClientSideAuthenticate.
+ *     See also the SSLAuthenticate typedef.
+ *
  * - GCDAsyncSocketSSLPeerID
  *     The value must be of type NSData.
  *     You must set this value if you want to use TLS session resumption.
