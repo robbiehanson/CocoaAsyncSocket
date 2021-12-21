@@ -6913,15 +6913,27 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	{
 		if (isServer)
 		{
-			[self closeWithError:[self otherError:@"Manual trust validation is not supported for server sockets"]];
-			return;
+			status = SSLSetClientSideAuthenticate(sslContext, kTryAuthenticate);
+			if (status != noErr)
+			{
+				[self closeWithError:[self otherError:@"Error in SSLSetClientSideAuthenticate"]];
+				return;
+			}
+			status = SSLSetSessionOption(sslContext, kSSLSessionOptionBreakOnClientAuth, true);
+			if (status != noErr)
+			{
+				[self closeWithError:[self otherError:@"Error in SSLSetSessionOption"]];
+				return;
+			}
 		}
-		
-		status = SSLSetSessionOption(sslContext, kSSLSessionOptionBreakOnServerAuth, true);
-		if (status != noErr)
+		else
 		{
-			[self closeWithError:[self otherError:@"Error in SSLSetSessionOption"]];
-			return;
+			status = SSLSetSessionOption(sslContext, kSSLSessionOptionBreakOnServerAuth, true);
+			if (status != noErr)
+			{
+				[self closeWithError:[self otherError:@"Error in SSLSetSessionOption"]];
+				return;
+			}
 		}
 		
 		#if !TARGET_OS_IPHONE && (__MAC_OS_X_VERSION_MIN_REQUIRED < 1080)
