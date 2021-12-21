@@ -116,6 +116,7 @@ NSString *const GCDAsyncSocketQueueName = @"GCDAsyncSocket";
 NSString *const GCDAsyncSocketThreadName = @"GCDAsyncSocket-CFStream";
 
 NSString *const GCDAsyncSocketManuallyEvaluateTrust = @"GCDAsyncSocketManuallyEvaluateTrust";
+NSString *const GCDAsyncSocketSSLClientSideAuthenticate = @"GCDAsyncSocketSSLClientSideAuthenticate";
 #if TARGET_OS_IPHONE
 NSString *const GCDAsyncSocketUseCFStreamForTLS = @"GCDAsyncSocketUseCFStreamForTLS";
 #endif
@@ -6913,12 +6914,22 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	{
 		if (isServer)
 		{
-			status = SSLSetClientSideAuthenticate(sslContext, kTryAuthenticate);
+			NSNumber *value = [tlsSettings objectForKey:GCDAsyncSocketSSLClientSideAuthenticate];
+			SSLAuthenticate auth = (SSLAuthenticate)[value intValue];
+			if (auth == kNeverAuthenticate) {
+				NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLClientSideAuthenticate. Value must not be kNeverAuthenticate.");
+				
+				[self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLClientSideAuthenticate"]];
+				return;
+			}
+			
+			status = SSLSetClientSideAuthenticate(sslContext, auth);
 			if (status != noErr)
 			{
 				[self closeWithError:[self otherError:@"Error in SSLSetClientSideAuthenticate"]];
 				return;
 			}
+			
 			status = SSLSetSessionOption(sslContext, kSSLSessionOptionBreakOnClientAuth, true);
 			if (status != noErr)
 			{

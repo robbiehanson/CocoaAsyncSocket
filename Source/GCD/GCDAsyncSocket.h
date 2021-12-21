@@ -30,6 +30,7 @@ extern NSString *const GCDAsyncSocketQueueName;
 extern NSString *const GCDAsyncSocketThreadName;
 
 extern NSString *const GCDAsyncSocketManuallyEvaluateTrust;
+extern NSString *const GCDAsyncSocketSSLClientSideAuthenticate;
 #if TARGET_OS_IPHONE
 extern NSString *const GCDAsyncSocketUseCFStreamForTLS;
 #endif
