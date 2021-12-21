@@ -34,6 +34,7 @@ class TestSocket: NSObject {
 	var onRead: Callback = nil
 	var onWrite: Callback = nil
 	var onDisconnect: Callback = nil
+	var onReceiveTrust: Optional<(SecTrust) -> Bool> = nil
 
 	// MARK: Counters
 
@@ -134,7 +135,7 @@ extension TestSocket {
 	 *
 	 *  The `callback` will be executed when `socketDidSecure:` is triggered.
 	 */
-	func startTLS(as role: Role, callback: Callback? = nil) {
+	func startTLS(as role: Role, additionalSettings: [String: NSObject] = [:], callback: Callback? = nil) {
 		if let onSecure = callback {
 			self.onSecure = onSecure
 		}
@@ -147,11 +148,11 @@ extension TestSocket {
 				kCFStreamSSLPeerName as String: NSString(string: "SecureSocketServer"),
 				kCFStreamSSLIsServer as String: NSNumber(value: true),
 				kCFStreamSSLCertificates as String: NSArray(array: [TestServer.identity])
-			]
+			].merging(additionalSettings) { old, new in new }
 		case .client:
 			settings = [
 				GCDAsyncSocketManuallyEvaluateTrust: NSNumber(value: true)
-			]
+			].merging(additionalSettings) { old, new in new }
 		}
 
 		self.socket.startTLS(settings)
@@ -184,6 +185,6 @@ extension TestSocket: GCDAsyncSocketDelegate {
 	}
 
 	func socket(_ sock: GCDAsyncSocket, didReceive trust: SecTrust, completionHandler: @escaping (Bool) -> Void) {
-		completionHandler(true) // Trust all the things!!
+		completionHandler(self.onReceiveTrust?(trust) ?? true) // Trust all the things!!
 	}
 }
