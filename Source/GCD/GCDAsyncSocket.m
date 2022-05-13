@@ -7686,7 +7686,7 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	
 	BOOL isCancelled = [currentThread isCancelled];
 	
-	while (!isCancelled && [currentRunLoop runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]])
+    while (!isCancelled && (currentRunLoop != nil) && [currentRunLoop runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]])
 	{
 		isCancelled = [currentThread isCancelled];
 	}
