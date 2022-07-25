@@ -4712,14 +4712,11 @@ enum GCDAsyncSocketConfig
 			// 
 			// Be sure callbacks are enabled so we're notified about a disconnection.
 			
-			if ([preBuffer availableBytes] == 0)
-			{
-				if ([self usingCFStreamForTLS]) {
-					// Callbacks never disabled
-				}
-				else {
-					[self resumeReadSource];
-				}
+			if ([self usingCFStreamForTLS]) {
+				// Callbacks never disabled
+			}
+			else {
+				[self resumeReadSource];
 			}
 		}
 	}
