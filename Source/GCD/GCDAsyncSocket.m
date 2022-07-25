@@ -7722,6 +7722,26 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		CFWriteStreamUnscheduleFromRunLoop(asyncSocket->writeStream, runLoop, kCFRunLoopDefaultMode);
 }
 
++ (void)unscheduleCFReadStreams:(id)input
+{
+    CFReadStreamRef readStream = (__bridge CFReadStreamRef)(input);
+    LogTrace();
+    NSAssert([NSThread currentThread] == cfstreamThread, @"Invoked on wrong thread");
+    CFRunLoopRef runLoop = CFRunLoopGetCurrent();
+    if (readStream)
+        CFReadStreamUnscheduleFromRunLoop(readStream, runLoop, kCFRunLoopDefaultMode);
+}
+
++ (void)unscheduleCFWriteStreams:(id)input
+{
+    CFWriteStreamRef writeStream = (__bridge CFWriteStreamRef)input;
+    LogTrace();
+    NSAssert([NSThread currentThread] == cfstreamThread, @"Invoked on wrong thread");
+    CFRunLoopRef runLoop = CFRunLoopGetCurrent();
+    if (writeStream)
+        CFWriteStreamUnscheduleFromRunLoop(writeStream, runLoop, kCFRunLoopDefaultMode);
+}
+
 static void CFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType type, void *pInfo)
 {
 	GCDAsyncSocket *asyncSocket = (__bridge GCDAsyncSocket *)pInfo;
@@ -7988,11 +8008,16 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 		LogVerbose(@"Removing streams from runloop...");
         
         dispatch_sync(cfstreamThreadSetupQueue, ^{
-            [[self class] performSelector:@selector(unscheduleCFStreams:)
+            [[self class] performSelector:@selector(unscheduleCFReadStreams:)
                                  onThread:cfstreamThread
-                               withObject:self
+                               withObject:(__bridge id _Nullable)self->readStream
+                            waitUntilDone:YES];
+            [[self class] performSelector:@selector(unscheduleCFWriteStreams:)
+                                 onThread:cfstreamThread
+                               withObject:(__bridge id _Nullable)self->writeStream
                             waitUntilDone:YES];
         });
+        
 		[[self class] stopCFStreamThreadIfNeeded];
 		
 		flags &= ~kAddedStreamsToRunLoop;
