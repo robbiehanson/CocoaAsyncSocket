@@ -5469,8 +5469,8 @@ Failed:
 //	
 //	if (readStream4 && writeStream4)
 //	{
-//		r1 = CFReadStreamSetProperty(readStream4, kCFStreamNetworkServiceType, kCFStreamNetworkServiceTypeVoIP);
-//		r2 = CFWriteStreamSetProperty(writeStream4, kCFStreamNetworkServiceType, kCFStreamNetworkServiceTypeVoIP);
+//		r1 = CFReadStreamSetProperty(readStream4, kCFStreamNetworkServiceType, kCFStreamNetworkServiceTypeBackground);
+//		r2 = CFWriteStreamSetProperty(writeStream4, kCFStreamNetworkServiceType, kCFStreamNetworkServiceTypeBackground);
 //		
 //		if (!r1 || !r2)
 //		{
@@ -5481,8 +5481,8 @@ Failed:
 //	
 //	if (readStream6 && writeStream6)
 //	{
-//		r1 = CFReadStreamSetProperty(readStream6, kCFStreamNetworkServiceType, kCFStreamNetworkServiceTypeVoIP);
-//		r2 = CFWriteStreamSetProperty(writeStream6, kCFStreamNetworkServiceType, kCFStreamNetworkServiceTypeVoIP);
+//		r1 = CFReadStreamSetProperty(readStream6, kCFStreamNetworkServiceType, kCFStreamNetworkServiceTypeBackground);
+//		r2 = CFWriteStreamSetProperty(writeStream6, kCFStreamNetworkServiceType, kCFStreamNetworkServiceTypeBackground);
 //		
 //		if (!r1 || !r2)
 //		{
