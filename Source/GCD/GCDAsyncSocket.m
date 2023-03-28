@@ -7664,6 +7664,45 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	}});
 }
 
+/*
+ 详情：
+ libobjc.A.dylib
+ _objc_release + 16
+ 1
+ Foundation
+ -[_NSThreadPerformInfo dealloc] + 56
+ 2
+ Foundation
+ ___NSThreadPerformPerform + 240
+ 3
+ CoreFoundation
+ ___CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ + 28
+ 4
+ CoreFoundation
+ ___CFRunLoopDoSource0 + 208
+ 5
+ CoreFoundation
+ ___CFRunLoopDoSources0 + 268
+ 6
+ CoreFoundation
+ ___CFRunLoopRun + 828
+ 7
+ CoreFoundation
+ _CFRunLoopRunSpecific + 600
+ 8
+ Foundation
+ -[NSRunLoop(NSRunLoop) runMode:beforeDate:] + 236
+ 9
+ Wonderclass
+ +[GCDAsyncSocket cfstreamThread:] (GCDAsyncSocket.m:7686)
+ 10
+ Foundation
+ ___NSThread__start__ + 808
+ 11
+ libsystem_pthread.dylib
+ __pthread_start + 148
+ */
+
 + (void)cfstreamThread:(id)unused { @autoreleasepool
 {
 	[[NSThread currentThread] setName:GCDAsyncSocketThreadName];
@@ -7691,32 +7730,52 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	LogInfo(@"CFStreamThread: Stopped");
 }}
 
-+ (void)scheduleCFStreams:(GCDAsyncSocket *)asyncSocket
++ (void)scheduleCFReadStream:(id)input
 {
-	LogTrace();
-	NSAssert([NSThread currentThread] == cfstreamThread, @"Invoked on wrong thread");
-	
-	CFRunLoopRef runLoop = CFRunLoopGetCurrent();
-	
-	if (asyncSocket->readStream)
-		CFReadStreamScheduleWithRunLoop(asyncSocket->readStream, runLoop, kCFRunLoopDefaultMode);
-	
-	if (asyncSocket->writeStream)
-		CFWriteStreamScheduleWithRunLoop(asyncSocket->writeStream, runLoop, kCFRunLoopDefaultMode);
+    LogTrace();
+    NSAssert([NSThread currentThread] == cfstreamThread, @"Invoked on wrong thread");
+    
+    CFRunLoopRef runLoop = CFRunLoopGetCurrent();
+    CFReadStreamRef readStream = (__bridge CFReadStreamRef)input;
+    if(readStream){
+        CFReadStreamScheduleWithRunLoop(readStream, runLoop, kCFRunLoopDefaultMode);
+    }
 }
 
-+ (void)unscheduleCFStreams:(GCDAsyncSocket *)asyncSocket
++ (void)scheduleCFWriteStream:(id)input
 {
-	LogTrace();
-	NSAssert([NSThread currentThread] == cfstreamThread, @"Invoked on wrong thread");
-	
-	CFRunLoopRef runLoop = CFRunLoopGetCurrent();
-	
-	if (asyncSocket->readStream)
-		CFReadStreamUnscheduleFromRunLoop(asyncSocket->readStream, runLoop, kCFRunLoopDefaultMode);
-	
-	if (asyncSocket->writeStream)
-		CFWriteStreamUnscheduleFromRunLoop(asyncSocket->writeStream, runLoop, kCFRunLoopDefaultMode);
+    LogTrace();
+    NSAssert([NSThread currentThread] == cfstreamThread, @"Invoked on wrong thread");
+    
+    CFRunLoopRef runLoop = CFRunLoopGetCurrent();
+    CFWriteStreamRef writeStream = (__bridge CFWriteStreamRef)input;
+    if(writeStream){
+        CFWriteStreamScheduleWithRunLoop(writeStream, runLoop, kCFRunLoopDefaultMode);
+    }
+}
+
++ (void)unscheduleCFReadStream:(id)input
+{
+    LogTrace();
+    NSAssert([NSThread currentThread] == cfstreamThread, @"Invoked on wrong thread");
+    
+    CFRunLoopRef runLoop = CFRunLoopGetCurrent();
+    CFReadStreamRef readStream = (__bridge CFReadStreamRef)input;
+    if (readStream){
+        CFReadStreamUnscheduleFromRunLoop(readStream, runLoop, kCFRunLoopDefaultMode);
+    }
+}
+
++ (void)unscheduleCFWriteStream:(id)input
+{
+    LogTrace();
+    NSAssert([NSThread currentThread] == cfstreamThread, @"Invoked on wrong thread");
+    
+    CFRunLoopRef runLoop = CFRunLoopGetCurrent();
+    CFWriteStreamRef writeStream = (__bridge CFWriteStreamRef)input;
+    if (writeStream){
+        CFWriteStreamUnscheduleFromRunLoop(writeStream, runLoop, kCFRunLoopDefaultMode);
+    }
 }
 
 static void CFReadStreamCallback (CFReadStreamRef stream, CFStreamEventType type, void *pInfo)
@@ -7962,9 +8021,13 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 		
 		[[self class] startCFStreamThreadIfNeeded];
         dispatch_sync(cfstreamThreadSetupQueue, ^{
-            [[self class] performSelector:@selector(scheduleCFStreams:)
+            [[self class] performSelector:@selector(scheduleCFReadStream:)
                                  onThread:cfstreamThread
-                               withObject:self
+                               withObject:(__bridge id _Nullable)self->readStream
+                            waitUntilDone:YES];
+            [[self class] performSelector:@selector(scheduleCFWriteStream:)
+                                 onThread:cfstreamThread
+                               withObject:(__bridge id _Nullable)self->writeStream
                             waitUntilDone:YES];
         });
 		flags |= kAddedStreamsToRunLoop;
@@ -7985,9 +8048,13 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 		LogVerbose(@"Removing streams from runloop...");
         
         dispatch_sync(cfstreamThreadSetupQueue, ^{
-            [[self class] performSelector:@selector(unscheduleCFStreams:)
+            [[self class] performSelector:@selector(unscheduleCFReadStream:)
                                  onThread:cfstreamThread
-                               withObject:self
+                               withObject:(__bridge id _Nullable)self->readStream
+                            waitUntilDone:YES];
+            [[self class] performSelector:@selector(unscheduleCFWriteStream:)
+                                 onThread:cfstreamThread
+                               withObject:(__bridge id _Nullable)self->writeStream
                             waitUntilDone:YES];
         });
 		[[self class] stopCFStreamThreadIfNeeded];
