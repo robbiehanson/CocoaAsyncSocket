@@ -28,6 +28,8 @@
 #import <sys/uio.h>
 #import <sys/un.h>
 #import <unistd.h>
+#import <mach/mach_init.h>
+#import <mach/vm_map.h>
 
 #if ! __has_feature(objc_arc)
 #warning This file must be compiled with ARC. Use -fobjc-arc flag (or convert project to ARC).
@@ -129,6 +131,70 @@ NSString *const GCDAsyncSocketSSLALPN = @"GCDAsyncSocketSSLALPN";
 #if !TARGET_OS_IPHONE
 NSString *const GCDAsyncSocketSSLDiffieHellmanParameters = @"GCDAsyncSocketSSLDiffieHellmanParameters";
 #endif
+
+// patch CFSocket at runtime to work around a crash
+
+// first, create structs declaring our assumptions of where the needed internal data structures are located
+// this workaround will fail if Apple updates CFSocket to change these structure shapes
+// that _probably_ won't happen because CFSocket is deprecated in favor of the new Network framework
+
+struct __CFSocket {
+    int64_t offset[27];
+    CFSocketContext _context; /* immutable */
+};
+
+typedef struct {
+    int64_t offset[33];
+    struct __CFSocket *_socket;
+} __CFSocketStreamContext;
+
+struct __CFStream {
+    int64_t offset[5];
+    __CFSocketStreamContext *info;
+};
+
+/// safely copies memory from the stack, telling you if it was successful
+static inline vm_size_t copySafely(const void* restrict const src, void* restrict const dst, const vm_size_t byteCount)
+{
+    vm_size_t bytesCopied = 0;
+    kern_return_t result = vm_read_overwrite(mach_task_self(),
+                                             (vm_address_t)src,
+                                             byteCount,
+                                             (vm_address_t)dst,
+                                             &bytesCopied);
+    if (result != KERN_SUCCESS) return 0;
+    return bytesCopied;
+}
+
+/// a 10KB space on the stack for the following function to use. can be safely static because we never read from it
+static char g_memoryTestBuffer[10240];
+/// test if some stack memory is safely readable, to see if unsafe casts will segfault
+static inline bool isMemoryReadable(const void* const memory, const size_t byteCount)
+{
+    const int testBufferSize = sizeof(g_memoryTestBuffer);
+    vm_size_t bytesRemaining = byteCount;
+
+    while (bytesRemaining > 0) {
+        vm_size_t bytesToCopy = bytesRemaining > testBufferSize ? testBufferSize : bytesRemaining;
+        if (copySafely(memory, g_memoryTestBuffer, bytesToCopy) != bytesToCopy) {
+            break;
+        }
+        bytesRemaining -= bytesToCopy;
+    }
+    return bytesRemaining == 0;
+}
+
+/// a static serial queue so that socket context release calls get different threads
+static dispatch_queue_t socket_context_release_queue = nil;
+/// thread-safe async release wrapper
+static void new_context_release(const void *info) {
+    if (socket_context_release_queue == nil) {
+        socket_context_release_queue = dispatch_queue_create("socketContextReleaseQueue", 0x0);
+    }
+    dispatch_async(socket_context_release_queue, ^{
+        CFRelease(info);
+    });
+}
 
 enum GCDAsyncSocketFlags
 {
@@ -7892,9 +7958,26 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	
 	if (readStream)
 		CFReadStreamSetProperty(readStream, kCFStreamPropertyShouldCloseNativeSocket, kCFBooleanFalse);
-	if (writeStream)
+	if (writeStream) {
 		CFWriteStreamSetProperty(writeStream, kCFStreamPropertyShouldCloseNativeSocket, kCFBooleanFalse);
-	
+
+		// replace writeStream's context release function to avoid recursive lock crash
+		if (@available(iOS 16.0, *)) {
+			struct __CFStream *cfstream  = (struct __CFStream *)writeStream;
+			if (isMemoryReadable(cfstream, sizeof(*cfstream))
+				&& isMemoryReadable(cfstream->info, sizeof(*(cfstream->info)))
+				&& isMemoryReadable(cfstream->info->_socket, sizeof(*(cfstream->info->_socket)))
+				&& isMemoryReadable(&(cfstream->info->_socket->_context), sizeof(cfstream->info->_socket->_context))
+				&& isMemoryReadable(cfstream->info->_socket->_context.release, sizeof(*(cfstream->info->_socket->_context.release)))) {
+				if (cfstream->info != NULL && cfstream->info->_socket != NULL) {
+					if ((uintptr_t)cfstream->info->_socket->_context.release == (uintptr_t)CFRelease) {
+						cfstream->info->_socket->_context.release = new_context_release;
+					}
+				}
+			}
+		}
+	}
+
 	if ((readStream == NULL) || (writeStream == NULL))
 	{
 		LogWarn(@"Unable to create read and write stream...");
