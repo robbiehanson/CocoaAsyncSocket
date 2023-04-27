@@ -2989,7 +2989,7 @@ enum GCDAsyncSocketConfig
 	// 
 	// Note:
 	// There may be configuration options that must be set by the delegate before opening the streams.
-	// The primary example is the kCFStreamNetworkServiceTypeVoIP flag, which only works on an unopened stream.
+	// The primary example is the kCFStreamNetworkServiceTypeBackground flag, which only works on an unopened stream.
 	// 
 	// Thus we wait until after the socket:didConnectToHost:port: delegate method has completed.
 	// This gives the delegate time to properly configure the streams if needed.
@@ -8197,8 +8197,8 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-	r1 = CFReadStreamSetProperty(readStream, kCFStreamNetworkServiceType, kCFStreamNetworkServiceTypeVoIP);
-	r2 = CFWriteStreamSetProperty(writeStream, kCFStreamNetworkServiceType, kCFStreamNetworkServiceTypeVoIP);
+	r1 = CFReadStreamSetProperty(readStream, kCFStreamNetworkServiceType, kCFStreamNetworkServiceTypeBackground);
+	r2 = CFWriteStreamSetProperty(writeStream, kCFStreamNetworkServiceType, kCFStreamNetworkServiceTypeBackground);
 #pragma clang diagnostic pop
 
 	if (!r1 || !r2)
